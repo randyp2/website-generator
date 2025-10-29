@@ -9,6 +9,7 @@ export interface FormState {
     linkedin: string;
     customStyle: string;
     theme: string;
+    themeField: string;
     customSectionTitle: string;
     customSectionContent: string;
     currentStep: number;
@@ -35,6 +36,7 @@ export const initialState: FormState = {
     linkedin: '',
     customStyle: '',
     theme: 'apple-dark',
+    themeField: '',
     customSectionTitle: '',
     customSectionContent: '',
     currentStep: 0,

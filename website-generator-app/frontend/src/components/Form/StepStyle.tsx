@@ -9,61 +9,45 @@ interface StepStyleProps {
 }
 
 const STYLES = [
-    { id: "apple", label: "Apple Style", description: "Sleek glassmorphism, green glow" },
-    { id: "neon", label: "Futuristic Neon", description: "Dark with bright accents and glow" },
-    { id: "zen", label: "Nature Zen", description: "Soft greens, calm gradients" },
-    { id: "minimal", label: "Minimal Light", description: "White, clean, subtle shadows" },
-    { id: "cyberpunk", label: "Cyberpunk Dark", description: "Violet base, neon edges" },
+    { 
+      id: "apple", 
+      label: "Apple Style", 
+      description: "Sleek glassmorphism, white glow",
+      longDescription: "Inspired by Apple’s hardware and UI aesthetic: luminous whites, translucent glass panels, and soft white accent glows. Rounded corners, ample whitespace, San-Francisco-style sans-serif fonts. Subtle glassmorphism layering, floating cards with realistic blur, and slow fade or slide animations that feel natural and weightless."
+    },
+    { 
+      id: "neon", 
+      label: "Futuristic Neon", 
+      description: "Dark with bright accents and glow",
+      longDescription: "High-contrast futuristic nightclub energy. Deep charcoal or near-black backgrounds with vivid cyan, magenta, and purple neon lines. Text glows softly; section borders pulse gently. Animated gradient ribbons or circuit-like dividers. Use monospace or geometric fonts and hover effects that shimmer or flicker like LED lights."
+    },
+    { 
+      id: "zen", 
+      label: "Nature Zen", 
+      description: "Soft greens, calm gradients",
+      longDescription: "Calm and organic. Soft gradient backgrounds in sea-green and sky-blue tones. Rounded, flowing shapes reminiscent of water and wind. Gentle opacity transitions, fade-in sections, and minimalist icons drawn with thin strokes. Balanced spacing and natural rhythm, using muted greens and creams for text."
+    },
+    { 
+      id: "minimal", 
+      label: "Minimal Light", 
+      description: "White, clean, subtle shadows",
+      longDescription: "Ultra-clean editorial style. White or off-white backgrounds, subtle shadows, and crisp black typography. Focus on structure and alignment: large headlines, generous spacing, precise grids. Animations are minimal and purpose-driven — fade or slide only. Fonts: Inter, Helvetica, or modern sans-serif. Use gray accents and minimal color contrast."
+    },
+    { 
+      id: "cyberpunk", 
+      label: "Cyberpunk Dark", 
+      description: "Violet base, neon edges",
+      longDescription: "Dystopian sci-fi energy. Base palette of deep violet, indigo, and magenta, contrasted by electric teal and hot pink accents. Use glowing borders, animated scanline textures, and subtle noise overlays. Cards appear to flicker into existence with keyframes. Bold techno fonts, angled separators, and motion-blur effects evoke speed and intensity."
+    },
   ];
+
+
+const CUSTOM_STYLE_CHAR_LIMIT: number = 150;
 
   
 const StepStyle: React.FC<StepStyleProps> = ({ state, updateField }) => {
 
-    // return (
-    //     <>
-    //         {/* <div>
-    //             <label className="block text-sm font-medium text-gray-300 mb-2">
-    //                 Color Palette
-    //             </label>
-    //             <div className="grid grid-cols-3 gap-3">
-    //                 {['green', 'blue', 'purple'].map((color) => (
-    //                     <button
-    //                         key={color}
-    //                         onClick={() => updateField('colorPalette', color)}
-    //                         className={`py-3 rounded-xl font-semibold transition-all ${state.colorPalette === color
-    //                                 ? 'bg-gradient-to-r from-green-500 to-emerald-500 shadow-lg'
-    //                                 : 'bg-gray-700 hover:bg-gray-600'
-    //                             }`}
-    //                     >
-    //                         {color.charAt(0).toUpperCase() + color.slice(1)}
-    //                     </button>
-    //                 ))}
-    //             </div>
-    //         </div>
-    //         <div>
-    //             <label className="block text-sm font-medium text-gray-300 mb-2">
-    //                 Theme
-    //             </label>
-    //             <div className="grid grid-cols-2 gap-3">
-    //                 {['dark', 'light'].map((theme) => (
-    //                     <button
-    //                         key={theme}
-    //                         onClick={() => updateField('theme', theme)}
-    //                         className={`py-3 rounded-xl font-semibold transition-all ${state.theme === theme
-    //                                 ? 'bg-gradient-to-r from-green-500 to-emerald-500 shadow-lg'
-    //                                 : 'bg-gray-700 hover:bg-gray-600'
-    //                             }`}
-    //                     >
-    //                         {theme.charAt(0).toUpperCase() + theme.slice(1)}
-    //                     </button>
-    //                 ))}
-    //             </div>
-    //         </div> */}
-
-            
-    //     </>
-    // );
-
+    
     return (
         <div className="space-y-8">
           {/* ===== Style Presets ===== */}
@@ -78,9 +62,12 @@ const StepStyle: React.FC<StepStyleProps> = ({ state, updateField }) => {
                   key={style.id}
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
-                  onClick={() => updateField("theme", style.id)}
+                  onClick={() => {
+                    updateField("theme", style.id)
+                    updateField("themeField", style.longDescription)
+                  }}
                   className={`w-full text-left p-4 rounded-xl transition-all border 
-                    state.colorPalette === style.id
+                    state.colorPalette === style.id hover: cursor-pointer
                       ? "border-green-500 bg-gradient-to-br from-gray-800 to-gray-900 shadow-lg"
                       : "border-gray-700 bg-gray-800/40 hover:bg-gray-700/60"
                   `}
@@ -119,12 +106,24 @@ const StepStyle: React.FC<StepStyleProps> = ({ state, updateField }) => {
                 value={state.customStyle || ""}
                 onChange={(e) => updateField("customStyle", e.target.value)}
                 className="flex-1 bg-transparent outline-none text-gray-200 placeholder-gray-500"
+                maxLength={CUSTOM_STYLE_CHAR_LIMIT}
               />
               <FiArrowRight className="text-green-400 text-xl" />
             </div>
-            <p className="text-gray-500 text-sm mt-2">
-              Tip: You can describe tweaks (colors, shadows, or vibe). The AI will use these in future generations.
-            </p>
+            
+            {/* Character Counter */}
+            <div className="flex justify-between items-center mt-2">
+              <p className="text-gray-500 text-sm">
+                Tip: You can describe tweaks (colors, shadows, or vibe).
+              </p>
+              <span
+                className={`text-xs font-medium ${
+                  state.customStyle.length >= 150 ? "text-red-400" : (state.customStyle.length >= 100 ? "text-yellow-300" : "text-gray-400")
+                }`}
+              >
+                {state.customStyle.length}/{150}
+              </span>
+            </div>
           </div>
         </div>
       );
