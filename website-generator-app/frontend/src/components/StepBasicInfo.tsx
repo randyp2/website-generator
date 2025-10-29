@@ -6,6 +6,8 @@ interface StepBasicInfoProps {
     updateField: (field: keyof FormState, value: string | string[]) => void;
 }
 
+const ABOUT_YOU_CHAR_LIMIT: number = 500;
+
 const StepBasicInfo: React.FC<StepBasicInfoProps> = ({ state, updateField }) => {
 
     return (
@@ -44,6 +46,20 @@ const StepBasicInfo: React.FC<StepBasicInfoProps> = ({ state, updateField }) => 
                     className="w-full bg-gray-800/50 border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all resize-none"
                     placeholder="Tell us about yourself..."
                 />
+            </div>
+
+            {/* Character Counter */}
+            <div className="flex justify-between items-center -mt-5">
+              <p className="text-gray-500 text-sm">
+                Tip: Describe what you do, your passions, or your background to give AI more context.
+              </p>
+              <span
+                className={`text-xs font-medium ${
+                  state.customStyle.length >= 150 ? "text-red-400" : (state.customStyle.length >= 100 ? "text-yellow-300" : "text-gray-400")
+                }`}
+              >
+                {state.customStyle.length}/{150}
+              </span>
             </div>
         </>
     );
