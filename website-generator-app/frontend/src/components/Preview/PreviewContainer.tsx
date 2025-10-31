@@ -17,7 +17,7 @@ const PreviewContainer: React.FC<PreviewContainerProps> = ({ formData, showPrevi
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.4 }}
-            className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-8 shadow-2xl border border-gray-700 backdrop-blur-lg min-h-[600px] flex items-center justify-center"
+            className="bg-linear-to-br from-gray-900 to-gray-800 rounded-3xl p-8 shadow-2xl border border-gray-700 backdrop-blur-lg min-h-[600px] flex items-center justify-center"
         >
             <AnimatePresence mode="wait">
                 {/* Placeholder before preview */}
@@ -29,7 +29,7 @@ const PreviewContainer: React.FC<PreviewContainerProps> = ({ formData, showPrevi
                         exit={{ opacity: 0 }}
                         className="text-center"
                     >
-                        <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
+                        <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-linear-to-br from-green-400 to-emerald-500 flex items-center justify-center">
                             <FiZap className="text-4xl text-white" />
                         </div>
                         <h3 className="text-2xl font-bold text-gray-300 mb-3">
