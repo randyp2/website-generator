@@ -71,48 +71,48 @@ public class OpenAiServiceImpl implements OpenAiService {
 
 
     public String buildPrompt(FormData formData) {
-      return  """
+        return """
             Generate a single self-contained responsive HTML page with embedded CSS inside <style> tags.
             Return the result as valid JSON with the key "html" only, like:
             { "html": "<!DOCTYPE html>...</html>" }
             
             --- Creative & Visual Requirements ---
-            • Make the site look like a professional interactive portfolio — visually rich and modern.
-            • Include a stunning hero section with the user's name and tagline using large, bold typography.
-            • Add animated gradients, glowing highlights, or blurred glassmorphism backgrounds depending on the theme.
-            • Use creative color palettes, dynamic typography, and depth through shadows or blur.
-            • Add hover and scroll-triggered animations (fade-ins, scale-ups, glow-on-hover).
-            • Create animated section transitions or separators using CSS keyframes or transform effects.
-            • Incorporate smooth motion: subtle parallax scrolling, glowing borders, and hover scaling.
-            • The layout should include:
-              1️⃣ Hero/Header → Prominent name + tagline with animations.
-              2️⃣ About → Animated fade-in text block about the user.
-              3️⃣ Skills → Animated cards or badges that glow or expand on hover.
-              4️⃣ Contact → Interactive icons for email, GitHub, LinkedIn (hover glow effects).
-              5️⃣ Custom Section → Title: %s | Content: %s (styled consistently with the theme)
-            • Ensure all animations and layouts are responsive and perform well on mobile.
-            • Use modern design trends: glassmorphism, gradient overlays, blurred panels, neon glow, or minimalist pastel cards.
+            • Make the site look like a professional, visually rich, and modern interactive portfolio.
+            • Use creative layouts with depth and dimension — layered sections, floating cards, overlapping panels, or subtle diagonal transitions.
+            • Apply glassmorphism and blurred glass panels to highlight content sections.
+            • Incorporate smooth motion and transitions everywhere: fade-ins, slides, or scale-ups using CSS keyframes and transform effects.
+            • Add dynamic depth through shadows, soft glows, and gradient lighting.
+            • Introduce responsive hover interactions — cards lifting, buttons glowing, icons pulsing.
+            • Include elegant CSS-only background animations such as:
+              - Soft shifting gradient or radial glow.
+              - Slow-moving light spots or blur blobs.
+              - Animated vignette or gradient overlays.
+            • Maintain balance and minimalism — Apple-level polish with focus on typography, spacing, and motion.
+            • Use consistent transition timing and easing for smooth motion.
             
-            --- Theme Selection ---
-              Use the theme "%s":
-               - apple → Inspired by Apple’s hardware and UI aesthetic: luminous whites, translucent glass panels, and soft green accent glows. Rounded corners, ample whitespace, San-Francisco-style sans-serif fonts. Subtle glassmorphism layering, floating cards with realistic blur, and slow fade or slide animations that feel natural and weightless.
-
-               - neon → High-contrast futuristic nightclub energy. Deep charcoal or near-black backgrounds with vivid cyan, magenta, and purple neon lines. Text glows softly; section borders pulse gently. Animated gradient ribbons or circuit-like dividers. Use monospace or geometric fonts and hover effects that shimmer or flicker like LED lights.
-
-               - zen → Calm and organic. Soft gradient backgrounds in sea-green and sky-blue tones. Rounded, flowing shapes reminiscent of water and wind. Gentle opacity transitions, fade-in sections, and minimalist icons drawn with thin strokes. Balanced spacing and natural rhythm, using muted greens and creams for text.
-
-               - minimal → Ultra-clean editorial style. White or off-white backgrounds, subtle shadows, and crisp black typography. Focus on structure and alignment: large headlines, generous spacing, precise grids. Animations are minimal and purpose-driven — fade or slide only. Fonts: Inter, Helvetica, or modern sans-serif. Use gray accents and minimal color contrast.
-
-               - cyberpunk → Dystopian sci-fi energy. Base palette of deep violet, indigo, and magenta, contrasted by electric teal and hot pink accents. Use glowing borders, animated scanline textures, and subtle noise overlays. Cards appear to flicker into existence with keyframes. Bold techno fonts, angled separators, and motion-blur effects evoke speed and intensity.
+            --- Layout Requirements ---
+            The layout should include:
+            1️⃣ Hero/Header → Prominent user name + tagline in large typography, centered or layered with animation.
+            2️⃣ About Section → Animated fade-in glass card with user information.
+            3️⃣ Skills Section → Animated skill badges or glowing cards that expand or pulse on hover.
+            4️⃣ Contact Section → Icons for Email, GitHub, LinkedIn with hover glow or pulse effect.
+            5️⃣ Custom Section → Title: %s | Content: %s (styled consistently with the theme using interactive or glowing panels)
+            • Ensure all sections feel cohesive, with gradient or blurred transitions between them.
+            • Must look elegant and fluid on both desktop and mobile.
+            
+            --- Theme Details ---
+            Use the following theme style guide:
+            %s
             
             --- Custom Style Overrides ---
             %s
             
             --- Additional Notes ---
-            • Must be responsive, interactive, and professional.
-            • Do not use JavaScript — only HTML and CSS.
+            • Be creative — use CSS transitions, animation timing, and depth to make the design feel alive.
+            • Use only HTML and CSS (no JavaScript).
             • Avoid markdown, comments, or explanations.
             • Do NOT include backticks, code fences, or text outside JSON.
+            • Automatically fill any missing text or visuals with tasteful, theme-consistent placeholders.
             
             --- User Data ---
             Name: %s
@@ -125,7 +125,7 @@ public class OpenAiServiceImpl implements OpenAiService {
             """.formatted(
                             formData.getCustomSectionTitle(),
                             formData.getCustomSectionContent(),
-                            formData.getTheme(),
+                            formData.getThemeField(),
                             formData.getCustomStyle() == null ? "none" : formData.getCustomStyle(),
                             formData.getName(),
                             formData.getTagline(),
@@ -134,6 +134,6 @@ public class OpenAiServiceImpl implements OpenAiService {
                             formData.getEmail(),
                             formData.getGithub(),
                             formData.getLinkedin()
-            );
+                    );
     }
 }
