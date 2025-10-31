@@ -18,9 +18,10 @@ public class FormData {
     private String linkedin;
     private String customStyle;
     private String theme;
+    private String themeField;
     private String customSectionTitle;
     private String customSectionContent;
-    
+
 
 }
 

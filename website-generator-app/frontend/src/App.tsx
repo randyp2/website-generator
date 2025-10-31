@@ -85,12 +85,7 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      <div className="border-2 border-solid bg-white/20 text-7xl">
-        <button 
-          className="hover:cursor-pointer"
-          onClick={() => handlePing()}
-        >Hello</button>
-      </div>
+      
     </div>
     
   );
