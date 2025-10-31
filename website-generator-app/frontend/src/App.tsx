@@ -1,7 +1,7 @@
-import { motion, AnimatePresence } from "framer-motion";
-import React, { useEffect, useEffectEvent, useReducer, useState } from "react";
-import { FiChevronRight, FiChevronLeft, FiZap, FiCheck } from 'react-icons/fi';
-import { initialState, type FormAction, type FormState } from "./types/formTypes";
+import { motion } from "framer-motion";
+import React, { useEffect, useReducer, useState } from "react";
+
+import { initialState } from "./types/formTypes";
 import { formReducer } from "./components/Form/hooks/useReducerHook";
 import FormContainer from "./components/Form/FormContainer";
 import PreviewContainer from "./components/Preview/PreviewContainer";
@@ -39,6 +39,20 @@ const App: React.FC = () => {
     }, 2000);
   };
 
+
+  // Test backend connection 
+  const handlePing = async () => {
+    try {
+      const response: Response = await fetch("http://localhost:8080/api/generate/ping");
+      const text: string = await response.text();
+      console.log("Ping response:", text);
+      alert(text);
+    } catch (error) {
+      console.error("Error connecting to backend:", error);
+    alert("Failed to connect to backend!");
+    }
+  }
+
   
 
   return (
@@ -50,7 +64,7 @@ const App: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-12"
         >
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent mb-3">
+          <h1 className="text-5xl font-bold bg-linear-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent mb-3">
             Bit2Byte AI Website Generator
           </h1>
           <p className="text-gray-400 text-lg">Create your portfolio in minutes</p>
@@ -70,7 +84,10 @@ const App: React.FC = () => {
 
         </div>
       </div>
+
+      
     </div>
+    
   );
 }
 
