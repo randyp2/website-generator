@@ -28,7 +28,7 @@
 	</scm>
 	<properties>
 		<java.version>25</java.version>
-        <spring-ai.version>1.0.0-M5</spring-ai.version>
+        <spring-ai.version>1.0.0-SNAPSHOT</spring-ai.version>
 	</properties>
     <dependencyManagement>
         <dependencies>
@@ -59,8 +59,8 @@
 		</dependency>
         <dependency>
             <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-openai-spring-boot-starter</artifactId>
-            <version>1.0.0-M5</version>
+            <artifactId>spring-ai-starter-model-openai</artifactId>
+            <version>${spring-ai.version}</version>
         </dependency>
 	</dependencies>
 
