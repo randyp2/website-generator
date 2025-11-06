@@ -6,6 +6,8 @@ import com.webgen.webgen_backend.service.OpenAiService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/generate")
 
@@ -22,9 +24,9 @@ public class AiController {
     }
 
     @PostMapping
-    public String generateHTML(@RequestBody FormData formData) {
-        // Calls AI directly
-        return aiService.generateHTMLCSSFromAi(formData);
+    public Map<String, String> generateHTML(@RequestBody FormData formData) {
+        String html = aiService.generateHTMLCSSFromAi(formData);
+        return Map.of("html", html);
     }
 
 }
