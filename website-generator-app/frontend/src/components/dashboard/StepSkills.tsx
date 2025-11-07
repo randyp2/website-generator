@@ -1,7 +1,9 @@
+"use client";
+
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiPlus, FiX, FiAward } from "react-icons/fi";
-import type { FormState } from "../../types/formTypes";
+import { FormState } from "@/webgenForm/formType";
 
 interface StepSkillsProps {
   state: FormState;
@@ -47,7 +49,7 @@ const StepSkills: React.FC<StepSkillsProps> = ({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleAddSkill}
-            className="px-5 py-3 bg-gradient-to-r from-sky-400 to-cyan-400 text-white rounded-lg font-semibold shadow-md shadow-sky-300/30 hover:shadow-lg hover:shadow-sky-400/40 transition-all flex items-center gap-2"
+            className="px-5 py-3 bg-linear-to-r from-sky-400 to-cyan-400 text-white rounded-lg font-semibold shadow-md shadow-sky-300/30 hover:shadow-lg hover:shadow-sky-400/40 transition-all flex items-center gap-2"
           >
             <FiPlus className="w-5 h-5" />
             Add
@@ -96,7 +98,7 @@ const StepSkills: React.FC<StepSkillsProps> = ({
                   exit={{ opacity: 0, scale: 0.8, y: -10 }}
                   transition={{ type: "spring", stiffness: 300, damping: 25 }}
                   whileHover={{ scale: 1.05, y: -2 }}
-                  className="group relative bg-gradient-to-br from-sky-50 to-cyan-50 border border-sky-200/50 px-4 py-2.5 rounded-lg flex items-center gap-2 shadow-sm hover:shadow-md transition-all"
+                  className="group relative bg-linear-to-br from-sky-50 to-cyan-50 border border-sky-200/50 px-4 py-2.5 rounded-lg flex items-center gap-2 shadow-sm hover:shadow-md transition-all"
                 >
                   <span className="text-sm font-medium text-slate-800">
                     {skill}
@@ -119,7 +121,7 @@ const StepSkills: React.FC<StepSkillsProps> = ({
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-br from-sky-50 to-cyan-50 border border-sky-100 rounded-lg p-4"
+          className="bg-linear-to-br from-sky-50 to-cyan-50 border border-sky-100 rounded-lg p-4"
         >
           <p className="text-xs text-sky-900 leading-relaxed">
             <span className="font-semibold">💡 Tip:</span> Add 5-10 skills for
@@ -133,7 +135,7 @@ const StepSkills: React.FC<StepSkillsProps> = ({
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-4"
+          className="bg-linear-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-4"
         >
           <p className="text-xs text-emerald-900 leading-relaxed">
             <span className="font-semibold">✨ Great job!</span> You've added{" "}

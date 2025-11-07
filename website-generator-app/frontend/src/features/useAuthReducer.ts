@@ -1,6 +1,5 @@
 import type { AuthFormState, AuthFormAction } from "./authType";
 
-
 export const initialAuthFormState: AuthFormState = {
     fullName: "",
     email: "",

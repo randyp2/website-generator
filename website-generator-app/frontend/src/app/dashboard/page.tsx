@@ -1,12 +1,16 @@
+"use client";
+
 import React, { useReducer, useState } from "react";
 import { motion } from "framer-motion";
-import { initialState } from "../types/formTypes";
-import { formReducer } from "../components/Form/hooks/useReducerHook";
+import FormContainer from "@/components/dashboard/FormContainer";
 
-import PreviewContainer from "../components/preview/PreviewContainer";
-import FormContainer from "../components/dashboard/FormContainer";
+import { formReducer } from "@/webgenForm/useFormReducer";
+import PreviewContainer from "@/components/dashboard/PreviewContainer";
+import { initialState } from "@/webgenForm/formType";
 
-const DashboardPage: React.FC = () => {
+
+
+export default function DashboardPage() {
   // Form state containing user's portfolio info
   const [state, dispatch] = useReducer(formReducer, initialState);
 
@@ -128,4 +132,3 @@ const DashboardPage: React.FC = () => {
   );
 };
 
-export default DashboardPage;
