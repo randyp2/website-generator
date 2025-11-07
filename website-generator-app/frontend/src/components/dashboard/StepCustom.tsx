@@ -1,7 +1,10 @@
+"use client";
+
 import React from "react";
 import { motion } from "framer-motion";
 import { FiFileText, FiEdit, FiLayers } from "react-icons/fi";
-import type { FormState } from "../../types/formTypes";
+import { FormState } from "@/webgenForm/formType";
+
 
 interface StepCustomProps {
   state: FormState;
@@ -85,28 +88,28 @@ const StepCustom: React.FC<StepCustomProps> = ({ state, updateField }) => {
         </h4>
         <ul className="space-y-2.5 text-xs text-slate-600">
           <li className="flex items-start gap-2">
-            <span className="text-sky-500 mt-0.5 flex-shrink-0">•</span>
+            <span className="text-sky-500 mt-0.5 shrink-0">•</span>
             <span>
               <strong className="text-slate-800">Featured Projects:</strong> Highlight 2-3 key projects
               with descriptions and links
             </span>
           </li>
           <li className="flex items-start gap-2">
-            <span className="text-cyan-500 mt-0.5 flex-shrink-0">•</span>
+            <span className="text-cyan-500 mt-0.5 shrink-0">•</span>
             <span>
               <strong className="text-slate-800">Client Testimonials:</strong> Add quotes from satisfied
               clients or colleagues
             </span>
           </li>
           <li className="flex items-start gap-2">
-            <span className="text-sky-500 mt-0.5 flex-shrink-0">•</span>
+            <span className="text-sky-500 mt-0.5 shrink-0">•</span>
             <span>
               <strong className="text-slate-800">Awards & Recognition:</strong> Showcase achievements,
               certifications, or accolades
             </span>
           </li>
           <li className="flex items-start gap-2">
-            <span className="text-cyan-500 mt-0.5 flex-shrink-0">•</span>
+            <span className="text-cyan-500 mt-0.5 shrink-0">•</span>
             <span>
               <strong className="text-slate-800">Blog or Writing:</strong> Link to articles or thought
               leadership content
@@ -120,7 +123,7 @@ const StepCustom: React.FC<StepCustomProps> = ({ state, updateField }) => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="bg-gradient-to-br from-sky-50 to-cyan-50 border border-sky-100 rounded-lg p-4"
+        className="bg-linear-to-br from-sky-50 to-cyan-50 border border-sky-100 rounded-lg p-4"
       >
         <p className="text-xs text-sky-900 leading-relaxed">
           <span className="font-semibold">ℹ️ Note:</span> This section is

@@ -1,10 +1,12 @@
+"use client";
+
 import React from "react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
 import { FiZap, FiArrowRight, FiExternalLink } from "react-icons/fi";
+import { useRouter } from "next/navigation";
 
 const ExamplesPage: React.FC = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const examples = [
     {
@@ -76,7 +78,7 @@ const ExamplesPage: React.FC = () => {
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => navigate("/dashboard")}
+            onClick={() => router.push("/dashboard")}
             className="px-8 py-4 bg-linear-to-r from-cyan-500 to-teal-600 text-white rounded-xl font-semibold shadow-lg shadow-cyan-500/25 hover:shadow-xl hover:shadow-cyan-500/30 transition-all inline-flex items-center gap-2"
           >
             Create Your Own
@@ -157,7 +159,7 @@ const ExamplesPage: React.FC = () => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => navigate("/dashboard")}
+              onClick={() => router.push("/dashboard")}
               className="px-10 py-4 bg-linear-to-r from-cyan-500 to-teal-600 text-white rounded-xl font-semibold shadow-lg shadow-cyan-500/25 hover:shadow-xl hover:shadow-cyan-500/30 transition-all inline-flex items-center gap-2"
             >
               Start Building

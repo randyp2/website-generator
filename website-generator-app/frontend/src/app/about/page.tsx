@@ -1,6 +1,9 @@
+"use client";
+
 import React from "react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
+
 import {
   FiZap,
   FiClock,
@@ -13,7 +16,7 @@ import {
 } from "react-icons/fi";
 
 const AboutPage: React.FC = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const features = [
     {
@@ -290,7 +293,7 @@ const AboutPage: React.FC = () => {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => navigate("/dashboard")}
+                onClick={() => router.push("/dashboard")}
                 className="px-10 py-4 bg-white text-cyan-600 rounded-xl font-bold shadow-xl hover:shadow-2xl transition-all inline-flex items-center gap-2"
               >
                 Create Your Portfolio
