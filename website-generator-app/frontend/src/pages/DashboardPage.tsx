@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { initialState } from "../types/formTypes";
 import { formReducer } from "../components/Form/hooks/useReducerHook";
 
-import PreviewContainer from "../components/Preview/PreviewContainer";
+import PreviewContainer from "../components/preview/PreviewContainer";
 import FormContainer from "../components/dashboard/FormContainer";
 
 const DashboardPage: React.FC = () => {
