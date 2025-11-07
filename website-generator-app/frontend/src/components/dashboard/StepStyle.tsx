@@ -1,7 +1,10 @@
+"use client";
+
 import React from "react";
 import { motion } from "framer-motion";
 import { FiCheck, FiEdit3,  } from "react-icons/fi";
-import type { FormState } from "../../types/formTypes";
+import { FormState } from "@/webgenForm/formType";
+
 
 interface StepStyleProps {
   state: FormState;
@@ -98,7 +101,7 @@ const StepStyle: React.FC<StepStyleProps> = ({ state, updateField }) => {
           >
             {/* Color Preview Bar */}
             <div
-              className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${style.colorPreview} rounded-t-lg`}
+              className={`absolute top-0 left-0 right-0 h-1.5 bg-linear-to-r ${style.colorPreview} rounded-t-lg`}
             />
 
             <div className="flex items-center justify-between mt-1">
@@ -113,7 +116,7 @@ const StepStyle: React.FC<StepStyleProps> = ({ state, updateField }) => {
 
               {/* Selection Indicator */}
               <div
-                className={`flex-shrink-0 ml-3 w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+                className={`shrink-0 ml-3 w-6 h-6 rounded-full flex items-center justify-center transition-all ${
                   state.theme === style.id
                     ? "bg-sky-500 text-white scale-110"
                     : "bg-slate-100 text-transparent border-2 border-slate-300"
@@ -171,7 +174,7 @@ const StepStyle: React.FC<StepStyleProps> = ({ state, updateField }) => {
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-gradient-to-br from-sky-50 to-cyan-50 border border-sky-100 rounded-lg p-4"
+          className="bg-linear-to-br from-sky-50 to-cyan-50 border border-sky-100 rounded-lg p-4"
         >
           <p className="text-xs text-sky-900 leading-relaxed">
             <span className="font-semibold">✨ Selected Theme:</span>{" "}

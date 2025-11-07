@@ -1,7 +1,8 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { FiUser, FiBriefcase, FiFileText } from "react-icons/fi";
-import type { FormState } from "../../types/formTypes";
+import { FormState } from "@/webgenForm/formType";
+
 
 
 interface StepBasicInfoProps {
@@ -102,7 +103,7 @@ const StepBasicInfo: React.FC<StepBasicInfoProps> = ({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="bg-gradient-to-br from-sky-50 to-cyan-50 border border-sky-100 rounded-lg p-4"
+        className="bg-linear-to-br from-sky-50 to-cyan-50 border border-sky-100 rounded-lg p-4"
       >
         <p className="text-xs text-sky-900 leading-relaxed">
           <span className="font-semibold">✨ Pro Tip:</span> The more detail you

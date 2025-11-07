@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -10,7 +12,8 @@ import {
   FiTablet,
   FiZap,
 } from "react-icons/fi";
-import type { FormState } from "../../types/formTypes";
+import { FormState } from "@/webgenForm/formType";
+
 
 interface PreviewContainerProps {
   formData: FormState;
@@ -80,10 +83,10 @@ const PreviewContainer: React.FC<PreviewContainerProps> = ({
       {/* Card Container */}
       <div className="bg-white rounded-2xl shadow-lg border border-slate-200/60 overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-4 bg-gradient-to-br from-sky-50 to-cyan-50/50 border-b border-slate-200/60">
+        <div className="px-6 py-4 bg-linear-to-br from-sky-50 to-cyan-50/50 border-b border-slate-200/60">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-sky-400 to-cyan-400 rounded-lg flex items-center justify-center shadow-sm">
+              <div className="w-10 h-10 bg-linear-to-br from-sky-400 to-cyan-400 rounded-lg flex items-center justify-center shadow-sm">
                 <FiEye className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -229,7 +232,7 @@ const PreviewContainer: React.FC<PreviewContainerProps> = ({
                 className="absolute inset-0 flex items-center justify-center"
               >
                 <div className="text-center max-w-md mx-auto px-6">
-                  <div className="w-24 h-24 bg-gradient-to-br from-sky-100 to-cyan-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <div className="w-24 h-24 bg-linear-to-br from-sky-100 to-cyan-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
                     <FiEye className="w-12 h-12 text-sky-500" />
                   </div>
                   <h4 className="text-xl font-semibold text-slate-900 mb-3">
@@ -241,7 +244,7 @@ const PreviewContainer: React.FC<PreviewContainerProps> = ({
                   </p>
                   <div className="flex flex-col gap-3 text-left bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
                     <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 bg-sky-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <div className="w-6 h-6 bg-sky-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
                         <span className="text-sky-600 text-xs font-bold">1</span>
                       </div>
                       <div>
@@ -254,7 +257,7 @@ const PreviewContainer: React.FC<PreviewContainerProps> = ({
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 bg-cyan-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <div className="w-6 h-6 bg-cyan-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
                         <span className="text-cyan-600 text-xs font-bold">2</span>
                       </div>
                       <div>
@@ -267,7 +270,7 @@ const PreviewContainer: React.FC<PreviewContainerProps> = ({
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 bg-sky-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <div className="w-6 h-6 bg-sky-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
                         <span className="text-sky-600 text-xs font-bold">3</span>
                       </div>
                       <div>

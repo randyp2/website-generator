@@ -1,13 +1,15 @@
+"use client";
+
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { AuthMode } from "@/features/authType";
 
-import AnimatedBackground from "../components/login/AnimatedBackground";
-import type { AuthMode } from "../features/authType";
-import FormContainer from "../components/login/FormContainer";
+import AnimatedBackground from "@/components/login/AnimatedBackground";
+import FormContainer from "@/components/login/FormContainer";
+import Link from "next/link";
 
 
-const LoginPage: React.FC = () => {
+export default function LoginPage() {
   const [mode, setMode] = useState<AuthMode>("login");
 
   return (
@@ -28,7 +30,7 @@ const LoginPage: React.FC = () => {
         {/* Back to Home */}
         <div className="mt-6 text-center">
           <Link
-            to="/"
+            href="/"
             className="text-slate-600 hover:text-slate-900 font-medium transition-colors inline-flex items-center gap-2 text-sm"
           >
             ← Back to Home
@@ -39,4 +41,3 @@ const LoginPage: React.FC = () => {
   );
 };
 
-export default LoginPage;
