@@ -1,208 +1,293 @@
-import React, { useState } from "react";
-import type { FormState } from "../../types/formTypes";
+import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiZap, FiMaximize2, FiMinimize2, FiX } from "react-icons/fi";
+import {
+  FiEye,
+  FiDownload,
+  FiExternalLink,
+  FiRefreshCw,
+  FiMonitor,
+  FiSmartphone,
+  FiTablet,
+  FiZap,
+} from "react-icons/fi";
+import type { FormState } from "../../types/formTypes";
 
 interface PreviewContainerProps {
-    formData: FormState | null;
-    showPreview: boolean;
-    isLoading: boolean;
-    generatedHTML?: string;
+  formData: FormState;
+  showPreview: boolean;
+  isLoading: boolean;
+  generatedHTML: string;
 }
 
+type DeviceType = "desktop" | "tablet" | "mobile";
+
 const PreviewContainer: React.FC<PreviewContainerProps> = ({
-    formData,
-    showPreview,
-    isLoading,
-    generatedHTML
+  formData,
+  showPreview,
+  isLoading,
+  generatedHTML,
 }) => {
-    const [isFullscreen, setIsFullscreen] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [device, setDevice] = useState<DeviceType>("desktop");
 
-    const toggleFullscreen = () => {
-        setIsFullscreen(!isFullscreen);
-    };
+  // Update iframe content when HTML changes
+  useEffect(() => {
+    if (iframeRef.current && generatedHTML) {
+      const iframeDoc =
+        iframeRef.current.contentDocument ||
+        iframeRef.current.contentWindow?.document;
+      if (iframeDoc) {
+        iframeDoc.open();
+        iframeDoc.write(generatedHTML);
+        iframeDoc.close();
+      }
+    }
+  }, [generatedHTML]);
 
-    return (
-        <>
-            {/* Normal Preview Container */}
-            <motion.div
-                initial={{ opacity: 0, x: 50 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4 }}
-                className="bg-linear-to-br from-gray-900 to-gray-800 rounded-3xl p-8 shadow-2xl border border-gray-700 backdrop-blur-lg min-h-[600px] flex items-center justify-center relative"
-            >
-                {/* Fullscreen Button */}
-                {showPreview && !isLoading && (
-                    <motion.button
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.3 }}
-                        onClick={toggleFullscreen}
-                        className="absolute top-4 right-4 z-10 p-3 bg-gray-800/80 hover:bg-gray-700 rounded-xl border border-gray-600 transition-all duration-300 hover:scale-110 group"
-                        title="Fullscreen"
-                    >
-                        <FiMaximize2 className="text-xl text-gray-300 group-hover:text-green-400 transition-colors" />
-                    </motion.button>
-                )}
+  const handleDownload = () => {
+    const blob = new Blob([generatedHTML], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${formData.name.replace(/\s+/g, "-").toLowerCase()}-portfolio.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
-                <AnimatePresence mode="wait">
-                    {!showPreview ? (
-                        <motion.div
-                            key="placeholder"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="text-center"
-                        >
-                            <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-linear-to-br from-green-400 to-emerald-500 flex items-center justify-center">
-                                <FiZap className="text-4xl text-white" />
-                            </div>
-                            <h3 className="text-2xl font-bold text-gray-300 mb-3">
-                                Your Preview Awaits
-                            </h3>
-                            <p className="text-gray-500">
-                                Complete the form and click Generate to see your portfolio
-                            </p>
-                        </motion.div>
-                    ) : (
-                        <motion.div
-                            key="ai-preview"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.5 }}
-                            className="w-full h-full"
-                        >
-                            <iframe
-                                title="AI Preview"
-                                srcDoc={generatedHTML}
-                                sandbox="allow-scripts allow-same-origin"
-                                className="w-full h-[600px] rounded-2xl border border-gray-700"
-                            />
+  const handleOpenNewTab = () => {
+    const newWindow = window.open();
+    if (newWindow) {
+      newWindow.document.write(generatedHTML);
+      newWindow.document.close();
+    }
+  };
 
-                            {generatedHTML && (
-                                <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.97 }}
-                                    className="mt-6 px-5 py-2.5 bg-emerald-500/90 text-black font-semibold rounded-xl shadow-md hover:bg-emerald-400 transition-colors"
-                                    onClick={() => {
-                                        const newWindow = window.open("", "_blank");
-                                        if (newWindow) {
-                                            newWindow.document.write(generatedHTML);
-                                            newWindow.document.close();
-                                        } else {
-                                            alert("Popup blocked! Please allow pop-ups for this site.");
-                                        }
-                                    }}
-                                >
-                                    View Fullscreen
-                                </motion.button>
-                            )}
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </motion.div>
+  const getDeviceWidth = () => {
+    switch (device) {
+      case "mobile":
+        return "375px";
+      case "tablet":
+        return "768px";
+      default:
+        return "100%";
+    }
+  };
 
-            {/* Fullscreen Mode */}
-            <AnimatePresence>
-                {isFullscreen && (
+  return (
+    <div className="sticky top-24">
+      {/* Card Container */}
+      <div className="bg-white rounded-2xl shadow-lg border border-slate-200/60 overflow-hidden">
+        {/* Header */}
+        <div className="px-6 py-4 bg-gradient-to-br from-sky-50 to-cyan-50/50 border-b border-slate-200/60">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-sky-400 to-cyan-400 rounded-lg flex items-center justify-center shadow-sm">
+                <FiEye className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Live Preview
+                </h3>
+                <p className="text-sm text-slate-600">
+                  {showPreview ? "Your portfolio is ready!" : "Waiting for generation..."}
+                </p>
+              </div>
+            </div>
+
+            {/* Device Switcher - Only show when preview is active */}
+            {showPreview && (
+              <div className="hidden md:flex items-center gap-1 p-1 bg-white rounded-lg border border-slate-200 shadow-sm">
+                <button
+                  onClick={() => setDevice("desktop")}
+                  className={`p-2 rounded transition-all ${
+                    device === "desktop"
+                      ? "bg-sky-100 text-sky-600"
+                      : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                  }`}
+                  title="Desktop View"
+                >
+                  <FiMonitor className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setDevice("tablet")}
+                  className={`p-2 rounded transition-all ${
+                    device === "tablet"
+                      ? "bg-sky-100 text-sky-600"
+                      : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                  }`}
+                  title="Tablet View"
+                >
+                  <FiTablet className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setDevice("mobile")}
+                  className={`p-2 rounded transition-all ${
+                    device === "mobile"
+                      ? "bg-sky-100 text-sky-600"
+                      : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                  }`}
+                  title="Mobile View"
+                >
+                  <FiSmartphone className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons - Only show when preview is active */}
+          {showPreview && (
+            <div className="flex flex-wrap gap-2 mt-4">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleDownload}
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-medium text-sm hover:border-slate-300 hover:shadow-sm transition-all shadow-sm"
+              >
+                <FiDownload className="w-4 h-4" />
+                Download HTML
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleOpenNewTab}
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-medium text-sm hover:border-slate-300 hover:shadow-sm transition-all shadow-sm"
+              >
+                <FiExternalLink className="w-4 h-4" />
+                Open in New Tab
+              </motion.button>
+            </div>
+          )}
+        </div>
+
+        {/* Preview Area */}
+        <div className="relative bg-slate-50 p-6 min-h-[600px]">
+          <AnimatePresence mode="wait">
+            {isLoading ? (
+              /* Loading State */
+              <motion.div
+                key="loading"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 flex items-center justify-center bg-slate-50"
+              >
+                <div className="text-center">
+                  <div className="relative w-20 h-20 mx-auto mb-6">
                     <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm"
-                        onClick={toggleFullscreen}
-                    >
-                        {/* Fullscreen Container */}
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            transition={{ duration: 0.3, ease: "easeOut" }}
-                            className="h-full w-full p-4 md:p-8 flex flex-col"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            {/* Header with controls */}
-                            <motion.div
-                                initial={{ y: -20, opacity: 0 }}
-                                animate={{ y: 0, opacity: 1 }}
-                                transition={{ delay: 0.1 }}
-                                className="flex justify-between items-center mb-4 px-4"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                                    <span className="ml-4 text-gray-400 text-sm font-medium">
-                                        Portfolio Preview
-                                    </span>
-                                </div>
-
-                                <div className="flex gap-2">
-                                    <motion.button
-                                        whileHover={{ scale: 1.1 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={toggleFullscreen}
-                                        className="p-3 bg-gray-800/80 hover:bg-gray-700 rounded-xl border border-gray-600 transition-all duration-300 group"
-                                        title="Exit Fullscreen"
-                                    >
-                                        <FiMinimize2 className="text-lg text-gray-300 group-hover:text-green-400 transition-colors" />
-                                    </motion.button>
-
-                                    <motion.button
-                                        whileHover={{ scale: 1.1 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={toggleFullscreen}
-                                        className="p-3 bg-red-500/20 hover:bg-red-500/30 rounded-xl border border-red-500/50 transition-all duration-300 group"
-                                        title="Close"
-                                    >
-                                        <FiX className="text-lg text-red-400 group-hover:text-red-300 transition-colors" />
-                                    </motion.button>
-                                </div>
-                            </motion.div>
-
-                            {/* Preview Content */}
-                            <motion.div
-                                initial={{ y: 20, opacity: 0 }}
-                                animate={{ y: 0, opacity: 1 }}
-                                transition={{ delay: 0.2 }}
-                                className="flex-1 bg-linear-to-br from-gray-900 to-gray-800 rounded-2xl border border-gray-700 overflow-hidden shadow-2xl"
-                            >
-                                <iframe
-                                    title="AI Preview Fullscreen"
-                                    srcDoc={generatedHTML}
-                                    sandbox="allow-same-origin allow-scripts allow-top-navigation-by-user-activation"
-                                    className="w-full h-[calc(100vh-4rem)] rounded-xl overflow-auto border border-gray-800"
-                                />
-
-                                {generatedHTML && (
-                                    <motion.button
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.97 }}
-                                        className="mt-6 px-5 py-2.5 bg-emerald-500/90 text-black font-semibold rounded-xl shadow-md hover:bg-emerald-400 transition-colors"
-                                        onClick={() => {
-                                            const newWindow = window.open("", "_blank");
-                                            if (newWindow) {
-                                                newWindow.document.write(generatedHTML);
-                                                newWindow.document.close();
-                                            } else {
-                                                alert("Popup blocked! Please allow pop-ups for this site.");
-                                            }
-                                        }}
-                                    >
-                                        View Fullscreen
-                                    </motion.button>
-                                )}
-                            </motion.div>
-
-
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </>
-    );
+                      animate={{ rotate: 360 }}
+                      transition={{
+                        duration: 1,
+                        repeat: Infinity,
+                        ease: "linear",
+                      }}
+                      className="w-20 h-20 border-4 border-sky-200 border-t-sky-500 rounded-full"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <FiZap className="w-8 h-8 text-sky-500" />
+                    </div>
+                  </div>
+                  <h4 className="text-lg font-semibold text-slate-900 mb-2">
+                    Generating Your Portfolio
+                  </h4>
+                  <p className="text-sm text-slate-600 max-w-xs mx-auto">
+                    Our AI is crafting your professional portfolio. This usually
+                    takes 10-15 seconds...
+                  </p>
+                </div>
+              </motion.div>
+            ) : showPreview && generatedHTML ? (
+              /* Preview State */
+              <motion.div
+                key="preview"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.4 }}
+                className="w-full h-full flex justify-center"
+              >
+                <div
+                  className="bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden transition-all duration-300"
+                  style={{ width: getDeviceWidth(), maxWidth: "100%" }}
+                >
+                  <iframe
+                    ref={iframeRef}
+                    title="Portfolio Preview"
+                    className="w-full h-[600px] border-0"
+                    sandbox="allow-same-origin"
+                  />
+                </div>
+              </motion.div>
+            ) : (
+              /* Empty State */
+              <motion.div
+                key="empty"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 flex items-center justify-center"
+              >
+                <div className="text-center max-w-md mx-auto px-6">
+                  <div className="w-24 h-24 bg-gradient-to-br from-sky-100 to-cyan-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                    <FiEye className="w-12 h-12 text-sky-500" />
+                  </div>
+                  <h4 className="text-xl font-semibold text-slate-900 mb-3">
+                    Your Portfolio Preview Will Appear Here
+                  </h4>
+                  <p className="text-slate-600 leading-relaxed mb-6">
+                    Fill out the form on the left and click "Generate Portfolio"
+                    to see your professional portfolio come to life in real-time.
+                  </p>
+                  <div className="flex flex-col gap-3 text-left bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-sky-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-sky-600 text-xs font-bold">1</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">
+                          Complete the form steps
+                        </p>
+                        <p className="text-xs text-slate-600 mt-0.5">
+                          Add your information across all 5 steps
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-cyan-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-cyan-600 text-xs font-bold">2</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">
+                          Click Generate Portfolio
+                        </p>
+                        <p className="text-xs text-slate-600 mt-0.5">
+                          AI will create your portfolio instantly
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-sky-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-sky-600 text-xs font-bold">3</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">
+                          Preview & download
+                        </p>
+                        <p className="text-xs text-slate-600 mt-0.5">
+                          View on different devices and export
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default PreviewContainer;
