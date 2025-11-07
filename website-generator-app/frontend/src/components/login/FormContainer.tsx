@@ -1,12 +1,14 @@
+"use client";
+
 import React, { useEffect, useReducer } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 
-import SocialAuth from "./SocialAuth";
-import type { AuthMode } from "../../features/authType";
-import { authFormReducer, initialAuthFormState } from "../../features/useAuthReducer";
-import LoginForm from "./loginForm";
-import SignUpForm from "./SignupForm";
+import SocialAuth from "@/components/login/SocialAuth";
+import type { AuthMode } from "@/features/authType";
+import { authFormReducer, initialAuthFormState } from "@/features/useAuthReducer";
+import LoginForm from "@/components/login/LoginForm";
+import SignUpForm from "@/components/login/SignUpForm";
 
 interface FormContainerProps {
   mode: AuthMode;
@@ -17,7 +19,7 @@ const FormContainer: React.FC<FormContainerProps> = ({
   mode,
   onModeChange,
 }) => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const [state, dispatch] = useReducer(authFormReducer, initialAuthFormState);
 
 
@@ -42,13 +44,13 @@ const FormContainer: React.FC<FormContainerProps> = ({
 
     // Reset form and navigate
     dispatch({ type: "RESET" });
-    navigate("/dashboard");
+    router.push("/dashboard");
   };
 
   const handleSocialAuth = (provider: string) => {
     // TODO: Implement social auth
     console.log("Social auth:", provider);
-    navigate("/dashboard");
+    router.push("/dashboard");
   };
 
   return (

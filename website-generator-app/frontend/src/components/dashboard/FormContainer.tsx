@@ -1,14 +1,15 @@
+"use client";
+
 import React, { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { FiChevronLeft, FiChevronRight, FiZap, FiCheck } from "react-icons/fi";
-import type { FormState, FormAction } from "../../types/formTypes";
-import ProgressIndicator from "./ProgressIndicator";
-
-import StepSkills from "./StepSkills";
-import StepContact from "./StepContact";
-import StepStyle from "./StepStyle";
-import StepCustom from "./StepCustom";
+import { FormState, FormAction } from "@/webgenForm/formType";
 import StepBasicInfo from "./StepBasicInfo";
+import StepContact from "./StepContact";
+import StepCustom from "./StepCustom";
+import StepSkills from "./StepSkills";
+import StepStyle from "./StepStyle";
+
 
 interface FormProps {
   state: FormState;
@@ -82,7 +83,7 @@ const FormContainer: React.FC<FormProps> = ({
       {/* Card Container */}
       <div className="bg-white rounded-2xl shadow-lg border border-slate-200/60 overflow-hidden">
         {/* Header with Progress */}
-        <div className="relative bg-gradient-to-br from-sky-50 to-cyan-50/50 px-6 py-6 border-b border-slate-200/60">
+        <div className="relative bg-linear-to-br from-sky-50 to-cyan-50/50 px-6 py-6 border-b border-slate-200/60">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">
@@ -106,7 +107,7 @@ const FormContainer: React.FC<FormProps> = ({
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.5, ease: "easeOut" }}
-              className="h-full bg-gradient-to-r from-sky-400 to-cyan-400 rounded-full"
+              className="h-full bg-linear-to-r from-sky-400 to-cyan-400 rounded-full"
             />
           </div>
         </div>
@@ -166,7 +167,7 @@ const FormContainer: React.FC<FormProps> = ({
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => dispatch({ type: "NEXT_STEP" })}
-              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-sky-400 to-cyan-400 text-white rounded-lg font-semibold shadow-md shadow-sky-300/30 hover:shadow-lg hover:shadow-sky-400/40 transition-all"
+              className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-sky-400 to-cyan-400 text-white rounded-lg font-semibold shadow-md shadow-sky-300/30 hover:shadow-lg hover:shadow-sky-400/40 transition-all"
             >
               Next
               <FiChevronRight className="w-4 h-4" />
@@ -177,7 +178,7 @@ const FormContainer: React.FC<FormProps> = ({
               whileTap={{ scale: isLoading ? 1 : 0.98 }}
               onClick={onGenerate}
               disabled={isLoading}
-              className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-sky-500 to-cyan-500 text-white rounded-lg font-semibold shadow-lg shadow-sky-400/30 hover:shadow-xl hover:shadow-sky-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-6 py-2.5 bg-linear-to-r from-sky-500 to-cyan-500 text-white rounded-lg font-semibold shadow-lg shadow-sky-400/30 hover:shadow-xl hover:shadow-sky-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <>
