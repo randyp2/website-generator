@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useReducer, useState } from "react";
+import React, { useEffect, useReducer, useState } from "react";
 import { motion } from "framer-motion";
 import FormContainer from "@/components/dashboard/FormContainer";
 
@@ -13,7 +13,9 @@ import { initialState } from "@/webgenForm/formType";
 export default function DashboardPage() {
   // Form state containing user's portfolio info
   const [state, dispatch] = useReducer(formReducer, initialState);
-
+  useEffect(() => {
+    console.log(state);
+  }, [state])
   // Generated html/css code
   const [generatedHTML, setGeneratedHTML] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -38,7 +40,7 @@ export default function DashboardPage() {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
+      console.log("🚀 Backend response received");
       const data: { html: string } = await response.json();
       console.log("✅ Backend JSON response:", data);
 
