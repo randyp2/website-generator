@@ -22,6 +22,8 @@ import {
   FiMail,
 } from "react-icons/fi";
 
+export const dynamic = "force-dynamic"; 
+
 export default function LandingPage() {
 
   const router = useRouter();
