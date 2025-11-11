@@ -52,7 +52,7 @@ export async function updateSession(request: NextRequest) {
     const nextUrl = new URL(request.url);
     nextUrl.searchParams.delete("code"); // Remove the oauth code from URL
 
-    // 👇 If we came from /dashboard, keep that path
+    
     const redirectTo = nextUrl.searchParams.get("redirect_to");
     if (redirectTo) {
       const redirectResponse = NextResponse.redirect(redirectTo);
@@ -63,7 +63,7 @@ export async function updateSession(request: NextRequest) {
     }
 
     // Default redirect
-    const redirectResponse = NextResponse.redirect(nextUrl);
+    const redirectResponse = NextResponse.redirect(nextUrl); // If we came from /dashboard, keep that path
     for (const cookie of response.cookies.getAll()) {
       redirectResponse.cookies.set(cookie);
     }
