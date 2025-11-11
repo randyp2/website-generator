@@ -51,6 +51,66 @@ export default function DashboardPage() {
     } finally {
       setIsLoading(false);
     }
+    // Simulate a small delay like the real API call
+  // setTimeout(() => {
+  //   const testHTML = `
+  //     <!DOCTYPE html>
+  //     <html lang="en">
+  //       <head>
+  //         <meta charset="UTF-8" />
+  //         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  //         <title>Test Portfolio</title>
+  //         <style>
+  //           body {
+  //             font-family: 'Inter', sans-serif;
+  //             background: linear-gradient(135deg, #f0f9ff, #cbebff);
+  //             color: #0f172a;
+  //             margin: 0;
+  //             display: flex;
+  //             flex-direction: column;
+  //             align-items: center;
+  //             justify-content: center;
+  //             height: 100vh;
+  //             text-align: center;
+  //           }
+  //           h1 {
+  //             font-size: 2.5rem;
+  //             margin-bottom: 0.5rem;
+  //             color: #0369a1;
+  //           }
+  //           p {
+  //             max-width: 500px;
+  //             color: #334155;
+  //             font-size: 1.1rem;
+  //           }
+  //           button {
+  //             margin-top: 20px;
+  //             padding: 10px 20px;
+  //             border: none;
+  //             border-radius: 8px;
+  //             background: #0ea5e9;
+  //             color: white;
+  //             font-weight: 600;
+  //             cursor: pointer;
+  //             transition: background 0.2s ease;
+  //           }
+  //           button:hover {
+  //             background: #0284c7;
+  //           }
+  //         </style>
+  //       </head>
+  //       <body>
+  //         <h1>🚀 Portfolio Preview Loaded</h1>
+  //         <p>This is a test of your Next.js iframe rendering logic.</p>
+  //         <button onclick="alert('Preview works!')">Click me!</button>
+  //       </body>
+  //     </html>
+  //   `;
+
+  //   setGeneratedHTML(testHTML);
+  //   setShowPreview(true);
+  //   setIsLoading(false);
+  // }, 1000);
   };
 
   return (

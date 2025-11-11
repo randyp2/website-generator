@@ -4,11 +4,11 @@ import React, { useEffect, useReducer } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 
-import SocialAuth from "@/components/login/SocialAuth";
+import SocialAuth from "@/app/(public)/(auth)/login/components/SocialAuth";
 import type { AuthMode } from "@/features/authType";
 import { authFormReducer, initialAuthFormState } from "@/features/useAuthReducer";
-import LoginForm from "@/components/login/LoginForm";
-import SignUpForm from "@/components/login/SignUpForm";
+import LoginForm from "@/app/(public)/(auth)/login/components/LoginForm";
+import SignUpForm from "@/app/(public)/(auth)/login/components/SignUpForm";
 
 interface FormContainerProps {
   mode: AuthMode;
@@ -59,7 +59,7 @@ const FormContainer: React.FC<FormContainerProps> = ({
       <div className="bg-linear-to-r from-sky-50 to-cyan-50 p-2 flex gap-2">
         <button
           onClick={() => onModeChange("login")}
-          className={`flex-1 py-3 rounded-xl font-semibold transition-all ${
+          className={`flex-1 py-3 rounded-xl font-semibold transition-all hover:cursor-pointer ${
             mode === "login"
               ? "bg-white text-sky-600 shadow-md"
               : "text-slate-600 hover:text-slate-900"
@@ -69,7 +69,7 @@ const FormContainer: React.FC<FormContainerProps> = ({
         </button>
         <button
           onClick={() => onModeChange("register")}
-          className={`flex-1 py-3 rounded-xl font-semibold transition-all ${
+          className={`flex-1 py-3 rounded-xl font-semibold transition-all hover:cursor-pointer ${
             mode === "register"
               ? "bg-white text-sky-600 shadow-md"
               : "text-slate-600 hover:text-slate-900"

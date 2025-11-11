@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/navbar/Navbar";
 
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -25,9 +26,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="overflow-x-hidden relative flex flex-col min-h-screen bg-linear-to-br from-white via-slate-50 to-cyan-100/20">
-        <Navbar />
-        <main className="flex-1">{children}</main>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} overflow-x-hidden relative flex flex-col min-h-screen bg-linear-to-br from-white via-slate-50 to-cyan-100/20`}
+      >
+        {children}
       </body>
     </html>
   );
