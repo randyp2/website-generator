@@ -11,7 +11,8 @@ import {
   FiArrowRight,
   FiCheck,
 } from "react-icons/fi";
-import type { AuthFormAction, AuthFormState } from "../../features/authType";
+import type { AuthFormAction, AuthFormState } from "../../../../../features/authType";
+import { signup } from "@/lib/auth-actions";
 
 
 interface SignUpFormProps {
@@ -30,11 +31,11 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
 
   return (
     <motion.form
+      action={signup} // Use the server action for signup
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.3 }}
-      onSubmit={onSubmit}
       className="space-y-5"
     >
       {/* Full Name */}
@@ -43,20 +44,21 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
           Full Name
         </label>
         <div className="relative">
-          <FiUser className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+          <FiUser className="absolute left-4 top-1/4 -translate-y-1/2 text-slate-400 w-5 h-5" />
           <input
             type="text"
-            value={state.fullName}
-            onChange={(e) =>
-              dispatch({
-                type: "SET_FIELD",
-                field: "fullName",
-                payload: e.target.value,
-              })
-            }
-            className="w-full bg-white border-2 border-slate-200 rounded-xl pl-12 pr-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-400/10 transition-all"
-            placeholder="John Doe"
+            name="first-name" 
+            placeholder="First Name"
             required
+            className="w-full bg-white border-2 border-slate-200 rounded-xl pl-12 pr-4 py-3 text-slate-900 focus:outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-400/10 transition-all"
+          />
+          <FiUser className="absolute left-4 top-3/4 -translate-y-1/2 text-slate-400 w-5 h-5" />
+          <input
+            type="text"
+            name="last-name" 
+            placeholder="Last Name"
+            required
+            className="w-full bg-white border-2 border-slate-200 rounded-xl pl-12 pr-4 py-3 mt-3 text-slate-900 focus:outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-400/10 transition-all"
           />
         </div>
       </div>
@@ -70,14 +72,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
           <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
           <input
             type="email"
-            value={state.email}
-            onChange={(e) =>
-              dispatch({
-                type: "SET_FIELD",
-                field: "email",
-                payload: e.target.value,
-              })
-            }
+            name="email"
             className="w-full bg-white border-2 border-slate-200 rounded-xl pl-12 pr-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-400/10 transition-all"
             placeholder="you@example.com"
             required
@@ -94,6 +89,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
           <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
           <input
             type={showPassword ? "text" : "password"}
+            name="password"
             value={state.password}
             onChange={(e) =>
               dispatch({

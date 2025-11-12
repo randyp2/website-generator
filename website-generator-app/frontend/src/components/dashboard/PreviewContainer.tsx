@@ -30,22 +30,9 @@ const PreviewContainer: React.FC<PreviewContainerProps> = ({
   isLoading,
   generatedHTML,
 }) => {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [device, setDevice] = useState<DeviceType>("desktop");
 
-  // Update iframe content when HTML changes
-  useEffect(() => {
-    if (iframeRef.current && generatedHTML) {
-      const iframeDoc =
-        iframeRef.current.contentDocument ||
-        iframeRef.current.contentWindow?.document;
-      if (iframeDoc) {
-        iframeDoc.open();
-        iframeDoc.write(generatedHTML);
-        iframeDoc.close();
-      }
-    }
-  }, [generatedHTML]);
+  
 
   const handleDownload = () => {
     const blob = new Blob([generatedHTML], { type: "text/html" });
@@ -104,33 +91,30 @@ const PreviewContainer: React.FC<PreviewContainerProps> = ({
               <div className="hidden md:flex items-center gap-1 p-1 bg-white rounded-lg border border-slate-200 shadow-sm">
                 <button
                   onClick={() => setDevice("desktop")}
-                  className={`p-2 rounded transition-all ${
-                    device === "desktop"
+                  className={`p-2 rounded transition-all ${device === "desktop"
                       ? "bg-sky-100 text-sky-600"
                       : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
-                  }`}
+                    }`}
                   title="Desktop View"
                 >
                   <FiMonitor className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setDevice("tablet")}
-                  className={`p-2 rounded transition-all ${
-                    device === "tablet"
+                  className={`p-2 rounded transition-all ${device === "tablet"
                       ? "bg-sky-100 text-sky-600"
                       : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
-                  }`}
+                    }`}
                   title="Tablet View"
                 >
                   <FiTablet className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setDevice("mobile")}
-                  className={`p-2 rounded transition-all ${
-                    device === "mobile"
+                  className={`p-2 rounded transition-all ${device === "mobile"
                       ? "bg-sky-100 text-sky-600"
                       : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
-                  }`}
+                    }`}
                   title="Mobile View"
                 >
                   <FiSmartphone className="w-4 h-4" />
@@ -215,10 +199,10 @@ const PreviewContainer: React.FC<PreviewContainerProps> = ({
                   style={{ width: getDeviceWidth(), maxWidth: "100%" }}
                 >
                   <iframe
-                    ref={iframeRef}
+                    srcDoc={generatedHTML}
                     title="Portfolio Preview"
                     className="w-full h-[600px] border-0"
-                    sandbox="allow-same-origin"
+                    sandbox="allow-scripts allow-same-origin allow-popups allow-modals allow-forms"
                   />
                 </div>
               </motion.div>

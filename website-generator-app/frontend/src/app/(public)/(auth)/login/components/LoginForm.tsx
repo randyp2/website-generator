@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { FiMail, FiLock, FiEye, FiEyeOff, FiArrowRight } from "react-icons/fi";
-import type { AuthFormState, AuthFormAction } from "../../features/authType";
+import type { AuthFormState, AuthFormAction } from "../../../../../features/authType";
+import { login } from "@/lib/auth-actions";
 
 
 interface LoginFormProps {
@@ -21,8 +22,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ state, dispatch, onSubmit }) => {
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
       transition={{ duration: 0.3 }}
-      onSubmit={onSubmit}
       className="space-y-5"
+      action={login} // Use the server action for login
     >
       {/* Email */}
       <div>
@@ -33,6 +34,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ state, dispatch, onSubmit }) => {
           <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
           <input
             type="email"
+            name="email"
             value={state.email}
             onChange={(e) =>
               dispatch({
@@ -57,6 +59,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ state, dispatch, onSubmit }) => {
           <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
           <input
             type={showPassword ? "text" : "password"}
+            name="password"
             value={state.password}
             onChange={(e) =>
               dispatch({
