@@ -13,7 +13,7 @@ export default function LoginPage() {
   const [mode, setMode] = useState<AuthMode>("login");
 
   return (
-    <div className="min-h-screen pt-20 flex items-center justify-center px-6 py-12 relative overflow-hidden">
+    <div className="min-h-screen  flex items-center justify-center px-6 py-30 relative overflow-hidden">
       {/* Animated Background */}
       <AnimatedBackground />
 

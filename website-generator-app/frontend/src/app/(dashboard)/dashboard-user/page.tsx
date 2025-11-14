@@ -88,7 +88,7 @@ const DashboardHome: React.FC = () => {
                             whileHover={{ scale: 1.02, y: -2 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => router.push("/dashboard/create")}
-                            className="group px-6 py-4 bg-linear-to-r from-sky-500 to-cyan-500 text-white rounded-xl font-bold shadow-xl shadow-sky-400/30 hover:shadow-2xl hover:shadow-sky-500/40 transition-all flex items-center gap-2 hover:cursor-pointer"
+                            className="group px-6 py-4 bg-linear-to-r from-sky-500 to-cyan-500 text-white rounded-xl font-bold shadow-xl shadow-sky-400/30 hover:shadow-2xl hover:shadow-sky-500/40 transition-shadow flex items-center gap-2 hover:cursor-pointer"
                         >
                             <FiPlus className="w-5 h-5" />
                             New Portfolio
