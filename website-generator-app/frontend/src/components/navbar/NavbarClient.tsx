@@ -1,7 +1,8 @@
 "use client";
 
 import { getNavbarItems } from "@/data/navLinks";
-import { signout } from "@/lib/auth-actions";
+import { signoutClient } from "@/lib/logout-client";
+
 import { createClient } from "@/utils/supabase/client";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -87,9 +88,9 @@ const NavbarClient: React.FC = () => {
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => {
-                            signout();
-                            setUser(null);
+                        onClick={async () => {
+                            await signoutClient(); // Sign out user from client side function since invoked by button and not form
+                            router.push("/"); // Redirect to home page
                         }}
                         className="px-5 py-2.5 bg-white text-slate-700 rounded-lg font-semibold border-2 border-slate-200 hover:border-slate-300 hover:shadow-md transition-all"
                     >

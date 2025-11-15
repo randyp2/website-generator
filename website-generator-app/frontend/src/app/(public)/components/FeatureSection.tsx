@@ -208,7 +208,7 @@ const AIProcessingVisual: React.FC = () => (
 
 // Visual Component for Step 3 - Customization
 const CustomizationVisual: React.FC = () => (
-    <div className="relative bg-linear-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 h-full min-h-[300px]">
+    <div className="relative bg-linear-to-br from-cyan-50 to-teal-50 rounded-2xl p-6 h-full min-h-[300px]">
         {/* Mini Portfolio Preview */}
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -300,7 +300,7 @@ const CustomizationVisual: React.FC = () => (
 
 // Visual Component for Step 4 - Deploy
 const DeployVisual: React.FC = () => (
-    <div className="relative bg-linear-to-br from-blue-50 to-cyan-50 rounded-2xl p-8 h-full min-h-[300px] flex flex-col items-center justify-center">
+    <div className="relative bg-linear-to-br from-cyan-50 to-teal-50 rounded-2xl p-8 h-full min-h-[300px] flex flex-col items-center justify-center">
         <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             whileInView={{ scale: 1, opacity: 1 }}
