@@ -126,7 +126,6 @@ const TemplateGallery: React.FC = () => {
                 className="text-center max-w-3xl mx-auto"
             >
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-sky-100 rounded-full text-sky-700 font-semibold text-sm mb-4">
-                    <FiZap className="w-4 h-4" />
                     Step 1 of 2
                 </div>
                 <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4">
