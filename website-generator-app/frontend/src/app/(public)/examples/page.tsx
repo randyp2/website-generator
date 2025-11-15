@@ -33,7 +33,7 @@ export const metadata: Metadata = {
 
 export default function ExamplesPage() {
   return (
-    <main className="min-h-screen pt-20">
+    <main className="min-h-screen pt-15">
       <div className="max-w-7xl mx-auto px-6 py-12">
         {/* Header */}
         <HeroSection />

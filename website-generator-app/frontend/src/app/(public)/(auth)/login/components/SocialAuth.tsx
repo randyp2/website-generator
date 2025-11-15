@@ -11,17 +11,6 @@ interface SocialAuthProps {
 }
 
 const SocialAuth: React.FC<SocialAuthProps> = ({ onSocialAuth }) => {
-  // const socialProviders = [
-  //   { name: "Google", icon: <FcGoogle className="w-5 h-5" />, color: "white", action: signInWithGoogle },
-  //   {
-  //     name: "Facebook",
-  //     icon: <FaFacebook className="w-5 h-5" />,
-  //     color: "blue",
-  //   },
-  //   { name: "GitHub", icon: <FaGithub className="w-5 h-5" />, color: "gray" },
-  //   { name: "Apple", icon: <FaApple className="w-5 h-5" />, color: "black" },
-  // ];
-
   const providers = [
     {
       name: "Google",
@@ -32,25 +21,25 @@ const SocialAuth: React.FC<SocialAuthProps> = ({ onSocialAuth }) => {
 
   return (
     <div className="px-8 pb-6">
-      <div className="grid grid-cols-4 gap-3">
-      {providers.map((provider, index) => (
-
+      <div className="flex flex-col gap-3">
+        {providers.map((provider, index) => (
           <motion.form
             key={provider.name}
             action={provider.action}
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3}}
+            transition={{ duration: 0.3 }}
           >
             <motion.button
               type="submit"
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95 }}
               transition={{ duration: 0.2 }}
-              className="w-full p-3 rounded-xl border-2 border-slate-200 hover:border-slate-300 bg-white hover:shadow-md transition-all flex items-center justify-center"
+              className="hover:cursor-pointer w-full p-3 rounded-xl border-2 border-slate-300 hover:border-slate-400 bg-slate-50 hover:bg-white shadow-sm hover:shadow-lg transition-shadow relative flex items-center justify-center gap-3"
               title={`Continue with ${provider.name}`}
             >
-              {provider.icon}
+               <span className="absolute left-4">{provider.icon}</span>
+              <span className="font-medium text-slate-700">{`Continue with ${provider.name}`}</span>
             </motion.button>
           </motion.form>
         ))}

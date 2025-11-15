@@ -1,6 +1,7 @@
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
+
+import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -19,7 +20,7 @@ import { redirect } from "next/navigation";
 // -------------------------------------------------------------
 
 export async function login(formData: FormData) {
-  const supabase = await createClient();
+  const supabase = await createServerSupabaseClient();
 
   // type-casting here for convenience
   // in practice, you should validate your inputs
@@ -39,7 +40,7 @@ export async function login(formData: FormData) {
 }
 
 export async function signup(formData: FormData) {
-  const supabase = await createClient();
+  const supabase = await createServerSupabaseClient();
 
   // type-casting here for convenience
   // in practice, you should validate your inputs
@@ -66,8 +67,9 @@ export async function signup(formData: FormData) {
   redirect("/");
 }
 
+// Server action to sign out user
 export async function signout() {
-  const supabase = await createClient();
+  const supabase = await createServerSupabaseClient();
   const { error } = await supabase.auth.signOut();
   if (error) {
     console.log(error);
@@ -78,7 +80,7 @@ export async function signout() {
 }
 
 export async function signInWithGoogle() {
-  const supabase = await createClient(); // Create supabase client 
+  const supabase = await createServerSupabaseClient(); // Create supabase client 
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",

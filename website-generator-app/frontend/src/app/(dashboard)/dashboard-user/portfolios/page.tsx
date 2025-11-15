@@ -1,4 +1,4 @@
-"use client"; 
+"use client";
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -15,22 +15,11 @@ import {
 } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 
-/**
- * MODULE 2: PORTFOLIO MANAGER
- * 
- * Design Goals:
- * - Scannable grid of portfolio cards
- * - Clear visual status indicators (draft, published, deployed)
- * - Quick actions accessible without clutter
- * - Hover reveals provide context without overwhelming
- * - FAB for quick creation maintains consistent access
- */
-
 interface Portfolio {
   id: string;
   title: string;
   thumbnail: string;
-  status: "draft" | "published" | "deployed";
+  status: "draft";
   lastEdited: string;
   views: number;
   url?: string;
@@ -47,34 +36,10 @@ const PortfolioManager: React.FC = () => {
       id: "1",
       title: "Software Engineer Portfolio",
       thumbnail: "gradient-1",
-      status: "deployed",
+      status: "draft",
       lastEdited: "2 hours ago",
       views: 234,
       url: "johndoe.portfolio.ai",
-    },
-    {
-      id: "2",
-      title: "Creative Designer Showcase",
-      thumbnail: "gradient-2",
-      status: "published",
-      lastEdited: "1 day ago",
-      views: 89,
-    },
-    {
-      id: "3",
-      title: "Marketing Professional",
-      thumbnail: "gradient-3",
-      status: "draft",
-      lastEdited: "3 days ago",
-      views: 0,
-    },
-    {
-      id: "4",
-      title: "Data Scientist Resume",
-      thumbnail: "gradient-4",
-      status: "published",
-      lastEdited: "1 week ago",
-      views: 156,
     },
   ];
 
@@ -85,20 +50,6 @@ const PortfolioManager: React.FC = () => {
       bgColor: "bg-slate-100",
       textColor: "text-slate-700",
       dotColor: "bg-slate-500",
-    },
-    published: {
-      label: "Published",
-      color: "sky",
-      bgColor: "bg-sky-100",
-      textColor: "text-sky-700",
-      dotColor: "bg-sky-500",
-    },
-    deployed: {
-      label: "Live",
-      color: "emerald",
-      bgColor: "bg-emerald-100",
-      textColor: "text-emerald-700",
-      dotColor: "bg-emerald-500",
     },
   };
 
@@ -125,7 +76,8 @@ const PortfolioManager: React.FC = () => {
             Your Portfolios
           </h1>
           <p className="text-slate-600">
-            {portfolios.length} portfolio{portfolios.length !== 1 ? "s" : ""} created
+            {portfolios.length} portfolio{portfolios.length !== 1 ? "s" : ""}{" "}
+            created
           </p>
         </div>
 
@@ -154,7 +106,7 @@ const PortfolioManager: React.FC = () => {
               whileHover={{ y: -8 }}
               onHoverStart={() => setHoveredId(portfolio.id)}
               onHoverEnd={() => setHoveredId(null)}
-              className="group relative"
+              className="group relative hover:cursor-pointer"
             >
               {/* Card Container */}
               <div className="bg-white/80 backdrop-blur-xl rounded-2xl overflow-hidden border border-white/40 shadow-lg hover:shadow-2xl transition-all">
@@ -193,19 +145,19 @@ const PortfolioManager: React.FC = () => {
                         className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center gap-3"
                       >
                         {[
-                          { icon: FiEye, label: "Preview", color: "sky" },
-                          { icon: FiEdit2, label: "Edit", color: "cyan" },
-                          { icon: FiCopy, label: "Duplicate", color: "teal" },
+                          { icon: FiEye, label: "Preview" },
+                          { icon: FiEdit2, label: "Edit" },
+                          { icon: FiCopy, label: "Duplicate" },
                         ].map((action) => (
                           <motion.button
                             key={action.label}
                             whileHover={{ scale: 1.1, y: -2 }}
                             whileTap={{ scale: 0.95 }}
-                            className={`p-3 bg-white/90 hover:bg-${action.color}-100 rounded-xl shadow-lg hover:shadow-xl transition-all group/btn`}
+                            className={`hover:cursor-pointer p-3 bg-white/90 hover:bg-sky-200 rounded-xl shadow-lg hover:shadow-xl transition-shadow group/btn`}
                             title={action.label}
                           >
                             <action.icon
-                              className={`w-5 h-5 text-slate-700 group-hover/btn:text-${action.color}-600 transition-colors`}
+                              className={`w-5 h-5 text-slate-700 group-hover/btn:text-sky-600 transition-colors`}
                             />
                           </motion.button>
                         ))}
@@ -265,8 +217,16 @@ const PortfolioManager: React.FC = () => {
                             className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-10"
                           >
                             {[
-                              { icon: FiDownload, label: "Export", color: "sky" },
-                              { icon: FiCopy, label: "Duplicate", color: "cyan" },
+                              {
+                                icon: FiDownload,
+                                label: "Export",
+                                color: "sky",
+                              },
+                              {
+                                icon: FiCopy,
+                                label: "Duplicate",
+                                color: "cyan",
+                              },
                               { icon: FiTrash2, label: "Delete", color: "red" },
                             ].map((action) => (
                               <button
