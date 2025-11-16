@@ -10,8 +10,11 @@ export const WelcomeSection: React.FC = () => {
 
     const router = useRouter();
     
-    // Get username using UserContext
-    const { username } = useUser();
+    // Get user using useContext
+    const { user } = useUser();
+
+    // Extract username
+    const { username } = user;
 
     return (
         <motion.div
