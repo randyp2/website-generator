@@ -1,7 +1,6 @@
 
 import { UserContext } from "@/context/UserContext";
-import DashboardMotionWrapper from "../components/DashboardMotionWrapper";
-import SidebarNavigation from "../components/SidebarNavigation";
+import DashboardLayoutClient from "../components/DashboardLayoutClient";
 
 import { redirect } from "next/navigation";
 import UserProviderWrapper from "../components/UseProviderWrapper";
@@ -35,16 +34,8 @@ export default async function DashboardLayout({
   return (
     <UserProviderWrapper user = {{ username, email, avatar}}>
       <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-sky-50/30">
-        {/* Sidebar Navigation */}
-        <SidebarNavigation />
-
-        {/* Motion Wrapper handles animations */}
-        <main className="md:ml-[280px] transition-all duration-300">
-          {/* <div>
-          {"User: " + user.email + " | Access Token: " + accessToken}
-        </div> */}
-          <DashboardMotionWrapper>{children}</DashboardMotionWrapper>
-        </main>
+        {/* DashboardLayoutClient handles sidebar and content with responsive margins */}
+        <DashboardLayoutClient>{children}</DashboardLayoutClient>
       </div>
     </UserProviderWrapper>
   );

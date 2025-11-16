@@ -20,6 +20,7 @@ import {
   FiLogOut,
   FiUser,
 } from "react-icons/fi";
+import { MdOutlineCreate } from "react-icons/md";
 import { IconType } from "react-icons";
 import { createClient } from "@/utils/supabase/client";
 import { signoutClient } from "@/lib/logout-client";
@@ -77,20 +78,8 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
     {
       id: "create",
       label: "Create New",
-      icon: FiZap,
+      icon: MdOutlineCreate,
       path: "/dashboard-user/create",
-    },
-    {
-      id: "uploads",
-      label: "Uploads",
-      icon: FiUpload,
-      path: "/dashboard-user/uploads",
-    },
-    {
-      id: "theme",
-      label: "Theme",
-      icon: FiSliders,
-      path: "/dashboard-user/theme",
     },
     {
       id: "export",
