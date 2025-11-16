@@ -22,14 +22,18 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
+  // Extract user info to display on dashboard
   const user = session.user;
-  const username =
+  const username: string =
     user.user_metadata?.full_name ??
     user.user_metadata?.name ??
     (user.email ? user.email.split("@")[0] : "User");
+  const email: string = user.email ?? "No Email";
+  const avatar: any = user.user_metadata?.avatar_url ?? null;
+  
 
   return (
-    <UserProviderWrapper username = {username}>
+    <UserProviderWrapper user = {{ username, email, avatar}}>
       <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-sky-50/30">
         {/* Sidebar Navigation */}
         <SidebarNavigation />

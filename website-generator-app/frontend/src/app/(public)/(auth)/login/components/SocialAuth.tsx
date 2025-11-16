@@ -32,8 +32,7 @@ const SocialAuth: React.FC<SocialAuthProps> = ({ onSocialAuth }) => {
           >
             <motion.button
               type="submit"
-              whileHover={{ scale: 1.05, y: -2 }}
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: 0.98 }}
               transition={{ duration: 0.2 }}
               className="hover:cursor-pointer w-full p-3 rounded-xl border-2 border-slate-300 hover:border-slate-400 bg-slate-50 hover:bg-white shadow-sm hover:shadow-lg transition-shadow relative flex items-center justify-center gap-3"
               title={`Continue with ${provider.name}`}

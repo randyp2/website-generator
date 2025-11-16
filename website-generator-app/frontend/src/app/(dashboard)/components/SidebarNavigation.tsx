@@ -25,18 +25,6 @@ import { createClient } from "@/utils/supabase/client";
 import { signoutClient } from "@/lib/logout-client";
 import { useUser } from "@/context/UserContext";
 
-/**
- * SIDEBAR NAVIGATION - Next.js App Router Compatible
- *
- * Design Goals:
- * - Persistent navigation for dashboard
- * - Collapsible for more screen space
- * - Active state clearly visible
- * - Icon-only mode for minimal UI
- * - Mobile: overlay drawer
- * - Smooth transitions
- */
-
 interface NavItem {
   id: string;
   label: string;
@@ -55,7 +43,12 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
   onToggleCollapse,
 }) => {
   const supabase = createClient(); // Create a supabase client
-  const { username } = useUser();
+  const { user } = useUser(); // Extract user from context
+
+  // Extract user info
+  const { username } = user;
+  const { email } = user;
+  const { avatar } = user;
 
   const pathname = usePathname();
   const router = useRouter();
@@ -201,16 +194,20 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
         {/* User Info */}
         {!collapsed && (
           <div className="flex items-center gap-3 px-3 py-2 bg-slate-50 rounded-lg">
-            <div className="w-8 h-8 bg-slate-300 rounded-full flex items-center justify-center shrink-0">
-              <FiUser className="w-4 h-4 text-slate-600" />
-            </div>
+            {/* Render avatar if any */}
+            {avatar === null ? (
+              <div className="w-8 h-8 bg-slate-300 rounded-full flex items-center justify-center shrink-0">
+                <FiUser className="w-4 h-4 text-slate-600" />
+              </div>
+            ) : (
+              <img src={avatar} className="w-8 h-8 rounded-full" />
+            )}
+
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-slate-700 truncate">
                 {username}
               </p>
-              <p className="text-xs text-slate-500 truncate">
-                john.doe@example.com
-              </p>
+              <p className="text-xs text-slate-500 truncate">{email}</p>
             </div>
           </div>
         )}

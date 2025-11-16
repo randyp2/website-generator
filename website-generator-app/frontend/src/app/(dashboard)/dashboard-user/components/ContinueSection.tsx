@@ -27,7 +27,7 @@ export const ContinueSection: React.FC = () => {
         {/* Placeholder card 1 */}
         <motion.div
           whileHover={{ scale: 1.02, y: -2 }}
-          className="group p-6 rounded-xl border-2 border-dashed border-slate-300 hover:border-amber-400 hover:bg-amber-50/30 transition-all cursor-pointer"
+          className="group p-6 rounded-xl border-2 border-dashed border-slate-300 hover:border-amber-400 hover:bg-amber-50/30 transition-shadow cursor-pointer"
         >
           <div className="flex items-start gap-4">
             <div className="w-16 h-16 rounded-lg bg-linear-to-br from-slate-100 to-slate-200 flex items-center justify-center">
@@ -47,7 +47,7 @@ export const ContinueSection: React.FC = () => {
         {/* Placeholder card 2 */}
         <motion.div
           whileHover={{ scale: 1.02, y: -2 }}
-          className="group p-6 rounded-xl border-2 border-dashed border-slate-300 hover:border-amber-400 hover:bg-amber-50/30 transition-all cursor-pointer"
+          className="group p-6 rounded-xl border-2 border-dashed border-slate-300 hover:border-amber-400 hover:bg-amber-50/30 transition-shadow cursor-pointer"
         >
           <div className="flex items-start gap-4">
             <div className="w-16 h-16 rounded-lg bg-linear-to-br from-slate-100 to-slate-200 flex items-center justify-center">
