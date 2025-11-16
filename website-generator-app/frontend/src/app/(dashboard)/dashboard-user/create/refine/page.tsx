@@ -193,7 +193,7 @@ const AIRefinementPage: React.FC = () => {
     // RENDER
     // ========================================================================
     return (
-        <div className="h-screen w-screeflex flex-col overflow-hidden relative ">
+        <div className="h-screen flex flex-col overflow-hidden relative ">
             {/* ================================================ */}
             {/* LAYER 1: FULL SCREEN PREVIEW (BASE) */}
             {/* ================================================ */}
@@ -249,11 +249,11 @@ const AIRefinementPage: React.FC = () => {
                         className="bg-white rounded-lg shadow-2xl border border-slate-300  overflow-hidden h-full"
                     >
                         {/* Placeholder Portfolio Preview */}
-                        <div className="h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 flex flex-col items-center justify-center text-center space-y-6 p-12 overflow-auto">
+                        <div className="h-full bg-linear-to-br from-slate-900 via-slate-800 to-slate-700 flex flex-col items-center justify-center text-center space-y-6 p-12 overflow-auto">
                             <motion.div
                                 animate={{ scale: [0.95, 1, 0.95] }}
                                 transition={{ duration: 3, repeat: Infinity }}
-                                className="w-24 h-24 bg-gradient-to-br from-sky-400 to-cyan-400 rounded-full"
+                                className="w-24 h-24 bg-linear-to-br from-sky-400 to-cyan-400 rounded-full"
                             />
                             <h1 className="text-4xl font-bold text-white">Your Name</h1>
                             <p className="text-slate-300 text-lg">Software Engineer</p>
@@ -372,7 +372,7 @@ const AIRefinementPage: React.FC = () => {
                                             <div
                                                 className={`inline-block max-w-[85%] px-3 py-2 rounded-lg text-sm ${
                                                     msg.role === "user"
-                                                        ? "bg-gradient-to-r from-sky-500 to-cyan-500 text-white"
+                                                        ? "bg-linear-to-r from-sky-500 to-cyan-500 text-white"
                                                         : "bg-slate-100 text-slate-900"
                                                 }`}
                                             >
