@@ -2,10 +2,10 @@
 
 import React, { useEffect, useReducer, useState } from "react";
 import { motion } from "framer-motion";
-import FormContainer from "@/components/dashboard/FormContainer";
+import FormContainer from "@/app/(public)/dashboard/components/FormContainer";
 
 import { formReducer } from "@/webgenForm/useFormReducer";
-import PreviewContainer from "@/components/dashboard/PreviewContainer";
+import PreviewContainer from "@/app/(public)/dashboard/components/PreviewContainer";
 import { initialState } from "@/webgenForm/formType";
 
 
