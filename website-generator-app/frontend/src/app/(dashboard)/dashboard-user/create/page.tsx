@@ -5,8 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import { FiArrowRight } from "react-icons/fi";
 import { useRouter } from "next/navigation";
-import { HeaderSection } from "./component/HeaderSection";
-import { TemplateSection } from "./component/TemplateSection";
+import { HeaderSection } from "./components/HeaderSection";
+import { TemplateSection } from "./components/TemplateSection";
 
 const TemplateGallery: React.FC = () => {
   const router = useRouter();
