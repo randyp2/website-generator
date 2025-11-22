@@ -1,16 +1,16 @@
 "use client";
 
-import { UserContext } from "@/context/UserContext";
+import { UserContext, UserData } from "@/context/UserContext";
 
 export default function UserProviderWrapper({
   children,
-  username,
+  user,
 }: {
   children: React.ReactNode;
-  username: string;
+  user: UserData;
 }) {
   return (
-    <UserContext.Provider value={{ username }}>
+    <UserContext.Provider value={{ user }}>
       {children}
     </UserContext.Provider>
   );

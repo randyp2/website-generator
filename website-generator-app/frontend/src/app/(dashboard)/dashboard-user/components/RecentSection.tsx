@@ -30,7 +30,7 @@ export const RecentSection: React.FC = () => {
         {/* Portfolio Placeholder Card 1 */}
         <motion.div
           whileHover={{ scale: 1.02, y: -4 }}
-          className="group relative overflow-hidden rounded-xl border-2 border-slate-200 hover:border-sky-300 hover:shadow-xl transition-all cursor-pointer bg-white"
+          className="group relative overflow-hidden rounded-xl border-2 border-slate-200 hover:border-sky-300 hover:shadow-xl transition-shadow cursor-pointer bg-white"
         >
           {/* Portfolio Preview Area */}
           <div className="h-48 bg-linear-to-br from-sky-50 via-cyan-50 to-teal-50 relative overflow-hidden">
@@ -58,7 +58,7 @@ export const RecentSection: React.FC = () => {
         {/* Portfolio Placeholder Card 2 */}
         <motion.div
           whileHover={{ scale: 1.02, y: -4 }}
-          className="group relative overflow-hidden rounded-xl border-2 border-slate-200 hover:border-sky-300 hover:shadow-xl transition-all cursor-pointer bg-white"
+          className="group relative overflow-hidden rounded-xl border-2 border-slate-200 hover:border-sky-300 hover:shadow-xl transition-shadow cursor-pointer bg-white"
         >
           {/* Portfolio Preview Area */}
           <div className="h-48 bg-linear-to-br from-violet-50 via-purple-50 to-fuchsia-50 relative overflow-hidden">
@@ -86,7 +86,7 @@ export const RecentSection: React.FC = () => {
         {/* Portfolio Placeholder Card 3 */}
         <motion.div
           whileHover={{ scale: 1.02, y: -4 }}
-          className="group relative overflow-hidden rounded-xl border-2 border-slate-200 hover:border-sky-300 hover:shadow-xl transition-all cursor-pointer bg-white"
+          className="group relative overflow-hidden rounded-xl border-2 border-slate-200 hover:border-sky-300 hover:shadow-xl transition-shadow cursor-pointer bg-white"
         >
           {/* Portfolio Preview Area */}
           <div className="h-48 bg-linear-to-br from-amber-50 via-orange-50 to-red-50 relative overflow-hidden">

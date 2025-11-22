@@ -2,8 +2,14 @@
 
 import { createContext, useContext } from "react";
 
-interface UserContextType {
+export interface UserData {
   username: string;
+  email: string;
+  avatar: any;
+}
+
+interface UserContextType {
+  user: UserData;
 }
 
 export const UserContext = createContext<UserContextType | undefined>(undefined);
