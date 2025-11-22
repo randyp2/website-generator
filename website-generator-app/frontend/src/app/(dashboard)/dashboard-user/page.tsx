@@ -1,20 +1,7 @@
 "use client";
 
-import React, { useMemo } from "react";
-import { motion } from "framer-motion";
+import React from "react";
 
-import {
-  FiPlus,
-  FiFolder,
-  FiDownload,
-  FiGlobe,
-  FiTrendingUp,
-  FiZap,
-  FiClock,
-  FiEdit3,
-  FiEye,
-} from "react-icons/fi";
-import { useRouter } from "next/navigation";
 import { WelcomeSection } from "./components/WelcomeSection";
 import { StatsSection } from "./components/StatsSection";
 import { ActionSection } from "./components/ActionSection";
@@ -22,12 +9,12 @@ import { ContinueSection } from "./components/ContinueSection";
 import { RecentSection } from "./components/RecentSection";
 
 const DashboardHome: React.FC = () => {
-  const router = useRouter();
+
 
   return (
-    <div className="relative">
+    <div className="relative p-10">
       {/* Content */}
-      <div className="relative z-10 space-y-8">
+      <div className="relative z-10 pt-5 space-y-8">
         {/* Welcome Section */}
         <WelcomeSection />
 

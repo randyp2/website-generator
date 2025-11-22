@@ -11,9 +11,13 @@ import {
   FiSmartphone,
   FiTablet,
   FiZap,
+  FiMail,
+  FiX,
 } from "react-icons/fi";
 import { FormState } from "@/webgenForm/formType";
-
+import { EmailModal } from "./EmailModal";
+import { ShowCodeModal } from "./ShowCodeModal";
+import { prepareAnonymousPreview } from "@/utils/storage/uploadPreview";
 
 interface PreviewContainerProps {
   formData: FormState;
@@ -31,15 +35,25 @@ const PreviewContainer: React.FC<PreviewContainerProps> = ({
   generatedHTML,
 }) => {
   const [device, setDevice] = useState<DeviceType>("desktop");
+  const [showEmailModal, setShowEmailModal] = useState<boolean>(false);
+  const [email, setEmail] = useState<string>("");
+  const [isEmailSending, setIsEmailSending] = useState<boolean>(false);
+  const [emailSent, setEmailSent] = useState<boolean>(false);
 
-  
+  // Code verification states
+  const [showCodeModal, setShowCodeModal] = useState<boolean>(false);
+  const [verificationCode, setVerificationCode] = useState<string>("");
+  const [isCodeVerifying, setIsCodeVerifying] = useState<boolean>(false);
+  const [codeVerified, setCodeVerified] = useState<boolean>(false);
 
   const handleDownload = () => {
     const blob = new Blob([generatedHTML], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${formData.name.replace(/\s+/g, "-").toLowerCase()}-portfolio.html`;
+    a.download = `${formData.name
+      .replace(/\s+/g, "-")
+      .toLowerCase()}-portfolio.html`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -51,6 +65,98 @@ const PreviewContainer: React.FC<PreviewContainerProps> = ({
     if (newWindow) {
       newWindow.document.write(generatedHTML);
       newWindow.document.close();
+    }
+  };
+
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsEmailSending(true); // For loading effect
+
+    console.log("Submitting email for preview:", email);
+
+    try {
+      // Prepare downloadable HTML file
+      const { fileName, fileContent } = await prepareAnonymousPreview(
+        generatedHTML
+      );
+
+      // Step 1 — send verification email
+      const res = await fetch("/api/sendPreviewVerification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          fileContent,
+          fileName,
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.success) {
+        alert("Failed to send verification code.");
+        setIsEmailSending(false);
+        return;
+      }
+      setShowEmailModal(false);
+      setShowCodeModal(true);
+    } catch (error) {
+      console.error("Failed to send email:", error);
+      setIsEmailSending(false);
+    }
+    console.log("Email submitted:", email);
+  };
+
+  /**
+   * Call backend API route: /api/verifyPreviewCode
+   *
+   * Send:
+   *  - email: the email the user entered in the first modal
+   *  - code: the 6-digit code they typed into the verification modal
+   *
+   * This API:
+   *  - looks up the (email, code) pair in the email_verifications table
+   *  - if valid: grabs preview_url, deletes the row, emails the link
+   *  - returns { success: true, previewUrl }
+   */
+  const handleCodeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsCodeVerifying(true);
+
+    try {
+      const res = await fetch("/api/verifyPreviewCode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          code: verificationCode,
+        }),
+      });
+
+      // Get response data
+      const data = await res.json();
+
+      if (!data.success) {
+        alert("Invalid verification code. Please try again.");
+        setIsCodeVerifying(false);
+        return;
+      }
+
+      // Code verified successfully, the server has sent the HTML file to the user's email
+      setCodeVerified(true);
+
+      // After showing success message, close the modal
+      setTimeout(() => {
+        setShowCodeModal(false);
+        // Reset states for next time
+        setVerificationCode("");
+        setCodeVerified(false);
+        setEmail("");
+      }, 2000);
+    } catch (error) {
+      console.error("Verification failed:", error);
+      alert("Something went wrong verifying your code.");
+    } finally {
+      setIsCodeVerifying(false);
     }
   };
 
@@ -81,7 +187,9 @@ const PreviewContainer: React.FC<PreviewContainerProps> = ({
                   Live Preview
                 </h3>
                 <p className="text-sm text-slate-600">
-                  {showPreview ? "Your portfolio is ready!" : "Waiting for generation..."}
+                  {showPreview
+                    ? "Your portfolio is ready!"
+                    : "Waiting for generation..."}
                 </p>
               </div>
             </div>
@@ -91,30 +199,33 @@ const PreviewContainer: React.FC<PreviewContainerProps> = ({
               <div className="hidden md:flex items-center gap-1 p-1 bg-white rounded-lg border border-slate-200 shadow-sm">
                 <button
                   onClick={() => setDevice("desktop")}
-                  className={`p-2 rounded transition-all ${device === "desktop"
+                  className={`p-2 rounded transition-all ${
+                    device === "desktop"
                       ? "bg-sky-100 text-sky-600"
                       : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
-                    }`}
+                  }`}
                   title="Desktop View"
                 >
                   <FiMonitor className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setDevice("tablet")}
-                  className={`p-2 rounded transition-all ${device === "tablet"
+                  className={`p-2 rounded transition-all ${
+                    device === "tablet"
                       ? "bg-sky-100 text-sky-600"
                       : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
-                    }`}
+                  }`}
                   title="Tablet View"
                 >
                   <FiTablet className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setDevice("mobile")}
-                  className={`p-2 rounded transition-all ${device === "mobile"
+                  className={`p-2 rounded transition-all ${
+                    device === "mobile"
                       ? "bg-sky-100 text-sky-600"
                       : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
-                    }`}
+                  }`}
                   title="Mobile View"
                 >
                   <FiSmartphone className="w-4 h-4" />
@@ -143,6 +254,15 @@ const PreviewContainer: React.FC<PreviewContainerProps> = ({
               >
                 <FiExternalLink className="w-4 h-4" />
                 Open in New Tab
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setShowEmailModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-sky-500 border border-sky-500 text-white rounded-lg font-medium text-sm hover:bg-sky-600 hover:border-sky-600 hover:shadow-sm transition-all shadow-sm"
+              >
+                <FiMail className="w-4 h-4" />
+                Email Your Website
               </motion.button>
             </div>
           )}
@@ -224,12 +344,15 @@ const PreviewContainer: React.FC<PreviewContainerProps> = ({
                   </h4>
                   <p className="text-slate-600 leading-relaxed mb-6">
                     Fill out the form on the left and click "Generate Portfolio"
-                    to see your professional portfolio come to life in real-time.
+                    to see your professional portfolio come to life in
+                    real-time.
                   </p>
                   <div className="flex flex-col gap-3 text-left bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
                     <div className="flex items-start gap-3">
                       <div className="w-6 h-6 bg-sky-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
-                        <span className="text-sky-600 text-xs font-bold">1</span>
+                        <span className="text-sky-600 text-xs font-bold">
+                          1
+                        </span>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-slate-900">
@@ -242,7 +365,9 @@ const PreviewContainer: React.FC<PreviewContainerProps> = ({
                     </div>
                     <div className="flex items-start gap-3">
                       <div className="w-6 h-6 bg-cyan-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
-                        <span className="text-cyan-600 text-xs font-bold">2</span>
+                        <span className="text-cyan-600 text-xs font-bold">
+                          2
+                        </span>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-slate-900">
@@ -255,7 +380,9 @@ const PreviewContainer: React.FC<PreviewContainerProps> = ({
                     </div>
                     <div className="flex items-start gap-3">
                       <div className="w-6 h-6 bg-sky-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
-                        <span className="text-sky-600 text-xs font-bold">3</span>
+                        <span className="text-sky-600 text-xs font-bold">
+                          3
+                        </span>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-slate-900">
@@ -273,6 +400,30 @@ const PreviewContainer: React.FC<PreviewContainerProps> = ({
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Email Modal */}
+      {showEmailModal && (
+        <EmailModal
+          setShowEmailModal={setShowEmailModal}
+          email={email}
+          setEmail={setEmail}
+          isEmailSending={isEmailSending}
+          emailSent={emailSent}
+          handleEmailSubmit={handleEmailSubmit}
+        />
+      )}
+
+      {/* Verification Code Modal */}
+      {showCodeModal && (
+        <ShowCodeModal
+          setShowCodeModal={setShowCodeModal}
+          verificationCode={verificationCode}
+          setVerificationCode={setVerificationCode}
+          isCodeVerifying={isCodeVerifying}
+          codeVerified={codeVerified}
+          handleCodeSubmit={handleCodeSubmit}
+        />
+      )}
     </div>
   );
 };
