@@ -9,8 +9,9 @@ interface PreviewProps {
     setDeviceMode: React.Dispatch<React.SetStateAction<DeviceMode>>;
     deviceMode: DeviceMode;
     getPreviewWidth: () => string;
+    previewHtml: string | null;
 }
-export const Preview: React.FC<PreviewProps> = ({ setDeviceMode, deviceMode, getPreviewWidth}) => {
+export const Preview: React.FC<PreviewProps> = ({ setDeviceMode, deviceMode, getPreviewWidth, previewHtml }) => {
     return (
         <div className="absolute inset-0 bg-slate-100">
                 <div className="h-full flex justify-center items-center">
@@ -63,29 +64,40 @@ export const Preview: React.FC<PreviewProps> = ({ setDeviceMode, deviceMode, get
                         transition={{ duration: 0.4, ease: "easeInOut" }}
                         className="bg-white rounded-lg shadow-2xl border border-slate-300  overflow-hidden h-full"
                     >
-                        {/* Placeholder Portfolio Preview */}
-                        <div className="h-full bg-linear-to-br from-slate-900 via-slate-800 to-slate-700 flex flex-col items-center justify-center text-center space-y-6 p-12 overflow-auto">
-                            <motion.div
-                                animate={{ scale: [0.95, 1, 0.95] }}
-                                transition={{ duration: 3, repeat: Infinity }}
-                                className="w-24 h-24 bg-linear-to-br from-sky-400 to-cyan-400 rounded-full"
+                        {previewHtml ? (
+                            // Render AI-generated HTML in iframe for isolation
+                            // BACKEND NOTE: The previewHtml comes from Spring Boot's /api/portfolio/refine endpoint
+                            <iframe
+                                srcDoc={previewHtml}
+                                className="w-full h-full border-0"
+                                title="Portfolio Preview"
+                                sandbox="allow-scripts allow-same-origin"
                             />
-                            <h1 className="text-4xl font-bold text-white">Your Name</h1>
-                            <p className="text-slate-300 text-lg">Software Engineer</p>
-                            <div className="flex flex-wrap gap-3 justify-center mt-8">
-                                {["React", "TypeScript", "Node.js", "Python"].map((skill) => (
-                                    <span
-                                        key={skill}
-                                        className="px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white text-sm"
-                                    >
-                                        {skill}
-                                    </span>
-                                ))}
+                        ) : (
+                            // Placeholder when no HTML is generated yet
+                            <div className="h-full bg-linear-to-br from-slate-900 via-slate-800 to-slate-700 flex flex-col items-center justify-center text-center space-y-6 p-12 overflow-auto">
+                                <motion.div
+                                    animate={{ scale: [0.95, 1, 0.95] }}
+                                    transition={{ duration: 3, repeat: Infinity }}
+                                    className="w-24 h-24 bg-linear-to-br from-sky-400 to-cyan-400 rounded-full"
+                                />
+                                <h1 className="text-4xl font-bold text-white">Your Name</h1>
+                                <p className="text-slate-300 text-lg">Software Engineer</p>
+                                <div className="flex flex-wrap gap-3 justify-center mt-8">
+                                    {["React", "TypeScript", "Node.js", "Python"].map((skill) => (
+                                        <span
+                                            key={skill}
+                                            className="px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white text-sm"
+                                        >
+                                            {skill}
+                                        </span>
+                                    ))}
+                                </div>
+                                <p className="text-slate-400 text-sm mt-12">
+                                    Preview updates in real-time
+                                </p>
                             </div>
-                            <p className="text-slate-400 text-sm mt-12">
-                                Preview updates in real-time
-                            </p>
-                        </div>
+                        )}
                     </motion.div>
                 </div>
             </div>

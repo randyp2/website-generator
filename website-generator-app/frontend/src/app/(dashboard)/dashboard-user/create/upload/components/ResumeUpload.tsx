@@ -2,29 +2,39 @@
 
 import { motion } from "framer-motion";
 import { format } from "path";
-import React from "react";
+import React, { useEffect } from "react";
 import { FiFile, FiUpload, FiCheck, FiX } from "react-icons/fi";
 import { UploadedFile } from "@/types/file";
+import { usePortfolioStore } from "@/stores/usePortfolioStore";
 
 interface ResumeUploadProps {
-  resumeFile?: UploadedFile | null;
-  handleFileUpload: (
-    e: React.ChangeEvent<HTMLInputElement>,
-    type: "resume" | "media" | "video"
-  ) => void;
+
+ 
   formatFileSize: (bytes: number) => string;
   removeFile: (
     type: "resume" | "media" | "video",
     index?: number | undefined
   ) => void;
+   handleFileUpload: (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: "resume" | "media" | "video"
+  ) => void;
 }
 
 export const ResumeUpload: React.FC<ResumeUploadProps> = ({
-  resumeFile,
-  handleFileUpload,
   formatFileSize,
   removeFile,
+  handleFileUpload,
 }) => {
+  useEffect(() => {
+  const unsub = usePortfolioStore.subscribe((state, prevState) => {
+    console.log("Zustand updated:");
+    console.log("Previous:", prevState);
+    console.log("Current:", state);
+  });
+  return () => unsub(); // cleanup on unmount
+}, []);
+  const resumeFile = usePortfolioStore(s => s.resumeFile);
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}

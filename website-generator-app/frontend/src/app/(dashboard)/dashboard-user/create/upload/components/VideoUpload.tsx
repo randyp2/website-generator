@@ -1,5 +1,6 @@
 "use client";
 
+import { usePortfolioStore } from "@/stores/usePortfolioStore";
 import { UploadedFile } from "@/types/file";
 import { formatFileSize } from "@/utils/fileHelpers";
 import { motion } from "framer-motion";
@@ -7,12 +8,7 @@ import React, { useState } from "react";
 import { FiVideo, FiUpload, FiCheck, FiEdit2, FiX } from "react-icons/fi";
 
 interface VideoUploadProps {
-  videoFiles: UploadedFile[];
   pendingVideoFiles: UploadedFile[];
-  handleFileUpload: (
-    e: React.ChangeEvent<HTMLInputElement>,
-    type: "resume" | "media" | "video"
-  ) => void;
   updatePendingFileTitle: (
     type: "media" | "video",
     index: number,
@@ -25,33 +21,25 @@ interface VideoUploadProps {
   ) => void;
   cancelPendingFiles: (type: "media" | "video") => void;
   confirmPendingFiles: (type: "media" | "video") => void;
-  updateFileTitle: (
-    type: "media" | "video",
-    index: number,
-    title: string
-  ) => void;
-  updateFileDescription: (
-    type: "media" | "video",
-    index: number,
-    description: string
-  ) => void;
-  removeFile: (
-    type: "resume" | "media" | "video",
-    index?: number | undefined
+  handleFileUpload: (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: "resume" | "media" | "video"
   ) => void;
 }
 export const VideoUpload: React.FC<VideoUploadProps> = ({
-  videoFiles,
   pendingVideoFiles,
-  handleFileUpload,
   updatePendingFileTitle,
   updatePendingFileDescription,
   cancelPendingFiles,
   confirmPendingFiles,
-  updateFileTitle,
-  updateFileDescription,
-  removeFile,
+  handleFileUpload,
 }) => {
+
+   const videoFiles = usePortfolioStore(s => s.mediaFiles);
+    const updateFileTitle = usePortfolioStore(s => s.updateVideoFileTitle);
+    const updateFileDescription = usePortfolioStore(s => s.updateVideoFileDescription);
+    const removeFile = usePortfolioStore(s => s.removeVideoFile);
+
   /**
    * STATE: Currently editing video file index
    *
@@ -240,7 +228,7 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
                         placeholder="Enter title..."
                         value={file.title || ""}
                         onChange={(e) =>
-                          updateFileTitle("video", index, e.target.value)
+                          updateFileTitle(index, e.target.value)
                         }
                         className="w-full px-2 py-1.5 text-sm bg-white border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       />
@@ -253,7 +241,7 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
                         placeholder="Enter description..."
                         value={file.description || ""}
                         onChange={(e) =>
-                          updateFileDescription("video", index, e.target.value)
+                          updateFileDescription(index, e.target.value)
                         }
                         rows={2}
                         className="w-full px-2 py-1.5 text-sm bg-white border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
@@ -287,7 +275,7 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
                         <FiEdit2 className="w-3.5 h-3.5 text-slate-600 group-hover:text-purple-600" />
                       </button>
                       <button
-                        onClick={() => removeFile("video", index)}
+                        onClick={() => removeFile(index)}
                         className="p-1.5 hover:bg-red-100 rounded-lg transition-colors group"
                         title="Delete video"
                       >

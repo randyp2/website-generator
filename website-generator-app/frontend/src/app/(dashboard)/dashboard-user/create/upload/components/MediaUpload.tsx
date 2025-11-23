@@ -1,18 +1,14 @@
 "use client";
 
+import { usePortfolioStore } from "@/stores/usePortfolioStore";
 import { UploadedFile } from "@/types/file";
 import { formatFileSize } from "@/utils/fileHelpers";
 import { motion } from "framer-motion";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FiImage, FiUpload, FiCheck, FiEdit2, FiX } from "react-icons/fi";
 
 interface MediaUploadProps {
-  mediaFiles: UploadedFile[];
   pendingMediaFiles: UploadedFile[];
-  handleFileUpload: (
-    e: React.ChangeEvent<HTMLInputElement>,
-    type: "resume" | "media" | "video"
-  ) => void;
   updatePendingFileTitle: (
     type: "media" | "video",
     index: number,
@@ -25,34 +21,33 @@ interface MediaUploadProps {
   ) => void;
   cancelPendingFiles: (type: "media" | "video") => void;
   confirmPendingFiles: (type: "media" | "video") => void;
-  updateFileTitle: (
-    type: "media" | "video",
-    index: number,
-    title: string
-  ) => void;
-  updateFileDescription: (
-    type: "media" | "video",
-    index: number,
-    description: string
-  ) => void;
-  removeFile: (
-    type: "resume" | "media" | "video",
-    index?: number | undefined
+  handleFileUpload: (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: "resume" | "media" | "video"
   ) => void;
 }
 
 export const MediaUpload: React.FC<MediaUploadProps> = ({
-  mediaFiles,
   pendingMediaFiles,
-  handleFileUpload,
   updatePendingFileTitle,
   updatePendingFileDescription,
   cancelPendingFiles,
   confirmPendingFiles,
-  updateFileTitle,
-  updateFileDescription,
-  removeFile,
+  handleFileUpload,
 }) => {
+  useEffect(() => {
+  const unsub = usePortfolioStore.subscribe((state, prevState) => {
+    console.log("Zustand updated:");
+    console.log("Previous:", prevState);
+    console.log("Current:", state);
+  });
+  return () => unsub(); // cleanup on unmount
+}, []);
+
+  const mediaFiles = usePortfolioStore(s => s.mediaFiles);
+  const updateFileTitle = usePortfolioStore(s => s.updateMediaFileTitle);
+  const updateFileDescription = usePortfolioStore(s => s.updateMediaFileDescription);
+  const removeFile = usePortfolioStore(s => s.removeMediaFile);
   /**
    * STATE: Currently editing media file index
    *
@@ -244,7 +239,7 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
                         placeholder="Enter title..."
                         value={file.title || ""}
                         onChange={(e) =>
-                          updateFileTitle("media", index, e.target.value)
+                          updateFileTitle(index, e.target.value)
                         }
                         className="w-full px-2 py-1.5 text-sm bg-white border border-cyan-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                       />
@@ -257,7 +252,7 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
                         placeholder="Enter description..."
                         value={file.description || ""}
                         onChange={(e) =>
-                          updateFileDescription("media", index, e.target.value)
+                          updateFileDescription(index, e.target.value)
                         }
                         rows={2}
                         className="w-full px-2 py-1.5 text-sm bg-white border border-cyan-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent resize-none"
@@ -291,7 +286,7 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
                         <FiEdit2 className="w-3.5 h-3.5 text-slate-600 group-hover:text-cyan-600" />
                       </button>
                       <button
-                        onClick={() => removeFile("media", index)}
+                        onClick={() => removeFile(index)}
                         className="p-1.5 hover:bg-red-100 rounded-lg transition-colors group"
                         title="Delete image"
                       >
