@@ -18,6 +18,7 @@ import type { UploadedFile } from "@/types/file";
 import { DeviceMode, FilePreview, Message } from "@/types/preview";
 import { Preview } from "./components/Preview";
 import { AiResponse } from "./components/AiResponse";
+import { usePortfolioStore } from "@/stores/usePortfolioStore";
 
 // ============================================================================
 // MAIN COMPONENT
@@ -26,10 +27,21 @@ const AIRefinementPage: React.FC = () => {
     // Device preview mode
     const [deviceMode, setDeviceMode] = useState<DeviceMode>("desktop");
 
-    // Prompt state
-    const [promptText, setPromptText] = useState("");
+    // Zustand store - All portfolio creation state
+    const {
+        aiPrompt,
+        setAiPrompt,
+        previewHtml,
+        setPreviewHtml,
+        mediaFiles,
+        videoFiles,
+        addMediaFiles,
+        addVideoFiles,
+        removeMediaFile,
+        removeVideoFile,
+    } = usePortfolioStore();
+
     const [uploadBoxOpen, setUploadBoxOpen] = useState(false);
-    const [uploadedFiles, setUploadedFiles] = useState<FilePreview[]>([]);
     const [isDragging, setIsDragging] = useState(false);
 
     // Messages & AI response
@@ -46,6 +58,9 @@ const AIRefinementPage: React.FC = () => {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Combine media and video files for display
+    const uploadedFiles = [...mediaFiles, ...videoFiles];
+
     /**
      * Auto-resize textarea effect.
      * Dynamically adjusts textarea height based on content.
@@ -57,7 +72,7 @@ const AIRefinementPage: React.FC = () => {
             textareaRef.current.style.height = "auto";
             textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
         }
-    }, [promptText]);
+    }, [aiPrompt]);
 
     /**
      * Auto-fade AI response overlay after 5 seconds.
@@ -116,27 +131,25 @@ const AIRefinementPage: React.FC = () => {
     const handleFileSelect = (files: FileList | null) => {
         if (!files) return;
 
-        const newFiles: FilePreview[] = [];
+
         Array.from(files).forEach((file) => {
             const isImage = file.type.startsWith("image/");
             const isVideo = file.type.startsWith("video/");
+            
+            if (!isImage && !isVideo) return; // Skip unsupported file types
 
-            if (isImage || isVideo) {
-                const preview = URL.createObjectURL(file);
-                newFiles.push({
-                    id: Math.random().toString(36).substring(7),
-                    file,
-                    preview,
-                    fileType: isImage ? "image" : "video",
-                    // UploadedFile properties
-                    name: file.name,
-                    size: file.size,
-                    type: file.type,
-                });
+            const newUploadedFile: UploadedFile = {
+                file, 
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                title: "",
+                description: "",
             }
-        });
 
-        setUploadedFiles((prev) => [...prev, ...newFiles]);
+            if (isImage) addMediaFiles([newUploadedFile]);
+            else if(isVideo) addVideoFiles([newUploadedFile]);
+        });
     };
 
     /**
@@ -168,24 +181,20 @@ const AIRefinementPage: React.FC = () => {
     };
 
     /**
-     * Removes a file from the uploadedFiles state by its ID.
-     * Also revokes the object URL to prevent memory leaks.
+     * Removes a file from the Zustand store by its index.
+     * Determines if the file is a media file (image) or video file, then calls the appropriate remove function.
      *
-     * @param id - Unique identifier of the file to remove
-     *
-     * Memory management:
-     * - Finds the file in the current state
-     * - Revokes the preview URL to free up memory
-     * - Filters out the file from the state array
+     * @param index - Index of the file to remove in the combined uploadedFiles array
      */
-    const removeFile = (id: string) => {
-        setUploadedFiles((prev) => {
-            const fileToRemove = prev.find((f) => f.id === id);
-            if (fileToRemove) {
-                URL.revokeObjectURL(fileToRemove.preview);
-            }
-            return prev.filter((f) => f.id !== id);
-        });
+    const removeFile = (index: number) => {
+        // Check if it's within mediaFiles range
+        if (index < mediaFiles.length) {
+            removeMediaFile(index);
+        } else {
+            // It's a video file, adjust index to videoFiles array
+            const videoIndex = index - mediaFiles.length;
+            removeVideoFile(videoIndex);
+        }
     };
 
     // ========================================================================
@@ -193,7 +202,6 @@ const AIRefinementPage: React.FC = () => {
     // ========================================================================
     /**
      * Sends a message to the AI and handles the complete message lifecycle.
-     * Currently simulates AI response with a 1.5s delay (to be replaced with actual API call).
      *
      * @param prompt - User's text prompt
      * @param files - Array of File objects attached to the message
@@ -203,45 +211,130 @@ const AIRefinementPage: React.FC = () => {
      * 2. Creates user message object with timestamp
      * 3. Adds user message to messages array
      * 4. Resets input state (prompt text, uploaded files, upload box)
-     * 5. Revokes all file preview URLs to free memory
-     * 6. Sets generating state for loading UI
-     * 7. Simulates AI response after 1.5s delay
+     * 5. Sets generating state for loading UI
+     * 6. Calls Spring Boot backend API to generate portfolio refinement
+     * 7. Updates preview HTML with AI-generated content
      * 8. Creates AI message and displays it in both chat drawer and overlay
      * 9. Resets generating state
-     *
-     * Note: The setTimeout simulates an async AI response. Replace with actual API call.
      */
     const sendMessage = async (prompt: string, files: File[]) => {
+        // Validate input
         if (!prompt.trim() && files.length === 0) return;
 
+        // Create user message
         const userMessage: Message = {
-            id: Math.random().toString(36).substring(7),
+            id: Date.now().toString(),
             role: "user",
-            content:
-                prompt +
-                (files.length > 0 ? ` [${files.length} file(s) attached]` : ""),
+            content: prompt,
             timestamp: new Date(),
         };
 
+        // Add user message to chat history
         setMessages((prev) => [...prev, userMessage]);
-        setPromptText("");
-        uploadedFiles.forEach((f) => URL.revokeObjectURL(f.preview));
-        setUploadedFiles([]);
+
+        // Reset input state
+        setAiPrompt("");
         setUploadBoxOpen(false);
+
+        // Clear uploaded files from Zustand store
+        // Note: We need to clear both mediaFiles and videoFiles
+        while (mediaFiles.length > 0) {
+            removeMediaFile(0);
+        }
+        while (videoFiles.length > 0) {
+            removeVideoFile(0);
+        }
+
+        // Set loading state
         setIsGenerating(true);
 
-        // Simulate AI response
-        setTimeout(() => {
+        try {
+            // ============================================================
+            // BACKEND CALL: Spring Boot API
+            // ============================================================
+            // TODO: Replace this mock implementation with actual API call
+            //
+            // Endpoint: POST /api/portfolio/refine
+            //
+            // Request Body (FormData):
+            // - prompt: string (user's refinement request)
+            // - files: File[] (optional media/video files)
+            // - resumeFile: File (from Zustand store - usePortfolioStore().resumeFile)
+            // - templateId: string (from Zustand store - usePortfolioStore().templateId)
+            // - currentHtml: string (from Zustand store - usePortfolioStore().previewHtml)
+            //
+            // Expected Response:
+            // {
+            //   success: boolean,
+            //   message: string (AI's response message),
+            //   updatedHtml: string (refined HTML for preview),
+            //   timestamp: string
+            // }
+            //
+            // Example implementation:
+            // const formData = new FormData();
+            // formData.append('prompt', prompt);
+            // formData.append('templateId', usePortfolioStore.getState().templateId || '');
+            // formData.append('currentHtml', usePortfolioStore.getState().previewHtml || '');
+            // files.forEach((file, index) => {
+            //   formData.append(`files[${index}]`, file);
+            // });
+            // const resumeFile = usePortfolioStore.getState().resumeFile;
+            // if (resumeFile) {
+            //   formData.append('resumeFile', resumeFile.file);
+            // }
+            //
+            // const response = await fetch('http://localhost:8080/api/portfolio/refine', {
+            //   method: 'POST',
+            //   body: formData,
+            //   headers: {
+            //     'Authorization': `Bearer ${token}` // Add auth token
+            //   }
+            // });
+            //
+            // const data = await response.json();
+            // ============================================================
+
+            // MOCK RESPONSE - Remove this when implementing real backend
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+
+            const aiResponseText = "I've refined your portfolio based on your request. The preview has been updated!";
+            const mockUpdatedHtml = "<div>Updated portfolio HTML</div>";
+
+            // Update preview HTML in Zustand store
+            setPreviewHtml(mockUpdatedHtml);
+
+            // Create AI message
             const aiMessage: Message = {
-                id: Math.random().toString(36).substring(7),
+                id: (Date.now() + 1).toString(),
                 role: "ai",
-                content: `I've updated your portfolio based on: "${prompt}". The preview has been refreshed!`,
+                content: aiResponseText,
                 timestamp: new Date(),
             };
+
+            // Add AI message to chat history
             setMessages((prev) => [...prev, aiMessage]);
-            setCurrentAIResponse(aiMessage.content);
+
+            // Show AI response overlay
+            setCurrentAIResponse(aiResponseText);
+
+        } catch (error) {
+            console.error("Error sending message to AI:", error);
+
+            // Show error message
+            const errorMessage: Message = {
+                id: (Date.now() + 1).toString(),
+                role: "ai",
+                content: "Sorry, there was an error processing your request. Please try again.",
+                timestamp: new Date(),
+            };
+
+            setMessages((prev) => [...prev, errorMessage]);
+            setCurrentAIResponse("Error processing request. Please try again.");
+        } finally {
+            // Reset loading state
             setIsGenerating(false);
-        }, 1500);
+        }
     };
 
     /**
@@ -250,7 +343,7 @@ const AIRefinementPage: React.FC = () => {
      */
     const handleSend = () => {
         const files = uploadedFiles.map((f) => f.file);
-        sendMessage(promptText, files);
+        sendMessage(aiPrompt, files);
     };
 
     /**
@@ -279,6 +372,7 @@ const AIRefinementPage: React.FC = () => {
                 setDeviceMode={setDeviceMode}
                 deviceMode={deviceMode}
                 getPreviewWidth={getPreviewWidth}
+                previewHtml={previewHtml}
             />
 
             {/* ================================================ */}
@@ -426,44 +520,49 @@ const AIRefinementPage: React.FC = () => {
                                     {uploadedFiles.length > 0 && (
                                         <div className="mt-4 flex flex-wrap gap-3">
                                             <AnimatePresence>
-                                                {uploadedFiles.map((file) => (
-                                                    <motion.div
-                                                        key={file.id}
-                                                        initial={{ opacity: 0, scale: 0.8, y: 10 }}
-                                                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                                                        exit={{ opacity: 0, scale: 0.8, x: -20 }}
-                                                        transition={{ duration: 0.2 }}
-                                                        className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl p-2 pr-3 shadow-sm"
-                                                    >
-                                                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center shrink-0">
-                                                            {file.fileType === "image" ? (
-                                                                <img
-                                                                    src={file.preview}
-                                                                    alt={file.name}
-                                                                    className="w-full h-full object-cover"
-                                                                />
-                                                            ) : (
-                                                                <FiVideo className="w-6 h-6 text-slate-400" />
-                                                            )}
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-medium text-slate-700 truncate">
-                                                                {file.name}
-                                                            </p>
-                                                            <p className="text-xs text-slate-500">
-                                                                {(file.size / 1024 / 1024).toFixed(2)} MB
-                                                            </p>
-                                                        </div>
-                                                        <motion.button
-                                                            whileHover={{ scale: 1.1 }}
-                                                            whileTap={{ scale: 0.9 }}
-                                                            onClick={() => removeFile(file.id)}
-                                                            className="w-6 h-6 rounded-full bg-slate-100 hover:bg-red-100 flex items-center justify-center transition-colors"
+                                                {uploadedFiles.map((file, index) => {
+                                                    const isImage = file.type.startsWith("image/");
+                                                    const preview = URL.createObjectURL(file.file);
+
+                                                    return (
+                                                        <motion.div
+                                                            key={`${file.name}-${index}`}
+                                                            initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                            exit={{ opacity: 0, scale: 0.8, x: -20 }}
+                                                            transition={{ duration: 0.2 }}
+                                                            className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl p-2 pr-3 shadow-sm"
                                                         >
-                                                            <FiX className="w-4 h-4 text-slate-600" />
-                                                        </motion.button>
-                                                    </motion.div>
-                                                ))}
+                                                            <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center shrink-0">
+                                                                {isImage ? (
+                                                                    <img
+                                                                        src={preview}
+                                                                        alt={file.name}
+                                                                        className="w-full h-full object-cover"
+                                                                    />
+                                                                ) : (
+                                                                    <FiVideo className="w-6 h-6 text-slate-400" />
+                                                                )}
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-sm font-medium text-slate-700 truncate">
+                                                                    {file.name}
+                                                                </p>
+                                                                <p className="text-xs text-slate-500">
+                                                                    {(file.size / 1024 / 1024).toFixed(2)} MB
+                                                                </p>
+                                                            </div>
+                                                            <motion.button
+                                                                whileHover={{ scale: 1.1 }}
+                                                                whileTap={{ scale: 0.9 }}
+                                                                onClick={() => removeFile(index)}
+                                                                className="w-6 h-6 rounded-full bg-slate-100 hover:bg-red-100 flex items-center justify-center transition-colors"
+                                                            >
+                                                                <FiX className="w-4 h-4 text-slate-600" />
+                                                            </motion.button>
+                                                        </motion.div>
+                                                    );
+                                                })}
                                             </AnimatePresence>
                                         </div>
                                     )}
@@ -498,8 +597,8 @@ const AIRefinementPage: React.FC = () => {
                                 <div className="flex-1">
                                     <textarea
                                         ref={textareaRef}
-                                        value={promptText}
-                                        onChange={(e) => setPromptText(e.target.value)}
+                                        value={aiPrompt}
+                                        onChange={(e) => setAiPrompt(e.target.value)}
                                         onKeyDown={handleKeyDown}
                                         placeholder="Ask PortfolioAI to refine something…"
                                         disabled={isGenerating}
@@ -515,7 +614,7 @@ const AIRefinementPage: React.FC = () => {
                                     onClick={handleSend}
                                     disabled={
                                         isGenerating ||
-                                        (!promptText.trim() && uploadedFiles.length === 0)
+                                        (!aiPrompt.trim() && uploadedFiles.length === 0)
                                     }
                                     className="shrink-0 w-10 h-10 rounded-xl bg-linear-to-r from-sky-500 to-cyan-500 text-white flex items-center justify-center shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
