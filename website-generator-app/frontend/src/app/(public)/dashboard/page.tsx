@@ -27,30 +27,30 @@ export default function DashboardPage() {
   const handleGenerate = async () => {
     setIsLoading(true);
 
-    try {
-      const response: Response = await fetch(
-        "http://localhost:8080/api/generate",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(state),
-        }
-      );
+    // try {
+    //   const response: Response = await fetch(
+    //     "http://localhost:8080/api/generate",
+    //     {
+    //       method: "POST",
+    //       headers: { "Content-Type": "application/json" },
+    //       body: JSON.stringify(state),
+    //     }
+    //   );
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      console.log("🚀 Backend response received");
-      const data: { html: string } = await response.json();
-      console.log("✅ Backend JSON response:", data);
+    //   if (!response.ok) {
+    //     throw new Error(`HTTP error! status: ${response.status}`);
+    //   }
+    //   console.log("🚀 Backend response received");
+    //   const data: { html: string } = await response.json();
+    //   console.log("✅ Backend JSON response:", data);
 
-      setGeneratedHTML(data.html);
-      setShowPreview(true);
-    } catch (error) {
-      console.error("Error generating website:", error);
-    } finally {
-      setIsLoading(false);
-    }
+    //   setGeneratedHTML(data.html);
+    //   setShowPreview(true);
+    // } catch (error) {
+    //   console.error("Error generating website:", error);
+    // } finally {
+    //   setIsLoading(false);
+    // }
     // Simulate a small delay like the real API call
   // setTimeout(() => {
   //   const testHTML = `
