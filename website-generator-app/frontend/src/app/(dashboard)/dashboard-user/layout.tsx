@@ -22,7 +22,9 @@ export default async function DashboardLayout({
   }
 
   // Extract user info to display on dashboard
-  const user = session.user;
+  const { data: { user }} = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+  
   const username: string =
     user.user_metadata?.full_name ??
     user.user_metadata?.name ??
