@@ -131,6 +131,22 @@
             <artifactId>nimbus-jose-jwt</artifactId>
             <version>10.5</version>
         </dependency>
+        <!-- Nimbus dependency -->
+
+        <!-- JPA Dependency -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <!-- JPA Dependency -->
+
+        <!-- Postgresql Dependency -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.7.2</version>
+        </dependency>
+        <!-- Postgresql Dependency -->
 
 
     </dependencies>

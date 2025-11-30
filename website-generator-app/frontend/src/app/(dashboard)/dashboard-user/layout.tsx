@@ -34,7 +34,7 @@ export default async function DashboardLayout({
   
 
   return (
-    <UserProviderWrapper user = {{ username, email, avatar}}>
+    <UserProviderWrapper user = {{ id: user.id, username, email, avatar}}>
       <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-sky-50/30">
         {/* DashboardLayoutClient handles sidebar and content with responsive margins */}
         <DashboardLayoutClient>{children}</DashboardLayoutClient>

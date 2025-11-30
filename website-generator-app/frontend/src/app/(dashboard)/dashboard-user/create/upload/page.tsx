@@ -11,10 +11,14 @@ import { formatFileSize } from "@/utils/fileHelpers";
 import { MediaUpload } from "./components/MediaUpload";
 import { VideoUpload } from "./components/VideoUpload";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
+import { useUser } from "@/context/UserContext";
 
 const UploadPage: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  const { user } = useUser();
+  const { id } = user;
 
   /**
    * STATE: Global zustand store for portfolio creation
@@ -48,13 +52,13 @@ const UploadPage: React.FC = () => {
   }, [searchParams, setTemplateId]);
 
   useEffect(() => {
-  const unsub = usePortfolioStore.subscribe((state, prevState) => {
-    console.log("Zustand updated:");
-    console.log("Previous:", prevState);
-    console.log("Current:", state);
-  });
-  return () => unsub(); // cleanup on unmount
-}, []);
+    const unsub = usePortfolioStore.subscribe((state, prevState) => {
+      console.log("Zustand updated:");
+      console.log("Previous:", prevState);
+      console.log("Current:", state);
+    });
+    return () => unsub(); // cleanup on unmount
+  }, []);
 
   /**
    * STATE: Pending media files awaiting metadata input
@@ -361,8 +365,75 @@ const UploadPage: React.FC = () => {
   };
 
   // Handler to navigate to next page
-  const handleContinue = () => {
-    router.push(`/dashboard-user/create/refine?templateId=${templateId}`);
+  const handleContinue = async () => {
+
+    //  --- Call API Route to update Supbase Database
+    // alert("User id: " + id);
+    // Extract current state values
+    try {
+      const {
+        templateId,
+        resumeFile,
+        mediaFiles,
+        videoFiles
+      } = usePortfolioStore.getState();
+
+
+      if (!templateId || !resumeFile) {
+        alert("Please select a template and upload a resume before continuing.");
+        return;
+      }
+
+      // -- Construct form data to send to API route
+      const formData = new FormData();
+      formData.append("userId", id);
+      formData.append("templateId", templateId);
+      formData.append("resumeFile", resumeFile.file);
+
+      mediaFiles.forEach((mediaFile) => {
+        formData.append("mediaFiles", mediaFile.file);
+      });
+
+      videoFiles.forEach((videoFile) => {
+        formData.append("videoFiles", videoFile.file);
+      });
+
+      // -- Call the API route to create portfolio
+      const res = await fetch("/api/portfolio/create", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        console.error("API Error:", error);
+        alert("Upload failes: " + error.error);
+        return;
+      }
+
+      const data = await res.json();
+      console.log("UPLOADED RESPONSE: ", data);
+
+      const portfolioId = data.portfolio?.id ?? data.portfolioId;
+
+      if (!portfolioId) {
+        alert("Portfolio ID missing from response");
+        return;
+      }
+
+
+      router.push(`/dashboard-user/create/refine?templateId=${templateId}`);
+
+    } catch (error) {
+      console.error("Error during portfolio creation:", error);
+      alert("An error occurred while creating the portfolio. Please try again.");
+      return;
+    }
+
+
+
+
+    
   };
 
   // Handler to skip upload and navigate to next page

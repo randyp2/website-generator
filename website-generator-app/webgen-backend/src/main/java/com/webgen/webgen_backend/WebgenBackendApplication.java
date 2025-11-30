@@ -2,8 +2,10 @@ package com.webgen.webgen_backend;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.PropertySource;
 
 @SpringBootApplication
+@PropertySource("file:./secrets.properties")
 public class WebgenBackendApplication {
 
 	public static void main(String[] args) {

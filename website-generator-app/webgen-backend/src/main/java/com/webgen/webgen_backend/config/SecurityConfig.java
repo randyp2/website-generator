@@ -32,7 +32,8 @@ public class SecurityConfig {
                 .csrf(customizer -> customizer.disable()) // Disable CSRF for stateless
                 .authorizeHttpRequests(request -> request
 
-                        //.requestMatchers("/api/generate/ping").permitAll() // Endpoints that don't need auth
+                        .requestMatchers("/api/generate/ping", "/api/generate")
+                        .permitAll() // Endpoints that don't need auth
                         .anyRequest().authenticated())
                 .httpBasic(http2 -> http2.disable()) // Enable REST access
                 .sessionManagement(
