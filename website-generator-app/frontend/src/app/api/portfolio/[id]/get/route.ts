@@ -3,10 +3,10 @@ import { NextResponse } from "next/server";
 
 export async function GET(
     req: Request,
-    { params }: { params: { id: string }}
+    context: { params: Promise<{ id: string }> }
 ) {
     
-    const portfolioId = params.id;
+    const { id: portfolioId } = await context.params;
 
 
     try {
