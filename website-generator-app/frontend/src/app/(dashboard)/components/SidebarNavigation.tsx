@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -43,7 +43,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
   collapsed: externalCollapsed,
   onToggleCollapse,
 }) => {
-  const supabase = createClient(); // Create a supabase client
+
   const { user } = useUser(); // Extract user from context
 
   // Extract user info
@@ -53,8 +53,39 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
 
   const pathname = usePathname();
   const router = useRouter();
-  const [internalCollapsed, setInternalCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [internalCollapsed, setInternalCollapsed] = useState<boolean>(false);
+  const [mobileOpen, setMobileOpen] = useState<boolean>(false);
+  const [portfoliosCount, setPortfoliosCount] = useState<number>(0); 
+
+  // Make GET request to fetch portfolios count
+  useEffect(() => {
+    if (!user?.id) return; 
+
+    const fetchPortfoliosCount = async () => {
+      try {
+
+        // Make api call
+        const response: Response = await fetch(`/api/portfolio/list?userId=${user.id}`, {
+          method: "GET",
+        });
+
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+        const json = await response.json();
+        
+        // Update state with count
+        setPortfoliosCount(json.portfolios.length);
+
+      } catch (err) {
+        console.error("Error fetching portfolios:", err);
+        alert("Failed to fetch portfolios. Please try again.");
+      }
+    }
+
+    fetchPortfoliosCount();
+  }, []);
+
+
 
   // Use external collapsed state if provided, otherwise use internal
   const collapsed = externalCollapsed ?? internalCollapsed;
@@ -73,7 +104,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
       label: "My Portfolios",
       icon: FiFolder,
       path: "/dashboard-user/portfolios",
-      badge: 12,
+      badge: portfoliosCount,
     },
     {
       id: "create",

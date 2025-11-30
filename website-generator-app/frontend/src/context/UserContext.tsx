@@ -3,6 +3,7 @@
 import { createContext, useContext } from "react";
 
 export interface UserData {
+  id: string;
   username: string;
   email: string;
   avatar: any;
