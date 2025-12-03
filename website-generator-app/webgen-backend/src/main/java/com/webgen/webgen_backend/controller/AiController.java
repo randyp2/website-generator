@@ -13,7 +13,6 @@ import java.util.Map;
 @RequestMapping("/api/generate")
 
 // Allow any frontend to access this backend change later when in production to domain
-@CrossOrigin(origins="http://localhost:3000")
 @RequiredArgsConstructor
 public class AiController {
 

@@ -1,0 +1,6 @@
+docker run -d \
+  -p 8080:8080 \
+  -e SPRING_AI_OPENAI_API_KEY=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 \
+  -e SUPABASE_PROJECT_URL=https://cadbniefkusbfkhmkptz.supabase.co \
+  -e SPRING_PROFILES_ACTIVE=dev \
+  portfolioai-backend

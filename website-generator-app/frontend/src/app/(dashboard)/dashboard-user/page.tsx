@@ -42,7 +42,8 @@ const DashboardHome: React.FC = () => {
   const handleTest = async () => {
     try {
       const response: Response = await fetch(
-        "http://localhost:8080/api/generate/ping",
+        // "http://localhost:8080/api/generate/ping",// Change to when in dev
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate/ping`,
         {
           method: "GET",
         })
@@ -67,12 +68,15 @@ const DashboardHome: React.FC = () => {
 
       const token = session.access_token;
 
-      const response = await fetch("http://localhost:8080/api/generate/secure", {
-      method: "GET",
-      headers: {
-        "Authorization": `Bearer ${token}`,  // << VERY IMPORTANT
-        "Content-Type": "application/json",
-      },
+      const response = await fetch(
+      // "http://localhost:8080/api/generate/secure", // Change to when in dev
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate/secure`,
+      {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,  // << VERY IMPORTANT
+          "Content-Type": "application/json",
+        },
       });
 
       const text = await response.text();
