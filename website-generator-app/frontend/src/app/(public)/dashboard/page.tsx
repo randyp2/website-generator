@@ -29,7 +29,8 @@ export default function DashboardPage() {
 
     try {
       const response: Response = await fetch(
-        "http://localhost:8080/api/generate",
+        // "http://localhost:8080/api/generate", // Change to when in dev
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
