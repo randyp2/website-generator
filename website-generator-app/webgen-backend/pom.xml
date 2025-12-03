@@ -133,20 +133,6 @@
         </dependency>
         <!-- Nimbus dependency -->
 
-        <!-- JPA Dependency -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
-        <!-- JPA Dependency -->
-
-        <!-- Postgresql Dependency -->
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <version>42.7.2</version>
-        </dependency>
-        <!-- Postgresql Dependency -->
 
 
     </dependencies>
@@ -177,7 +163,12 @@
 					</excludes>
 				</configuration>
 			</plugin>
-		</plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-wrapper-plugin</artifactId>
+                <version>3.2.0</version>
+            </plugin>
+        </plugins>
 	</build>
 
     <repositories>
