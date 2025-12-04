@@ -2,18 +2,22 @@
 # Build Stage
 # =========================
 
+# Set base image
 FROM eclipse-temurin:25-jdk AS builder
 
 # Work inside app direcotry (located in docker container)
 WORKDIR /app
 
-# Copy files into /app/
+#  ---- Copy files into /app/ ----
+# For dependecies
 COPY pom.xml .
+# For source code
 COPY src ./src
+# For maven wrapper
 COPY mvnw .
 COPY .mvn .mvn
 
-# Build the jar file inside Docker container
+# Build the jar file | /app/target/<project>.jar
 RUN ./mvnw -q -e -DskipTests package
 
 # =========================
