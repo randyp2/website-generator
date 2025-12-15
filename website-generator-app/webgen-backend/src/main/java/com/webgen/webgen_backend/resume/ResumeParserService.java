@@ -1,19 +1,17 @@
-package com.webgen.webgen_backend.service.impl;
+package com.webgen.webgen_backend.resume;
 
 import com.webgen.webgen_backend.dto.ParsedResumeDTO;
 import com.webgen.webgen_backend.mapper.ParsedResumeMapper;
 import com.webgen.webgen_backend.model.ParsedResume;
-import com.webgen.webgen_backend.parser.PdfTextExtractor;
-import com.webgen.webgen_backend.parser.TextCleaner;
-import com.webgen.webgen_backend.service.ResumeExtractionService;
-import com.webgen.webgen_backend.service.ResumeParserService;
+import com.webgen.webgen_backend.resume.utils.PdfTextExtractor;
+import com.webgen.webgen_backend.resume.utils.TextCleaner;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @AllArgsConstructor
-public class ResumeParserServiceImpl implements ResumeParserService {
+public class ResumeParserService  {
 
     // --- Low-level Parsing
     private final PdfTextExtractor pdfTextExtractor;
@@ -28,7 +26,6 @@ public class ResumeParserServiceImpl implements ResumeParserService {
     private final ParsedResumeMapper parsedResumeMapper;
 
 
-    @Override
     public ParsedResumeDTO parseResume(MultipartFile file) {
 
         String rawText = pdfTextExtractor.extract(file); // Get raw text

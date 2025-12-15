@@ -1,4 +1,4 @@
-package com.webgen.webgen_backend.parser;
+package com.webgen.webgen_backend.resume.utils;
 
 
 import org.apache.pdfbox.Loader;

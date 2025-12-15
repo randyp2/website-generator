@@ -2,8 +2,7 @@ package com.webgen.webgen_backend.controller;
 
 
 import com.webgen.webgen_backend.dto.ParsedResumeDTO;
-import com.webgen.webgen_backend.model.ParsedResume;
-import com.webgen.webgen_backend.service.ResumeParserService;
+import com.webgen.webgen_backend.resume.ResumeParserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
