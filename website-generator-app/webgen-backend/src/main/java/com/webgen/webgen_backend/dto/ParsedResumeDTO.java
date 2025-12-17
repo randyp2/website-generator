@@ -13,7 +13,7 @@ public class ParsedResumeDTO {
 
     // Contact info
     private String fullName, email, phone, location;
-
+    private String summary;
     private List<String> skills;
     private List<ExperienceDTO> experiences;
     private List<ProjectDTO> projects;
