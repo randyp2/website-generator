@@ -4,10 +4,7 @@ import com.webgen.webgen_backend.model.Education;
 import com.webgen.webgen_backend.model.Experience;
 import com.webgen.webgen_backend.model.ParsedResume;
 import com.webgen.webgen_backend.model.Project;
-import com.webgen.webgen_backend.resume.extraction.EducationExtractionService;
-import com.webgen.webgen_backend.resume.extraction.ExperienceExtractionService;
-import com.webgen.webgen_backend.resume.extraction.ProjectExtractionService;
-import com.webgen.webgen_backend.resume.extraction.SkillExtractionService;
+import com.webgen.webgen_backend.resume.extraction.*;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +21,9 @@ public class ResumeExtractionService {
     private final ExperienceExtractionService experienceExtractionService;
     private final ProjectExtractionService projectExtractionService;
     private final EducationExtractionService educationExtractionService;
+    private final ContactInfoExtractionService contactInfoExtractionService;
+    private final SummaryExtractionService summaryExtractionService;
+
 
     public ParsedResume extract(String normalizedText) {
 
@@ -38,15 +38,10 @@ public class ResumeExtractionService {
         parsedResume.setProjects(projectExtractionService.extractProjects(normalizedText));
         parsedResume.setEducations(educationExtractionService.extractEducations(normalizedText));
 
+        contactInfoExtractionService.extractContactInfo(parsedResume, normalizedText);
+        parsedResume.setSummary(summaryExtractionService.extract(normalizedText));
         return parsedResume;
     }
-
-
-
-
-
-
-
 
 
 }

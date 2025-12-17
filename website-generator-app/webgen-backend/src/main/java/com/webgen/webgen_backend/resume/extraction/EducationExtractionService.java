@@ -9,64 +9,29 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/* ====================================================================================*/
-// Service class that helps extract education fields and metadata within those subsections
-/* ====================================================================================*/
-
 @Service
 public class EducationExtractionService {
 
-    /**
-     * Extract the education section and return extracted data and metdata
-     *
-     * @param text - Normalized text of entire resume
-     * @return list of parsed education classes
-     */
     public List<Education> extractEducations(String text) {
-
-        // Extract education section
         String educationSection = SectionExtractor.extractSection(
                 text,
                 "EDUCATION|ACADEMIC BACKGROUND|ACADEMIC HISTORY",
-                "SKILLS|EXPERIENCE|PROJECTS|CERTIFICATIONS|LEADERSHIP|TECHNICAL SKILLS|WORK EXPERIENCE|PROFESSIONAL EXPERIENCE"
+                "SKILLS|EXPERIENCE|PROJECTS|CERTIFICATIONS|LEADERSHIP|TECHNICAL SKILLS|WORK EXPERIENCE|PROFESSIONAL EXPERIENCE|LEADERSHIP EXPERIENCE"
         );
 
         List<Education> educations = new ArrayList<>();
         if (educationSection.isBlank()) return educations;
 
-        // Parse into lines
         String[] lines = educationSection.split("\n");
 
-        // Find education boundaries - only institution lines start new entries
-        List<Integer> boundaryStartIndices = new ArrayList<>();
+        // Find education boundaries using smarter detection
+        List<Integer> boundaryIndices = findEducationBoundaries(lines);
 
-        for (int i = 0; i < lines.length; i++) {
-            String line = lines[i].trim();
-            if (line.isEmpty()) continue;
-
-            // New education entry starts ONLY if:
-            // 1. Contains institution keyword AND doesn't look like a degree/coursework/award line
-            // 2. Is the first non-empty line (edge case)
-            if (looksLikeInstitution(line) && !looksLikeDegree(line) && !line.matches("(?i).*(?:coursework|award|scholarship).*")) {
-                boundaryStartIndices.add(i);
-            }
-        }
-
-        // If no institution found but section exists, treat as single entry
-        if (boundaryStartIndices.isEmpty() && lines.length > 0) {
-            for (int i = 0; i < lines.length; i++) {
-                if (!lines[i].trim().isEmpty()) {
-                    boundaryStartIndices.add(i);
-                    break;
-                }
-            }
-        }
-
-        // Extract education entries using boundaries
-        for (int idx = 0; idx < boundaryStartIndices.size(); idx++) {
-            int startIdx = boundaryStartIndices.get(idx);
-            int endIdx = (idx + 1 < boundaryStartIndices.size())
-                    ? boundaryStartIndices.get(idx + 1)
+        // Extract education entries
+        for (int idx = 0; idx < boundaryIndices.size(); idx++) {
+            int startIdx = boundaryIndices.get(idx);
+            int endIdx = (idx + 1 < boundaryIndices.size())
+                    ? boundaryIndices.get(idx + 1)
                     : lines.length;
 
             StringBuilder rawBlock = new StringBuilder();
@@ -88,145 +53,235 @@ public class EducationExtractionService {
     }
 
     /**
-     * Check if line looks like a degree (not an institution)
+     * Find boundaries between education entries
+     * Key insight: New education starts with "University/College" OR
+     * has a graduation date on the same line
+     */
+    private List<Integer> findEducationBoundaries(String[] lines) {
+        List<Integer> boundaries = new ArrayList<>();
+
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i].trim();
+            if (line.isEmpty()) continue;
+
+            // Check if this is a primary institution (university/college)
+            if (isPrimaryInstitution(line)) {
+                // Check if previous line is a degree (format: degree comes before institution)
+                if (i > 0 && looksLikeDegree(lines[i - 1].trim())) {
+                    boundaries.add(i - 1);  // Start from degree line
+                } else {
+                    boundaries.add(i);  // Start from institution line
+                }
+            }
+        }
+
+        // If no boundaries found, treat first line as boundary
+        if (boundaries.isEmpty() && lines.length > 0) {
+            for (int i = 0; i < lines.length; i++) {
+                if (!lines[i].trim().isEmpty()) {
+                    boundaries.add(i);
+                    break;
+                }
+            }
+        }
+
+        return boundaries;
+    }
+
+    /**
+     * Check if line is a PRIMARY institution (university/college level)
+     * Not just any "school" (excludes "High School", "Summer School", etc.)
+     */
+    private boolean isPrimaryInstitution(String line) {
+        String lower = line.toLowerCase();
+
+        // Must contain these keywords
+        boolean hasInstitutionKeyword =
+                lower.contains("university") ||
+                        lower.contains("college") ||
+                        lower.contains("institute of technology") ||
+                        lower.contains("polytechnic");
+
+        if (!hasInstitutionKeyword) return false;
+
+        // Exclude lines that are clearly NOT primary institutions
+        if (lower.contains("high school")) return false;
+        if (lower.contains("summer school") && !lower.contains("university")) return false;
+        if (lower.contains("boot camp") || lower.contains("bootcamp")) return false;
+
+        // Exclude if line starts with "Bachelor", "Master", etc. (degree line, not institution)
+        if (lower.startsWith("bachelor") ||
+                lower.startsWith("master") ||
+                lower.startsWith("associate") ||
+                lower.startsWith("b.s.") ||
+                lower.startsWith("b.a.") ||
+                lower.startsWith("m.s.")) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Parse education block
+     */
+    private void parseEducationBlock(Education education, String block) {
+        String[] lines = block.split("\n");
+        if (lines.length == 0) return;
+
+        String firstLine = lines[0].trim();
+
+        // Check if first line is a degree (Format: Degree first, then Institution)
+        if (looksLikeDegree(firstLine)) {
+            // Extract degree and date from first line
+            education.setDegree(extractDegreeFromLine(firstLine));
+
+            // Extract date if present
+            if (containsEducationDate(firstLine)) {
+                extractEducationDates(education, firstLine);
+            }
+
+            // Second line should be institution
+            if (lines.length > 1) {
+                parseInstitutionLine(education, lines[1].trim());
+            }
+
+            // Process remaining lines (starting from line 2)
+            for (int i = 2; i < lines.length; i++) {
+                processEducationLine(education, lines[i].trim());
+            }
+        }
+        // Otherwise, institution is first (original format)
+        else {
+            parseInstitutionLine(education, firstLine);
+
+            // Process remaining lines (starting from line 1)
+            for (int i = 1; i < lines.length; i++) {
+                processEducationLine(education, lines[i].trim());
+            }
+        }
+    }
+
+    /**
+     * Process a single education line (degree, GPA, dates, awards, coursework)
+     */
+    private void processEducationLine(Education education, String line) {
+        if (line.isEmpty()) return;
+
+        // Extract degree
+        if (education.getDegree() == null && looksLikeDegree(line)) {
+            education.setDegree(extractDegreeFromLine(line));
+        }
+
+        // Extract GPA
+        if (education.getGpa() == null && containsGPA(line)) {
+            education.setGpa(extractGPA(line));
+        }
+
+        // Extract dates
+        if (education.getEndDate() == null && containsEducationDate(line)) {
+            extractEducationDates(education, line);
+        }
+
+        // Extract awards
+        if (line.matches("(?i).*(?:scholarship|award|honor|dean).*")) {
+            education.setAwards(extractAwards(line));
+        }
+
+        // Extract coursework
+        if (line.matches("(?i).*(?:relevant coursework|coursework).*")) {
+            String coursework = extractCoursework(line);
+            if (education.getCourseWork() != null) {
+                education.setCourseWork(education.getCourseWork() + " " + coursework);
+            } else {
+                education.setCourseWork(coursework);
+            }
+        }
+    }
+
+    /**
+     * Parse institution line (may contain GPA, location, or dates)
+     */
+    private void parseInstitutionLine(Education education, String line) {
+        // Check if line has "GPA: X.XX" on it
+        if (line.contains("GPA") || line.contains("gpa")) {
+            // Split at GPA
+            int gpaIdx = line.toLowerCase().indexOf("gpa");
+            String institutionPart = line.substring(0, gpaIdx).trim();
+            String gpaPart = line.substring(gpaIdx).trim();
+
+            // Remove trailing punctuation/location markers
+            institutionPart = institutionPart.replaceAll("[,:;]+$", "").trim();
+
+            education.setInstitution(institutionPart);
+            education.setGpa(extractGPA(gpaPart));
+        }
+        // Check if line has graduation date
+        else if (containsEducationDate(line)) {
+            Pattern datePattern = Pattern.compile(
+                    "^(.+?)\\s+(?:Expected|Graduation Date:?)?\\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\s+(\\d{4})$",
+                    Pattern.CASE_INSENSITIVE
+            );
+
+            Matcher matcher = datePattern.matcher(line);
+            if (matcher.matches()) {
+                education.setInstitution(matcher.group(1).trim());
+                education.setEndDate(matcher.group(2) + " " + matcher.group(3));
+            } else {
+                education.setInstitution(line);
+            }
+        }
+        else {
+            education.setInstitution(line);
+        }
+    }
+
+    /**
+     * Check if line contains a degree
      */
     private boolean looksLikeDegree(String line) {
         String lower = line.toLowerCase();
-        return (lower.contains("bachelor") ||
+        return lower.contains("bachelor") ||
                 lower.contains("master") ||
                 lower.contains("b.s.") ||
                 lower.contains("b.a.") ||
                 lower.contains("m.s.") ||
                 lower.contains("ph.d") ||
                 lower.contains("associate") ||
-                lower.contains("degree") ||
-                lower.contains("bootcamp")) &&
-                !looksLikeInstitution(line);  // Make sure it's not both
+                lower.contains("diploma") ||
+                lower.matches(".*\\b(ba|bs|ma|ms|mba|phd)\\b.*");
     }
 
     /**
-     * Check if line looks like an institution name
+     * Check if line contains GPA
      */
-    private boolean looksLikeInstitution(String line) {
-        String lowerLine = line.toLowerCase();
-        return lowerLine.contains("university") ||
-                lowerLine.contains("college") ||
-                lowerLine.contains("institute") ||
-                lowerLine.contains("school") ||
-                lowerLine.contains("academy") ||
-                lowerLine.contains("bootcamp");
+    private boolean containsGPA(String line) {
+        return line.matches("(?i).*GPA.*\\d\\.\\d+.*");
     }
 
     /**
-     * Check if line contains education-specific dates
-     */
-    private boolean containsEducationDate(String line) {
-        // Expected May 2027, Graduated Dec 2024, 01/2023 - Present, etc.
-        return line.matches(".*(?:Expected|Graduated|Attending)\\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\s+\\d{4}.*") ||
-                line.matches(".*\\d{2}/\\d{4}\\s*[-–—]\\s*(?:Present|\\d{2}/\\d{4}).*");
-    }
-
-    /**
-     * Parse a complete education block
-     *  - Initialize properties of educations
-     *
-     * @param education - Education class to populate
-     * @param block - Education sectino block
-     */
-    private void parseEducationBlock(Education education, String block) {
-        String[] lines = block.split("\n");
-
-        if (lines.length == 0) return;
-
-        // First line is the institution (may have date on same line)
-        String firstLine = lines[0].trim();
-
-        // Check if institution + date on same line (Randy's format)
-        Pattern institutionDatePattern = Pattern.compile(
-                "^(.+?)\\s+(?:Expected|Graduated)?\\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\s+(\\d{4})$",
-                Pattern.CASE_INSENSITIVE
-        );
-
-        Matcher matcher = institutionDatePattern.matcher(firstLine);
-        if (matcher.matches()) {
-            // Randy's format: "University of Nevada, Las Vegas Expected May 2027"
-            education.setInstitution(matcher.group(1).trim());
-            education.setEndDate(matcher.group(2) + " " + matcher.group(3));
-        } else {
-            // Ruben's format: "University of Nevada Las Vegas" (no date)
-            education.setInstitution(firstLine);
-        }
-
-        // Process remaining lines
-        for (int i = 1; i < lines.length; i++) {
-            String line = lines[i].trim();
-            if (line.isEmpty()) continue;
-
-            // Extract degree (look for degree keywords)
-            if (education.getDegree() == null && looksLikeDegree(line)) {
-                education.setDegree(extractDegreeFromLine(line));
-            }
-
-            // Extract GPA
-            if (line.contains("GPA") || line.matches(".*\\(GPA:.*\\).*")) {
-                String gpa = extractGPA(line);
-                if (gpa != null) {
-                    education.setGpa(gpa);
-                }
-            }
-
-            // Extract end date if not already set
-            if (education.getEndDate() == null && containsEducationDate(line)) {
-                extractEducationDates(education, line);
-            }
-
-            // Extract awards/scholarships
-            if (line.matches("(?i).*(?:scholarship|award|honor|dean).*")) {
-                String awards = extractAwards(line);
-                if (awards != null && !awards.isEmpty()) {
-                    education.setAwards(awards);
-                }
-            }
-
-            // Extract coursework
-            if (line.matches("(?i).*(?:relevant coursework|coursework).*")) {
-                String coursework = extractCoursework(line);
-                // Append to existing coursework if already set
-                if (education.getCourseWork() != null) {
-                    education.setCourseWork(education.getCourseWork() + " " + coursework);
-                } else {
-                    education.setCourseWork(coursework);
-                }
-            } else if (education.getCourseWork() != null && !line.matches("(?i).*(scholarship|award|gpa).*")) {
-                // Continuation of coursework if coursework was already started and this isn't another field
-                education.setCourseWork(education.getCourseWork() + " " + line);
-            }
-        }
-    }
-
-    /**
-     * Extract degree from a line, removing date/GPA info
+     * Extract degree, removing GPA and dates
      */
     private String extractDegreeFromLine(String line) {
-        // Remove GPA portion if present
-        String cleaned = line.replaceAll("(?i)\\(GPA:.*?\\)", "").trim();
-
-        // Remove date portion if present
-        cleaned = cleaned.replaceAll("(?i)Expected.*\\d{4}", "").trim();
-        cleaned = cleaned.replaceAll("(?i)Graduated.*\\d{4}", "").trim();
+        String cleaned = line
+                .replaceAll("(?i)\\(GPA:.*?\\)", "")
+                .replaceAll("(?i)GPA:?\\s*\\d\\.\\d+\\s*/\\s*\\d\\.\\d+", "")
+                .replaceAll("(?i)Graduation Date:.*", "")
+                .replaceAll("(?i)Expected.*\\d{4}", "")
+                // ADD THIS: Remove simple "Month YYYY" dates
+                .replaceAll("\\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December)\\s+\\d{4}\\b", "")
+                .replaceAll("\\s+", " ")  // Normalize multiple spaces
+                .trim();
 
         return cleaned;
     }
-
 
     /**
      * Extract GPA
      */
     private String extractGPA(String line) {
-        // Match patterns like "GPA: 4.00 / 4.00", "(GPA: 3.4/4.0)", "3.4/4.0"
         Pattern gpaPattern = Pattern.compile(
-                "(?:GPA:?)?\\s*(\\d\\.\\d+)\\s*/\\s*(\\d\\.\\d+)",
-                Pattern.CASE_INSENSITIVE
+                "(?i)GPA:?\\s*(\\d\\.\\d+)\\s*/\\s*(\\d\\.\\d+)"
         );
 
         Matcher matcher = gpaPattern.matcher(line);
@@ -234,44 +289,68 @@ public class EducationExtractionService {
             return matcher.group(1) + "/" + matcher.group(2);
         }
 
+        // Try without denominator
+        Pattern simpleGpaPattern = Pattern.compile("(?i)GPA:?\\s*(\\d\\.\\d+)");
+        matcher = simpleGpaPattern.matcher(line);
+        if (matcher.find()) {
+            return matcher.group(1) + "/4.0";
+        }
+
         return null;
     }
 
     /**
-     * Extract education dates
+     * Check if line contains education date
+     */
+    private boolean containsEducationDate(String line) {
+        return line.matches("(?i).*(Expected|Graduation Date:?|Graduated)\\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\s+\\d{4}.*") ||
+                line.matches(".*\\d{2}/\\d{4}\\s*[-–—]\\s*(?:Present|\\d{2}/\\d{4}).*") ||
+                line.matches(".*\\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December)\\s+\\d{4}\\b.*");
+    }
+
+    /**
+     * Extract dates from line
      */
     private void extractEducationDates(Education education, String line) {
-        // Pattern: "Expected May 2027", "01/2023 - Present", etc.
-
-        // Try month-year format first
-        Pattern monthYearPattern = Pattern.compile(
-                "(?:Expected|Graduated)?\\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\s+(\\d{4})",
+        // Try "May 2027" format (month + year, no "Graduation Date:" prefix)
+        Pattern simpleMonthYear = Pattern.compile(
+                "\\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December)\\s+(\\d{4})\\b",
                 Pattern.CASE_INSENSITIVE
         );
 
-        Matcher matcher = monthYearPattern.matcher(line);
+        Matcher matcher = simpleMonthYear.matcher(line);
         if (matcher.find()) {
             education.setEndDate(matcher.group(1) + " " + matcher.group(2));
             return;
         }
 
-        // Try numeric date range format
+        // Try "Graduation Date: Month YYYY" format
+        Pattern graduationPattern = Pattern.compile(
+                "(?i)(?:Expected|Graduation Date:?|Graduated)\\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\s+(\\d{4})"
+        );
+
+        matcher = graduationPattern.matcher(line);
+        if (matcher.find()) {
+            education.setEndDate(matcher.group(1) + " " + matcher.group(2));
+            return;
+        }
+
+        // Try date range format
         Pattern rangePattern = Pattern.compile(
                 "(\\d{2}/\\d{4})\\s*[-–—]\\s*(Present|\\d{2}/\\d{4})"
         );
 
         matcher = rangePattern.matcher(line);
         if (matcher.find()) {
-            education.setStartDate(matcher.group(1)); // Note: typo in model "startDatae"
+            education.setStartDate(matcher.group(1));
             education.setEndDate(matcher.group(2));
         }
     }
 
     /**
-     * Extract awards and scholarships
+     * Extract awards
      */
     private String extractAwards(String line) {
-        // Remove the prefix "Scholarships & Awards:", "Awards:", etc.
         Pattern pattern = Pattern.compile(
                 "(?i)(?:scholarships?\\s*&?\\s*awards?|awards?|honors?):?\\s*(.+)",
                 Pattern.CASE_INSENSITIVE
@@ -289,7 +368,6 @@ public class EducationExtractionService {
      * Extract relevant coursework
      */
     private String extractCoursework(String line) {
-        // Remove the prefix "Relevant Coursework:", "Coursework:", etc.
         Pattern pattern = Pattern.compile(
                 "(?i)(?:relevant\\s+)?coursework:?\\s*(.+)",
                 Pattern.CASE_INSENSITIVE
@@ -302,6 +380,4 @@ public class EducationExtractionService {
 
         return line.trim();
     }
-
-
 }

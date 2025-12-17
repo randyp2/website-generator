@@ -22,7 +22,7 @@ public class SkillExtractionService {
     public List<String> extractSkills(String text) {
         String skillsSection = SectionExtractor.extractSection(
                 text,
-                "SKILLS|TECHNICAL SKILLS|TECHNOLOGIES|COMPETENCIES",  // Add variations
+                "SKILLS|TECHNICAL SKILLS|TECHNOLOGIES|COMPETENCIES|SKILLS & ABILITIES|SKILLS AND ABILITIES",  // Add variations
                 "EXPERIENCE|EDUCATION|PROJECTS|CERTIFICATIONS|WORK EXPERIENCE|PROFESSIONAL EXPERIENCE"
         );
 

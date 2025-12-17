@@ -22,10 +22,13 @@ public class ParsedResume {
     // Contact info extracted from resume
     private String fullName, email, phone, location;
 
+    // Summary/about me optional
+    private String summary;
+
     // List of detected skills
     private List<String> skills;
 
-    // List of expereinces
+    // List of experiences
     private List<Experience> experiences;
 
     // List of projects
