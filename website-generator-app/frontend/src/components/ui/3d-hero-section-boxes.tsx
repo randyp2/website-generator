@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from "react";
 import Spline from "@splinetool/react-spline";
 import { ArrowUpRight, Sparkles } from "lucide-react";
 import { GradientButton } from "./gradient-button";
+import Image from "next/image";
 
 const screenshotUrl =
   "https://images.unsplash.com/photo-1522199710521-72d69614c702?auto=format&fit=crop&w=2400&q=80";
@@ -50,9 +51,12 @@ function ScreenshotSection({
         className="bg-gray-900 rounded-xl overflow-hidden shadow-2xl border border-gray-700/50 w-full md:w-[80%] lg:w-[70%] mx-auto"
       >
         <div>
-          <img
-            src={screenshotUrl}
-            alt="App Screenshot"
+          <Image 
+            src="/images/dashboard_layout.png"
+            alt="Dashboard Preview Screenshot"
+            width={1600}
+            height={900}
+            priority
             className="w-full h-auto block rounded-lg mx-auto"
           />
         </div>
@@ -147,7 +151,13 @@ function HeroSection() {
           <HeroContent />
         </div>
       </div>
-      <div className="bg-black relative z-10" style={{ marginTop: "-10vh" }}>
+      <div
+        className="relative z-10"
+        style={{
+          marginTop: "-10vh",
+          backgroundColor: "#030506",
+        }}
+      >
         <ScreenshotSection screenshotRef={screenshotRef} />
         
       </div>
