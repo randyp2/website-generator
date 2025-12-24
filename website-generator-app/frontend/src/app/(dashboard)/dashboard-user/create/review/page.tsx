@@ -26,6 +26,7 @@ const ReviewPage: React.FC = () => {
     // Get all state and update functions from Zustand store
     const {
         templateId,
+        portfolioId,
         parsedResumeData,
         updateFullName,
         updateEmail,
@@ -42,8 +43,42 @@ const ReviewPage: React.FC = () => {
         updateEducation,
     } = usePortfolioStore();
 
-    const handleContinue = () => {
-        router.push(`/dashboard-user/create/refine?templateId=${templateId}`);
+    const handleContinue = async () => {
+        if (!parsedResumeData || !portfolioId) {
+            alert("Missing resume data");
+            return;
+        }
+
+        // Save parsed resume data to backend before continuing
+        try {
+            const res: Response = await fetch(
+                `/api/portfolio/${portfolioId}/resume`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        parsedJson: parsedResumeData,
+                        extractedText: parsedResumeData.normalizedText,
+                    }),
+                },
+            );
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                console.error("Failed to save resume data:", errorData);
+                throw new Error(errorData.error || "Failed to save resume data");
+            }
+
+            router.push(
+                `/dashboard-user/create/refine?templateId=${templateId}`,
+            );
+        } catch (error) {
+            console.error("Error saving resume data:", error);
+            alert("Failed to save resume data. Please try again.");
+            return;
+        }
     };
 
     return (

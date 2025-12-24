@@ -1,6 +1,7 @@
 import { UploadedFile } from "@/types/file";
 import { ParsedResumeData, ParsedExperience, ParsedEducation, ParsedProject } from "@/types/resume";
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 
 
 
@@ -9,6 +10,9 @@ export interface PortfolioCreateState {
 
     // Which template user chose:
     templateId: string | null;
+
+    // Portfolio ID (set after creation)
+    portfolioId: string | null;
 
     // Uploaded files
     resumeFile: UploadedFile | null;
@@ -24,6 +28,7 @@ export interface PortfolioCreateState {
 
     // --- Function definitions to update state
     setTemplateId: (templateId: string | null) => void;
+    setPortfolioId: (portfolioId: string | null) => void;
 
     setResumeFile: (file: UploadedFile | null) => void;
     setParsedResumeData: (data: ParsedResumeData | null) => void;
@@ -68,22 +73,26 @@ export interface PortfolioCreateState {
 }
 
 /* ========== ZUSTAND STORE ========== */
-export const usePortfolioStore = create<PortfolioCreateState>((set, get) => ({
-
-
-    /* -------- INITIAL STATE VALUES  -------- */
-    templateId: null,
-    resumeFile: null,
-    mediaFiles: [],
-    videoFiles: [],
-    parsedResumeData: null,
-    aiPrompt: "",
-    previewHtml: null,
+export const usePortfolioStore = create<PortfolioCreateState>()(
+    persist(
+        (set, get) => ({
+            /* -------- INITIAL STATE VALUES  -------- */
+            templateId: null,
+            portfolioId: null,
+            resumeFile: null,
+            mediaFiles: [],
+            videoFiles: [],
+            parsedResumeData: null,
+            aiPrompt: "",
+            previewHtml: null,
 
 
     /* -------- FUNCTION IMPLEMENTATIONS TO UPDATE STATE -------- */
     // Set selected template ID
     setTemplateId: (templateId: string | null) => set({ templateId }),
+
+    // Set portfolio ID
+    setPortfolioId: (portfolioId: string | null) => set({ portfolioId }),
 
     // Set resume files
     setResumeFile: (file: UploadedFile | null) => set({ resumeFile: file }),
@@ -289,13 +298,58 @@ export const usePortfolioStore = create<PortfolioCreateState>((set, get) => ({
     reset: () => {
         set({
             templateId: null,
+            portfolioId: null,
             resumeFile: null,
             mediaFiles: [],
             videoFiles: [],
             parsedResumeData: null,
             aiPrompt: "",
             previewHtml: null,
-        })
+        });
+        // Clear persisted storage when resetting
+        sessionStorage.removeItem('portfolio-creation-store');
     }
 
-}));
+        }),
+        {
+            name: 'portfolio-creation-store',
+            storage: createJSONStorage(() => sessionStorage),
+            partialize: (state) => ({
+                // Persist most state, but handle files specially
+                templateId: state.templateId,
+                portfolioId: state.portfolioId,
+                parsedResumeData: state.parsedResumeData,
+                aiPrompt: state.aiPrompt,
+                previewHtml: state.previewHtml,
+                // For files, store metadata only (File objects can't be serialized)
+                resumeFile: state.resumeFile ? {
+                    id: state.resumeFile.id,
+                    name: state.resumeFile.name,
+                    size: state.resumeFile.size,
+                    type: state.resumeFile.type,
+                    title: state.resumeFile.title,
+                    description: state.resumeFile.description,
+                    file: null as any, // File object will be null after refresh
+                } : null,
+                mediaFiles: state.mediaFiles.map(f => ({
+                    id: f.id,
+                    name: f.name,
+                    size: f.size,
+                    type: f.type,
+                    title: f.title,
+                    description: f.description,
+                    file: null as any,
+                })),
+                videoFiles: state.videoFiles.map(f => ({
+                    id: f.id,
+                    name: f.name,
+                    size: f.size,
+                    type: f.type,
+                    title: f.title,
+                    description: f.description,
+                    file: null as any,
+                })),
+            }),
+        }
+    )
+);

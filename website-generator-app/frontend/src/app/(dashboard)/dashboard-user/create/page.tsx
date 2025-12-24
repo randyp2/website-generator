@@ -1,16 +1,22 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { FiArrowRight } from "react-icons/fi";
 import { useRouter } from "next/navigation";
+import { usePortfolioStore } from "@/stores/usePortfolioStore";
 import { HeaderSection } from "./components/HeaderSection";
 import { TemplateSection } from "./components/TemplateSection";
 
 const TemplateGallery: React.FC = () => {
   const router = useRouter();
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+
+  // Reset Zustand store when starting a new portfolio to ensure fresh state
+  useEffect(() => {
+    usePortfolioStore.getState().reset();
+  }, []);
 
   return (
     <div className="space-y-8 p-10">

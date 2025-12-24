@@ -32,6 +32,7 @@ const UploadPage: React.FC = () => {
     resumeFile,
 
     setTemplateId,
+    setPortfolioId,
     setResumeFile,
     addMediaFiles,
     removeMediaFile,
@@ -417,6 +418,8 @@ const UploadPage: React.FC = () => {
         return;
       }
 
+      // Save portfolio ID to Zustand store for later use
+      setPortfolioId(portfolioId);
 
       router.push(`/dashboard-user/create/review?templateId=${templateId}`);
 
