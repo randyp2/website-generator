@@ -92,7 +92,7 @@ export const ResumeUpload: React.FC<ResumeUploadProps> = ({
 
     } catch (error) {
       console.error("Error parsing resume:", error);
-      // TODO: Show error toast/notification to user
+
     }
   };
 
