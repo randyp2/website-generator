@@ -1,13 +1,11 @@
 
 
-import { HeroSection } from "./components/HeroSection";
+import { Metadata } from "next";
 import { FeatureSection } from "./components/FeatureSection";
 import { ExampleSection } from "./components/ExampleSection";
-import { CTASection } from "./components/CTASection";
-import { Metadata } from "next";
 import AboutSection from "./components/AboutSection";
-import LandingPage2 from "./components/LandingPage2";
-import LandingPage3 from "./components/LandingPage3";
+import { CTASection } from "./components/CTASection";
+import HeroSection from "./components/HeroSection";
 
 export const metadata: Metadata = {
   title: "AI Portfolio Generator – Build Stunning Portfolios Instantly",
@@ -28,34 +26,20 @@ export const metadata: Metadata = {
   }
 };
 
+const sections = [
+  { key: "features", Component: FeatureSection },
+  { key: "examples", Component: ExampleSection },
+  { key: "about", Component: AboutSection },
+  { key: "cta", Component: CTASection },
+];
+
 export default function LandingPage() {
-
-
   return (
-    <main className="min-h-screen pt-15">
-      
-      {/* Hero Section */}
-      {/* <HeroSection /> */}
-
-      {/* Landing page redesign 2 */}
-      {/* <LandingPage2 /> */}
-      
-      <LandingPage3 />
-      {/* Features Section */}
-      {/* <FeatureSection /> */}
-
-      {/* Examples Preview Section */}
-      {/* <ExampleSection /> */}
-
-      {/* About Section */}
-      {/* <AboutSection /> */}
-
-      {/* Final CTA Section */}
-      {/* <CTASection /> */}
-
-      {/* Footer */}
-
-
+    <main className="min-h-screen bg-[#151d21] text-white">
+      <HeroSection />
+      {sections.map(({ key, Component }) => (
+        <Component key={key} />
+      ))}
     </main>
   );
-};
+}
