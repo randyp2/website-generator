@@ -7,6 +7,7 @@ import { CTASection } from "./components/CTASection";
 import { Metadata } from "next";
 import AboutSection from "./components/AboutSection";
 import LandingPage2 from "./components/LandingPage2";
+import LandingPage3 from "./components/LandingPage3";
 
 export const metadata: Metadata = {
   title: "AI Portfolio Generator – Build Stunning Portfolios Instantly",
@@ -37,8 +38,9 @@ export default function LandingPage() {
       {/* <HeroSection /> */}
 
       {/* Landing page redesign 2 */}
-      <LandingPage2 />
+      {/* <LandingPage2 /> */}
       
+      <LandingPage3 />
       {/* Features Section */}
       {/* <FeatureSection /> */}
 
