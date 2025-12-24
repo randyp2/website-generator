@@ -94,7 +94,7 @@ const PortfolioManager: React.FC = () => {
     setActiveMenu(null); // Close any open menus
   };
 
-  // NEW: Handler to close edit modal
+  // Handler to close edit modal
   const handleCloseEdit = () => {
     setEditingPortfolio(null);
     setEditFormData({ title: "", url: "" });
@@ -107,8 +107,6 @@ const PortfolioManager: React.FC = () => {
     try {
       setIsSaving(true);
 
-      // TODO: BACKEND API CALL - Update portfolio in Supabase
-      // This will call your backend endpoint to update the portfolio record
       const response = await fetch(`/api/portfolio/${editingPortfolio.id}/update`, {
         method: "PATCH",
         headers: {
@@ -151,18 +149,26 @@ const PortfolioManager: React.FC = () => {
     }
   };
 
-  // // Mock portfolios - replace with real data
-  // const portfolios: Portfolio[] = [
-  //   {
-  //     id: "1",
-  //     title: "Software Engineer Portfolio",
-  //     thumbnail: "gradient-1",
-  //     status: "draft",
-  //     lastEdited: "2 hours ago",
-  //     views: 234,
-  //     url: "johndoe.portfolio.ai",
-  //   },
-  // ];
+    // Handler to delete portfolio
+    const handleDelete = async (portfolioId: string) => {
+        const confirmed = window.confirm("Are you sure you want to delete this portfolio? This action cannot be undone.");
+
+        if (!confirmed) return;
+
+        try {
+            const res: Response = await fetch(`/api/portfolio/${portfolioId}/delete`, {
+                method: "DELETE",
+            })
+
+
+            // Update UI
+            setPortfolios(prev => prev.filter(p => p.id !== portfolioId));
+        
+        } catch (error) {
+            console.error("Deletion failed: ", error);
+            alert("Failed ot delete portfolio.");
+        }
+    }
 
   const statusConfig = {
     draft: {
@@ -360,17 +366,25 @@ const PortfolioManager: React.FC = () => {
                                 icon: FiDownload,
                                 label: "Export",
                                 color: "sky",
+                                onClick: () => { console.log("Export")}
                               },
                               {
                                 icon: FiCopy,
                                 label: "Duplicate",
                                 color: "cyan",
+                                onClick: () => { console.log("Duplicate")}
                               },
-                              { icon: FiTrash2, label: "Delete", color: "red" },
+                              { 
+                                icon: FiTrash2, 
+                                label: "Delete",
+                                color: "red", 
+                                onClick: () => handleDelete(portfolio.id),
+                              },
                             ].map((action) => (
                               <button
                                 key={action.label}
                                 className={`w-full px-4 py-2 flex items-center gap-3 hover:bg-${action.color}-50 transition-colors text-left`}
+                                onClick={action.onClick}
                               >
                                 <action.icon
                                   className={`w-4 h-4 text-${action.color}-600`}
