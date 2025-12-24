@@ -1,27 +1,36 @@
 import { adminSupabase } from "@/utils/supabase/admin";
+import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 
 
 export async function POST(req: Request) {
     try {
+        // --- Get user id ---
+        const supabase = await createServerSupabaseClient();
+        const {
+            data: { user },
+            error: authError, 
+        } = await supabase.auth.getUser();
+
         // --- Parse request body ---
 
         const formData = await req.formData();
 
-        const userId = formData.get("userId") as string;
         const templateId = formData.get("templateId") as string;
 
         const resumeFile = formData.get("resumeFile");
         const mediaFiles = formData.getAll("mediaFiles");
         const videoFiles = formData.getAll("videoFiles");
 
-        if (!userId || !templateId) {
+        if (!user || !templateId) {
             return NextResponse.json(
                 { error: "userId and templateId are required." },
                 { status: 400 }
             );
         }
+
+        const userId = user.id;
 
         // ==============================================================
         // UPLOAD PORTFOLIO 

@@ -34,8 +34,9 @@ export const ResumeUpload: React.FC<ResumeUploadProps> = ({
   removeFile,
   handleFileUpload,
 }) => {
-  // Get resume file from global store
+  // Get resume file and parsed data setter from global store
   const resumeFile = usePortfolioStore(s => s.resumeFile);
+  const setParsedResumeData = usePortfolioStore(s => s.setParsedResumeData);
 
   // State to track the number of pages in the PDF
   const [numPages, setNumPages] = useState<number>(0);
@@ -49,6 +50,9 @@ export const ResumeUpload: React.FC<ResumeUploadProps> = ({
       const url = URL.createObjectURL(resumeFile.file);
       setPreviewUrl(url);
 
+      // TODO: Call backend to parse the resume
+      parseResume(resumeFile.file);
+
       // Cleanup function to revoke the object URL when component unmounts
       // or when the file changes to prevent memory leaks
       return () => {
@@ -58,6 +62,39 @@ export const ResumeUpload: React.FC<ResumeUploadProps> = ({
       setPreviewUrl(null);
     }
   }, [resumeFile]);
+
+  /**
+   * Sends the uploaded resume to the backend for parsing
+   * This will extract structured data from the resume (name, email, skills, etc.)
+   */
+  const parseResume = async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/resume/parse", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to parse resume");
+      }
+
+      const data = await response.json();
+      console.log("Parsed resume data:", data);
+
+      // Store parsed data in Zustand store
+      if (data.success && data.data) {
+        setParsedResumeData(data.data);
+        console.log("Resume data saved to store");
+      }
+
+    } catch (error) {
+      console.error("Error parsing resume:", error);
+      // TODO: Show error toast/notification to user
+    }
+  };
 
   /**
    * Callback fired when PDF document loads successfully
@@ -107,7 +144,7 @@ export const ResumeUpload: React.FC<ResumeUploadProps> = ({
                 Click to upload your resume
               </p>
               <p className="text-sm text-slate-500">
-                Supports PDF and DOCX files
+                Supports PDF files
               </p>
             </motion.div>
           </label>

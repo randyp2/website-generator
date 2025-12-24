@@ -23,7 +23,7 @@ public class ResumeController {
 
 
 
-    // Parses a resume PDF and retursn structured data
+    // Parses a resume PDF and return structured data
     @PostMapping(
             value = "/parse",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
