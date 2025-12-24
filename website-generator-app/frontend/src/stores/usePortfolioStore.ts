@@ -1,5 +1,7 @@
 import { UploadedFile } from "@/types/file";
+import { ParsedResumeData, ParsedExperience, ParsedEducation, ParsedProject } from "@/types/resume";
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 
 
 
@@ -9,10 +11,16 @@ export interface PortfolioCreateState {
     // Which template user chose:
     templateId: string | null;
 
-    // Uploaded files 
+    // Portfolio ID (set after creation)
+    portfolioId: string | null;
+
+    // Uploaded files
     resumeFile: UploadedFile | null;
     mediaFiles: UploadedFile[];
     videoFiles: UploadedFile[];
+
+    // Parsed resume data
+    parsedResumeData: ParsedResumeData | null;
 
     // AI-related info
     aiPrompt: string;          // Prompt user types in for refinement
@@ -20,8 +28,10 @@ export interface PortfolioCreateState {
 
     // --- Function definitions to update state
     setTemplateId: (templateId: string | null) => void;
+    setPortfolioId: (portfolioId: string | null) => void;
 
     setResumeFile: (file: UploadedFile | null) => void;
+    setParsedResumeData: (data: ParsedResumeData | null) => void;
 
     addMediaFiles: (file: UploadedFile[]) => void;
     removeMediaFile: (index: number) => void;
@@ -33,7 +43,29 @@ export interface PortfolioCreateState {
     updateVideoFileTitle: (index: number, title: string) => void;
     updateVideoFileDescription: (index: number, description: string) => void;
 
+    // Parsed resume data update functions
+    updateFullName: (fullName: string) => void;
+    updateEmail: (email: string) => void;
+    updatePhone: (phone: string) => void;
+    updateLocation: (location: string) => void;
+    updateSummary: (summary: string) => void;
 
+    // Skills management
+    addSkill: () => void;
+    updateSkill: (index: number, skill: string) => void;
+    removeSkill: (index: number) => void;
+
+    // Experience management
+    updateExperience: (index: number, field: keyof ParsedExperience, value: any) => void;
+    updateExperienceBullet: (expIndex: number, bulletIndex: number, value: string) => void;
+    addExperienceBullet: (expIndex: number) => void;
+    removeExperienceBullet: (expIndex: number, bulletIndex: number) => void;
+
+    // Education management
+    updateEducation: (index: number, field: keyof ParsedEducation, value: any) => void;
+
+    // Project management
+    updateProject: (index: number, field: keyof ParsedProject, value: any) => void;
 
     setAiPrompt: (prompt: string) => void;
     setPreviewHtml: (html: string) => void;
@@ -41,24 +73,32 @@ export interface PortfolioCreateState {
 }
 
 /* ========== ZUSTAND STORE ========== */
-export const usePortfolioStore = create<PortfolioCreateState>((set, get) => ({
-
-
-    /* -------- INITIAL STATE VALUES  -------- */
-    templateId: null,
-    resumeFile: null,
-    mediaFiles: [],
-    videoFiles: [],
-    aiPrompt: "",
-    previewHtml: null,
+export const usePortfolioStore = create<PortfolioCreateState>()(
+    persist(
+        (set, get) => ({
+            /* -------- INITIAL STATE VALUES  -------- */
+            templateId: null,
+            portfolioId: null,
+            resumeFile: null,
+            mediaFiles: [],
+            videoFiles: [],
+            parsedResumeData: null,
+            aiPrompt: "",
+            previewHtml: null,
 
 
     /* -------- FUNCTION IMPLEMENTATIONS TO UPDATE STATE -------- */
     // Set selected template ID
     setTemplateId: (templateId: string | null) => set({ templateId }),
 
+    // Set portfolio ID
+    setPortfolioId: (portfolioId: string | null) => set({ portfolioId }),
+
     // Set resume files
     setResumeFile: (file: UploadedFile | null) => set({ resumeFile: file }),
+
+    // Set parsed resume data
+    setParsedResumeData: (data: ParsedResumeData | null) => set({ parsedResumeData: data }),
 
     // Add/Remove media files & Update titles and descriptions
     addMediaFiles: (files: UploadedFile[]) => {
@@ -116,15 +156,200 @@ export const usePortfolioStore = create<PortfolioCreateState>((set, get) => ({
     // Set AI-related info
     setPreviewHtml: (html: string) => set({ previewHtml: html }),
     setAiPrompt: (prompt: string) => set({ aiPrompt: prompt }),
+
+    // ========== PARSED RESUME DATA UPDATE FUNCTIONS ==========
+
+    // Personal information updates
+    updateFullName: (fullName: string) => {
+        const current = get().parsedResumeData;
+        if (current) {
+            set({ parsedResumeData: { ...current, fullName } });
+        }
+    },
+
+    updateEmail: (email: string) => {
+        const current = get().parsedResumeData;
+        if (current) {
+            set({ parsedResumeData: { ...current, email } });
+        }
+    },
+
+    updatePhone: (phone: string) => {
+        const current = get().parsedResumeData;
+        if (current) {
+            set({ parsedResumeData: { ...current, phone } });
+        }
+    },
+
+    updateLocation: (location: string) => {
+        const current = get().parsedResumeData;
+        if (current) {
+            set({ parsedResumeData: { ...current, location } });
+        }
+    },
+
+    updateSummary: (summary: string) => {
+        const current = get().parsedResumeData;
+        if (current) {
+            set({ parsedResumeData: { ...current, summary } });
+        }
+    },
+
+    // Skills management
+    addSkill: () => {
+        const current = get().parsedResumeData;
+        if (current) {
+            const updatedSkills = [...current.skills, ""];
+            set({ parsedResumeData: { ...current, skills: updatedSkills } });
+        }
+    },
+
+    updateSkill: (index: number, skill: string) => {
+        const current = get().parsedResumeData;
+        if (current) {
+            const updatedSkills = current.skills.map((s, i) => i === index ? skill : s);
+            set({ parsedResumeData: { ...current, skills: updatedSkills } });
+        }
+    },
+
+    removeSkill: (index: number) => {
+        const current = get().parsedResumeData;
+        if (current) {
+            const updatedSkills = current.skills.filter((_, i) => i !== index);
+            set({ parsedResumeData: { ...current, skills: updatedSkills } });
+        }
+    },
+
+    // Experience management
+    updateExperience: (index: number, field: keyof ParsedExperience, value: any) => {
+        const current = get().parsedResumeData;
+        if (current) {
+            const updatedExperiences = current.experiences.map((exp, i) =>
+                i === index ? { ...exp, [field]: value } : exp
+            );
+            set({ parsedResumeData: { ...current, experiences: updatedExperiences } });
+        }
+    },
+
+    updateExperienceBullet: (expIndex: number, bulletIndex: number, value: string) => {
+        const current = get().parsedResumeData;
+        if (current) {
+            const updatedExperiences = current.experiences.map((exp, i) =>
+                i === expIndex
+                    ? {
+                        ...exp,
+                        bullets: exp.bullets.map((b, j) => j === bulletIndex ? value : b),
+                    }
+                    : exp
+            );
+            set({ parsedResumeData: { ...current, experiences: updatedExperiences } });
+        }
+    },
+
+    addExperienceBullet: (expIndex: number) => {
+        const current = get().parsedResumeData;
+        if (current) {
+            const updatedExperiences = current.experiences.map((exp, i) =>
+                i === expIndex
+                    ? { ...exp, bullets: [...exp.bullets, ""] }
+                    : exp
+            );
+            set({ parsedResumeData: { ...current, experiences: updatedExperiences } });
+        }
+    },
+
+    removeExperienceBullet: (expIndex: number, bulletIndex: number) => {
+        const current = get().parsedResumeData;
+        if (current) {
+            const updatedExperiences = current.experiences.map((exp, i) =>
+                i === expIndex
+                    ? {
+                        ...exp,
+                        bullets: exp.bullets.filter((_, j) => j !== bulletIndex),
+                    }
+                    : exp
+            );
+            set({ parsedResumeData: { ...current, experiences: updatedExperiences } });
+        }
+    },
+
+    // Education management
+    updateEducation: (index: number, field: keyof ParsedEducation, value: any) => {
+        const current = get().parsedResumeData;
+        if (current) {
+            const updatedEducations = current.educations.map((edu, i) =>
+                i === index ? { ...edu, [field]: value } : edu
+            );
+            set({ parsedResumeData: { ...current, educations: updatedEducations } });
+        }
+    },
+
+    // Project management
+    updateProject: (index: number, field: keyof ParsedProject, value: any) => {
+        const current = get().parsedResumeData;
+        if (current) {
+            const updatedProjects = current.projects.map((proj, i) =>
+                i === index ? { ...proj, [field]: value } : proj
+            );
+            set({ parsedResumeData: { ...current, projects: updatedProjects } });
+        }
+    },
+
     reset: () => {
         set({
             templateId: null,
+            portfolioId: null,
             resumeFile: null,
             mediaFiles: [],
             videoFiles: [],
+            parsedResumeData: null,
             aiPrompt: "",
             previewHtml: null,
-        })
+        });
+        // Clear persisted storage when resetting
+        sessionStorage.removeItem('portfolio-creation-store');
     }
 
-}));
+        }),
+        {
+            name: 'portfolio-creation-store',
+            storage: createJSONStorage(() => sessionStorage),
+            partialize: (state) => ({
+                // Persist most state, but handle files specially
+                templateId: state.templateId,
+                portfolioId: state.portfolioId,
+                parsedResumeData: state.parsedResumeData,
+                aiPrompt: state.aiPrompt,
+                previewHtml: state.previewHtml,
+                // For files, store metadata only (File objects can't be serialized)
+                resumeFile: state.resumeFile ? {
+                    id: state.resumeFile.id,
+                    name: state.resumeFile.name,
+                    size: state.resumeFile.size,
+                    type: state.resumeFile.type,
+                    title: state.resumeFile.title,
+                    description: state.resumeFile.description,
+                    file: null as any, // File object will be null after refresh
+                } : null,
+                mediaFiles: state.mediaFiles.map(f => ({
+                    id: f.id,
+                    name: f.name,
+                    size: f.size,
+                    type: f.type,
+                    title: f.title,
+                    description: f.description,
+                    file: null as any,
+                })),
+                videoFiles: state.videoFiles.map(f => ({
+                    id: f.id,
+                    name: f.name,
+                    size: f.size,
+                    type: f.type,
+                    title: f.title,
+                    description: f.description,
+                    file: null as any,
+                })),
+            }),
+        }
+    )
+);

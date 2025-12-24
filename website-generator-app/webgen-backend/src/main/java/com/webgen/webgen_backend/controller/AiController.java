@@ -11,8 +11,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/generate")
-
-// Allow any frontend to access this backend change later when in production to domain
 @RequiredArgsConstructor
 public class AiController {
 

@@ -31,6 +31,7 @@ const DashboardHome: React.FC = () => {
         const header = JSON.parse(atob(token.split(".")[0]));
 
         console.log("JWT HEADER:", header);
+        console.log("JWT TOKEN:", token);
       }
 
     }
@@ -48,7 +49,7 @@ const DashboardHome: React.FC = () => {
           method: "GET",
         })
 
-      const text: String = await response.text();
+      const text: string = await response.text();
       alert("Ping ressponse: " + text);
     } catch (error) {
       console.error("Error during test ping:", error);
