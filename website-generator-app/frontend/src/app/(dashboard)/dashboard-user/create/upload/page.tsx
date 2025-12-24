@@ -17,9 +17,6 @@ const UploadPage: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const { user } = useUser();
-  const { id } = user;
-
   /**
    * STATE: Global zustand store for portfolio creation
    *
@@ -386,7 +383,6 @@ const UploadPage: React.FC = () => {
 
       // -- Construct form data to send to API route
       const formData = new FormData();
-      formData.append("userId", id);
       formData.append("templateId", templateId);
       formData.append("resumeFile", resumeFile.file);
 
@@ -422,17 +418,13 @@ const UploadPage: React.FC = () => {
       }
 
 
-      router.push(`/dashboard-user/create/refine?templateId=${templateId}`);
+      router.push(`/dashboard-user/create/review?templateId=${templateId}`);
 
     } catch (error) {
       console.error("Error during portfolio creation:", error);
       alert("An error occurred while creating the portfolio. Please try again.");
       return;
     }
-
-
-
-
     
   };
 
@@ -505,7 +497,7 @@ const UploadPage: React.FC = () => {
               onClick={handleContinue}
               className="hover:cursor-pointer px-8 py-4 bg-linear-to-r from-sky-500 to-cyan-500 text-white rounded-full font-bold shadow-2xl shadow-sky-400/50 flex items-center gap-3"
             >
-              Continue to AI Refinement
+                Continue to revise/edit
               <FiArrowRight className="w-5 h-5" />
             </motion.button>
           </div>
