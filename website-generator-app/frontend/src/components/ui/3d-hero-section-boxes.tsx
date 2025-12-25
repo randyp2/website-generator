@@ -4,7 +4,7 @@ import React, { useEffect, useRef } from "react";
 import { ArrowUpRight, Sparkles } from "lucide-react";
 import { GradientButton } from "./gradient-button";
 import Image from "next/image";
-import { AuroraBackground } from "./aurora-background";
+import { GodRays } from "@paper-design/shaders-react";
 
 const screenshotUrl =
     "https://images.unsplash.com/photo-1522199710521-72d69614c702?auto=format&fit=crop&w=2400&q=80";
@@ -19,8 +19,33 @@ function HeroSplineBackground() {
                 pointerEvents: "auto",
                 overflow: "hidden",
             }}
+            className="bg-[#0a0a0a]"
         >
-            <AuroraBackground />
+            <div className="absolute inset-0 pointer-events-none">
+                <GodRays
+                    colorBack="#00000000"
+                    colors={["#a1a1aa40", "#e4e4e740", "#71717a40", "#52525b40"]}
+                    colorBloom="#a1a1aa"
+                    offsetX={0.85}
+                    offsetY={-1}
+                    intensity={0.5}
+                    spotty={0.45}
+                    midSize={10}
+                    midIntensity={0}
+                    density={0.38}
+                    bloom={0.3}
+                    speed={0.5}
+                    scale={1.6}
+                    frame={3332042.8159981333}
+                    style={{
+                        height: "100%",
+                        width: "100%",
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                    }}
+                />
+            </div>
             <div
                 style={{
                     position: "absolute",

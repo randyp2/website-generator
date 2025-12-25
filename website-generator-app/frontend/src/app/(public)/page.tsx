@@ -27,8 +27,8 @@ export const metadata: Metadata = {
 };
 
 const sections = [
-  { key: "about", Component: AboutSection },
   { key: "features", Component: FeatureSection },
+  { key: "about", Component: AboutSection },
   { key: "visual-features", Component: VisualFeaturesSection },
   { key: "cta", Component: CTASection },
 ];
