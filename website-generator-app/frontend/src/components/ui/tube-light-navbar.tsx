@@ -56,7 +56,7 @@ export function NavBar({
       className={cn(
         inline
           ? "static translate-x-0"
-          : "fixed bottom-0 sm:top-0 left-1/2 -translate-x-1/2 z-[200] mb-6 sm:pt-6 h-max",
+          : "fixed bottom-0 sm:top-0 left-1/2 -translate-x-1/2 z-200 mb-6 sm:pt-6 h-max",
         className,
       )}
     >

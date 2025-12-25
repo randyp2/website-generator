@@ -2,7 +2,7 @@
 
 import { Metadata } from "next";
 import { FeatureSection } from "./components/FeatureSection";
-import { ExampleSection } from "./components/ExampleSection";
+import { VisualFeaturesSection } from "./components/VisualFeaturesSection";
 import AboutSection from "./components/AboutSection";
 import { CTASection } from "./components/CTASection";
 import HeroSection from "./components/HeroSection";
@@ -27,9 +27,9 @@ export const metadata: Metadata = {
 };
 
 const sections = [
-  { key: "features", Component: FeatureSection },
-  { key: "examples", Component: ExampleSection },
   { key: "about", Component: AboutSection },
+  { key: "features", Component: FeatureSection },
+  { key: "visual-features", Component: VisualFeaturesSection },
   { key: "cta", Component: CTASection },
 ];
 
