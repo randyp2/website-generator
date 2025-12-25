@@ -27,11 +27,11 @@ const LoginForm: React.FC<LoginFormProps> = ({ state, dispatch, onSubmit }) => {
     >
       {/* Email */}
       <div>
-        <label className="block text-sm font-semibold text-slate-700 mb-2">
+        <label className="block text-sm font-semibold text-gray-300 mb-2">
           Email Address
         </label>
         <div className="relative">
-          <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+          <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
           <input
             type="email"
             name="email"
@@ -43,7 +43,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ state, dispatch, onSubmit }) => {
                 payload: e.target.value,
               })
             }
-            className="w-full bg-white border-2 border-slate-200 rounded-xl pl-12 pr-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-400/10 transition-all"
+            className="w-full bg-[#0a0a0a]/50 border-2 border-white/10 rounded-xl pl-12 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#0084ff] focus:ring-4 focus:ring-[#0084ff]/10 transition-all"
             placeholder="you@example.com"
             required
           />
@@ -52,11 +52,11 @@ const LoginForm: React.FC<LoginFormProps> = ({ state, dispatch, onSubmit }) => {
 
       {/* Password */}
       <div>
-        <label className="block text-sm font-semibold text-slate-700 mb-2">
+        <label className="block text-sm font-semibold text-gray-300 mb-2">
           Password
         </label>
         <div className="relative">
-          <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+          <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
           <input
             type={showPassword ? "text" : "password"}
             name="password"
@@ -68,14 +68,14 @@ const LoginForm: React.FC<LoginFormProps> = ({ state, dispatch, onSubmit }) => {
                 payload: e.target.value,
               })
             }
-            className="w-full bg-white border-2 border-slate-200 rounded-xl pl-12 pr-12 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-400/10 transition-all"
+            className="w-full bg-[#0a0a0a]/50 border-2 border-white/10 rounded-xl pl-12 pr-12 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#0084ff] focus:ring-4 focus:ring-[#0084ff]/10 transition-all"
             placeholder="••••••••"
             required
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
           >
             {showPassword ? (
               <FiEyeOff className="w-5 h-5" />
@@ -93,13 +93,13 @@ const LoginForm: React.FC<LoginFormProps> = ({ state, dispatch, onSubmit }) => {
             type="checkbox"
             checked={state.rememberMe}
             onChange={() => dispatch({ type: "TOGGLE_REMEMBER_ME" })}
-            className="w-4 h-4 text-sky-600 border-slate-300 rounded focus:ring-sky-500 focus:ring-2"
+            className="w-4 h-4 text-[#0084ff] border-gray-600 bg-[#0a0a0a]/50 rounded focus:ring-[#0084ff] focus:ring-2"
           />
-          <span className="text-sm text-slate-600">Remember me</span>
+          <span className="text-sm text-gray-400">Remember me</span>
         </label>
         <a
           href="#"
-          className="text-sm font-medium text-sky-600 hover:text-sky-700 transition-colors"
+          className="text-sm font-medium text-[#0084ff] hover:text-[#0066cc] transition-colors"
         >
           Forgot password?
         </a>
@@ -110,7 +110,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ state, dispatch, onSubmit }) => {
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         type="submit"
-        className="w-full px-6 py-3.5 bg-linear-to-r from-sky-500 to-cyan-500 text-white rounded-xl font-bold shadow-lg shadow-sky-400/30 hover:shadow-xl hover:shadow-sky-500/40 transition-all flex items-center justify-center gap-2 mt-6"
+        className="w-full px-6 py-3.5 bg-[#0084ff] hover:bg-[#0066cc] text-white rounded-xl font-bold shadow-lg shadow-[#0084ff]/30 hover:shadow-xl hover:shadow-[#0084ff]/40 transition-all flex items-center justify-center gap-2 mt-6"
       >
         Sign In
         <FiArrowRight className="w-5 h-5" />

@@ -5,10 +5,6 @@
   --foreground: #171717;
 }
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 @layer base {
   @property --pos-x {
     syntax: "<percentage>";
@@ -115,7 +111,9 @@
 
 @layer components {
   .gradient-button {
-    @apply relative appearance-none cursor-pointer;
+    position: relative;
+    appearance: none;
+    cursor: pointer;
     background: radial-gradient(
       var(--spread-x) var(--spread-y) at var(--pos-x) var(--pos-y),
       var(--color-1) var(--stop-1),
