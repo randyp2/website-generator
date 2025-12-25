@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import Spline from "@splinetool/react-spline";
 import { ArrowUpRight, Sparkles } from "lucide-react";
 import { GradientButton } from "./gradient-button";
 import Image from "next/image";
+import { AuroraBackground } from "./aurora-background";
 
 const screenshotUrl =
     "https://images.unsplash.com/photo-1522199710521-72d69614c702?auto=format&fit=crop&w=2400&q=80";
@@ -20,14 +20,7 @@ function HeroSplineBackground() {
                 overflow: "hidden",
             }}
         >
-            <Spline
-                style={{
-                    width: "100%",
-                    height: "100vh",
-                    pointerEvents: "auto",
-                }}
-                scene="https://prod.spline.design/dJqTIQ-tE3ULUPMi/scene.splinecode"
-            />
+            <AuroraBackground />
             <div
                 style={{
                     position: "absolute",
