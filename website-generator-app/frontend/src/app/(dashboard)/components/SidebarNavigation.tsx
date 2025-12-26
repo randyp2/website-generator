@@ -7,7 +7,6 @@ import Link from "next/link";
 import {
   FiHome,
   FiFolder,
-  FiZap,
   FiUpload,
   FiSliders,
   FiShare2,
@@ -144,22 +143,26 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
         <motion.div
           whileHover={{ x: collapsed ? 0 : 4, scale: collapsed ? 1.05 : 1 }}
           whileTap={{ scale: 0.98 }}
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-shadow group ${
+          transition={{ type: "spring", stiffness: 400, damping: 30 }}
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl group relative overflow-hidden ${
             isActive
-              ? "bg-linear-to-r from-sky-500 to-cyan-500 text-white shadow-lg shadow-sky-400/30"
-              : "text-slate-600 hover:bg-slate-100"
+              ? "bg-white/10 text-white shadow-lg shadow-white/5 border border-white/20"
+              : "text-white/70 hover:bg-white/5 hover:text-white border border-transparent hover:border-white/10"
           }`}
         >
+          {isActive && (
+            <div className="pointer-events-none absolute -left-12 -top-12 h-32 w-32 bg-linear-to-br from-white/10 via-white/5 to-transparent blur-2xl" />
+          )}
           <div
-            className={`flex items-center justify-center ${
+            className={`flex items-center justify-center relative z-10 ${
               collapsed ? "w-full" : ""
             }`}
           >
             <Icon
-              className={`w-5 h-5 ${
+              className={`w-5 h-5 transition-all duration-200 ${
                 isActive
-                  ? "text-white"
-                  : "text-slate-600 group-hover:text-slate-900"
+                  ? "text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.4)]"
+                  : "text-white/70 group-hover:text-white group-hover:drop-shadow-[0_0_4px_rgba(255,255,255,0.3)]"
               }`}
             />
           </div>
@@ -167,10 +170,10 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
           {!collapsed && (
             <>
               <span
-                className={`flex-1 font-medium ${
+                className={`flex-1 font-medium relative z-10 transition-all duration-200 ${
                   isActive
                     ? "text-white"
-                    : "text-slate-700 group-hover:text-slate-900"
+                    : "text-white/70 group-hover:text-white"
                 }`}
               >
                 {item.label}
@@ -178,10 +181,10 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
 
               {item.badge && (
                 <span
-                  className={`px-2 py-0.5 text-xs font-bold rounded-full ${
+                  className={`px-2 py-0.5 text-xs font-bold rounded-full relative z-10 transition-all duration-200 ${
                     isActive
-                      ? "bg-white/20 text-white"
-                      : "bg-slate-200 text-slate-700"
+                      ? "bg-white/20 text-white border border-white/30 shadow-[0_0_8px_rgba(255,255,255,0.2)]"
+                      : "bg-white/10 text-white/80 border border-white/20"
                   }`}
                 >
                   {item.badge}
@@ -198,44 +201,42 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
     <div className="flex flex-col h-full">
       {/* Logo / Brand */}
       <div
-        className={`p-6 border-b border-slate-200 ${collapsed ? "px-4" : ""}`}
+        className={`p-6 border-b border-white/10 ${collapsed ? "px-4" : ""}`}
       >
-        <Link href="/" className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-linear-to-br from-sky-400 to-cyan-400 rounded-xl flex items-center justify-center shadow-lg shadow-sky-300/30 shrink-0">
-            <FiZap className="w-5 h-5 text-white" />
-          </div>
-          {!collapsed && (
-            <span className="text-xl font-bold bg-linear-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+        {!collapsed && (
+          <Link href="/" className="flex items-center gap-3 mb-4">
+            <span className="text-xl font-bold text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">
               PortfolioAI
             </span>
-          )}
-        </Link>
+          </Link>
+        )}
 
         {/* User Info */}
         {!collapsed && (
-          <div className="flex items-center gap-3 px-3 py-2 bg-slate-50 rounded-lg">
+          <div className="relative overflow-hidden flex items-center gap-3 px-3 py-2 bg-white/5 backdrop-blur-sm rounded-lg border border-white/10">
+            <div className="pointer-events-none absolute -left-6 -top-6 h-16 w-16 bg-linear-to-br from-white/10 via-transparent to-transparent blur-xl" />
             {/* Render avatar if any */}
             {avatar === null ? (
-              <div className="w-8 h-8 bg-slate-300 rounded-full flex items-center justify-center shrink-0">
-                <FiUser className="w-4 h-4 text-slate-600" />
+              <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center shrink-0 border border-white/20">
+                <FiUser className="w-4 h-4 text-white/80" />
               </div>
             ) : (
-              <img src={avatar} className="w-8 h-8 rounded-full" />
+              <img src={avatar} className="w-8 h-8 rounded-full border border-white/20 shadow-[0_0_8px_rgba(255,255,255,0.15)]" />
             )}
 
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-slate-700 truncate">
+            <div className="flex-1 min-w-0 relative z-10">
+              <p className="text-sm font-medium text-white truncate">
                 {username}
               </p>
-              <p className="text-xs text-slate-500 truncate">{email}</p>
+              <p className="text-xs text-white/60 truncate">{email}</p>
             </div>
           </div>
         )}
 
         {collapsed && (
           <div className="flex justify-center mt-2">
-            <div className="w-8 h-8 bg-slate-300 rounded-full flex items-center justify-center">
-              <FiUser className="w-4 h-4 text-slate-600" />
+            <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center border border-white/20">
+              <FiUser className="w-4 h-4 text-white/80" />
             </div>
           </div>
         )}
@@ -248,7 +249,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
         ))}
 
         {/* Divider */}
-        <div className="my-6 border-t border-slate-200" />
+        <div className="my-6 border-t border-white/10" />
 
         {/* Secondary Navigation */}
         {secondaryItems.map((item) => (
@@ -257,15 +258,16 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
       </div>
 
       {/* Sign Out Button */}
-      <div className="p-4 border-t border-slate-200">
+      <div className="p-4 border-t border-white/10">
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
+          transition={{ type: "spring", stiffness: 400, damping: 30 }}
           onClick={async () => {
             await signoutClient();
             router.push("/login");
           }}
-          className={`hover:cursor-pointer w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 transition-all ${
+          className={`hover:cursor-pointer w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 hover:border-red-400/30 border border-transparent transition-all duration-200 ${
             collapsed ? "justify-center" : ""
           }`}
         >
@@ -279,8 +281,9 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
+          transition={{ type: "spring", stiffness: 400, damping: 30 }}
           onClick={handleToggle}
-          className={`hover:cursor-pointer w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition-all ${
+          className={`hover:cursor-pointer w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/70 hover:bg-white/5 hover:text-white hover:border-white/10 border border-transparent transition-all duration-200 ${
             collapsed ? "justify-center" : ""
           }`}
         >
@@ -303,17 +306,18 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
+        transition={{ type: "spring", stiffness: 400, damping: 30 }}
         onClick={() => setMobileOpen(true)}
-        className="md:hidden fixed top-4 left-4 z-50 p-3 bg-white rounded-xl shadow-lg border border-slate-200"
+        className="md:hidden fixed top-4 left-4 z-50 p-3 bg-white/5 rounded-xl shadow-lg border border-white/10"
       >
-        <FiMenu className="w-6 h-6 text-slate-700" />
+        <FiMenu className="w-6 h-6 text-white" />
       </motion.button>
 
       {/* Desktop Sidebar */}
       <motion.aside
         animate={{ width: collapsed ? 80 : 280 }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
-        className="hidden md:block fixed left-0 top-0 h-screen bg-white border-r border-slate-200 z-40"
+        className="hidden md:block fixed left-0 top-0 h-screen bg-[#0a0f14]/95 border-r border-white/10 z-40 shadow-2xl shadow-black/20"
       >
         <SidebarContent />
       </motion.aside>
@@ -328,7 +332,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setMobileOpen(false)}
-              className="md:hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50"
+              className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
             />
 
             {/* Drawer */}
@@ -337,14 +341,14 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="md:hidden fixed left-0 top-0 h-screen w-[280px] bg-white border-r border-slate-200 z-50"
+              className="md:hidden fixed left-0 top-0 h-screen w-[280px] bg-[#0a0f14]/95 border-r border-white/10 z-50 shadow-2xl shadow-black/20"
             >
               {/* Close Button */}
               <button
                 onClick={() => setMobileOpen(false)}
-                className="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-lg transition-colors border border-white/10"
               >
-                <FiX className="w-5 h-5 text-slate-600" />
+                <FiX className="w-5 h-5 text-white/80" />
               </button>
 
               <SidebarContent />

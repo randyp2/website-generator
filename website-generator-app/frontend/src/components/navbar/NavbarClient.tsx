@@ -95,17 +95,27 @@ const NavbarClient: React.FC = () => {
 
             <div className="flex items-center gap-4">
                 {user ? (
-                    <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={async () => {
-                            await signoutClient(); // Sign out user from client side function since invoked by button and not form
-                            router.push("/"); // Redirect to home page
-                        }}
+                    <>
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => router.push("/dashboard-user")}
+                            className="hover:cursor-pointer px-5 py-2.5 bg-linear-to-r from-cyan-500 via-sky-500 to-cyan-400 text-white rounded-lg font-semibold shadow-md shadow-cyan-400/30 hover:shadow-lg hover:shadow-cyan-400/50 transition-all"
+                        >
+                            Continue to Dashboard
+                        </motion.button>
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={async () => {
+                                await signoutClient(); // Sign out user from client side function since invoked by button and not form
+                                router.push("/"); // Redirect to home page
+                            }}
                             className="px-5 py-2.5 bg-white text-slate-900 rounded-lg font-semibold border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all"
-                    >
-                        Logout
-                    </motion.button>
+                        >
+                            Logout
+                        </motion.button>
+                    </>
                 ) : (
                     <>
                         <motion.button

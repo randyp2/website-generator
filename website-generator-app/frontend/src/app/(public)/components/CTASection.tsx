@@ -7,7 +7,7 @@ import { GradientButton } from "@/components/ui/gradient-button";
 
 export const CTASection: React.FC = () => {
     return (
-        <section className="relative py-20 px-6 bg-[#030506] text-white overflow-hidden min-h-[50vh] flex items-center justify-center">
+        <section className="relative py-20 px-6 bg-[#26282a] text-white overflow-hidden min-h-[50vh] flex items-center justify-center">
             <div className="max-w-6xl mx-auto w-full relative z-10">
                 <motion.div
                     initial={{ opacity: 0, y: 30, scale: 0.95 }}
@@ -31,12 +31,12 @@ export const CTASection: React.FC = () => {
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
-                        <GradientButton className="w-full sm:w-auto px-8 py-3 shadow-[0_12px_35px_rgba(255,255,255,0.12)] hover:shadow-[0_18px_45px_rgba(255,255,255,0.22)] transition-all duration-500">
+                        <GradientButton className="w-full sm:w-auto px-8 py-3">
                             Get Started Free
                         </GradientButton>
                         <GradientButton
                             variant="variant"
-                            className="w-full sm:w-auto px-8 py-3 inline-flex items-center justify-center gap-2 shadow-[0_12px_35px_rgba(255,255,255,0.12)] hover:shadow-[0_18px_45px_rgba(255,255,255,0.22)] transition-shadow duration-500"
+                            className="w-full sm:w-auto px-8 py-3 inline-flex items-center justify-center gap-2"
                         >
                             View Demo
                             <ArrowUpRight className="w-5 h-5" />
