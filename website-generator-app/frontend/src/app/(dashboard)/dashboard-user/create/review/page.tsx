@@ -82,7 +82,7 @@ const ReviewPage: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-sky-50/30 p-10 pb-32">
+        <div className="relative min-h-screen p-10 pb-32">
             {/* Header with Edit Toggle */}
             <motion.div
                 initial={{ opacity: 0, y: -20 }}

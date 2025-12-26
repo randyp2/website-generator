@@ -1,246 +1,351 @@
 "use client";
 
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
-import { FileText, Sparkles, Globe, LucideIcon, User, Mail, Briefcase, Send } from 'lucide-react';
 import { motion } from 'framer-motion';
-import React, { ReactNode } from 'react';
+import Image from 'next/image';
+import { FileText } from 'lucide-react';
 
 export function VisualFeaturesSection() {
     return (
-        <section className="bg-[#030506] py-16 md:py-24">
-            <div className="mx-auto max-w-2xl px-6 lg:max-w-6xl">
-                <div className="mx-auto grid gap-6 lg:grid-cols-2">
-                    {/* Resume Upload Card */}
-                    <FeatureCard>
-                        <CardHeader className="pb-3">
-                            <CardHeading
-                                icon={FileText}
-                                title="Resume Upload"
-                                description="Instantly parse and extract all professional details from your resume."
-                            />
-                        </CardHeader>
+        <section className="bg-[#26282a] py-16 md:py-24">
+            <div className="mx-auto max-w-7xl px-6">
+                {/* Grid: 2x2 on desktop, 1 column on mobile */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-                        <div className="relative mb-6 border-t border-slate-800 overflow-hidden">
-                            {/* Aurora Wave Background */}
-                            <div className="absolute inset-0 overflow-hidden">
-                                <div className="absolute bottom-0 left-0 right-0 h-64 bg-linear-to-t from-blue-600/20 via-blue-500/10 to-transparent blur-2xl"></div>
-                                <div className="absolute bottom-0 left-1/4 right-0 h-48 bg-linear-to-t from-cyan-500/15 via-blue-400/10 to-transparent blur-3xl"></div>
-                            </div>
-
-                            <div className="relative aspect-76/59 p-6 flex items-center justify-center">
-                                {/* Parsed Resume Mockup */}
-                                <div className="w-full max-w-sm bg-slate-900/90 backdrop-blur-md rounded-lg border border-slate-700 p-6 shadow-xl">
-                                    {/* Header with Avatar */}
-                                    <div className="flex items-center gap-4 mb-6 pb-4 border-b border-slate-700">
-                                        <div className="w-12 h-12 rounded-full bg-linear-to-br from-slate-700 to-slate-800 flex items-center justify-center border border-slate-600">
-                                            <User className="w-6 h-6 text-slate-400" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="h-4 bg-slate-700 rounded w-32 mb-2"></div>
-                                            <div className="h-3 bg-slate-800 rounded w-24"></div>
-                                        </div>
+                    {/* Card 1: AI-Powered Website Generation */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6 }}
+                        viewport={{ once: true }}
+                    >
+                        <div className="relative h-[450px] lg:h-[500px] overflow-hidden group rounded-xl border border-white/10 hover:border-white/30 transition-all bg-[#1a1d21]">
+                            {/* Content Container */}
+                            <div className="relative h-full flex flex-col">
+                                {/* Contained Image with Chatbot Overlay - Extended to right edge, less tall */}
+                                <div className="relative rounded-lg overflow-visible ml-6 md:ml-8 mt-10 md:mt-10 mr-0 mb-0 h-[250px] md:h-[280px]">
+                                    {/* Background Image */}
+                                    <div className="absolute inset-0 rounded-lg overflow-hidden">
+                                        <Image
+                                            src="/images/card1.png"
+                                            alt="Portfolio website example"
+                                            fill
+                                            className="object-cover transition-transform duration-500 group-hover:scale-105"
+                                            sizes="(max-width: 1024px) 100vw, 50vw"
+                                            priority
+                                        />
+                                        {/* Fade Overlay - minimal fade from bottom-left corner only */}
+                                        <div className="absolute inset-0 bg-linear-to-tr from-[#1a1d21]/30 via-transparent to-transparent" />
                                     </div>
 
-                                    {/* Contact Info */}
-                                    <div className="space-y-3 mb-6">
-                                        <div className="flex items-center gap-2">
-                                            <Mail className="w-4 h-4 text-slate-500" />
-                                            <div className="h-2 bg-slate-800 rounded w-36"></div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <Briefcase className="w-4 h-4 text-slate-500" />
-                                            <div className="h-2 bg-slate-800 rounded w-28"></div>
-                                        </div>
-                                    </div>
-
-                                    {/* Experience Section */}
-                                    <div>
-                                        <div className="text-xs text-slate-500 mb-3">EXPERIENCE</div>
-                                        <div className="space-y-3">
-                                            <div>
-                                                <div className="h-3 bg-slate-700 rounded w-40 mb-2"></div>
-                                                <div className="h-2 bg-slate-800 rounded w-full mb-1"></div>
-                                                <div className="h-2 bg-slate-800 rounded w-5/6"></div>
-                                            </div>
-                                            <div>
-                                                <div className="h-3 bg-slate-700 rounded w-36 mb-2"></div>
-                                                <div className="h-2 bg-slate-800 rounded w-full mb-1"></div>
-                                                <div className="h-2 bg-slate-800 rounded w-4/6"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </FeatureCard>
-
-                    {/* AI Design Card */}
-                    <FeatureCard>
-                        <CardHeader className="pb-3">
-                            <CardHeading
-                                icon={Sparkles}
-                                title="AI-Powered Design"
-                                description="Prompt our AI to generate custom designs for your portfolio."
-                            />
-                        </CardHeader>
-
-                        <CardContent>
-                            <div className="relative mb-6">
-                                <div className="aspect-76/59 border border-slate-800 rounded-lg overflow-hidden bg-slate-900/80 backdrop-blur-sm">
-                                    {/* Chat/Prompt Interface Mockup */}
-                                    <div className="h-full flex flex-col p-4">
-                                        {/* Chat Messages */}
-                                        <div className="flex-1 space-y-3 overflow-hidden">
-                                            {/* User Message */}
-                                            <div className="flex justify-end">
-                                                <div className="bg-slate-800 rounded-lg p-3 max-w-[80%]">
-                                                    <div className="h-2 bg-slate-700 rounded w-32 mb-1"></div>
-                                                    <div className="h-2 bg-slate-700 rounded w-24"></div>
-                                                </div>
-                                            </div>
-
-                                            {/* AI Response */}
-                                            <div className="flex justify-start">
-                                                <div className="bg-linear-to-br from-slate-800 to-slate-900 rounded-lg p-3 max-w-[80%] border border-slate-700">
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <Sparkles className="w-3 h-3 text-white" />
-                                                        <div className="h-2 bg-slate-700 rounded w-20"></div>
+                                    {/* Complete Chat UI Overlay - Poking out from top */}
+                                    <div className="relative h-full flex items-start justify-center -mt-8 md:mt-40">
+                                        {/* Dark Transparent Chatbox */}
+                                        <div className="w-full max-w-sm bg-black/85 backdrop-blur-sm rounded-lg border border-white/10 shadow-2xl overflow-hidden">
+                                            {/* Chat Messages Area */}
+                                            <div className="p-3 md:p-4 space-y-2 max-h-[140px] md:max-h-40 overflow-y-auto">
+                                                {/* User Message */}
+                                                <div className="flex justify-end">
+                                                    <div className="bg-linear-to-r from-blue-600 to-indigo-600 rounded-lg rounded-tr-sm px-3 py-1.5 max-w-[85%] shadow-lg">
+                                                        <p className="text-white text-[10px] md:text-xs leading-relaxed">
+                                                            Create a cyber-themed portfolio for a software engineer
+                                                        </p>
                                                     </div>
-                                                    {/* Design Preview Grid */}
-                                                    <div className="grid grid-cols-3 gap-2 mt-3">
-                                                        <div className="aspect-square bg-slate-700 rounded border border-slate-600 flex items-center justify-center">
-                                                            <div className="w-3 h-3 bg-slate-600 rounded-sm"></div>
-                                                        </div>
-                                                        <div className="aspect-square bg-slate-800 rounded border border-slate-700 flex items-center justify-center">
-                                                            <div className="w-3 h-3 bg-slate-700 rounded-sm"></div>
-                                                        </div>
-                                                        <div className="aspect-square bg-slate-800 rounded border border-slate-700 flex items-center justify-center">
-                                                            <div className="w-3 h-3 bg-slate-700 rounded-sm"></div>
-                                                        </div>
+                                                </div>
+
+                                                {/* AI Response */}
+                                                <div className="flex items-start gap-2">
+                                                    <div className="w-5 h-5 rounded-full bg-linear-to-br from-white-500 to-gray-500 flex items-center justify-center shrink-0 shadow-lg">
+
+                                                    </div>
+                                                    <div className="bg-white/10 border border-white/20 rounded-lg rounded-tl-sm px-3 py-1.5 max-w-[85%] shadow-xl">
+                                                        <p className="text-white/90 text-[10px] md:text-xs leading-relaxed">
+                                                            I've created a sleek portfolio with a dark theme, featuring your projects, skills, and experience.
+                                                        </p>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            {/* User Message */}
-                                            <div className="flex justify-end">
-                                                <div className="bg-slate-800 rounded-lg p-3 max-w-[70%]">
-                                                    <div className="h-2 bg-slate-700 rounded w-20"></div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Input Area */}
-                                        <div className="mt-3 pt-3 border-t border-slate-800">
-                                            <div className="flex items-center gap-2 bg-slate-800/50 rounded-lg p-2 border border-slate-700">
-                                                <div className="flex-1 h-2 bg-slate-700 rounded"></div>
-                                                <div className="w-8 h-8 bg-slate-700 rounded flex items-center justify-center">
-                                                    <Send className="w-4 h-4 text-slate-500" />
+                                            {/* Input Field */}
+                                            <div className="border-t border-white/10 p-2 md:p-3 bg-black/20">
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Type your message..."
+                                                        className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white text-[10px] md:text-xs placeholder-white/40 focus:outline-none focus:border-white/30 transition-colors"
+                                                        disabled
+                                                    />
+                                                    <button className="bg-blue-600 hover:bg-blue-700 rounded-lg px-3 py-1.5 transition-colors">
+                                                        <svg className="w-3 h-3 md:w-4 md:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                                        </svg>
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Spacer to push title to bottom */}
+                                <div className="flex-1"></div>
+
+                                {/* Title at Bottom - touching bottom with padding */}
+                                <div className="px-6 md:px-8 pb-4 md:pb-6 pt-3">
+                                    <h3 className="text-xl md:text-2xl font-bold text-white mb-1">
+                                        AI-Powered Website Generation
+                                    </h3>
+                                    <p className="text-xs md:text-sm text-white/70">
+                                        Describe your vision, and our AI creates a stunning portfolio in seconds.
+                                    </p>
+                                </div>
                             </div>
-                        </CardContent>
-                    </FeatureCard>
-
-                    {/* Deployment Card */}
-                    <FeatureCard className="p-6 lg:col-span-2">
-                        <motion.p
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            className="mx-auto my-6 max-w-2xl text-balance text-center text-2xl font-semibold text-white"
-                        >
-                            Deploy instantly to Vercel, Netlify, or download your portfolio source code.
-                        </motion.p>
-
-                        <div className="flex justify-center gap-6 overflow-hidden flex-wrap">
-                            <DeploymentOption
-                                label="Vercel"
-                                icon={Globe}
-                                color="white"
-                            />
-
-                            <DeploymentOption
-                                label="Netlify"
-                                icon={Globe}
-                                color="cyan"
-                            />
-
-                            <DeploymentOption
-                                label="Download"
-                                icon={FileText}
-                                color="white"
-                            />
                         </div>
-                    </FeatureCard>
+                    </motion.div>
+
+                    {/* Card 2: Resume Upload */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.1 }}
+                        viewport={{ once: true }}
+                    >
+                        <div className="relative h-[450px] lg:h-[500px] overflow-hidden group rounded-xl border border-white/10 hover:border-white/30 transition-all bg-[#1a1d21]">
+                            {/* Title at Top */}
+                            <div className="relative z-10 p-6 md:pt-20 md:px-8">
+                                <h3 className="text-xl md:text-2xl font-bold text-white mb-1 md:mb-2">
+                                    Upload Your Resume
+                                </h3>
+                                <p className="text-xs md:text-sm text-white/70">
+                                    Simply upload your resume and let AI extract all your information instantly.
+                                </p>
+                            </div>
+
+                            {/* Image from bottom left */}
+                            <div className=" absolute -bottom-20 -left-20 w-full h-[70%]">
+                                <Image
+                                    src="/images/card2.png"
+                                    alt="Resume upload interface"
+                                    fill
+                                    className="rounded-4xl object-cover object-bottom transition-transform duration-500 group-hover:scale-105"
+                                    sizes="(max-width: 1024px) 100vw, 50vw"
+                                />
+                            </div>
+                        </div>
+                    </motion.div>
+
+                    {/* Card 3: Real-time Customization */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.2 }}
+                        viewport={{ once: true }}
+                    >
+                        <div className="relative h-[450px] lg:h-[500px] overflow-hidden group rounded-xl border border-white/10 hover:border-white/30 transition-all bg-[#1a1d21]">
+                            {/* Image from top right */}
+                            <div className="absolute top-0 right-0 w-full h-[70%]">
+                                <Image
+                                    src="/images/card3.png"
+                                    alt="Real-time customization interface"
+                                    fill
+                                    className="object-cover object-top transition-transform duration-500 group-hover:scale-105"
+                                    sizes="(max-width: 1024px) 100vw, 50vw"
+                                />
+                                {/* Fade overlay from bottom */}
+                                <div className="absolute inset-0 bg-linear-to-t from-[#1a1d21] via-transparent to-transparent" />
+                            </div>
+
+                            {/* Title at Bottom */}
+                            <div className="absolute bottom-0 left-0 right-0 z-10 p-6 md:p-8">
+                                <h3 className="text-xl md:text-2xl font-bold text-white mb-1 md:mb-2">
+                                    Real-time Customization
+                                </h3>
+                                <p className="text-xs md:text-sm text-white/70">
+                                    See your changes instantly as you customize colors, fonts, and layouts.
+                                </p>
+                            </div>
+                        </div>
+                    </motion.div>
+
+                    {/* Card 4: Deploy & Share */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.3 }}
+                        viewport={{ once: true }}
+                    >
+                        <div className="relative bg-linear-to-br from-blue-500/10 via-purple-500/5 to-transparent rounded-3xl border border-white/10 p-6 md:p-8 hover:border-white/20 transition-all h-[400px]">
+                            <div className="mb-4 md:mb-6">
+                                <h3 className="text-xl md:text-2xl font-semibold text-white mb-2 md:mb-3">
+                                    Deploy in one click
+                                </h3>
+                                <p className="text-sm md:text-base text-white/70">
+                                    Publish your portfolio to the web instantly or download the code to host anywhere.
+                                </p>
+                            </div>
+                            <DeploymentVisual />
+                        </div>
+                    </motion.div>
                 </div>
             </div>
         </section>
     );
 }
 
-interface FeatureCardProps {
-    children: ReactNode;
-    className?: string;
-}
+// Visual Component 2: Template Selection
+const TemplateSelectionVisual = () => (
+    <div className="relative h-64">
+        {/* Header - Top left */}
+        <div className="absolute top-0 left-0 right-0 bg-[#1a1d21] rounded-xl px-4 py-3 border border-white/10 shadow-2xl z-10 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                <span className="text-white/80 text-xs font-medium">Choose Template</span>
+            </div>
+            <span className="px-2 py-1 bg-green-500/20 rounded-full text-green-400 text-[10px] font-medium">✨ AI Match</span>
+        </div>
 
-const FeatureCard = ({ children, className }: FeatureCardProps) => (
-    <Card className={cn('group relative rounded-lg shadow-2xl bg-slate-900/30 border-slate-800 backdrop-blur-sm', className)}>
-        <CardDecorator />
-        {children}
-    </Card>
-);
+        {/* Template 1 - Coming from left, larger */}
+        <div className="absolute top-16 left-0 w-44 bg-[#1a1d21] rounded-lg p-3 border-2 border-blue-400 shadow-2xl z-30">
+            <div className="aspect-3/4 bg-linear-to-br from-blue-500/20 to-purple-500/20 rounded mb-2 overflow-hidden">
+                <div className="w-full h-full p-2 space-y-1">
+                    <div className="h-2 bg-white/30 rounded w-3/4"></div>
+                    <div className="h-1 bg-white/20 rounded w-1/2"></div>
+                    <div className="mt-2 h-1 bg-white/10 rounded w-full"></div>
+                    <div className="h-1 bg-white/10 rounded w-5/6"></div>
+                </div>
+            </div>
+            <div className="flex items-center justify-between">
+                <p className="text-white text-xs font-medium">Modern</p>
+                <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
+                    <span className="text-white text-[10px]">✓</span>
+                </div>
+            </div>
+        </div>
 
-const CardDecorator = () => (
-    <>
-        <span className="absolute -left-px -top-px block size-2 border-l-2 border-t-2 border-white"></span>
-        <span className="absolute -right-px -top-px block size-2 border-r-2 border-t-2 border-white"></span>
-        <span className="absolute -bottom-px -left-px block size-2 border-b-2 border-l-2 border-white"></span>
-        <span className="absolute -bottom-px -right-px block size-2 border-b-2 border-r-2 border-white"></span>
-    </>
-);
+        {/* Template 2 - Coming from right, slightly smaller */}
+        <div className="absolute top-24 right-0 w-36 bg-[#1a1d21] rounded-lg p-3 border border-white/10 shadow-2xl z-20 opacity-60">
+            <div className="aspect-3/4 bg-linear-to-br from-purple-500/20 to-pink-500/20 rounded mb-2 overflow-hidden">
+                <div className="w-full h-full p-2 space-y-1">
+                    <div className="h-2 bg-white/30 rounded w-2/3"></div>
+                    <div className="h-1 bg-white/20 rounded w-1/3"></div>
+                    <div className="mt-2 grid grid-cols-2 gap-1">
+                        <div className="h-3 bg-white/10 rounded"></div>
+                        <div className="h-3 bg-white/10 rounded"></div>
+                    </div>
+                </div>
+            </div>
+            <p className="text-white text-xs font-medium">Creative</p>
+        </div>
 
-interface CardHeadingProps {
-    icon: LucideIcon;
-    title: string;
-    description: string;
-}
-
-const CardHeading = ({ icon: Icon, title, description }: CardHeadingProps) => (
-    <div className="p-6">
-        <span className="flex items-center gap-2 text-slate-400">
-            <Icon className="size-4" />
-            {title}
-        </span>
-        <p className="mt-8 text-2xl font-semibold text-white">{description}</p>
+        {/* Template 3 - Peek from bottom */}
+        <div className="absolute bottom-0 left-16 right-16 bg-[#1a1d21] rounded-t-lg p-3 border border-white/10 border-b-0 shadow-2xl z-10 opacity-40">
+            <div className="h-16 bg-linear-to-br from-green-500/20 to-teal-500/20 rounded"></div>
+        </div>
     </div>
 );
 
-interface DeploymentOptionProps {
-    label: string;
-    icon: LucideIcon;
-    color: 'white' | 'cyan';
-}
+// Visual Component 3: Live Preview
+const LivePreviewVisual = () => (
+    <div className="relative h-64">
+        {/* Mac Browser Window - Main element */}
+        <div className="absolute top-0 left-0 right-0 bg-[#1a1d21] rounded-xl shadow-2xl z-20 border border-white/10">
+            {/* Browser Chrome */}
+            <div className="bg-[#2d3139] px-3 py-2 rounded-t-xl border-b border-white/10">
+                <div className="flex items-center gap-2">
+                    <div className="flex gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]"></div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]"></div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]"></div>
+                    </div>
+                    <div className="flex-1 bg-[#1a1d21] rounded px-2 py-1 flex items-center gap-1.5">
+                        <div className="text-[10px]">🔒</div>
+                        <span className="text-white/60 text-[10px] font-mono">johndoe.vercel.app</span>
+                    </div>
+                </div>
+            </div>
 
-const DeploymentOption = ({ label, icon: Icon, color }: DeploymentOptionProps) => (
-    <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        whileInView={{ opacity: 1, scale: 1 }}
-        viewport={{ once: true }}
-        whileHover={{ scale: 1.05 }}
-        transition={{ type: "spring", stiffness: 300 }}
-    >
-        <div className="bg-linear-to-b from-slate-700/50 to-transparent size-fit rounded-2xl p-px">
-            <div className="bg-linear-to-b from-slate-900 to-slate-800/25 relative flex aspect-square w-fit items-center justify-center rounded-[15px] p-6">
-                <Icon className={cn(
-                    'size-8 sm:size-10',
-                    color === 'cyan' ? 'text-cyan-400' : 'text-white'
-                )} />
+            {/* Portfolio Preview */}
+            <div className="bg-[#0f1115] p-4 rounded-b-xl">
+                <div className="bg-linear-to-br from-blue-500/10 to-purple-500/10 rounded-lg p-4 border border-white/10">
+                    <div className="w-8 h-8 rounded-full bg-linear-to-br from-blue-500 to-purple-500 mb-2"></div>
+                    <div className="h-3 bg-white/20 rounded w-2/3 mb-1.5"></div>
+                    <div className="h-2 bg-white/10 rounded w-1/2"></div>
+                </div>
             </div>
         </div>
-        <span className="mt-2 block text-center text-sm text-slate-400">{label}</span>
-    </motion.div>
+
+        {/* Project Cards - Overlapping from bottom */}
+        <div className="absolute bottom-0 left-4 right-4 bg-[#1a1d21] rounded-xl p-4 border border-white/10 shadow-2xl z-30">
+            <div className="grid grid-cols-2 gap-2">
+                <div className="bg-white/5 rounded p-2 border border-white/10">
+                    <div className="aspect-video bg-linear-to-br from-blue-500/20 to-cyan-500/20 rounded mb-1.5"></div>
+                    <div className="h-1.5 bg-white/15 rounded w-3/4"></div>
+                </div>
+                <div className="bg-white/5 rounded p-2 border border-white/10">
+                    <div className="aspect-video bg-linear-to-br from-purple-500/20 to-pink-500/20 rounded mb-1.5"></div>
+                    <div className="h-1.5 bg-white/15 rounded w-2/3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+);
+
+// Visual Component 4: Deployment
+const DeploymentVisual = () => (
+    <div className="relative h-80">
+        {/* Build Status - Top card */}
+        <div className="absolute top-0 left-0 right-0 bg-[#1a1d21] rounded-xl p-4 border border-white/10 shadow-2xl z-20">
+            <div className="flex items-center gap-3 mb-3">
+                <div className="w-7 h-7 rounded bg-green-500/20 flex items-center justify-center shrink-0">
+                    <span className="text-green-400 text-sm">✓</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="text-white text-xs font-medium">Build Successful</p>
+                    <p className="text-white/50 text-[10px] truncate">johndoe-portfolio • main</p>
+                </div>
+                <span className="text-white/40 text-[10px] shrink-0">2m ago</span>
+            </div>
+
+            {/* Build Steps */}
+            <div className="space-y-1.5 pl-10">
+                <div className="flex items-center gap-2 text-[10px] text-white/60">
+                    <span className="text-green-400 text-xs">✓</span>
+                    <span>Installing dependencies</span>
+                    <span className="ml-auto text-white/40">12s</span>
+                </div>
+                <div className="flex items-center gap-2 text-[10px] text-white/60">
+                    <span className="text-green-400 text-xs">✓</span>
+                    <span>Building application</span>
+                    <span className="ml-auto text-white/40">45s</span>
+                </div>
+                <div className="flex items-center gap-2 text-[10px] text-white/60">
+                    <span className="text-green-400 text-xs">✓</span>
+                    <span>Optimizing assets</span>
+                    <span className="ml-auto text-white/40">8s</span>
+                </div>
+            </div>
+        </div>
+
+        {/* Deploy Button - Coming from left */}
+        <div className="absolute bottom-12 left-0 right-12 bg-linear-to-r from-blue-600 to-blue-500 rounded-lg p-3 shadow-2xl z-30 border border-blue-400/20">
+            <div className="flex items-center gap-3">
+                <div className="w-7 h-7 rounded bg-white/20 flex items-center justify-center shrink-0">
+                    <span className="text-white text-sm">▲</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="text-white font-semibold text-xs">Deploy Now</p>
+                    <p className="text-white/80 text-[10px]">Live in ~30 seconds</p>
+                </div>
+                <span className="text-white text-sm shrink-0">→</span>
+            </div>
+        </div>
+
+        {/* Secondary Actions - Bottom right */}
+        <div className="absolute bottom-0 right-0 left-20 flex gap-2 z-20">
+            <button className="flex-1 bg-[#1a1d21] border border-white/10 rounded-lg p-2 shadow-xl">
+                <p className="text-white text-[10px] font-medium">Preview</p>
+            </button>
+            <button className="flex-1 bg-[#1a1d21] border border-white/10 rounded-lg p-2 shadow-xl">
+                <p className="text-white text-[10px] font-medium">Download</p>
+            </button>
+        </div>
+    </div>
 );

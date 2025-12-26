@@ -77,7 +77,7 @@ function ScreenshotSection({
             >
                 <div>
                     <Image
-                        src="/images/dashboard_layout.png"
+                        src="/images/dashboard.png"
                         alt="Dashboard Preview Screenshot"
                         width={1600}
                         height={900}
@@ -184,7 +184,7 @@ function HeroSection() {
                 className="relative z-10"
                 style={{
                     marginTop: "-10vh",
-                    backgroundColor: "#030506",
+                    backgroundColor: "#26282a",
                 }}
             >
                 <ScreenshotSection screenshotRef={screenshotRef} />

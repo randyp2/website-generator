@@ -364,7 +364,7 @@ const AIRefinementPage: React.FC = () => {
     // RENDER
     // ========================================================================
     return (
-        <div className="h-screen flex flex-col overflow-hidden relative ">
+        <div className="h-screen flex flex-col overflow-hidden relative">
             {/* ================================================ */}
             {/* LAYER 1: FULL SCREEN PREVIEW (BASE) */}
             {/* ================================================ */}

@@ -112,23 +112,23 @@ export const ResumeUpload: React.FC<ResumeUploadProps> = ({
     <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 0.1 }}
-      className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200 flex flex-col h-full"
+      transition={{ type: "spring", stiffness: 400, damping: 30, delay: 0.1 }}
+      className="relative bg-white/5 rounded-2xl p-6 shadow-lg border border-white/10 flex flex-col h-full"
     >
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 bg-sky-100 rounded-lg">
-          <FiFile className="w-5 h-5 text-sky-600" />
+      <div className="flex items-center gap-3 mb-4 relative z-10">
+        <div className="p-2 bg-white/10 rounded-lg border border-white/20">
+          <FiFile className="w-5 h-5 text-white" />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Resume / CV</h2>
-          <p className="text-sm text-slate-500">PDF or DOCX format</p>
+          <h2 className="text-xl font-bold text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">Resume / CV</h2>
+          <p className="text-sm text-white/60">PDF or DOCX format</p>
         </div>
       </div>
 
       <div className="flex-1 flex items-center justify-center">
         {!resumeFile ? (
           // Upload area - shown when no file is uploaded
-          <label className="block w-full h-full">
+          <label className="block w-full h-full relative z-10">
             <input
               type="file"
               accept=".pdf,.docx"
@@ -136,14 +136,15 @@ export const ResumeUpload: React.FC<ResumeUploadProps> = ({
               className="hidden"
             />
             <motion.div
-              whileHover={{ scale: 1.01 }}
-              className="border-2 border-dashed border-slate-300 rounded-xl p-12 h-full flex flex-col items-center justify-center cursor-pointer hover:border-sky-400 hover:bg-sky-50/50 transition-all"
+              whileHover={{ scale: 1.01, borderColor: "rgba(255, 255, 255, 0.3)", backgroundColor: "rgba(255, 255, 255, 0.08)" }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              className="border-2 border-dashed border-white/20 rounded-xl p-12 h-full flex flex-col items-center justify-center cursor-pointer"
             >
-              <FiUpload className="w-16 h-16 text-slate-400 mb-4" />
-              <p className="text-slate-700 font-semibold mb-2 text-lg">
+              <FiUpload className="w-16 h-16 text-white/70 mb-4" />
+              <p className="text-white font-semibold mb-2 text-lg drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]">
                 Click to upload your resume
               </p>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-white/60">
                 Supports PDF files
               </p>
             </motion.div>
@@ -153,33 +154,37 @@ export const ResumeUpload: React.FC<ResumeUploadProps> = ({
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full h-full flex flex-col"
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className="w-full h-full flex flex-col relative z-10"
           >
             {/* File info header with delete button */}
-            <div className="flex items-center justify-between p-4 bg-sky-50 rounded-xl border border-sky-200 mb-4">
+            <div className="flex items-center justify-between p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 mb-4 shadow-[0_0_20px_rgba(255,255,255,0.05)]">
               <div className="flex items-center gap-3">
-                <FiCheck className="w-5 h-5 text-sky-600" />
+                <FiCheck className="w-5 h-5 text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.4)]" />
                 <div>
-                  <p className="font-semibold text-slate-900">
+                  <p className="font-semibold text-white">
                     {resumeFile.name}
                   </p>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-white/60">
                     {formatFileSize(resumeFile.size)}
                     {/* Show page count for PDFs */}
                     {isPDF && numPages > 0 && ` • ${numPages} page${numPages > 1 ? 's' : ''}`}
                   </p>
                 </div>
               </div>
-              <button
+              <motion.button
+                whileHover={{ scale: 1.1, backgroundColor: "rgba(255, 255, 255, 0.15)" }}
+                whileTap={{ scale: 0.9 }}
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 onClick={() => removeFile("resume")}
-                className="p-2 hover:bg-sky-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-white/10 rounded-lg"
               >
-                <FiX className="w-5 h-5 text-slate-600" />
-              </button>
+                <FiX className="w-5 h-5 text-white/80" />
+              </motion.button>
             </div>
 
             {/* PDF Preview Section */}
-            <div className="flex-1 flex items-center justify-center bg-slate-100 rounded-xl overflow-hidden">
+            <div className="flex-1 flex items-center justify-center bg-[#0a0f14]/50 rounded-xl overflow-hidden border border-white/10">
               {isPDF && previewUrl ? (
                 // Render PDF preview for PDF files
                 <div className="w-full h-full flex items-center justify-center p-4">
@@ -189,15 +194,15 @@ export const ResumeUpload: React.FC<ResumeUploadProps> = ({
                     className="flex items-center justify-center"
                     loading={
                       <div className="flex flex-col items-center justify-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-600 mb-4"></div>
-                        <p className="text-slate-600">Loading PDF preview...</p>
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white/60 mb-4"></div>
+                        <p className="text-white/80">Loading PDF preview...</p>
                       </div>
                     }
                     error={
-                      <div className="flex flex-col items-center justify-center text-slate-600">
+                      <div className="flex flex-col items-center justify-center text-white/70">
                         <FiFile className="w-12 h-12 mb-2" />
                         <p>Unable to preview PDF</p>
-                        <p className="text-sm text-slate-500">{resumeFile.name}</p>
+                        <p className="text-sm text-white/60">{resumeFile.name}</p>
                       </div>
                     }
                   >
@@ -215,11 +220,11 @@ export const ResumeUpload: React.FC<ResumeUploadProps> = ({
                 </div>
               ) : (
                 // Fallback for non-PDF files (DOCX)
-                <div className="flex flex-col items-center justify-center text-slate-600">
-                  <FiFile className="w-16 h-16 mb-4 text-slate-400" />
-                  <p className="font-semibold">Preview not available</p>
-                  <p className="text-sm text-slate-500">DOCX files cannot be previewed</p>
-                  <p className="text-xs text-slate-400 mt-2">{resumeFile.name}</p>
+                <div className="flex flex-col items-center justify-center text-white/70">
+                  <FiFile className="w-16 h-16 mb-4 text-white/60" />
+                  <p className="font-semibold text-white">Preview not available</p>
+                  <p className="text-sm text-white/60">DOCX files cannot be previewed</p>
+                  <p className="text-xs text-white/50 mt-2">{resumeFile.name}</p>
                 </div>
               )}
             </div>
