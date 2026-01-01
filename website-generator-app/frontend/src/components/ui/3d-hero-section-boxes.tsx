@@ -13,10 +13,12 @@ function HeroSplineBackground() {
     return (
         <div
             style={{
-                position: "relative",
+                position: "absolute",
+                top: 0,
+                left: 0,
                 width: "100%",
-                height: "100vh",
-                pointerEvents: "auto",
+                height: "200vh",
+                pointerEvents: "none",
                 overflow: "hidden",
             }}
             className="bg-[#0a0a0a]"
@@ -52,7 +54,7 @@ function HeroSplineBackground() {
                     top: 0,
                     left: 0,
                     width: "100%",
-                    height: "100vh",
+                    height: "200vh",
                     backgroundColor: "rgba(21, 29, 33, 0.32)",
                     pointerEvents: "none",
                 }}
@@ -67,66 +69,85 @@ function ScreenshotSection({
     screenshotRef: React.RefObject<HTMLDivElement | null>;
 }) {
     return (
-        <section className="relative z-10 container mx-auto px-4 md:px-6 lg:px-8 mt-11 md:mt-12">
+        <div
+            style={{
+                perspective: '1200px',
+                perspectiveOrigin: 'center center',
+                width: '92%',
+            }}
+        >
             <div
                 ref={screenshotRef}
-                className="pb-5 bg-gray-900 rounded-xl overflow-hidden shadow-2xl border border-gray-700/50 w-full md:w-[80%] lg:w-[70%] mx-auto"
+                className="pb-5 bg-gray-900 rounded-xl overflow-hidden shadow-2xl border border-gray-700/50"
                 style={{
-                    boxShadow: "0 0 60px rgba(99, 221, 255, 0.15), 0 0 100px rgba(80, 180, 220, 0.08)"
+                    boxShadow: "0 0 60px rgba(99, 221, 255, 0.15), 0 0 100px rgba(80, 180, 220, 0.08)",
+                    transformStyle: 'preserve-3d',
+                    backfaceVisibility: 'hidden',
+                    willChange: 'transform',
+                    transform: 'translateY(0px) rotateX(15deg) rotateY(0deg) translateZ(0px) scale(1)',
+                    aspectRatio: '1.6',
+                    height: 'auto',
                 }}
             >
-                <div>
-                    <Image
-                        src="/images/dashboard.png"
-                        alt="Dashboard Preview Screenshot"
-                        width={1600}
-                        height={900}
-                        priority
-                        className="w-full h-auto block rounded-lg mx-auto"
-                    />
-                </div>
-
-                <p className="mt-6 text-center text-slate-200 text-sm md:text-base max-w-2xl mx-auto">
-                    Your own personalized dashboard to manage your deployed or
-                    work-in-progress portflios
-                </p>
+            <div>
+                <Image
+                    src="/images/dashboard_preview.png"
+                    alt="Dashboard Preview Screenshot"
+                    width={1600}
+                    height={900}
+                    priority
+                    className="w-full h-auto block rounded-lg mx-auto"
+                />
             </div>
-        </section>
+
+            <p className="mt-6 text-center text-slate-200 text-sm md:text-base max-w-2xl mx-auto">
+                Your own personalized dashboard to manage your deployed or
+                work-in-progress portflios
+            </p>
+            </div>
+        </div>
     );
 }
 
-function HeroContent() {
+function HeroContent({
+    heroContentRef,
+}: {
+    heroContentRef: React.RefObject<HTMLDivElement | null>;
+}) {
     return (
-        <div className="relative text-white px-4 max-w-7xl mx-auto w-full flex flex-col lg:flex-row justify-between items-start lg:items-center py-16">
+        <div
+            ref={heroContentRef}
+            className="relative text-white px-4 max-w-4xl mx-auto w-3/4 flex flex-col items-center gap-8 pt-40"
+            style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}
+        >
             <div className="pointer-events-none absolute -inset-x-10 -top-12 h-64 blur-3xl bg-[radial-gradient(circle_at_20%_40%,rgba(99,221,255,0.06),transparent_45%)]" />
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-64 blur-3xl bg-[radial-gradient(circle_at_70%_50%,rgba(80,180,220,0.05),transparent_42%)]" />
 
-            <div className="w-full lg:w-1/2 pr-0 lg:pr-8 mb-8 lg:mb-0 relative z-10">
-                <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 leading-tight tracking-wide drop-shadow-[0_12px_34px_rgba(0,200,255,0.18)]">
+            <div className="text-center relative z-10">
+                <h1 className="text-[80px] font-bold leading-[88px] tracking-[0px] mb-4">
                     Build your portfolio websites now
                 </h1>
-                <div className="text-sm text-gray-200 opacity-90 mt-4">
+                <div className="text-[16px] leading-[24px] text-gray-200 opacity-90 mt-4">
                     Built in minutes / Tailored to your craft / Ready to deploy
                 </div>
             </div>
 
-            <div className="w-full lg:w-1/2 pl-0 lg:pl-8 flex flex-col items-start relative z-10">
-                <p className="text-base sm:text-lg opacity-85 mb-6 max-w-md drop-shadow-[0_10px_24px_rgba(0,200,255,0.16)]">
-                    Generate a stunning, on-brand portfolio without code. Import
-                    your resume, pick a style, and publish instantly.
-                </p>
-                <div className="flex pointer-events-auto flex-col sm:flex-row items-start space-y-3 sm:space-y-0 sm:space-x-3">
-                    <GradientButton className="w-full sm:w-auto">
-                        Try a Demo
-                    </GradientButton>
-                    <GradientButton
-                        variant="variant"
-                        className="w-full sm:w-auto inline-flex items-center gap-2"
-                    >
-                        <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5" />
-                        Get Started
-                    </GradientButton>
-                </div>
+            <p className="text-[20px] leading-[32px] tracking-[0px] text-center opacity-85 max-w-md relative z-10">
+                Generate a stunning, on-brand portfolio without code. Import
+                your resume, pick a style, and publish instantly.
+            </p>
+
+            <div className="flex pointer-events-auto flex-col sm:flex-row items-center gap-4 relative z-10">
+                <GradientButton className="w-full sm:w-auto h-[48px] px-6">
+                    Try a Demo
+                </GradientButton>
+                <GradientButton
+                    variant="variant"
+                    className="w-full sm:w-auto h-[48px] px-6 inline-flex items-center gap-2"
+                >
+                    <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5" />
+                    Get Started
+                </GradientButton>
             </div>
         </div>
     );
@@ -140,55 +161,68 @@ function HeroSection() {
         const handleScroll = () => {
             if (screenshotRef.current && heroContentRef.current) {
                 requestAnimationFrame(() => {
-                    if (!screenshotRef.current || !heroContentRef.current)
-                        return;
+                    if (!screenshotRef.current || !heroContentRef.current) return;
+
                     const scrollPosition = window.pageYOffset;
-                    screenshotRef.current.style.transform = `translateY(-${
-                        scrollPosition * 0.5
-                    }px)`;
-                    const maxScroll = 400;
-                    const opacity = 1 - Math.min(scrollPosition / maxScroll, 1);
-                    heroContentRef.current.style.opacity = opacity.toString();
+
+                    // Simplified scroll calculation - start from page top
+                    const maxScroll = 600; // Scroll range for full effect
+                    const rawProgress = Math.min(scrollPosition / maxScroll, 1);
+
+                    // Cubic easing for smooth motion
+                    const progress = 1 - Math.pow(1 - rawProgress, 3);
+
+                    // Mobile detection
+                    const isMobile = window.innerWidth < 768;
+                    const intensity = isMobile ? 0.5 : 1.0;
+
+                    // DASHBOARD: Untilt effect 15° → 0°
+                    const startRotateX = 15;
+                    const rotateX = (startRotateX - (progress * 15)) * intensity;
+
+                    // No Y rotation - keep tilt uniform across top edge
+                    const rotateY = 0;
+
+                    // Move backward in Z space
+                    const translateZ = -(progress * 80 * intensity);
+
+                    // Slight scale for depth perception
+                    const dashboardScale = 1 - (progress * 0.05 * intensity);
+
+                    // Smooth parallax
+                    const translateY = -(scrollPosition * 0.3);
+
+                    // Apply combined transform to dashboard
+                    screenshotRef.current.style.transform = `
+                        translateY(${translateY}px)
+                        rotateX(${rotateX}deg)
+                        rotateY(${rotateY}deg)
+                        translateZ(${translateZ}px)
+                        scale(${dashboardScale})
+                    `;
+
+                    // TITLE: Zoom out effect 1.0 → 0.85 (synchronized with dashboard)
+                    const titleScale = 1 - (progress * 0.15);
+                    heroContentRef.current.style.transform = `scale(${titleScale})`;
+                    heroContentRef.current.style.transformOrigin = 'center top';
                 });
             }
         };
+
         window.addEventListener("scroll", handleScroll);
+        handleScroll(); // Initialize on mount
+
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
     return (
-        <div className="relative">
-            <div className="relative min-h-screen">
-                <div className="absolute inset-0 z-0 pointer-events-auto">
-                    <HeroSplineBackground />
+        <div className="relative bg-[#141415] min-h-screen">
+            <HeroSplineBackground />
+            <div className="relative z-10 container mx-auto px-4 max-w-6xl">
+                <div className="flex flex-col items-center" style={{ gap: '80px' }}>
+                    <HeroContent heroContentRef={heroContentRef} />
+                    <ScreenshotSection screenshotRef={screenshotRef} />
                 </div>
-                <div
-                    ref={heroContentRef}
-                    style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        width: "100%",
-                        height: "100vh",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        zIndex: 10,
-                        pointerEvents: "none",
-                    }}
-                >
-                    <HeroContent />
-                </div>
-            </div>
-            <div
-                className="relative z-10"
-                style={{
-                    marginTop: "-10vh",
-                    backgroundColor: "#26282a",
-                }}
-            >
-                <ScreenshotSection screenshotRef={screenshotRef} />
-
             </div>
         </div>
     );

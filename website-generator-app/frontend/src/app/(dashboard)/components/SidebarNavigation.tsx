@@ -18,6 +18,7 @@ import {
   FiChevronRight,
   FiLogOut,
   FiUser,
+  FiChevronDown,
 } from "react-icons/fi";
 import { MdOutlineCreate } from "react-icons/md";
 import { IconType } from "react-icons";
@@ -54,7 +55,8 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
   const router = useRouter();
   const [internalCollapsed, setInternalCollapsed] = useState<boolean>(false);
   const [mobileOpen, setMobileOpen] = useState<boolean>(false);
-  const [portfoliosCount, setPortfoliosCount] = useState<number>(0); 
+  const [portfoliosCount, setPortfoliosCount] = useState<number>(0);
+  const [showProfileMenu, setShowProfileMenu] = useState<boolean>(false); 
 
   // Make GET request to fetch portfolios count
   useEffect(() => {
@@ -119,20 +121,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
     },
   ];
 
-  const secondaryItems: NavItem[] = [
-    {
-      id: "settings",
-      label: "Settings",
-      icon: FiSettings,
-      path: "/dashboard-user/settings",
-    },
-    {
-      id: "help",
-      label: "Help & Support",
-      icon: FiHelpCircle,
-      path: "/dashboard-user/help",
-    },
-  ];
+  const secondaryItems: NavItem[] = [];
 
   const NavItemComponent = ({ item }: { item: NavItem }) => {
     const isActive = pathname === item.path;
@@ -146,8 +135,8 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
           transition={{ type: "spring", stiffness: 400, damping: 30 }}
           className={`flex items-center gap-3 px-4 py-3 rounded-xl group relative overflow-hidden ${
             isActive
-              ? "bg-white/10 text-white shadow-lg shadow-white/5 border border-white/20"
-              : "text-white/70 hover:bg-white/5 hover:text-white border border-transparent hover:border-white/10"
+              ? "bg-white/10 text-white shadow-lg shadow-white/5"
+              : "text-white/70 hover:bg-white/5 hover:text-white"
           }`}
         >
           {isActive && (
@@ -181,11 +170,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
 
               {item.badge && (
                 <span
-                  className={`px-2 py-0.5 text-xs font-bold rounded-full relative z-10 transition-all duration-200 ${
-                    isActive
-                      ? "bg-white/20 text-white border border-white/30 shadow-[0_0_8px_rgba(255,255,255,0.2)]"
-                      : "bg-white/10 text-white/80 border border-white/20"
-                  }`}
+                  className="px-2.5 py-1 text-xs font-bold rounded-md bg-linear-to-r from-blue-600 to-blue-500 text-white relative z-10 transition-all duration-200 shadow-lg"
                 >
                   {item.badge}
                 </span>
@@ -201,43 +186,78 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
     <div className="flex flex-col h-full">
       {/* Logo / Brand */}
       <div
-        className={`p-6 border-b border-white/10 ${collapsed ? "px-4" : ""}`}
+        className={`px-6 pt-6 pb-2 border-b border-white/10 ${collapsed ? "px-4" : ""}`}
       >
+        {/* User Profile */}
         {!collapsed && (
-          <Link href="/" className="flex items-center gap-3 mb-4">
-            <span className="text-xl font-bold text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">
-              PortfolioAI
-            </span>
-          </Link>
-        )}
+          <div className="px-3 pb-3 relative">
+            {/* Profile Section */}
+            <div className="flex items-center gap-3">
+              {/* Avatar on the left */}
+              {avatar ? (
+                <img
+                  src={avatar}
+                  alt="User Avatar"
+                  className="w-10 h-10 rounded-full border-2 border-white/20"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center border-2 border-white/20">
+                  <FiUser className="w-5 h-5 text-white/60" />
+                </div>
+              )}
 
-        {/* User Info */}
-        {!collapsed && (
-          <div className="relative overflow-hidden flex items-center gap-3 px-3 py-2 bg-white/5 backdrop-blur-sm rounded-lg border border-white/10">
-            <div className="pointer-events-none absolute -left-6 -top-6 h-16 w-16 bg-linear-to-br from-white/10 via-transparent to-transparent blur-xl" />
-            {/* Render avatar if any */}
-            {avatar === null ? (
-              <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center shrink-0 border border-white/20">
-                <FiUser className="w-4 h-4 text-white/80" />
+              {/* Stacked Text */}
+              <div className="flex-1 min-w-0">
+                <h2 className="text-base font-bold text-white mb-0.5">PortfolioAI</h2>
+                <p className="text-xs text-white/60 truncate">{email}</p>
               </div>
-            ) : (
-              <img src={avatar} className="w-8 h-8 rounded-full border border-white/20 shadow-[0_0_8px_rgba(255,255,255,0.15)]" />
-            )}
 
-            <div className="flex-1 min-w-0 relative z-10">
-              <p className="text-sm font-medium text-white truncate">
-                {username}
-              </p>
-              <p className="text-xs text-white/60 truncate">{email}</p>
+              {/* Dropdown Button */}
+              <button
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <FiChevronDown className={`w-4 h-4 text-white/70 transition-transform ${showProfileMenu ? 'rotate-180' : ''}`} />
+              </button>
             </div>
+
+            {/* Dropdown Menu */}
+            {showProfileMenu && (
+              <div className="absolute top-full left-3 right-3 mt-2 bg-[#1a1d21] border border-white/10 rounded-lg shadow-2xl z-50 overflow-hidden">
+                <Link
+                  href="/dashboard-user/settings"
+                  onClick={() => setShowProfileMenu(false)}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors border-b border-white/10"
+                >
+                  <FiSettings className="w-4 h-4 text-white/70" />
+                  <span className="text-sm text-white">Profile Settings</span>
+                </Link>
+                <Link
+                  href="/dashboard-user/help"
+                  onClick={() => setShowProfileMenu(false)}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors"
+                >
+                  <FiHelpCircle className="w-4 h-4 text-white/70" />
+                  <span className="text-sm text-white">Help & Support</span>
+                </Link>
+              </div>
+            )}
           </div>
         )}
 
         {collapsed && (
-          <div className="flex justify-center mt-2">
-            <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center border border-white/20">
-              <FiUser className="w-4 h-4 text-white/80" />
-            </div>
+          <div className="flex justify-center pb-3">
+            {avatar ? (
+              <img
+                src={avatar}
+                alt="User Avatar"
+                className="w-10 h-10 rounded-full border-2 border-white/20"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center border-2 border-white/20">
+                <FiUser className="w-5 h-5 text-white/60" />
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -245,14 +265,6 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
       {/* Main Navigation */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-2">
         {navItems.map((item) => (
-          <NavItemComponent key={item.id} item={item} />
-        ))}
-
-        {/* Divider */}
-        <div className="my-6 border-t border-white/10" />
-
-        {/* Secondary Navigation */}
-        {secondaryItems.map((item) => (
           <NavItemComponent key={item.id} item={item} />
         ))}
       </div>
