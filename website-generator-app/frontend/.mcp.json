@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "framer": {
+      "type": "sse",
+      "url": "https://mcp.unframer.co/sse?id=9d311a5d33da89f7f8136f27132e7fd5b879f23e16a9499e96329e381a1b5f5e&secret=k4p8YgtkHiT71H8hEc6A7omkGlW91IH6"
+    }
+  }
+}
