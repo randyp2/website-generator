@@ -3,19 +3,14 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-    FiMonitor,
-    FiTablet,
-    FiSmartphone,
     FiPlus,
     FiUpload,
     FiX,
     FiSend,
     FiVideo,
-    FiMessageSquare,
-    FiZap,
 } from "react-icons/fi";
 import type { UploadedFile } from "@/types/file";
-import { DeviceMode, FilePreview, Message } from "@/types/preview";
+import { Message } from "@/types/preview";
 import { Preview } from "./components/Preview";
 import { AiResponse } from "./components/AiResponse";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
@@ -24,9 +19,6 @@ import { usePortfolioStore } from "@/stores/usePortfolioStore";
 // MAIN COMPONENT
 // ============================================================================
 const AIRefinementPage: React.FC = () => {
-    // Device preview mode
-    const [deviceMode, setDeviceMode] = useState<DeviceMode>("desktop");
-
     // Zustand store - All portfolio creation state
     const {
         aiPrompt,
@@ -48,11 +40,8 @@ const AIRefinementPage: React.FC = () => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isGenerating, setIsGenerating] = useState(false);
     const [currentAIResponse, setCurrentAIResponse] = useState<string | null>(
-        null
+        null,
     );
-
-    // Chat history drawer
-    const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
 
     // Refs
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -76,40 +65,19 @@ const AIRefinementPage: React.FC = () => {
 
     /**
      * Auto-fade AI response overlay after 5 seconds.
-     * Only fades when chat drawer is closed (prevents interference with drawer).
      * Cleans up timer if component unmounts or dependencies change.
      *
      * Dependencies:
      * - currentAIResponse: The AI message to display
-     * - chatDrawerOpen: Prevents auto-fade when user is viewing chat history
      */
     useEffect(() => {
-        if (currentAIResponse && !chatDrawerOpen) {
+        if (currentAIResponse) {
             const timer = setTimeout(() => {
                 setCurrentAIResponse(null);
             }, 5000);
             return () => clearTimeout(timer);
         }
-    }, [currentAIResponse, chatDrawerOpen]);
-
-    // ========================================================================
-    // DEVICE MODE WIDTH
-    // ========================================================================
-    /**
-     * Returns the width for the preview canvas based on the selected device mode.
-     * @returns CSS width value as string (px or %)
-     */
-    const getPreviewWidth = () => {
-        switch (deviceMode) {
-            case "mobile":
-                return "420px";
-            case "tablet":
-                return "768px";
-            case "desktop":
-            default:
-                return "100%";
-        }
-    };
+    }, [currentAIResponse]);
 
     // ========================================================================
     // FILE HANDLING
@@ -131,24 +99,23 @@ const AIRefinementPage: React.FC = () => {
     const handleFileSelect = (files: FileList | null) => {
         if (!files) return;
 
-
         Array.from(files).forEach((file) => {
             const isImage = file.type.startsWith("image/");
             const isVideo = file.type.startsWith("video/");
-            
+
             if (!isImage && !isVideo) return; // Skip unsupported file types
 
             const newUploadedFile: UploadedFile = {
-                file, 
+                file,
                 name: file.name,
                 size: file.size,
                 type: file.type,
                 title: "",
                 description: "",
-            }
+            };
 
             if (isImage) addMediaFiles([newUploadedFile]);
-            else if(isVideo) addVideoFiles([newUploadedFile]);
+            else if (isVideo) addVideoFiles([newUploadedFile]);
         });
     };
 
@@ -298,7 +265,8 @@ const AIRefinementPage: React.FC = () => {
             // MOCK RESPONSE - Remove this when implementing real backend
             await new Promise((resolve) => setTimeout(resolve, 1500));
 
-            const aiResponseText = "I've refined your portfolio based on your request. The preview has been updated!";
+            const aiResponseText =
+                "I've refined your portfolio based on your request. The preview has been updated!";
             const mockUpdatedHtml = "<div>Updated portfolio HTML</div>";
 
             // Update preview HTML in Zustand store
@@ -317,7 +285,6 @@ const AIRefinementPage: React.FC = () => {
 
             // Show AI response overlay
             setCurrentAIResponse(aiResponseText);
-
         } catch (error) {
             console.error("Error sending message to AI:", error);
 
@@ -325,7 +292,8 @@ const AIRefinementPage: React.FC = () => {
             const errorMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 role: "ai",
-                content: "Sorry, there was an error processing your request. Please try again.",
+                content:
+                    "Sorry, there was an error processing your request. Please try again.",
                 timestamp: new Date(),
             };
 
@@ -368,103 +336,18 @@ const AIRefinementPage: React.FC = () => {
             {/* ================================================ */}
             {/* LAYER 1: FULL SCREEN PREVIEW (BASE) */}
             {/* ================================================ */}
-            <Preview
-                setDeviceMode={setDeviceMode}
-                deviceMode={deviceMode}
-                getPreviewWidth={getPreviewWidth}
-                previewHtml={previewHtml}
-            />
+            <Preview previewHtml={previewHtml} />
 
             {/* ================================================ */}
             {/* LAYER 2: AI RESPONSE (SMALL OVERLAY) */}
             {/* ================================================ */}
-            <AiResponse 
+            <AiResponse
                 currentAIResponse={currentAIResponse}
                 setCurrentAIResponse={setCurrentAIResponse}
-                chatDrawerOpen={chatDrawerOpen}
-                setChatDrawerOpen={setChatDrawerOpen}
             />
 
             {/* ================================================ */}
-            {/* LAYER 3: CHAT HISTORY DRAWER (FULL HEIGHT) */}
-            {/* ================================================ */}
-            <AnimatePresence>
-                {chatDrawerOpen && (
-                    <motion.div
-                        initial={{ x: "100%" }}
-                        animate={{ x: 0 }}
-                        exit={{ x: "100%" }}
-                        transition={{ duration: 0.3, ease: "easeInOut" }}
-                        className="absolute top-0 right-0 bottom-0 w-[400px] bg-white border-l border-slate-200 flex flex-col z-50 shadow-2xl"
-                    >
-                        {/* Header */}
-                        <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <FiMessageSquare className="w-4 h-4 text-sky-600" />
-                                <span className="text-sm font-semibold text-slate-700">
-                                    Chat History
-                                </span>
-                            </div>
-                            <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                onClick={() => setChatDrawerOpen(false)}
-                                className="w-6 h-6 rounded-full hover:bg-slate-200 flex items-center justify-center"
-                            >
-                                <FiX className="w-4 h-4 text-slate-600" />
-                            </motion.button>
-                        </div>
-
-                        {/* Content */}
-                        <div className="flex-1 overflow-auto p-4">
-                            <div className="space-y-4">
-                                {messages.length === 0 ? (
-                                    <p className="text-sm text-slate-500 text-center mt-8">
-                                        No messages yet. Start a conversation!
-                                    </p>
-                                ) : (
-                                    messages.map((msg) => (
-                                        <motion.div
-                                            key={msg.id}
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            className={`${msg.role === "user" ? "text-right" : "text-left"
-                                                }`}
-                                        >
-                                            <div
-                                                className={`inline-block max-w-[85%] px-3 py-2 rounded-lg text-sm ${msg.role === "user"
-                                                        ? "bg-linear-to-r from-sky-500 to-cyan-500 text-white"
-                                                        : "bg-slate-100 text-slate-900"
-                                                    }`}
-                                            >
-                                                {msg.role === "ai" && (
-                                                    <div className="flex items-center gap-1 mb-1">
-                                                        <FiZap className="w-3 h-3 text-sky-600" />
-                                                        <span className="text-xs font-semibold text-slate-600">
-                                                            AI
-                                                        </span>
-                                                    </div>
-                                                )}
-                                                <p>{msg.content}</p>
-                                            </div>
-                                        </motion.div>
-                                    ))
-                                )}
-                                {isGenerating && (
-                                    <div className="text-left">
-                                        <div className="inline-block bg-slate-100 px-3 py-2 rounded-lg">
-                                            <p className="text-sm text-slate-600">Thinking...</p>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* ================================================ */}
-            {/* LAYER 4: BOTTOM PROMPT DOCK (OVERLAY) */}
+            {/* LAYER 3: BOTTOM PROMPT DOCK (OVERLAY) */}
             {/* ================================================ */}
             <div className="absolute bottom-6 left-0 right-0 z-40 flex justify-center pointer-events-none">
                 <div className="w-full max-w-[1600px] px-6 pointer-events-auto">
@@ -475,7 +358,10 @@ const AIRefinementPage: React.FC = () => {
                                 initial={{ height: 0, opacity: 0 }}
                                 animate={{ height: "auto", opacity: 1 }}
                                 exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.3, ease: "easeInOut" }}
+                                transition={{
+                                    duration: 0.3,
+                                    ease: "easeInOut",
+                                }}
                                 className="overflow-hidden mb-2"
                             >
                                 <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-slate-200 shadow-lg p-4">
@@ -484,15 +370,22 @@ const AIRefinementPage: React.FC = () => {
                                         onDragOver={handleDragOver}
                                         onDragLeave={handleDragLeave}
                                         onDrop={handleDrop}
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className={`relative border-2 border-dashed rounded-xl p-8 transition-all cursor-pointer ${isDragging
+                                        onClick={() =>
+                                            fileInputRef.current?.click()
+                                        }
+                                        className={`relative border-2 border-dashed rounded-xl p-8 transition-all cursor-pointer ${
+                                            isDragging
                                                 ? "border-sky-400 bg-sky-50 shadow-lg"
                                                 : "border-slate-300 bg-slate-50 hover:border-sky-300"
-                                            }`}
+                                        }`}
                                     >
                                         <div className="flex flex-col items-center gap-3">
                                             <motion.div
-                                                animate={isDragging ? { scale: 1.1 } : { scale: 1 }}
+                                                animate={
+                                                    isDragging
+                                                        ? { scale: 1.1 }
+                                                        : { scale: 1 }
+                                                }
                                                 transition={{ duration: 0.2 }}
                                             >
                                                 <FiUpload className="w-8 h-8 text-slate-400" />
@@ -502,7 +395,8 @@ const AIRefinementPage: React.FC = () => {
                                                     Drop images or videos here
                                                 </p>
                                                 <p className="text-xs text-slate-500 mt-1">
-                                                    or click to browse (jpg, png, webp, mp4, mov)
+                                                    or click to browse (jpg,
+                                                    png, webp, mp4, mov)
                                                 </p>
                                             </div>
                                         </div>
@@ -511,7 +405,9 @@ const AIRefinementPage: React.FC = () => {
                                             type="file"
                                             accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
                                             multiple
-                                            onChange={(e) => handleFileSelect(e.target.files)}
+                                            onChange={(e) =>
+                                                handleFileSelect(e.target.files)
+                                            }
                                             className="hidden"
                                         />
                                     </div>
@@ -520,49 +416,92 @@ const AIRefinementPage: React.FC = () => {
                                     {uploadedFiles.length > 0 && (
                                         <div className="mt-4 flex flex-wrap gap-3">
                                             <AnimatePresence>
-                                                {uploadedFiles.map((file, index) => {
-                                                    const isImage = file.type.startsWith("image/");
-                                                    const preview = URL.createObjectURL(file.file);
+                                                {uploadedFiles.map(
+                                                    (file, index) => {
+                                                        const isImage =
+                                                            file.type.startsWith(
+                                                                "image/",
+                                                            );
+                                                        const preview =
+                                                            URL.createObjectURL(
+                                                                file.file,
+                                                            );
 
-                                                    return (
-                                                        <motion.div
-                                                            key={`${file.name}-${index}`}
-                                                            initial={{ opacity: 0, scale: 0.8, y: 10 }}
-                                                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                                                            exit={{ opacity: 0, scale: 0.8, x: -20 }}
-                                                            transition={{ duration: 0.2 }}
-                                                            className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl p-2 pr-3 shadow-sm"
-                                                        >
-                                                            <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center shrink-0">
-                                                                {isImage ? (
-                                                                    <img
-                                                                        src={preview}
-                                                                        alt={file.name}
-                                                                        className="w-full h-full object-cover"
-                                                                    />
-                                                                ) : (
-                                                                    <FiVideo className="w-6 h-6 text-slate-400" />
-                                                                )}
-                                                            </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="text-sm font-medium text-slate-700 truncate">
-                                                                    {file.name}
-                                                                </p>
-                                                                <p className="text-xs text-slate-500">
-                                                                    {(file.size / 1024 / 1024).toFixed(2)} MB
-                                                                </p>
-                                                            </div>
-                                                            <motion.button
-                                                                whileHover={{ scale: 1.1 }}
-                                                                whileTap={{ scale: 0.9 }}
-                                                                onClick={() => removeFile(index)}
-                                                                className="w-6 h-6 rounded-full bg-slate-100 hover:bg-red-100 flex items-center justify-center transition-colors"
+                                                        return (
+                                                            <motion.div
+                                                                key={`${file.name}-${index}`}
+                                                                initial={{
+                                                                    opacity: 0,
+                                                                    scale: 0.8,
+                                                                    y: 10,
+                                                                }}
+                                                                animate={{
+                                                                    opacity: 1,
+                                                                    scale: 1,
+                                                                    y: 0,
+                                                                }}
+                                                                exit={{
+                                                                    opacity: 0,
+                                                                    scale: 0.8,
+                                                                    x: -20,
+                                                                }}
+                                                                transition={{
+                                                                    duration: 0.2,
+                                                                }}
+                                                                className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl p-2 pr-3 shadow-sm"
                                                             >
-                                                                <FiX className="w-4 h-4 text-slate-600" />
-                                                            </motion.button>
-                                                        </motion.div>
-                                                    );
-                                                })}
+                                                                <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center shrink-0">
+                                                                    {isImage ? (
+                                                                        <img
+                                                                            src={
+                                                                                preview
+                                                                            }
+                                                                            alt={
+                                                                                file.name
+                                                                            }
+                                                                            className="w-full h-full object-cover"
+                                                                        />
+                                                                    ) : (
+                                                                        <FiVideo className="w-6 h-6 text-slate-400" />
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="text-sm font-medium text-slate-700 truncate">
+                                                                        {
+                                                                            file.name
+                                                                        }
+                                                                    </p>
+                                                                    <p className="text-xs text-slate-500">
+                                                                        {(
+                                                                            file.size /
+                                                                            1024 /
+                                                                            1024
+                                                                        ).toFixed(
+                                                                            2,
+                                                                        )}{" "}
+                                                                        MB
+                                                                    </p>
+                                                                </div>
+                                                                <motion.button
+                                                                    whileHover={{
+                                                                        scale: 1.1,
+                                                                    }}
+                                                                    whileTap={{
+                                                                        scale: 0.9,
+                                                                    }}
+                                                                    onClick={() =>
+                                                                        removeFile(
+                                                                            index,
+                                                                        )
+                                                                    }
+                                                                    className="w-6 h-6 rounded-full bg-slate-100 hover:bg-red-100 flex items-center justify-center transition-colors"
+                                                                >
+                                                                    <FiX className="w-4 h-4 text-slate-600" />
+                                                                </motion.button>
+                                                            </motion.div>
+                                                        );
+                                                    },
+                                                )}
                                             </AnimatePresence>
                                         </div>
                                     )}
@@ -579,14 +518,21 @@ const AIRefinementPage: React.FC = () => {
                                 <motion.button
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
-                                    onClick={() => setUploadBoxOpen(!uploadBoxOpen)}
-                                    className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${uploadBoxOpen
+                                    onClick={() =>
+                                        setUploadBoxOpen(!uploadBoxOpen)
+                                    }
+                                    className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                                        uploadBoxOpen
                                             ? "bg-sky-500 text-white shadow-lg"
                                             : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                                        }`}
+                                    }`}
                                 >
                                     <motion.div
-                                        animate={uploadBoxOpen ? { rotate: 45 } : { rotate: 0 }}
+                                        animate={
+                                            uploadBoxOpen
+                                                ? { rotate: 45 }
+                                                : { rotate: 0 }
+                                        }
                                         transition={{ duration: 0.2 }}
                                     >
                                         <FiPlus className="w-5 h-5" />
@@ -598,7 +544,9 @@ const AIRefinementPage: React.FC = () => {
                                     <textarea
                                         ref={textareaRef}
                                         value={aiPrompt}
-                                        onChange={(e) => setAiPrompt(e.target.value)}
+                                        onChange={(e) =>
+                                            setAiPrompt(e.target.value)
+                                        }
                                         onKeyDown={handleKeyDown}
                                         placeholder="Ask PortfolioAI to refine something…"
                                         disabled={isGenerating}
@@ -614,7 +562,8 @@ const AIRefinementPage: React.FC = () => {
                                     onClick={handleSend}
                                     disabled={
                                         isGenerating ||
-                                        (!aiPrompt.trim() && uploadedFiles.length === 0)
+                                        (!aiPrompt.trim() &&
+                                            uploadedFiles.length === 0)
                                     }
                                     className="shrink-0 w-10 h-10 rounded-xl bg-linear-to-r from-sky-500 to-cyan-500 text-white flex items-center justify-center shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
