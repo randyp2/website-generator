@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, Sparkles } from "lucide-react";
 import { GradientButton } from "./gradient-button";
 import Image from "next/image";
@@ -10,8 +10,38 @@ const screenshotUrl =
     "https://images.unsplash.com/photo-1522199710521-72d69614c702?auto=format&fit=crop&w=2400&q=80";
 
 function HeroSplineBackground() {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [isInView, setIsInView] = useState(true);
+
+    useEffect(() => {
+        if (!containerRef.current) return;
+
+        const container = containerRef.current;
+
+        // Create IntersectionObserver to track visibility
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    setIsInView(entry.isIntersecting);
+                });
+            },
+            {
+                threshold: 0, // Trigger as soon as any part is visible
+                rootMargin: "100px", // Start rendering 100px before entering viewport
+            },
+        );
+
+        observer.observe(container);
+
+        // Cleanup function
+        return () => {
+            observer.disconnect();
+        };
+    }, []);
+
     return (
         <div
+            ref={containerRef}
             style={{
                 position: "absolute",
                 top: 0,
@@ -24,29 +54,46 @@ function HeroSplineBackground() {
             className="bg-[#0a0a0a]"
         >
             <div className="absolute inset-0 pointer-events-none">
-                <GodRays
-                    colorBack="#00000000"
-                    colors={["#a1a1aa40", "#e4e4e740", "#71717a40", "#52525b40"]}
-                    colorBloom="#a1a1aa"
-                    offsetX={0.85}
-                    offsetY={-1}
-                    intensity={0.5}
-                    spotty={0.45}
-                    midSize={10}
-                    midIntensity={0}
-                    density={0.38}
-                    bloom={0.3}
-                    speed={0.5}
-                    scale={1.6}
-                    frame={3332042.8159981333}
-                    style={{
-                        height: "100%",
-                        width: "100%",
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                    }}
-                />
+                {isInView && (
+                    <GodRays
+                        colorBack="#00000000"
+                        colors={[
+                            "#a1a1aa40",
+                            "#e4e4e740",
+                            "#71717a40",
+                            "#52525b40",
+                        ]}
+                        colorBloom="#a1a1aa"
+                        offsetX={0.85}
+                        offsetY={-1}
+                        intensity={0.5}
+                        spotty={0.45}
+                        midSize={10}
+                        midIntensity={0}
+                        density={0.25}
+                        bloom={0.2}
+                        speed={0.5}
+                        scale={1.6}
+                        frame={3332042.8159981333}
+                        minPixelRatio={0.75}
+                        style={{
+                            height: "100%",
+                            width: "100%",
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                        }}
+                    />
+                )}
+                {!isInView && (
+                    <div
+                        className="absolute inset-0"
+                        style={{
+                            background:
+                                "radial-gradient(circle at 85% -100%, rgba(161, 161, 170, 0.1) 0%, transparent 50%)",
+                        }}
+                    />
+                )}
             </div>
             <div
                 style={{
@@ -71,39 +118,41 @@ function ScreenshotSection({
     return (
         <div
             style={{
-                perspective: '1200px',
-                perspectiveOrigin: 'center center',
-                width: '92%',
+                perspective: "1200px",
+                perspectiveOrigin: "center center",
+                width: "92%",
             }}
         >
             <div
                 ref={screenshotRef}
                 className="pb-5 bg-gray-900 rounded-xl overflow-hidden shadow-2xl border border-gray-700/50"
                 style={{
-                    boxShadow: "0 0 60px rgba(99, 221, 255, 0.15), 0 0 100px rgba(80, 180, 220, 0.08)",
-                    transformStyle: 'preserve-3d',
-                    backfaceVisibility: 'hidden',
-                    willChange: 'transform',
-                    transform: 'translateY(0px) rotateX(15deg) rotateY(0deg) translateZ(0px) scale(1)',
-                    aspectRatio: '1.6',
-                    height: 'auto',
+                    boxShadow:
+                        "0 0 60px rgba(99, 221, 255, 0.15), 0 0 100px rgba(80, 180, 220, 0.08)",
+                    transformStyle: "preserve-3d",
+                    backfaceVisibility: "hidden",
+                    willChange: "transform",
+                    transform:
+                        "translateY(0px) rotateX(15deg) rotateY(0deg) translateZ(0px) scale(1)",
+                    aspectRatio: "1.6",
+                    height: "auto",
                 }}
             >
-            <div>
-                <Image
-                    src="/images/dashboard_preview.png"
-                    alt="Dashboard Preview Screenshot"
-                    width={1600}
-                    height={900}
-                    priority
-                    className="w-full h-auto block rounded-lg mx-auto"
-                />
-            </div>
+                <div>
+                    <Image
+                        src="/images/dashboard_preview.png"
+                        alt="Dashboard Preview Screenshot"
+                        width={1600}
+                        height={900}
+                        priority
+                        className="w-full h-auto block rounded-lg mx-auto"
+                    />
+                </div>
 
-            <p className="mt-6 text-center text-slate-200 text-sm md:text-base max-w-2xl mx-auto">
-                Your own personalized dashboard to manage your deployed or
-                work-in-progress portflios
-            </p>
+                <p className="mt-6 text-center text-slate-200 text-sm md:text-base max-w-2xl mx-auto">
+                    Your own personalized dashboard to manage your deployed or
+                    work-in-progress portflios
+                </p>
             </div>
         </div>
     );
@@ -118,7 +167,10 @@ function HeroContent({
         <div
             ref={heroContentRef}
             className="relative text-white px-4 max-w-4xl mx-auto w-3/4 flex flex-col items-center gap-8 pt-40"
-            style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}
+            style={{
+                fontFamily:
+                    'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+            }}
         >
             <div className="pointer-events-none absolute -inset-x-10 -top-12 h-64 blur-3xl bg-[radial-gradient(circle_at_20%_40%,rgba(99,221,255,0.06),transparent_45%)]" />
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-64 blur-3xl bg-[radial-gradient(circle_at_70%_50%,rgba(80,180,220,0.05),transparent_42%)]" />
@@ -127,23 +179,23 @@ function HeroContent({
                 <h1 className="text-[80px] font-bold leading-[88px] tracking-[0px] mb-4">
                     Build your portfolio websites now
                 </h1>
-                <div className="text-[16px] leading-[24px] text-gray-200 opacity-90 mt-4">
+                <div className="text-[16px] leading-6 text-gray-200 opacity-90 mt-4">
                     Built in minutes / Tailored to your craft / Ready to deploy
                 </div>
             </div>
 
-            <p className="text-[20px] leading-[32px] tracking-[0px] text-center opacity-85 max-w-md relative z-10">
+            <p className="text-[20px] leading-8 tracking-[0px] text-center opacity-85 max-w-md relative z-10">
                 Generate a stunning, on-brand portfolio without code. Import
                 your resume, pick a style, and publish instantly.
             </p>
 
             <div className="flex pointer-events-auto flex-col sm:flex-row items-center gap-4 relative z-10">
-                <GradientButton className="w-full sm:w-auto h-[48px] px-6">
+                <GradientButton className="w-full sm:w-auto h-12 px-6">
                     Try a Demo
                 </GradientButton>
                 <GradientButton
                     variant="variant"
-                    className="w-full sm:w-auto h-[48px] px-6 inline-flex items-center gap-2"
+                    className="w-full sm:w-auto h-12 px-6 inline-flex items-center gap-2"
                 >
                     <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5" />
                     Get Started
@@ -161,7 +213,8 @@ function HeroSection() {
         const handleScroll = () => {
             if (screenshotRef.current && heroContentRef.current) {
                 requestAnimationFrame(() => {
-                    if (!screenshotRef.current || !heroContentRef.current) return;
+                    if (!screenshotRef.current || !heroContentRef.current)
+                        return;
 
                     const scrollPosition = window.pageYOffset;
 
@@ -178,7 +231,7 @@ function HeroSection() {
 
                     // DASHBOARD: Untilt effect 15° → 0°
                     const startRotateX = 15;
-                    const rotateX = (startRotateX - (progress * 15)) * intensity;
+                    const rotateX = (startRotateX - progress * 15) * intensity;
 
                     // No Y rotation - keep tilt uniform across top edge
                     const rotateY = 0;
@@ -187,7 +240,7 @@ function HeroSection() {
                     const translateZ = -(progress * 80 * intensity);
 
                     // Slight scale for depth perception
-                    const dashboardScale = 1 - (progress * 0.05 * intensity);
+                    const dashboardScale = 1 - progress * 0.05 * intensity;
 
                     // Smooth parallax
                     const translateY = -(scrollPosition * 0.3);
@@ -202,9 +255,9 @@ function HeroSection() {
                     `;
 
                     // TITLE: Zoom out effect 1.0 → 0.85 (synchronized with dashboard)
-                    const titleScale = 1 - (progress * 0.15);
+                    const titleScale = 1 - progress * 0.15;
                     heroContentRef.current.style.transform = `scale(${titleScale})`;
-                    heroContentRef.current.style.transformOrigin = 'center top';
+                    heroContentRef.current.style.transformOrigin = "center top";
                 });
             }
         };
@@ -219,7 +272,10 @@ function HeroSection() {
         <div className="relative bg-[#141415] min-h-screen">
             <HeroSplineBackground />
             <div className="relative z-10 container mx-auto px-4 max-w-6xl">
-                <div className="flex flex-col items-center" style={{ gap: '80px' }}>
+                <div
+                    className="flex flex-col items-center"
+                    style={{ gap: "80px" }}
+                >
                     <HeroContent heroContentRef={heroContentRef} />
                     <ScreenshotSection screenshotRef={screenshotRef} />
                 </div>
