@@ -1,6 +1,5 @@
-package com.webgen.webgen_backend.dto;
+package com.webgen.webgen_backend.dto.resume;
 
-import com.webgen.webgen_backend.model.Project;
 import lombok.Data;
 
 import java.util.List;

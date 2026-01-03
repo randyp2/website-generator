@@ -1,6 +1,6 @@
 package com.webgen.webgen_backend.mapper;
 
-import com.webgen.webgen_backend.dto.ProjectDTO;
+import com.webgen.webgen_backend.dto.resume.ProjectDTO;
 import com.webgen.webgen_backend.model.Project;
 import org.mapstruct.Mapper;
 
