@@ -1,4 +1,4 @@
-package com.webgen.webgen_backend.dto;
+package com.webgen.webgen_backend.dto.resume;
 
 import lombok.Data;
 

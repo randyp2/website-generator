@@ -115,12 +115,12 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen pt-20 bg-linear-to-br from-white via-slate-50 to-sky-50/30">
+    <div className="min-h-screen pt-20 bg-[#151d21]">
       {/* Hero Header */}
       <section className="relative py-12 px-6 overflow-hidden">
-        {/* Subtle background orbs */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-sky-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob" />
-        <div className="absolute top-0 left-0 w-96 h-96 bg-cyan-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000" />
+        {/* Subtle background glows */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-[#0084ff]/10 rounded-full filter blur-3xl opacity-30" />
+        <div className="absolute top-0 left-0 w-96 h-96 bg-[#0084ff]/5 rounded-full filter blur-3xl opacity-20" />
 
         <div className="max-w-7xl mx-auto relative z-10">
           <motion.div
@@ -129,16 +129,16 @@ export default function DashboardPage() {
             transition={{ duration: 0.6 }}
             className="text-center mb-8"
           >
-            
 
-            <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-3">
+
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-3">
               Build Your{" "}
-              <span className="bg-linear-to-r from-sky-600 to-cyan-600 bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-[#0084ff] to-[#00a8ff] bg-clip-text text-transparent">
                 Professional
               </span>{" "}
               Portfolio
             </h1>
-            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+            <p className="text-lg text-slate-300 max-w-2xl mx-auto">
               Fill in your details and watch AI craft your story in real-time.
               Each step brings you closer to your perfect portfolio.
             </p>

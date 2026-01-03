@@ -27,7 +27,6 @@ export const metadata: Metadata = {
 };
 
 const sections = [
-  { key: "about", Component: AboutSection },
   { key: "features", Component: FeatureSection },
   { key: "visual-features", Component: VisualFeaturesSection },
   { key: "cta", Component: CTASection },
@@ -35,7 +34,7 @@ const sections = [
 
 export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-[#151d21] text-white">
+    <main className="min-h-screen bg-[#26282a] text-white">
       <HeroSection />
       {sections.map(({ key, Component }) => (
         <Component key={key} />

@@ -34,9 +34,13 @@ export default async function DashboardLayout({
 
   return (
     <UserProviderWrapper user = {{ id: user.id, username, email, avatar}}>
-      <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-sky-50/30">
+      <div className="min-h-screen bg-[#0a0a0a] text-white relative">
+        {/* Full viewport gradient background */}
+        <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top_left,#4a4a4a_0%,#2a2a2a_25%,#1a1a1a_50%,#0a0a0a_75%)] pointer-events-none z-0" />
         {/* DashboardLayoutClient handles sidebar and content with responsive margins */}
-        <DashboardLayoutClient>{children}</DashboardLayoutClient>
+        <div className="relative z-10">
+          <DashboardLayoutClient>{children}</DashboardLayoutClient>
+        </div>
       </div>
     </UserProviderWrapper>
   );
