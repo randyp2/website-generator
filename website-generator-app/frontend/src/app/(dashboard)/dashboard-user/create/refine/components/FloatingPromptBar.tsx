@@ -1,0 +1,220 @@
+"use client";
+
+import React, { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+    Paperclip,
+    Palette,
+    Send,
+    X,
+    Video,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import type { UploadedFile } from "@/types/file";
+
+interface FloatingPromptBarProps {
+    uploadedFiles: UploadedFile[];
+    onSendMessage: (prompt: string, files: File[]) => void;
+    onFileSelect: (files: FileList | null) => void;
+    onRemoveFile: (index: number) => void;
+    isGenerating: boolean;
+}
+
+export const FloatingPromptBar: React.FC<FloatingPromptBarProps> = ({
+    uploadedFiles,
+    onSendMessage,
+    onFileSelect,
+    onRemoveFile,
+    isGenerating,
+}) => {
+    // Local state
+    const [prompt, setPrompt] = useState("");
+
+    // Refs
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Auto-resize textarea
+    useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = "auto";
+            textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+        }
+    }, [prompt]);
+
+    // Send handler
+    const handleSend = () => {
+        if (!prompt.trim() && uploadedFiles.length === 0) return;
+
+        const files = uploadedFiles.map((f) => f.file);
+        onSendMessage(prompt, files);
+        setPrompt("");
+    };
+
+    // Keyboard handler
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            handleSend();
+        }
+    };
+
+    // Open file explorer
+    const handleAttachClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-3xl z-50"
+        >
+            {/* Hidden file input */}
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
+                multiple
+                onChange={(e) => onFileSelect(e.target.files)}
+                className="hidden"
+            />
+
+            {/* Main Prompt Bar */}
+            <div className="bg-[#1a1d21]/95 backdrop-blur-lg rounded-2xl border border-white/10 shadow-2xl shadow-black/50 p-4">
+                {/* File Pills Row - Above Input */}
+                <AnimatePresence>
+                    {uploadedFiles.length > 0 && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="mb-3 flex flex-wrap gap-2 max-h-32 overflow-y-auto"
+                        >
+                            {uploadedFiles.map((file, index) => {
+                                const isImage = file.type.startsWith("image/");
+                                const preview = URL.createObjectURL(file.file);
+
+                                return (
+                                    <motion.div
+                                        key={`pill-${file.name}-${index}`}
+                                        initial={{
+                                            opacity: 0,
+                                            scale: 0.9,
+                                            y: -10,
+                                        }}
+                                        animate={{
+                                            opacity: 1,
+                                            scale: 1,
+                                            y: 0,
+                                        }}
+                                        exit={{
+                                            opacity: 0,
+                                            scale: 0.9,
+                                            y: -10,
+                                        }}
+                                        transition={{ duration: 0.2 }}
+                                        className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 h-10"
+                                    >
+                                        <div className="w-6 h-6 rounded overflow-hidden bg-[#0a0f14] flex items-center justify-center shrink-0">
+                                            {isImage ? (
+                                                <img
+                                                    src={preview}
+                                                    alt={file.name}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <Video className="w-4 h-4 text-white/40" />
+                                            )}
+                                        </div>
+                                        <span className="text-xs font-medium text-white/70 truncate max-w-[150px]">
+                                            {file.name}
+                                        </span>
+                                        <motion.button
+                                            whileHover={{ scale: 1.1 }}
+                                            whileTap={{ scale: 0.9 }}
+                                            onClick={() => onRemoveFile(index)}
+                                            className="w-5 h-5 rounded-full bg-white/10 hover:bg-red-500/20 flex items-center justify-center transition-colors shrink-0"
+                                        >
+                                            <X className="w-3 h-3 text-white/60 hover:text-red-400" />
+                                        </motion.button>
+                                    </motion.div>
+                                );
+                            })}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Textarea */}
+                <Textarea
+                    ref={textareaRef}
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Describe your portfolio refinement..."
+                    disabled={isGenerating}
+                    rows={1}
+                    className="w-full min-h-[48px] max-h-[200px] resize-none bg-black/40 border-white/10 focus-visible:border-white/30 focus-visible:ring-white/10 text-white placeholder:text-white/40 mb-3"
+                />
+
+                {/* Action Buttons Row */}
+                <div className="flex items-center gap-2">
+                    {/* Attach Files Button */}
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleAttachClick}
+                        className="rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-300 transition-all"
+                    >
+                        <Paperclip className="w-4 h-4" />
+                    </Button>
+
+                    {/* Attach Styles Button (Placeholder) */}
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="rounded-xl text-slate-500 hover:bg-slate-800/30 cursor-default"
+                        disabled
+                    >
+                        <Palette className="w-4 h-4" />
+                    </Button>
+
+                    {/* File Count Indicator */}
+                    {uploadedFiles.length > 0 && (
+                        <motion.span
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="text-xs text-slate-400 ml-1"
+                        >
+                            {uploadedFiles.length} file(s)
+                        </motion.span>
+                    )}
+
+                    {/* Spacer */}
+                    <div className="flex-1" />
+
+                    {/* Send Button */}
+                    <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                    >
+                        <Button
+                            size="icon"
+                            onClick={handleSend}
+                            disabled={
+                                isGenerating ||
+                                (!prompt.trim() && uploadedFiles.length === 0)
+                            }
+                            className="rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-300 bg-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        >
+                            <Send className="w-4 h-4" />
+                        </Button>
+                    </motion.div>
+                </div>
+            </div>
+        </motion.div>
+    );
+};

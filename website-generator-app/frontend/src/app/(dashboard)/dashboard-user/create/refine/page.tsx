@@ -1,18 +1,12 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-    FiPlus,
-    FiUpload,
-    FiX,
-    FiSend,
-    FiVideo,
-} from "react-icons/fi";
+import React, { useState } from "react";
 import type { UploadedFile } from "@/types/file";
 import { Message } from "@/types/preview";
 import { Preview } from "./components/Preview";
-import { AiResponse } from "./components/AiResponse";
+import { ChatbotOverlay } from "./components/ChatbotOverlay";
+import { FloatingPromptBar } from "./components/FloatingPromptBar";
+import { ChatHistoryOverlay } from "./components/ChatHistoryOverlay";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
 
 // ============================================================================
@@ -21,8 +15,6 @@ import { usePortfolioStore } from "@/stores/usePortfolioStore";
 const AIRefinementPage: React.FC = () => {
     // Zustand store - All portfolio creation state
     const {
-        aiPrompt,
-        setAiPrompt,
         previewHtml,
         setPreviewHtml,
         mediaFiles,
@@ -33,51 +25,12 @@ const AIRefinementPage: React.FC = () => {
         removeVideoFile,
     } = usePortfolioStore();
 
-    const [uploadBoxOpen, setUploadBoxOpen] = useState(false);
-    const [isDragging, setIsDragging] = useState(false);
-
     // Messages & AI response
     const [messages, setMessages] = useState<Message[]>([]);
     const [isGenerating, setIsGenerating] = useState(false);
-    const [currentAIResponse, setCurrentAIResponse] = useState<string | null>(
-        null,
-    );
-
-    // Refs
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Combine media and video files for display
     const uploadedFiles = [...mediaFiles, ...videoFiles];
-
-    /**
-     * Auto-resize textarea effect.
-     * Dynamically adjusts textarea height based on content.
-     * Resets to auto first to allow shrinking, then sets to scrollHeight.
-     * Triggers whenever promptText changes.
-     */
-    useEffect(() => {
-        if (textareaRef.current) {
-            textareaRef.current.style.height = "auto";
-            textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-        }
-    }, [aiPrompt]);
-
-    /**
-     * Auto-fade AI response overlay after 5 seconds.
-     * Cleans up timer if component unmounts or dependencies change.
-     *
-     * Dependencies:
-     * - currentAIResponse: The AI message to display
-     */
-    useEffect(() => {
-        if (currentAIResponse) {
-            const timer = setTimeout(() => {
-                setCurrentAIResponse(null);
-            }, 5000);
-            return () => clearTimeout(timer);
-        }
-    }, [currentAIResponse]);
 
     // ========================================================================
     // FILE HANDLING
@@ -117,34 +70,6 @@ const AIRefinementPage: React.FC = () => {
             if (isImage) addMediaFiles([newUploadedFile]);
             else if (isVideo) addVideoFiles([newUploadedFile]);
         });
-    };
-
-    /**
-     * Handles drag over event for drag & drop file upload.
-     * Prevents default browser behavior and sets dragging state to true for visual feedback.
-     */
-    const handleDragOver = (e: React.DragEvent) => {
-        e.preventDefault();
-        setIsDragging(true);
-    };
-
-    /**
-     * Handles drag leave event when user drags files away from drop zone.
-     * Resets dragging state to remove visual feedback.
-     */
-    const handleDragLeave = (e: React.DragEvent) => {
-        e.preventDefault();
-        setIsDragging(false);
-    };
-
-    /**
-     * Handles drop event when files are dropped into the drop zone.
-     * Extracts files from dataTransfer and passes them to handleFileSelect for processing.
-     */
-    const handleDrop = (e: React.DragEvent) => {
-        e.preventDefault();
-        setIsDragging(false);
-        handleFileSelect(e.dataTransfer.files);
     };
 
     /**
@@ -198,10 +123,6 @@ const AIRefinementPage: React.FC = () => {
 
         // Add user message to chat history
         setMessages((prev) => [...prev, userMessage]);
-
-        // Reset input state
-        setAiPrompt("");
-        setUploadBoxOpen(false);
 
         // Clear uploaded files from Zustand store
         // Note: We need to clear both mediaFiles and videoFiles
@@ -282,9 +203,6 @@ const AIRefinementPage: React.FC = () => {
 
             // Add AI message to chat history
             setMessages((prev) => [...prev, aiMessage]);
-
-            // Show AI response overlay
-            setCurrentAIResponse(aiResponseText);
         } catch (error) {
             console.error("Error sending message to AI:", error);
 
@@ -298,33 +216,9 @@ const AIRefinementPage: React.FC = () => {
             };
 
             setMessages((prev) => [...prev, errorMessage]);
-            setCurrentAIResponse("Error processing request. Please try again.");
         } finally {
             // Reset loading state
             setIsGenerating(false);
-        }
-    };
-
-    /**
-     * Handler for send button click.
-     * Extracts File objects from uploadedFiles and triggers sendMessage.
-     */
-    const handleSend = () => {
-        const files = uploadedFiles.map((f) => f.file);
-        sendMessage(aiPrompt, files);
-    };
-
-    /**
-     * Handles keyboard events in the textarea.
-     * Sends message on Enter key press (without Shift).
-     * Allows Shift+Enter for multi-line input.
-     *
-     * @param e - Keyboard event from textarea
-     */
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            handleSend();
         }
     };
 
@@ -334,256 +228,42 @@ const AIRefinementPage: React.FC = () => {
     return (
         <div className="h-screen flex flex-col overflow-hidden relative">
             {/* ================================================ */}
-            {/* LAYER 1: FULL SCREEN PREVIEW (BASE) */}
+            {/* LAYER 1: SANDBOX - FULL SCREEN (BASE, z-0) */}
             {/* ================================================ */}
             <Preview previewHtml={previewHtml} />
 
             {/* ================================================ */}
-            {/* LAYER 2: AI RESPONSE (SMALL OVERLAY) */}
+            {/* LAYER 2: CHAT HISTORY OVERLAY - CENTER (z-40) */}
             {/* ================================================ */}
-            <AiResponse
-                currentAIResponse={currentAIResponse}
-                setCurrentAIResponse={setCurrentAIResponse}
+            {messages.length > 0 && (
+                <ChatHistoryOverlay
+                    messages={messages}
+                    isGenerating={isGenerating}
+                />
+            )}
+
+            {/* ================================================ */}
+            {/* LAYER 3: FLOATING PROMPT BAR - BOTTOM (z-50) */}
+            {/* ================================================ */}
+            <FloatingPromptBar
+                uploadedFiles={uploadedFiles}
+                onSendMessage={sendMessage}
+                onFileSelect={handleFileSelect}
+                onRemoveFile={removeFile}
+                isGenerating={isGenerating}
             />
 
             {/* ================================================ */}
-            {/* LAYER 3: BOTTOM PROMPT DOCK (OVERLAY) */}
+            {/* LAYER 2 (OLD): CHATBOT OVERLAY - LEFT SIDE (z-50) */}
             {/* ================================================ */}
-            <div className="absolute bottom-6 left-0 right-0 z-40 flex justify-center pointer-events-none">
-                <div className="w-full max-w-[1600px] px-6 pointer-events-auto">
-                    {/* Upload Box */}
-                    <AnimatePresence>
-                        {uploadBoxOpen && (
-                            <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: "auto", opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{
-                                    duration: 0.3,
-                                    ease: "easeInOut",
-                                }}
-                                className="overflow-hidden mb-2"
-                            >
-                                <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-slate-200 shadow-lg p-4">
-                                    {/* Drag & Drop Zone */}
-                                    <div
-                                        onDragOver={handleDragOver}
-                                        onDragLeave={handleDragLeave}
-                                        onDrop={handleDrop}
-                                        onClick={() =>
-                                            fileInputRef.current?.click()
-                                        }
-                                        className={`relative border-2 border-dashed rounded-xl p-8 transition-all cursor-pointer ${
-                                            isDragging
-                                                ? "border-sky-400 bg-sky-50 shadow-lg"
-                                                : "border-slate-300 bg-slate-50 hover:border-sky-300"
-                                        }`}
-                                    >
-                                        <div className="flex flex-col items-center gap-3">
-                                            <motion.div
-                                                animate={
-                                                    isDragging
-                                                        ? { scale: 1.1 }
-                                                        : { scale: 1 }
-                                                }
-                                                transition={{ duration: 0.2 }}
-                                            >
-                                                <FiUpload className="w-8 h-8 text-slate-400" />
-                                            </motion.div>
-                                            <div className="text-center">
-                                                <p className="text-sm font-medium text-slate-700">
-                                                    Drop images or videos here
-                                                </p>
-                                                <p className="text-xs text-slate-500 mt-1">
-                                                    or click to browse (jpg,
-                                                    png, webp, mp4, mov)
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <input
-                                            ref={fileInputRef}
-                                            type="file"
-                                            accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
-                                            multiple
-                                            onChange={(e) =>
-                                                handleFileSelect(e.target.files)
-                                            }
-                                            className="hidden"
-                                        />
-                                    </div>
-
-                                    {/* File Preview Chips */}
-                                    {uploadedFiles.length > 0 && (
-                                        <div className="mt-4 flex flex-wrap gap-3">
-                                            <AnimatePresence>
-                                                {uploadedFiles.map(
-                                                    (file, index) => {
-                                                        const isImage =
-                                                            file.type.startsWith(
-                                                                "image/",
-                                                            );
-                                                        const preview =
-                                                            URL.createObjectURL(
-                                                                file.file,
-                                                            );
-
-                                                        return (
-                                                            <motion.div
-                                                                key={`${file.name}-${index}`}
-                                                                initial={{
-                                                                    opacity: 0,
-                                                                    scale: 0.8,
-                                                                    y: 10,
-                                                                }}
-                                                                animate={{
-                                                                    opacity: 1,
-                                                                    scale: 1,
-                                                                    y: 0,
-                                                                }}
-                                                                exit={{
-                                                                    opacity: 0,
-                                                                    scale: 0.8,
-                                                                    x: -20,
-                                                                }}
-                                                                transition={{
-                                                                    duration: 0.2,
-                                                                }}
-                                                                className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl p-2 pr-3 shadow-sm"
-                                                            >
-                                                                <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center shrink-0">
-                                                                    {isImage ? (
-                                                                        <img
-                                                                            src={
-                                                                                preview
-                                                                            }
-                                                                            alt={
-                                                                                file.name
-                                                                            }
-                                                                            className="w-full h-full object-cover"
-                                                                        />
-                                                                    ) : (
-                                                                        <FiVideo className="w-6 h-6 text-slate-400" />
-                                                                    )}
-                                                                </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <p className="text-sm font-medium text-slate-700 truncate">
-                                                                        {
-                                                                            file.name
-                                                                        }
-                                                                    </p>
-                                                                    <p className="text-xs text-slate-500">
-                                                                        {(
-                                                                            file.size /
-                                                                            1024 /
-                                                                            1024
-                                                                        ).toFixed(
-                                                                            2,
-                                                                        )}{" "}
-                                                                        MB
-                                                                    </p>
-                                                                </div>
-                                                                <motion.button
-                                                                    whileHover={{
-                                                                        scale: 1.1,
-                                                                    }}
-                                                                    whileTap={{
-                                                                        scale: 0.9,
-                                                                    }}
-                                                                    onClick={() =>
-                                                                        removeFile(
-                                                                            index,
-                                                                        )
-                                                                    }
-                                                                    className="w-6 h-6 rounded-full bg-slate-100 hover:bg-red-100 flex items-center justify-center transition-colors"
-                                                                >
-                                                                    <FiX className="w-4 h-4 text-slate-600" />
-                                                                </motion.button>
-                                                            </motion.div>
-                                                        );
-                                                    },
-                                                )}
-                                            </AnimatePresence>
-                                        </div>
-                                    )}
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-
-                    {/* Main Prompt Bar */}
-                    <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-slate-200 shadow-xl">
-                        <div className="p-4">
-                            <div className="flex items-end gap-3">
-                                {/* Plus Button */}
-                                <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() =>
-                                        setUploadBoxOpen(!uploadBoxOpen)
-                                    }
-                                    className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-                                        uploadBoxOpen
-                                            ? "bg-sky-500 text-white shadow-lg"
-                                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                                    }`}
-                                >
-                                    <motion.div
-                                        animate={
-                                            uploadBoxOpen
-                                                ? { rotate: 45 }
-                                                : { rotate: 0 }
-                                        }
-                                        transition={{ duration: 0.2 }}
-                                    >
-                                        <FiPlus className="w-5 h-5" />
-                                    </motion.div>
-                                </motion.button>
-
-                                {/* Textarea */}
-                                <div className="flex-1">
-                                    <textarea
-                                        ref={textareaRef}
-                                        value={aiPrompt}
-                                        onChange={(e) =>
-                                            setAiPrompt(e.target.value)
-                                        }
-                                        onKeyDown={handleKeyDown}
-                                        placeholder="Ask PortfolioAI to refine something…"
-                                        disabled={isGenerating}
-                                        rows={1}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-400/10 transition-all resize-none text-sm text-slate-900 placeholder:text-slate-400 max-h-[200px] overflow-y-auto"
-                                    />
-                                </div>
-
-                                {/* Send Button */}
-                                <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={handleSend}
-                                    disabled={
-                                        isGenerating ||
-                                        (!aiPrompt.trim() &&
-                                            uploadedFiles.length === 0)
-                                    }
-                                    className="shrink-0 w-10 h-10 rounded-xl bg-linear-to-r from-sky-500 to-cyan-500 text-white flex items-center justify-center shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    <FiSend className="w-5 h-5" />
-                                </motion.button>
-                            </div>
-
-                            {uploadedFiles.length > 0 && (
-                                <motion.p
-                                    initial={{ opacity: 0, y: -5 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="text-xs text-sky-600 mt-2 ml-14"
-                                >
-                                    {uploadedFiles.length} file(s) attached
-                                </motion.p>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
+            {/*<ChatbotOverlay
+                messages={messages}
+                isGenerating={isGenerating}
+                uploadedFiles={uploadedFiles}
+                onSendMessage={sendMessage}
+                onFileSelect={handleFileSelect}
+                onRemoveFile={removeFile}
+            />*/}
         </div>
     );
 };

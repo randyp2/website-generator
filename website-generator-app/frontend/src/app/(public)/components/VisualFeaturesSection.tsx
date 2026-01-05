@@ -8,8 +8,8 @@ export function VisualFeaturesSection() {
     return (
         <section className="bg-[#26282a] py-16 md:py-24">
             <div className="mx-auto max-w-7xl px-6">
-                {/* Grid: 2x2 on desktop, 1 column on mobile */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Grid: Bento grid on desktop, 1 column on mobile */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-6 auto-rows-auto">
 
                     {/* Card 1: AI-Powered Website Generation */}
                     <motion.div
@@ -17,12 +17,13 @@ export function VisualFeaturesSection() {
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6 }}
                         viewport={{ once: true }}
+                        className="lg:col-span-8 lg:row-span-2"
                     >
-                        <div className="relative h-[450px] lg:h-[500px] overflow-hidden group rounded-xl border border-white/10 hover:border-white/30 transition-all bg-[#1a1d21]">
+                        <div className="relative h-[450px] lg:h-[656px] overflow-hidden group rounded-xl border border-white/10 hover:border-white/30 transition-all bg-[#1a1d21]">
                             {/* Content Container */}
                             <div className="relative h-full flex flex-col">
                                 {/* Contained Image with Chatbot Overlay - Extended to right edge, less tall */}
-                                <div className="relative rounded-lg overflow-visible ml-6 md:ml-8 mt-10 md:mt-10 mr-0 mb-0 h-[250px] md:h-[280px]">
+                                <div className="relative rounded-lg overflow-visible ml-6 md:ml-8 mt-10 md:mt-16 mr-0 mb-0 h-[250px] md:h-[280px]">
                                     {/* Background Image */}
                                     <div className="absolute inset-0 rounded-lg overflow-hidden">
                                         <Image
@@ -107,8 +108,9 @@ export function VisualFeaturesSection() {
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.1 }}
                         viewport={{ once: true }}
+                        className="lg:col-span-4 lg:row-span-1"
                     >
-                        <div className="relative h-[450px] lg:h-[500px] overflow-hidden group rounded-xl border border-white/10 hover:border-white/30 transition-all bg-[#1a1d21]">
+                        <div className="relative h-[450px] lg:h-[316px] overflow-hidden group rounded-xl border border-white/10 hover:border-white/30 transition-all bg-[#1a1d21]">
                             {/* Title at Top */}
                             <div className="relative z-10 p-6 md:pt-20 md:px-8">
                                 <h3 className="text-xl md:text-2xl font-bold text-white mb-1 md:mb-2">
@@ -138,8 +140,9 @@ export function VisualFeaturesSection() {
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.2 }}
                         viewport={{ once: true }}
+                        className="lg:col-span-4 lg:row-span-1"
                     >
-                        <div className="relative h-[450px] lg:h-[500px] overflow-hidden group rounded-xl border border-white/10 hover:border-white/30 transition-all bg-[#1a1d21]">
+                        <div className="relative h-[450px] lg:h-[316px] overflow-hidden group rounded-xl border border-white/10 hover:border-white/30 transition-all bg-[#1a1d21]">
                             {/* Image from top right */}
                             <div className="absolute top-0 right-0 w-full h-[70%]">
                                 <Image
@@ -171,8 +174,9 @@ export function VisualFeaturesSection() {
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.3 }}
                         viewport={{ once: true }}
+                        className="lg:col-span-3 lg:row-span-1"
                     >
-                        <div className="relative bg-linear-to-br from-blue-500/10 via-purple-500/5 to-transparent rounded-3xl border border-white/10 p-6 md:p-8 hover:border-white/20 transition-all h-[400px]">
+                        <div className="relative bg-linear-to-br from-blue-500/10 via-purple-500/5 to-transparent rounded-3xl border border-white/10 p-6 md:p-8 hover:border-white/20 transition-all h-[450px] lg:h-[380px]">
                             <div className="mb-4 md:mb-6">
                                 <h3 className="text-xl md:text-2xl font-semibold text-white mb-2 md:mb-3">
                                     Deploy in one click
@@ -182,6 +186,84 @@ export function VisualFeaturesSection() {
                                 </p>
                             </div>
                             <DeploymentVisual />
+                        </div>
+                    </motion.div>
+
+                    {/* Card 5: Portfolio Analytics */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.4 }}
+                        viewport={{ once: true }}
+                        className="lg:col-span-9 lg:row-span-1"
+                    >
+                        <div className="relative h-[300px] lg:h-[380px] overflow-hidden group rounded-xl border border-white/10 hover:border-white/30 transition-all bg-[#1a1d21]">
+                            {/* Analytics Visual - Chart/Graph */}
+                            <div className="absolute inset-0 flex items-center justify-center p-8 opacity-20">
+                                <svg className="w-full h-full text-green-400" fill="none" viewBox="0 0 400 200">
+                                    {/* Upward trending line chart */}
+                                    <polyline
+                                        points="20,150 80,120 140,100 200,80 260,60 320,40 380,20"
+                                        stroke="currentColor"
+                                        strokeWidth="3"
+                                        fill="none"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    />
+                                    {/* Dots on the line */}
+                                    <circle cx="20" cy="150" r="4" fill="currentColor" />
+                                    <circle cx="80" cy="120" r="4" fill="currentColor" />
+                                    <circle cx="140" cy="100" r="4" fill="currentColor" />
+                                    <circle cx="200" cy="80" r="4" fill="currentColor" />
+                                    <circle cx="260" cy="60" r="4" fill="currentColor" />
+                                    <circle cx="320" cy="40" r="4" fill="currentColor" />
+                                    <circle cx="380" cy="20" r="4" fill="currentColor" />
+                                    {/* Gradient fill under line */}
+                                    <defs>
+                                        <linearGradient id="analyticsGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                            <stop offset="0%" stopColor="currentColor" stopOpacity="0.3" />
+                                            <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
+                                        </linearGradient>
+                                    </defs>
+                                    <polygon
+                                        points="20,150 80,120 140,100 200,80 260,60 320,40 380,20 380,180 20,180"
+                                        fill="url(#analyticsGradient)"
+                                    />
+                                </svg>
+                            </div>
+
+                            {/* Content */}
+                            <div className="relative z-10 h-full flex flex-col justify-between p-6 md:p-8">
+                                <div>
+                                    <div className="w-12 h-12 rounded-lg bg-green-500/20 border border-green-500/30 flex items-center justify-center mb-4">
+                                        <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                        </svg>
+                                    </div>
+                                    <h3 className="text-xl md:text-2xl font-bold text-white mb-2">
+                                        Portfolio Analytics
+                                    </h3>
+                                    <p className="text-xs md:text-sm text-white/70">
+                                        Track views, engagement trends, and visitor behavior with real-time analytics dashboard.
+                                    </p>
+                                </div>
+
+                                {/* Mock Stats */}
+                                <div className="grid grid-cols-3 gap-3 mt-4">
+                                    <div className="bg-white/5 rounded-lg p-2 md:p-3 border border-white/10">
+                                        <p className="text-green-400 text-lg md:text-xl font-bold">2.4K</p>
+                                        <p className="text-white/50 text-[10px] md:text-xs">Views</p>
+                                    </div>
+                                    <div className="bg-white/5 rounded-lg p-2 md:p-3 border border-white/10">
+                                        <p className="text-blue-400 text-lg md:text-xl font-bold">89%</p>
+                                        <p className="text-white/50 text-[10px] md:text-xs">Engagement</p>
+                                    </div>
+                                    <div className="bg-white/5 rounded-lg p-2 md:p-3 border border-white/10">
+                                        <p className="text-purple-400 text-lg md:text-xl font-bold">156</p>
+                                        <p className="text-white/50 text-[10px] md:text-xs">Exports</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </motion.div>
                 </div>
