@@ -1,7 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Sandpack } from "@codesandbox/sandpack-react";
+import {
+    Sandpack,
+    SandpackConsole,
+    SandpackLayout,
+    SandpackPreview,
+    SandpackProvider,
+} from "@codesandbox/sandpack-react";
 import { atomDark } from "@codesandbox/sandpack-themes";
 
 interface PreviewProps {
@@ -28,21 +34,21 @@ export const Preview: React.FC<PreviewProps> = ({ previewHtml }) => {
             <Sandpack
                 files={{
                     "/App.js": `
-import { motion } from "framer-motion";
+                    import { motion } from "framer-motion";
 
-export default function App() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-      style={{ padding: 40 }}
-    >
-      <h1>Hello with animation</h1>
-    </motion.div>
-  );
-}
-  `,
+                    export default function App() {
+                    return (
+                        <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6 }}
+                        style={{ padding: 40 }}
+                        >
+                        <h1>Hello with animation</h1>
+                        </motion.div>
+                    );
+                    }
+                    `,
                 }}
                 customSetup={{
                     dependencies: {
@@ -58,8 +64,43 @@ export default function App() {
                     showLineNumbers: true,
                     showTabs: true,
                     editorHeight: "calc(100vh)",
+                    editorWidthPercentage: 0,
+                    resizablePanels: false,
                 }}
             />
+            {/*<div className="w-full">
+                <SandpackProvider
+                    files={{
+                        "/App.js": `
+                    import { motion } from "framer-motion";
+
+                    export default function App() {
+                    return (
+                        <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6 }}
+                        style={{ padding: 40 }}
+                        >
+                        <h1>Hello with animation</h1>
+                        </motion.div>
+                    );
+                    }
+                    `,
+                    }}
+                    customSetup={{
+                        dependencies: {
+                            "framer-motion": "^10.0.0",
+                        },
+                    }}
+                    theme={atomDark}
+                    template="react"
+                >
+                    <SandpackLayout>
+                        <SandpackPreview />
+                    </SandpackLayout>
+                </SandpackProvider>
+            </div>*/}
         </div>
     );
 };

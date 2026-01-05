@@ -47,11 +47,11 @@ function HeroSplineBackground() {
                 top: 0,
                 left: 0,
                 width: "100%",
-                height: "200vh",
+                height: "100%",
                 pointerEvents: "none",
                 overflow: "hidden",
             }}
-            className="bg-[#0a0a0a]"
+            className="bg-[#0a0a0a] z-0"
         >
             <div className="absolute inset-0 pointer-events-none">
                 {isInView && (
@@ -101,7 +101,7 @@ function HeroSplineBackground() {
                     top: 0,
                     left: 0,
                     width: "100%",
-                    height: "200vh",
+                    height: "100%",
                     backgroundColor: "rgba(21, 29, 33, 0.32)",
                     pointerEvents: "none",
                 }}
