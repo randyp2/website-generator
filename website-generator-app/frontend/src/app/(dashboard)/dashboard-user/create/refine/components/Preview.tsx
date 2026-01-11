@@ -43,8 +43,9 @@ export const Preview: React.FC<PreviewProps> = ({ previewHtml }) => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6 }}
                         style={{ padding: 40 }}
+                        className = "text-purple-600"
                         >
-                        <h1>Hello with animation</h1>
+                            <h1>Hello with animation</h1>
                         </motion.div>
                     );
                     }
@@ -58,6 +59,7 @@ export const Preview: React.FC<PreviewProps> = ({ previewHtml }) => {
                 theme={atomDark}
                 template="react"
                 options={{
+                    externalResources: ["https://cdn.tailwindcss.com"], // Tailwind cdn
                     showConsoleButton: true,
                     showInlineErrors: true,
                     showNavigator: true,
