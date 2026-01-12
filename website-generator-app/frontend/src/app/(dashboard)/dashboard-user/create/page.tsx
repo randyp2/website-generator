@@ -52,12 +52,12 @@ const TemplateGallery: React.FC = () => {
               transition={{ type: "spring", stiffness: 400, damping: 30 }}
               onClick={() =>
                 router.push(
-                  `/dashboard-user/create/upload?templateId=${selectedTemplate}`
+                  `/dashboard-user/create/style?templateId=${selectedTemplate}`
                 )
               }
               className="hover:cursor-pointer px-8 py-4 bg-white/10 backdrop-blur-xl border border-white/20 text-white rounded-full font-bold shadow-[0_0_30px_rgba(255,255,255,0.15)] flex items-center gap-3"
             >
-              Upload Documents
+              Customize Style
               <FiArrowRight className="w-5 h-5" />
             </motion.button>
           </motion.div>

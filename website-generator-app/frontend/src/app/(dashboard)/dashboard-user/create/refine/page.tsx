@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { UploadedFile } from "@/types/file";
 import { Message } from "@/types/preview";
 import { Preview } from "./components/Preview";
-import { ChatbotOverlay } from "./components/ChatbotOverlay";
 import { FloatingPromptBar } from "./components/FloatingPromptBar";
 import { ChatHistoryOverlay } from "./components/ChatHistoryOverlay";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
@@ -15,8 +14,15 @@ import { usePortfolioStore } from "@/stores/usePortfolioStore";
 const AIRefinementPage: React.FC = () => {
     // Zustand store - All portfolio creation state
     const {
-        previewHtml,
-        setPreviewHtml,
+        portfolioId,
+        templateId,
+        parsedResumeData,
+        stylePreferences,
+        aiPrompt,
+        sections,
+        setSections,
+        messages,
+        setMessages,
         mediaFiles,
         videoFiles,
         addMediaFiles,
@@ -26,11 +32,124 @@ const AIRefinementPage: React.FC = () => {
     } = usePortfolioStore();
 
     // Messages & AI response
-    const [messages, setMessages] = useState<Message[]>([]);
     const [isGenerating, setIsGenerating] = useState(false);
 
+    const hasGeneratedRef = useRef(false);
     // Combine media and video files for display
     const uploadedFiles = [...mediaFiles, ...videoFiles];
+    const normalizedMessages = useMemo(
+        () =>
+            messages.map((message) => ({
+                ...message,
+                timestamp:
+                    message.timestamp instanceof Date
+                        ? message.timestamp
+                        : new Date(message.timestamp),
+            })),
+        [messages],
+    );
+
+    // ========================================================================
+    // ONE-SHOT GENERATION PREVIEW
+    // ========================================================================
+    useEffect(() => {
+        const generate = async () => {
+            if (hasGeneratedRef.current) return;
+            if (sections && sections.length > 0) {
+                hasGeneratedRef.current = true;
+                return;
+            }
+            if (!portfolioId || !parsedResumeData) return;
+            console.log("GENERATING...");
+
+            hasGeneratedRef.current = true;
+
+            // Add user's prompt to chat
+            const basePrompt =
+                aiPrompt ||
+                "Generate a visually appealing one-shot portfolio that reflects the parsed resume data and style preferences.";
+
+            const userMessage: Message = {
+                id: `user-${Date.now()}`,
+                role: "user",
+                content: basePrompt,
+                timestamp: new Date(),
+            };
+
+            // Add temporary AI message with loading indicator
+            const tempAiMessage: Message = {
+                id: `ai-temp-${Date.now()}`,
+                role: "ai",
+                content: "", // Empty content, will render status component
+                timestamp: new Date(),
+                isGenerating: true, // Flag to trigger status component
+            };
+
+            setMessages([userMessage, tempAiMessage]);
+
+            const response: Response = await fetch(
+                `/api/portfolio/${portfolioId}/generate`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        templateId,
+                        resume: parsedResumeData,
+                        userPrompt: basePrompt,
+                        stylePrefs: stylePreferences,
+                    }),
+                },
+            );
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error("Generate API error:", errorData);
+                // Remove the temporary loading message
+                setMessages((prev) =>
+                    prev.filter((m) => m.id !== tempAiMessage.id),
+                );
+                return;
+            }
+
+            const data = await response.json();
+            setSections(data?.sections ?? null);
+
+            if (data?.assistantMessage) {
+                const { summary, suggestions } = data.assistantMessage;
+                const formattedSuggestions = Array.isArray(suggestions)
+                    ? suggestions.map((item: string) => `• ${item}`).join("\n")
+                    : "";
+
+                const content = [summary, formattedSuggestions]
+                    .filter(Boolean)
+                    .join("\n");
+
+                const aiMessage: Message = {
+                    id: `ai-${Date.now()}`,
+                    role: "ai",
+                    content: content || "Portfolio generated.",
+                    timestamp: new Date(),
+                    isGenerating: false, // Not generating anymore
+                };
+
+                // Replace temp message with actual response
+                setMessages((prev) =>
+                    prev.filter((m) => m.id !== tempAiMessage.id).concat(aiMessage),
+                );
+            }
+        };
+
+        generate();
+    }, [
+        portfolioId,
+        parsedResumeData,
+        templateId,
+        aiPrompt,
+        stylePreferences,
+        sections,
+        setMessages,
+        setSections,
+    ]);
 
     // ========================================================================
     // FILE HANDLING
@@ -188,10 +307,6 @@ const AIRefinementPage: React.FC = () => {
 
             const aiResponseText =
                 "I've refined your portfolio based on your request. The preview has been updated!";
-            const mockUpdatedHtml = "<div>Updated portfolio HTML</div>";
-
-            // Update preview HTML in Zustand store
-            setPreviewHtml(mockUpdatedHtml);
 
             // Create AI message
             const aiMessage: Message = {
@@ -230,17 +345,15 @@ const AIRefinementPage: React.FC = () => {
             {/* ================================================ */}
             {/* LAYER 1: SANDBOX - FULL SCREEN (BASE, z-0) */}
             {/* ================================================ */}
-            <Preview previewHtml={previewHtml} />
+            <Preview sections={sections} />
 
             {/* ================================================ */}
             {/* LAYER 2: CHAT HISTORY OVERLAY - CENTER (z-40) */}
             {/* ================================================ */}
-            {messages.length > 0 && (
-                <ChatHistoryOverlay
-                    messages={messages}
-                    isGenerating={isGenerating}
-                />
-            )}
+            <ChatHistoryOverlay
+                messages={normalizedMessages}
+                isGenerating={isGenerating}
+            />
 
             {/* ================================================ */}
             {/* LAYER 3: FLOATING PROMPT BAR - BOTTOM (z-50) */}
