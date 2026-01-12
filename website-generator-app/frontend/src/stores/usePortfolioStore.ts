@@ -1,5 +1,8 @@
 import { UploadedFile } from "@/types/file";
+import type { Message } from "@/types/preview";
 import { ParsedResumeData, ParsedExperience, ParsedEducation, ParsedProject } from "@/types/resume";
+import { StylePreferences } from "@/types/style";
+import type { SectionDTO } from "@/types/portfolio";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
@@ -21,6 +24,15 @@ export interface PortfolioCreateState {
 
     // Parsed resume data
     parsedResumeData: ParsedResumeData | null;
+
+    // Style preferences
+    stylePreferences: StylePreferences;
+
+    // Generated sections for preview
+    sections: SectionDTO[] | null;
+
+    // Chat messages (persisted for preview page)
+    messages: Message[];
 
     // AI-related info
     aiPrompt: string;          // Prompt user types in for refinement
@@ -67,6 +79,16 @@ export interface PortfolioCreateState {
     // Project management
     updateProject: (index: number, field: keyof ParsedProject, value: any) => void;
 
+    // Style preferences management
+    setStylePreferences: (prefs: StylePreferences) => void;
+    updateStylePreference: (key: keyof StylePreferences, value: string) => void;
+
+    setSections: (sections: SectionDTO[] | null) => void;
+
+    setMessages: (
+        updater: Message[] | ((prev: Message[]) => Message[]),
+    ) => void;
+
     setAiPrompt: (prompt: string) => void;
     setPreviewHtml: (html: string) => void;
     reset: () => void;
@@ -83,6 +105,16 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             mediaFiles: [],
             videoFiles: [],
             parsedResumeData: null,
+            stylePreferences: {
+                colorScheme: null,
+                layoutDensity: null,
+                tone: null,
+                visualStyle: null,
+                sectionEmphasis: null,
+                customNotes: ""
+            },
+            sections: null,
+            messages: [],
             aiPrompt: "",
             previewHtml: null,
 
@@ -295,6 +327,24 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
         }
     },
 
+    // Style preferences management
+    setStylePreferences: (prefs: StylePreferences) => {
+        set({ stylePreferences: prefs });
+    },
+
+    updateStylePreference: (key: keyof StylePreferences, value: string) => {
+        const current = get().stylePreferences;
+        set({ stylePreferences: { ...current, [key]: value } });
+    },
+
+    setSections: (sections: SectionDTO[] | null) => set({ sections }),
+
+    setMessages: (updater: Message[] | ((prev: Message[]) => Message[])) =>
+        set((state) => ({
+            messages:
+                typeof updater === "function" ? updater(state.messages) : updater,
+        })),
+
     reset: () => {
         set({
             templateId: null,
@@ -303,6 +353,16 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             mediaFiles: [],
             videoFiles: [],
             parsedResumeData: null,
+            sections: null,
+            messages: [],
+            stylePreferences: {
+                colorScheme: null,
+                layoutDensity: null,
+                tone: null,
+                visualStyle: null,
+                sectionEmphasis: null,
+                customNotes: ""
+            },
             aiPrompt: "",
             previewHtml: null,
         });
@@ -319,6 +379,9 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                 templateId: state.templateId,
                 portfolioId: state.portfolioId,
                 parsedResumeData: state.parsedResumeData,
+                stylePreferences: state.stylePreferences,
+                sections: state.sections,
+                messages: state.messages,
                 aiPrompt: state.aiPrompt,
                 previewHtml: state.previewHtml,
                 // For files, store metadata only (File objects can't be serialized)

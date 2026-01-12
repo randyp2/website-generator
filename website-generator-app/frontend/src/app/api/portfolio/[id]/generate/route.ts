@@ -4,8 +4,9 @@ import { NextResponse } from "next/server";
 
 export async function POST(
     req: Request,
-    context: { params: Promise<{ id: string }> }
+    context: { params: Promise<{ id: string }> },
 ) {
+    try {
         const body = await req.json();
 
         // --- Validate request body
@@ -33,12 +34,11 @@ export async function POST(
                 { status: 401 },
             );
         }
-        
+
         // --- Portfolio id owner check
         const { data: portfolio, error: portfolioError } = await adminSupabase
             .from("portfolios")
-            .select("id, user_id")
-
+            .select("id, user_id");
 
         const token = session.access_token;
 

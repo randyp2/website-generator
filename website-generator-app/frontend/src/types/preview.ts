@@ -40,6 +40,7 @@ export interface Message {
     role: "user" | "ai";
     content: string;
     timestamp: Date;
+    isGenerating?: boolean; // Flag to indicate message is still generating
 }
 
 export type DeviceMode = "desktop" | "tablet" | "mobile";
