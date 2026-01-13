@@ -6,7 +6,7 @@ import lombok.Data;
 import java.util.UUID;
 
 @Data
-public class SectionRefineResponse {
+public class SectionRefineResponseDTO {
     String sectionKey;
     JsonNode updatedContentJson;
     String updatedReactSource;

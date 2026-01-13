@@ -1,4 +1,4 @@
-package com.webgen.webgen_backend.resume.utils;
+package com.webgen.webgen_backend.resume_service.utils;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

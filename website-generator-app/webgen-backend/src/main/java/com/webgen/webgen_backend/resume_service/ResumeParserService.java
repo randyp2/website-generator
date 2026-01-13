@@ -1,10 +1,10 @@
-package com.webgen.webgen_backend.resume;
+package com.webgen.webgen_backend.resume_service;
 
 import com.webgen.webgen_backend.dto.resume.ParsedResumeDTO;
 import com.webgen.webgen_backend.mapper.ParsedResumeMapper;
 import com.webgen.webgen_backend.model.ParsedResume;
-import com.webgen.webgen_backend.resume.utils.PdfTextExtractor;
-import com.webgen.webgen_backend.resume.utils.TextCleaner;
+import com.webgen.webgen_backend.resume_service.utils.PdfTextExtractor;
+import com.webgen.webgen_backend.resume_service.utils.TextCleaner;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -38,9 +38,9 @@ public class ResumeParserService  {
         parsedResume.setRawText(rawText);
 
 
-        System.out.println("Raw text: " + rawText);
-        System.out.println();
-        System.out.println("Extracted skills section: " + parsedResume.getSkills());
+//        System.out.println("Raw text: " + rawText);
+//        System.out.println();
+//        System.out.println("Extracted skills section: " + parsedResume.getSkills());
         // resumeExtractionService.extract
 
 
