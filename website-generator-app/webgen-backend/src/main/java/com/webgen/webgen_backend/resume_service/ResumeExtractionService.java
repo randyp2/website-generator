@@ -1,17 +1,9 @@
-package com.webgen.webgen_backend.resume;
+package com.webgen.webgen_backend.resume_service;
 
-import com.webgen.webgen_backend.model.Education;
-import com.webgen.webgen_backend.model.Experience;
 import com.webgen.webgen_backend.model.ParsedResume;
-import com.webgen.webgen_backend.model.Project;
-import com.webgen.webgen_backend.resume.extraction.*;
+import com.webgen.webgen_backend.resume_service.extraction.*;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Service
 @AllArgsConstructor

@@ -39,7 +39,7 @@ export const GenerationStatus = () => {
 
     return (
         <motion.span
-            className="bg-[linear-gradient(110deg,#64748b,35%,#f8fafc,50%,#64748b,75%,#64748b)] bg-[length:200%_100%] bg-clip-text text-transparent text-sm font-medium"
+            className="bg-[linear-gradient(110deg,#ffffff,35%,#000000,50%,#ffffff,75%,#ffffff)] bg-[length:200%_100%] bg-clip-text text-transparent text-sm font-medium"
             initial={{ backgroundPosition: "200% 0" }}
             animate={{
                 backgroundPosition: "-200% 0",

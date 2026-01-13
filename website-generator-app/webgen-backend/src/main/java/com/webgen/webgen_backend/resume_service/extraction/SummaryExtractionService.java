@@ -1,9 +1,7 @@
-package com.webgen.webgen_backend.resume.extraction;
+package com.webgen.webgen_backend.resume_service.extraction;
 
-import com.webgen.webgen_backend.resume.utils.SectionExtractor;
+import com.webgen.webgen_backend.resume_service.utils.SectionExtractor;
 import org.springframework.stereotype.Service;
-
-import javax.validation.constraints.Max;
 
 @Service
 public class SummaryExtractionService {

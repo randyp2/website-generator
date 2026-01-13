@@ -1,4 +1,4 @@
-package com.webgen.webgen_backend.resume.extraction;
+package com.webgen.webgen_backend.resume_service.extraction;
 
 
 import com.webgen.webgen_backend.model.ParsedResume;

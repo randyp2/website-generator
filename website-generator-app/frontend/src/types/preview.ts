@@ -4,7 +4,7 @@
  *  - Message
  *  - Device Mode
  *
- * Type definitions for AI preview page 
+ * Type definitions for AI preview page
  */
 
 import { UploadedFile } from "./file";
@@ -28,7 +28,7 @@ import { UploadedFile } from "./file";
  * @property title - Optional user-provided title
  * @property description - Optional user-provided description
  */
-export interface FilePreview extends Omit<UploadedFile, 'id'> {
+export interface FilePreview extends Omit<UploadedFile, "id"> {
     id: string; // Make id required instead of optional
     file: File;
     preview: string;
@@ -44,4 +44,3 @@ export interface Message {
 }
 
 export type DeviceMode = "desktop" | "tablet" | "mobile";
-

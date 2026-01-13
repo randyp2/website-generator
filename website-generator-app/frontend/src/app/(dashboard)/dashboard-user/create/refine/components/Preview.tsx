@@ -53,8 +53,17 @@ const buildSandpackFiles = (sections: SectionDTO[]) => {
         "/sections.json": JSON.stringify(sectionData, null, 2),
     };
 
+    const ensureMotionImport = (source: string) => {
+        if (source.includes("framer-motion")) {
+            return source;
+        }
+        return `import { motion } from "framer-motion";\n\n${source}`;
+    };
+
     sorted.forEach((section, index) => {
-        files[`/sections/Section${index}.jsx`] = section.reactSource;
+        files[`/sections/Section${index}.jsx`] = ensureMotionImport(
+            section.reactSource,
+        );
     });
 
     return files;
@@ -118,7 +127,7 @@ export const Preview: React.FC<PreviewProps> = ({ sections }) => {
                     showLineNumbers: true,
                     showTabs: true,
                     editorHeight: "calc(100vh)",
-                    editorWidthPercentage: 0,
+                    editorWidthPercentage: 50,
                     resizablePanels: false,
                 }}
             />

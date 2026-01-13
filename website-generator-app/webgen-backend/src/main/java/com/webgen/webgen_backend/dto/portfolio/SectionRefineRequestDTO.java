@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Data
-public class SectionRefineRequest {
+public class SectionRefineRequestDTO {
     UUID portfolioId;
     String sectionKey;
     String userPrompt;

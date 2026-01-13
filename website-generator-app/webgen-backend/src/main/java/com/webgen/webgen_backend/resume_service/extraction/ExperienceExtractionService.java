@@ -1,9 +1,8 @@
-package com.webgen.webgen_backend.resume.extraction;
+package com.webgen.webgen_backend.resume_service.extraction;
 
 import com.webgen.webgen_backend.model.Experience;
-import com.webgen.webgen_backend.resume.utils.SectionExtractor;
+import com.webgen.webgen_backend.resume_service.utils.SectionExtractor;
 import org.springframework.stereotype.Service;
-import org.stringtemplate.v4.ST;
 
 import java.util.ArrayList;
 import java.util.List;

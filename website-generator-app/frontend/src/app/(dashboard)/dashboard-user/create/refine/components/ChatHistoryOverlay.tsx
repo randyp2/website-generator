@@ -63,12 +63,39 @@ export const ChatHistoryOverlay: React.FC<ChatHistoryOverlayProps> = ({
         y: 16,
     });
 
+    // Load completed streaming IDs from localStorage on mount
+    useEffect(() => {
+        if (!hasLoadedFromStorage.current) {
+            hasLoadedFromStorage.current = true;
+            const stored = localStorage.getItem("completedStreamingIds");
+            if (stored) {
+                try {
+                    // eslint-disable-next-line react-hooks/set-state-in-effect -- Loading from localStorage on mount to avoid hydration errors
+                    setCompletedStreamingIds(new Set(JSON.parse(stored)));
+                } catch {
+                    // Ignore errors parsing localStorage
+                }
+            }
+        }
+    }, []);
+
     // Auto-scroll to latest message
     useEffect(() => {
         if (!isMinimized) {
             messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
         }
     }, [messages, isMinimized]);
+
+    // Persist completed streaming IDs to localStorage
+    useEffect(() => {
+        // Only save after initial load to avoid overwriting stored data
+        if (hasLoadedFromStorage.current) {
+            localStorage.setItem(
+                "completedStreamingIds",
+                JSON.stringify(Array.from(completedStreamingIds)),
+            );
+        }
+    }, [completedStreamingIds]);
 
     const handleMinimize = () => {
         setHasEverMinimized(true);
@@ -79,6 +106,15 @@ export const ChatHistoryOverlay: React.FC<ChatHistoryOverlayProps> = ({
         setPosition(targetPosition);
         setIsTransitioning(true);
         setIsMinimized(true);
+
+        // Mark all non-generating AI messages as completed to prevent re-animation
+        const newCompletedIds = new Set(completedStreamingIds);
+        messages.forEach((message) => {
+            if (message.role !== "user" && !message.isGenerating) {
+                newCompletedIds.add(message.id);
+            }
+        });
+        setCompletedStreamingIds(newCompletedIds);
     };
 
     const handleMaximize = () => {
@@ -93,6 +129,7 @@ export const ChatHistoryOverlay: React.FC<ChatHistoryOverlayProps> = ({
     };
 
     const draggableNodeRef = useRef<HTMLDivElement>(null);
+    const hasLoadedFromStorage = useRef(false);
 
     // Resize handlers
     const resizeDirectionRef = useRef<string>("");
