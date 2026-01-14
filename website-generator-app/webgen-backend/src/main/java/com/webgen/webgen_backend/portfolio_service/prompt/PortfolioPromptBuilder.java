@@ -1,5 +1,8 @@
 package com.webgen.webgen_backend.portfolio_service.prompt;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.webgen.webgen_backend.dto.portfolio.AssetDTO;
 import com.webgen.webgen_backend.dto.portfolio.PortfolioGenerateRequestDTO;
 import com.webgen.webgen_backend.dto.portfolio.PortfolioGenerateResponseDTO;
 import com.webgen.webgen_backend.dto.resume.ParsedResumeDTO;
@@ -17,11 +20,14 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class PortfolioPromptBuilder {
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public Prompt buildOneShotPrompt(PortfolioGenerateRequestDTO req, String refinedPrompt) {
 
         ParsedResumeDTO resume = req.getResume();
         String stylePrefs = formatStylePrefs(req.getStylePrefs());
+
+        String assetsJson = serializeAssets(req.getAssets());
 
         // --- Construct system and user message
         SystemMessage system = new SystemMessage("""
@@ -79,6 +85,7 @@ public class PortfolioPromptBuilder {
                 - All dynamic content MUST come from `contentJson`.
                 - If additional data is needed, define it inside `contentJson`.
                 - Do NOT fetch data or invent runtime dependencies.
+                - Uploaded media assets MUST be selectively embedded into contentJson and not duplicated or dumped wholesale
                 
                 6. Subcomponents
                 - You MAY create internal subcomponents within a section file.
@@ -106,6 +113,34 @@ public class PortfolioPromptBuilder {
                 - Do NOT mutate input data.
                 - Do NOT introduce side effects outside rendering.
                 - Prefer clear, stable implementations over clever ones.
+                - reactSource MUST NOT reference any media URLs that are not present in contentJson
+                
+                ========================
+                MEDIA USAGE RULES
+                ========================
+                
+                - The user may provide uploaded media assets as structured input
+                - Each asset includes metadata such as:
+                  id, type, url, label, title, description, alt, sectionHint
+                
+                - You MAY include images and videos provided by the user
+                - Media MUST be referenced by URL only
+                - You MUST NOT invent, modify, guess, or hallucinate media URLs
+                - You MUST NOT create new media assets
+                - You MUST NOT transform media into base64, data URLs, blobs, or inline SVGs
+                
+                - All media references MUST live inside contentJson
+                - reactSource MUST render media using standard HTML elements only:
+                  - <img> for images
+                  - <video> for videos
+                
+                - <video> elements:
+                  - MUST include controls
+                  - MUST NOT autoplay
+                  - MUST NOT loop unless clearly justified by the design
+                
+                - Media usage MUST be intentional and support the portfolio narrative
+                - If an asset includes sectionHint, treat it as a soft suggestion only
                 
                 ========================
                 ANIMATION LIBRARY
@@ -282,6 +317,9 @@ public class PortfolioPromptBuilder {
                 Experience: %s
                 Projects: %s
                 Education: %s
+                
+                Uploaded media asets (URL + metadata only, optional to use):
+                %s
         """. formatted(
                 refinedPrompt,
                 req.getTemplateId(),
@@ -291,7 +329,8 @@ public class PortfolioPromptBuilder {
                 formatList(resume.getSkills()),
                 resume.getExperiences() == null ? "none" : resume.getExperiences().toString(),
                 resume.getProjects() == null ? "none" : resume.getProjects().toString(),
-                resume.getEducations() == null ? "none" : resume.getEducations().toString()
+                resume.getEducations() == null ? "none" : resume.getEducations().toString(),
+                assetsJson
         ));
 
         return new Prompt(List.of(system, user));
@@ -308,5 +347,16 @@ public class PortfolioPromptBuilder {
 
     private String safe(String text) {
         return text == null ? "none" : text;
+    }
+
+    private String serializeAssets(List<AssetDTO> assets) {
+        if (assets == null || assets.isEmpty())
+            return "[]";
+
+        try {
+            return objectMapper.writeValueAsString(assets);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Failed to serialize assets for prompt", e);
+        }
     }
 }
