@@ -42,6 +42,7 @@ export const ChatHistoryOverlay: React.FC<ChatHistoryOverlayProps> = ({
     const [isResizing, setIsResizing] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [isTransitioning, setIsTransitioning] = useState(false);
+    const [mounted, setMounted] = useState(false);
     const normalSizeRef = useRef(defaultSize);
     const normalPositionRef = useRef(initialPosition);
     const transitionTimeoutRef = useRef<number | null>(null);
@@ -54,6 +55,11 @@ export const ChatHistoryOverlay: React.FC<ChatHistoryOverlayProps> = ({
         mouseX: number;
         mouseY: number;
     } | null>(null);
+
+    // Fix hydration error by only rendering Draggable on client
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const getMinimizedPosition = (targetSize: {
         width: number;
@@ -284,6 +290,11 @@ export const ChatHistoryOverlay: React.FC<ChatHistoryOverlayProps> = ({
             minute: "2-digit",
         });
     };
+
+    // Don't render during SSR to avoid hydration errors
+    if (!mounted) {
+        return null;
+    }
 
     return (
         <>

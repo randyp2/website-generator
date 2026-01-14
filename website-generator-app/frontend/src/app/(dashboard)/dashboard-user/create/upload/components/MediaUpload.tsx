@@ -19,11 +19,21 @@ interface MediaUploadProps {
     index: number,
     description: string
   ) => void;
+  updatePendingFileSectionHint: (
+    type: "media" | "video",
+    index: number,
+    sectionHint: string
+  ) => void;
   cancelPendingFiles: (type: "media" | "video") => void;
   confirmPendingFiles: (type: "media" | "video") => void;
   handleFileUpload: (
     e: React.ChangeEvent<HTMLInputElement>,
     type: "resume" | "media" | "video"
+  ) => void;
+  updateFileSectionHint: (
+    type: "media" | "video",
+    index: number,
+    sectionHint: string
   ) => void;
 }
 
@@ -31,9 +41,11 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
   pendingMediaFiles,
   updatePendingFileTitle,
   updatePendingFileDescription,
+  updatePendingFileSectionHint,
   cancelPendingFiles,
   confirmPendingFiles,
   handleFileUpload,
+  updateFileSectionHint,
 }) => {
   useEffect(() => {
   const unsub = usePortfolioStore.subscribe((state, prevState) => {
@@ -48,6 +60,15 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
   const updateFileTitle = usePortfolioStore(s => s.updateMediaFileTitle);
   const updateFileDescription = usePortfolioStore(s => s.updateMediaFileDescription);
   const removeFile = usePortfolioStore(s => s.removeMediaFile);
+
+  const sectionHintOptions = [
+    "hero",
+    "about",
+    "projects",
+    "gallery",
+    "contact",
+    "other",
+  ];
   /**
    * STATE: Currently editing media file index
    *
@@ -169,6 +190,49 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
                     className="w-full px-3 py-2 text-sm bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent resize-none text-white placeholder:text-white/50"
                   />
                 </div>
+                <div>
+                  <label className="block text-xs font-semibold text-white/80 mb-1.5">
+                    Section Hint
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <select
+                      value={file.sectionHint || ""}
+                      onChange={(e) =>
+                        updatePendingFileSectionHint(
+                          "media",
+                          index,
+                          e.target.value
+                        )
+                      }
+                      className="w-full px-3 py-2 text-sm bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent text-white"
+                    >
+                      <option value="">Select a section</option>
+                      {sectionHintOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      placeholder="Custom hint (optional)"
+                      value={
+                        file.sectionHint &&
+                        !sectionHintOptions.includes(file.sectionHint)
+                          ? file.sectionHint
+                          : ""
+                      }
+                      onChange={(e) =>
+                        updatePendingFileSectionHint(
+                          "media",
+                          index,
+                          e.target.value
+                        )
+                      }
+                      className="w-full px-3 py-2 text-sm bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent text-white placeholder:text-white/50"
+                    />
+                  </div>
+                </div>
               </motion.div>
             ))}
           </div>
@@ -274,6 +338,49 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
                         rows={2}
                         className="w-full px-2 py-1.5 text-sm bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent resize-none text-white placeholder:text-white/50"
                       />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-white/70 mb-1">
+                        Section Hint
+                      </label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <select
+                          value={file.sectionHint || ""}
+                          onChange={(e) =>
+                            updateFileSectionHint(
+                              "media",
+                              index,
+                              e.target.value
+                            )
+                          }
+                          className="w-full px-2 py-1.5 text-sm bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent text-white"
+                        >
+                          <option value="">Select a section</option>
+                          {sectionHintOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="text"
+                          placeholder="Custom hint (optional)"
+                          value={
+                            file.sectionHint &&
+                            !sectionHintOptions.includes(file.sectionHint)
+                              ? file.sectionHint
+                              : ""
+                          }
+                          onChange={(e) =>
+                            updateFileSectionHint(
+                              "media",
+                              index,
+                              e.target.value
+                            )
+                          }
+                          className="w-full px-2 py-1.5 text-sm bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent text-white placeholder:text-white/50"
+                        />
+                      </div>
                     </div>
                     <p className="text-xs text-white/60 truncate">
                       {file.name} • {formatFileSize(file.size)}

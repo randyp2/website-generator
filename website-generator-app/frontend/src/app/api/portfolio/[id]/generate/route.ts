@@ -8,6 +8,7 @@ export async function POST(
 ) {
     try {
         const body = await req.json();
+        const { id: portfolioId } = await context.params;
 
         // --- Validate request body
         if (!body?.resume || !body?.templateId) {
@@ -38,9 +39,32 @@ export async function POST(
         // --- Portfolio id owner check
         const { data: portfolio, error: portfolioError } = await adminSupabase
             .from("portfolios")
-            .select("id, user_id");
+            .select("id, user_id")
+            .eq("id", portfolioId)
+            .single();
+
+        if (portfolioError || !portfolio) {
+            return NextResponse.json(
+                { error: "Portfolio not found" },
+                { status: 404 },
+            );
+        }
+
+        // --- Fetch asssets for this portfolio
+        const { data: assets, error: assetsError } = await adminSupabase
+            .from("assets")
+            .select(
+                "id, file_type, file_url, title, description, label, section_hint, alt",
+            )
+            .eq("portfolio_id", portfolioId);
 
         const token = session.access_token;
+
+        if (assetsError)
+            return NextResponse.json(
+                { error: "Failed to fetch assets" },
+                { status: 500 },
+            );
 
         // Validate backend url config
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -58,7 +82,19 @@ export async function POST(
                 Authorization: `Bearer ${token}`, // JWT
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify(body),
+            body: JSON.stringify({
+                ...body,
+                assets: (assets ?? []).map((asset) => ({
+                    id: asset.id,
+                    type: asset.file_type,
+                    url: asset.file_url,
+                    title: asset.title ?? "",
+                    description: asset.description ?? "",
+                    label: asset.label ?? "",
+                    sectionHint: asset.section_hint ?? "",
+                    alt: asset.alt ?? "",
+                })),
+            }),
         });
 
         const data = await res.json();
