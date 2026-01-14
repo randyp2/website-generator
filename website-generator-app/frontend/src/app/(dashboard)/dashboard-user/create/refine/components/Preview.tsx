@@ -127,7 +127,7 @@ export const Preview: React.FC<PreviewProps> = ({ sections }) => {
                     showLineNumbers: true,
                     showTabs: true,
                     editorHeight: "calc(100vh)",
-                    editorWidthPercentage: 50,
+                    editorWidthPercentage: 0,
                     resizablePanels: false,
                 }}
             />

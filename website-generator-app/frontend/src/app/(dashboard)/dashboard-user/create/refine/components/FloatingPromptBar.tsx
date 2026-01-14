@@ -30,6 +30,7 @@ export const FloatingPromptBar: React.FC<FloatingPromptBarProps> = ({
 }) => {
     // Local state
     const [prompt, setPrompt] = useState("");
+    const [previewUrls, setPreviewUrls] = useState<Map<string, string>>(new Map());
 
     // Refs
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -42,6 +43,33 @@ export const FloatingPromptBar: React.FC<FloatingPromptBarProps> = ({
             textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
         }
     }, [prompt]);
+
+    // Create and cleanup preview URLs
+    useEffect(() => {
+        const newUrls = new Map<string, string>();
+
+        uploadedFiles.forEach((file, index) => {
+            const key = `${file.name}-${index}`;
+            if (file.file && file.file instanceof File && file.type.startsWith("image/")) {
+                newUrls.set(key, URL.createObjectURL(file.file));
+            }
+        });
+
+        // Cleanup old URLs that are no longer needed
+        previewUrls.forEach((url, key) => {
+            if (!newUrls.has(key)) {
+                URL.revokeObjectURL(url);
+            }
+        });
+
+        setPreviewUrls(newUrls);
+
+        // Cleanup on unmount
+        return () => {
+            newUrls.forEach((url) => URL.revokeObjectURL(url));
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [uploadedFiles]);
 
     // Send handler
     const handleSend = () => {
@@ -96,7 +124,8 @@ export const FloatingPromptBar: React.FC<FloatingPromptBarProps> = ({
                         >
                             {uploadedFiles.map((file, index) => {
                                 const isImage = file.type.startsWith("image/");
-                                const preview = URL.createObjectURL(file.file);
+                                const previewKey = `${file.name}-${index}`;
+                                const preview = previewUrls.get(previewKey);
 
                                 return (
                                     <motion.div
@@ -120,7 +149,7 @@ export const FloatingPromptBar: React.FC<FloatingPromptBarProps> = ({
                                         className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 h-10"
                                     >
                                         <div className="w-6 h-6 rounded overflow-hidden bg-[#0a0f14] flex items-center justify-center shrink-0">
-                                            {isImage ? (
+                                            {isImage && preview ? (
                                                 <img
                                                     src={preview}
                                                     alt={file.name}

@@ -6,6 +6,7 @@ import { VisualFeaturesSection } from "./components/VisualFeaturesSection";
 import AboutSection from "./components/AboutSection";
 import { CTASection } from "./components/CTASection";
 import HeroSection from "./components/HeroSection";
+import { ProcessSection } from "./components/ProcessSection";
 
 export const metadata: Metadata = {
   title: "AI Portfolio Generator – Build Stunning Portfolios Instantly",
@@ -27,6 +28,7 @@ export const metadata: Metadata = {
 };
 
 const sections = [
+  { key: "process", Component: ProcessSection },
   { key: "features", Component: FeatureSection },
   { key: "visual-features", Component: VisualFeaturesSection },
   { key: "cta", Component: CTASection },
