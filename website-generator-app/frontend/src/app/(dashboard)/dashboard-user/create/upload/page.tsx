@@ -38,10 +38,12 @@ const UploadPage: React.FC = () => {
     removeMediaFile,
     updateMediaFileTitle,
     updateMediaFileDescription,
+    updateMediaFileSectionHint,
     addVideoFiles,
     removeVideoFile,
     updateVideoFileTitle,
     updateVideoFileDescription,
+    updateVideoFileSectionHint,
   } = usePortfolioStore();
 
   useEffect(() => {
@@ -240,6 +242,25 @@ const UploadPage: React.FC = () => {
   };
 
   /**
+   * HANDLER: Update section hint of a pending file awaiting confirmation
+   */
+  const updatePendingFileSectionHint = (
+    type: "media" | "video",
+    index: number,
+    sectionHint: string
+  ) => {
+    if (type === "media") {
+      setPendingMediaFiles((prev) =>
+        prev.map((file, i) => (i === index ? { ...file, sectionHint } : file))
+      );
+    } else if (type === "video") {
+      setPendingVideoFiles((prev) =>
+        prev.map((file, i) => (i === index ? { ...file, sectionHint } : file))
+      );
+    }
+  };
+
+  /**
    * HANDLER: Update description of a pending file awaiting confirmation
    *
    * Updates the description property of a file in the pending state (not yet confirmed).
@@ -300,6 +321,21 @@ const UploadPage: React.FC = () => {
     } else if (type === "video") {
       // Update description for confirmed video file at specified index
       updateVideoFileDescription(index, description);
+    }
+  };
+
+  /**
+   * HANDLER: Update section hint of a confirmed file
+   */
+  const updateFileSectionHint = (
+    type: "media" | "video",
+    index: number,
+    sectionHint: string
+  ) => {
+    if (type === "media") {
+      updateMediaFileSectionHint(index, sectionHint);
+    } else if (type === "video") {
+      updateVideoFileSectionHint(index, sectionHint);
     }
   };
 
@@ -395,6 +431,21 @@ const UploadPage: React.FC = () => {
         formData.append("videoFiles", videoFile.file);
       });
 
+      const mediaMeta = mediaFiles.map((mediaFile) => ({
+        title: mediaFile.title ?? "",
+        description: mediaFile.description ?? "",
+        sectionHint: mediaFile.sectionHint ?? "",
+      }));
+
+      const videoMeta = videoFiles.map((videoFile) => ({
+        title: videoFile.title ?? "",
+        description: videoFile.description ?? "",
+        sectionHint: videoFile.sectionHint ?? "",
+      }));
+
+      formData.append("mediaMeta", JSON.stringify(mediaMeta));
+      formData.append("videoMeta", JSON.stringify(videoMeta));
+
       // -- Call the API route to create portfolio
       const res = await fetch("/api/portfolio/create", {
         method: "POST",
@@ -460,9 +511,11 @@ const UploadPage: React.FC = () => {
             pendingMediaFiles={pendingMediaFiles}
             updatePendingFileTitle={updatePendingFileTitle}
             updatePendingFileDescription={updatePendingFileDescription}
+            updatePendingFileSectionHint={updatePendingFileSectionHint}
             cancelPendingFiles={cancelPendingFiles}
             confirmPendingFiles={confirmPendingFiles}
             handleFileUpload={handleFileUpload}
+            updateFileSectionHint={updateFileSectionHint}
           />
 
           {/* Video Files Upload */}
@@ -470,9 +523,11 @@ const UploadPage: React.FC = () => {
             pendingVideoFiles={pendingVideoFiles}
             updatePendingFileTitle={updatePendingFileTitle}
             updatePendingFileDescription={updatePendingFileDescription}
+            updatePendingFileSectionHint={updatePendingFileSectionHint}
             cancelPendingFiles={cancelPendingFiles}
             confirmPendingFiles={confirmPendingFiles}
             handleFileUpload={handleFileUpload}
+            updateFileSectionHint={updateFileSectionHint}
           />
         </div>
       </div>

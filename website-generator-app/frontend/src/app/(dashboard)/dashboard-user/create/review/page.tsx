@@ -91,11 +91,11 @@ const ReviewPage: React.FC = () => {
             >
                 <div className="flex items-center justify-between mb-6">
                     <div>
-                        <h1 className="text-4xl font-bold bg-linear-to-r from-slate-900 via-sky-800 to-cyan-700 bg-clip-text text-transparent mb-2">
+                        <h1 className="text-4xl font-bold text-white mb-2">
                             Review Your Information
                         </h1>
-                        <p className="text-slate-600 text-lg">
-                            Review the information extracted from your resume
+                        <p className="text-slate-300 text-lg">
+                            Review and edit the information extracted from your resume
                         </p>
                     </div>
 
@@ -106,8 +106,8 @@ const ReviewPage: React.FC = () => {
                         onClick={() => setIsEditing(!isEditing)}
                         className={`px-6 py-3 rounded-xl font-semibold flex items-center gap-2 shadow-lg transition-all ${
                             isEditing
-                                ? "bg-linear-to-r from-emerald-500 to-teal-500 text-white"
-                                : "bg-white text-slate-700 border-2 border-slate-200 hover:border-sky-400"
+                                ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white"
+                                : "bg-white/10 backdrop-blur-xl border-2 border-white/20 text-white hover:bg-white/20"
                         }`}
                     >
                         {isEditing ? (
@@ -132,19 +132,19 @@ const ReviewPage: React.FC = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="bg-white rounded-2xl p-8 shadow-lg border border-slate-200 mb-6"
+                    className="bg-gradient-to-br from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-white/10 mb-6"
                 >
-                    <div className="text-center border-b border-slate-200 pb-6 mb-6">
+                    <div className="text-center border-b border-white/10 pb-6 mb-6">
                         {isEditing ? (
                             <input
                                 type="text"
                                 value={parsedResumeData?.fullName || ""}
                                 onChange={(e) => updateFullName(e.target.value)}
-                                className="text-4xl font-bold text-slate-900 text-center w-full bg-slate-50 px-4 py-2 rounded-lg border-2 border-sky-400 focus:outline-none focus:ring-4 focus:ring-sky-400/20"
+                                className="text-4xl font-bold text-white text-center w-full bg-white/5 px-4 py-2 rounded-lg border-2 border-sky-400 focus:outline-none focus:ring-4 focus:ring-sky-400/20"
                                 placeholder="Your Name"
                             />
                         ) : (
-                            <h2 className="text-4xl font-bold text-slate-900">
+                            <h2 className="text-4xl font-bold text-white">
                                 {parsedResumeData?.fullName || "Your Name"}
                             </h2>
                         )}
@@ -152,10 +152,10 @@ const ReviewPage: React.FC = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {/* Email */}
-                        <div className="flex flex-col items-center p-4 bg-slate-50 rounded-xl">
+                        <div className="flex flex-col items-center p-4 bg-white/5 rounded-xl border border-white/10">
                             <div className="flex items-center gap-2 mb-2">
-                                <FiMail className="w-4 h-4 text-sky-600" />
-                                <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                                <FiMail className="w-4 h-4 text-sky-400" />
+                                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
                                     Email
                                 </span>
                             </div>
@@ -166,21 +166,21 @@ const ReviewPage: React.FC = () => {
                                     onChange={(e) =>
                                         updateEmail(e.target.value)
                                     }
-                                    className="text-sm text-slate-900 text-center w-full bg-white px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-sky-400"
+                                    className="text-sm text-white text-center w-full bg-white/5 px-3 py-2 rounded-lg border border-white/10 focus:outline-none focus:border-sky-400"
                                     placeholder="email@example.com"
                                 />
                             ) : (
-                                <p className="text-sm text-slate-900 font-medium">
+                                <p className="text-sm text-white font-medium">
                                     {parsedResumeData?.email || "Not provided"}
                                 </p>
                             )}
                         </div>
 
                         {/* Phone */}
-                        <div className="flex flex-col items-center p-4 bg-slate-50 rounded-xl">
+                        <div className="flex flex-col items-center p-4 bg-white/5 rounded-xl border border-white/10">
                             <div className="flex items-center gap-2 mb-2">
-                                <FiPhone className="w-4 h-4 text-sky-600" />
-                                <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                                <FiPhone className="w-4 h-4 text-sky-400" />
+                                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
                                     Phone
                                 </span>
                             </div>
@@ -191,21 +191,21 @@ const ReviewPage: React.FC = () => {
                                     onChange={(e) =>
                                         updatePhone(e.target.value)
                                     }
-                                    className="text-sm text-slate-900 text-center w-full bg-white px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-sky-400"
+                                    className="text-sm text-white text-center w-full bg-white/5 px-3 py-2 rounded-lg border border-white/10 focus:outline-none focus:border-sky-400"
                                     placeholder="(123) 456-7890"
                                 />
                             ) : (
-                                <p className="text-sm text-slate-900 font-medium">
+                                <p className="text-sm text-white font-medium">
                                     {parsedResumeData?.phone || "Not provided"}
                                 </p>
                             )}
                         </div>
 
                         {/* Location */}
-                        <div className="flex flex-col items-center p-4 bg-slate-50 rounded-xl">
+                        <div className="flex flex-col items-center p-4 bg-white/5 rounded-xl border border-white/10">
                             <div className="flex items-center gap-2 mb-2">
-                                <FiMapPin className="w-4 h-4 text-sky-600" />
-                                <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                                <FiMapPin className="w-4 h-4 text-sky-400" />
+                                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
                                     Location
                                 </span>
                             </div>
@@ -216,11 +216,11 @@ const ReviewPage: React.FC = () => {
                                     onChange={(e) =>
                                         updateLocation(e.target.value)
                                     }
-                                    className="text-sm text-slate-900 text-center w-full bg-white px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-sky-400"
+                                    className="text-sm text-white text-center w-full bg-white/5 px-3 py-2 rounded-lg border border-white/10 focus:outline-none focus:border-sky-400"
                                     placeholder="City, State"
                                 />
                             ) : (
-                                <p className="text-sm text-slate-900 font-medium">
+                                <p className="text-sm text-white font-medium">
                                     {parsedResumeData?.location ||
                                         "Not provided"}
                                 </p>
@@ -230,8 +230,8 @@ const ReviewPage: React.FC = () => {
 
                     {/* Summary */}
                     {(parsedResumeData?.summary || isEditing) && (
-                        <div className="mt-6 pt-6 border-t border-slate-200">
-                            <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wide mb-3">
+                        <div className="mt-6 pt-6 border-t border-white/10">
+                            <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3">
                                 Summary
                             </h3>
                             {isEditing ? (
@@ -241,7 +241,7 @@ const ReviewPage: React.FC = () => {
                                         updateSummary(e.target.value)
                                     }
                                     rows={3}
-                                    className="w-full text-slate-700 bg-slate-50 px-4 py-3 rounded-lg border border-slate-200 focus:outline-none focus:border-sky-400 resize-none"
+                                    className="w-full text-slate-700 bg-white/5 px-4 py-3 rounded-lg border border-white/10 focus:outline-none focus:border-sky-400 resize-none"
                                     placeholder="Professional summary..."
                                 />
                             ) : (
@@ -259,14 +259,14 @@ const ReviewPage: React.FC = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="bg-white rounded-2xl p-8 shadow-lg border border-slate-200 mb-6"
+                    className="bg-gradient-to-br from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-white/10 mb-6"
                 >
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-sky-100 rounded-lg">
-                                <FiCode className="w-5 h-5 text-sky-600" />
+                                <FiCode className="w-5 h-5 text-sky-400" />
                             </div>
-                            <h3 className="text-2xl font-bold text-slate-900">
+                            <h3 className="text-2xl font-bold text-white">
                                 Skills
                             </h3>
                         </div>
@@ -292,7 +292,7 @@ const ReviewPage: React.FC = () => {
                                     animate={{ opacity: 1, scale: 1 }}
                                     className={`flex items-center gap-2 px-4 py-2 rounded-full ${
                                         isEditing
-                                            ? "bg-slate-50 border-2 border-slate-200"
+                                            ? "bg-white/5 border-2 border-white/10"
                                             : "bg-linear-to-r from-sky-50 to-cyan-50 border border-sky-200"
                                     }`}
                                 >
@@ -307,7 +307,7 @@ const ReviewPage: React.FC = () => {
                                                         e.target.value,
                                                     )
                                                 }
-                                                className="bg-transparent border-none focus:outline-none text-sm text-slate-900 w-32"
+                                                className="bg-transparent border-none focus:outline-none text-sm text-white w-32"
                                                 placeholder="Skill name"
                                             />
                                             <motion.button
@@ -337,13 +337,13 @@ const ReviewPage: React.FC = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="bg-white rounded-2xl p-8 shadow-lg border border-slate-200 mb-6"
+                    className="bg-gradient-to-br from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-white/10 mb-6"
                 >
                     <div className="flex items-center gap-3 mb-6">
                         <div className="p-2 bg-sky-100 rounded-lg">
-                            <FiBriefcase className="w-5 h-5 text-sky-600" />
+                            <FiBriefcase className="w-5 h-5 text-sky-400" />
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-900">
+                        <h3 className="text-2xl font-bold text-white">
                             Work Experience
                         </h3>
                     </div>
@@ -367,7 +367,7 @@ const ReviewPage: React.FC = () => {
                                                         e.target.value,
                                                     )
                                                 }
-                                                className="text-xl font-bold text-slate-900 w-full bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-sky-400"
+                                                className="text-xl font-bold text-white w-full bg-white/5 px-3 py-2 rounded-lg border border-white/10 focus:outline-none focus:border-sky-400"
                                                 placeholder="Job Title"
                                             />
                                             <input
@@ -380,7 +380,7 @@ const ReviewPage: React.FC = () => {
                                                         e.target.value,
                                                     )
                                                 }
-                                                className="text-lg text-sky-600 font-semibold w-full bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-sky-400"
+                                                className="text-lg text-sky-400 font-semibold w-full bg-white/5 px-3 py-2 rounded-lg border border-white/10 focus:outline-none focus:border-sky-400"
                                                 placeholder="Company Name"
                                             />
                                             <div className="flex gap-3">
@@ -394,7 +394,7 @@ const ReviewPage: React.FC = () => {
                                                             e.target.value,
                                                         )
                                                     }
-                                                    className="flex-1 text-sm text-slate-600 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-sky-400"
+                                                    className="flex-1 text-sm text-slate-400 bg-white/5 px-3 py-2 rounded-lg border border-white/10 focus:outline-none focus:border-sky-400"
                                                     placeholder="Start Date"
                                                 />
                                                 <input
@@ -407,17 +407,17 @@ const ReviewPage: React.FC = () => {
                                                             e.target.value,
                                                         )
                                                     }
-                                                    className="flex-1 text-sm text-slate-600 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-sky-400"
+                                                    className="flex-1 text-sm text-slate-400 bg-white/5 px-3 py-2 rounded-lg border border-white/10 focus:outline-none focus:border-sky-400"
                                                     placeholder="End Date"
                                                 />
                                             </div>
                                         </div>
                                     ) : (
                                         <div>
-                                            <h4 className="text-xl font-bold text-slate-900">
+                                            <h4 className="text-xl font-bold text-white">
                                                 {exp.title}
                                             </h4>
-                                            <p className="text-lg text-sky-600 font-semibold">
+                                            <p className="text-lg text-sky-400 font-semibold">
                                                 {exp.company}
                                             </p>
                                             <p className="text-sm text-slate-500 mt-1">
@@ -429,7 +429,7 @@ const ReviewPage: React.FC = () => {
                                     <div className="mt-4">
                                         {isEditing && (
                                             <div className="flex items-center justify-between mb-2">
-                                                <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                                                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
                                                     Responsibilities
                                                 </span>
                                                 <motion.button
@@ -440,7 +440,7 @@ const ReviewPage: React.FC = () => {
                                                             expIndex,
                                                         )
                                                     }
-                                                    className="text-xs text-sky-600 hover:text-sky-700 font-semibold flex items-center gap-1"
+                                                    className="text-xs text-sky-400 hover:text-sky-700 font-semibold flex items-center gap-1"
                                                 >
                                                     <FiPlus className="w-3 h-3" />
                                                     Add
@@ -457,7 +457,7 @@ const ReviewPage: React.FC = () => {
                                                         key={bulletIndex}
                                                         className="flex items-start gap-3"
                                                     >
-                                                        <span className="text-sky-600 mt-1.5">
+                                                        <span className="text-sky-400 mt-1.5">
                                                             •
                                                         </span>
                                                         {isEditing ? (
@@ -478,7 +478,7 @@ const ReviewPage: React.FC = () => {
                                                                                 .value,
                                                                         )
                                                                     }
-                                                                    className="flex-1 text-slate-700 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-sky-400"
+                                                                    className="flex-1 text-slate-700 bg-white/5 px-3 py-2 rounded-lg border border-white/10 focus:outline-none focus:border-sky-400"
                                                                 />
                                                                 <motion.button
                                                                     whileHover={{
@@ -519,13 +519,13 @@ const ReviewPage: React.FC = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
-                    className="bg-white rounded-2xl p-8 shadow-lg border border-slate-200 mb-6"
+                    className="bg-gradient-to-br from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-white/10 mb-6"
                 >
                     <div className="flex items-center gap-3 mb-6">
                         <div className="p-2 bg-sky-100 rounded-lg">
-                            <FiAward className="w-5 h-5 text-sky-600" />
+                            <FiAward className="w-5 h-5 text-sky-400" />
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-900">
+                        <h3 className="text-2xl font-bold text-white">
                             Education
                         </h3>
                     </div>
@@ -549,7 +549,7 @@ const ReviewPage: React.FC = () => {
                                                         e.target.value,
                                                     )
                                                 }
-                                                className="text-xl font-bold text-slate-900 w-full bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-sky-400"
+                                                className="text-xl font-bold text-white w-full bg-white/5 px-3 py-2 rounded-lg border border-white/10 focus:outline-none focus:border-sky-400"
                                                 placeholder="Institution"
                                             />
                                             <input
@@ -562,7 +562,7 @@ const ReviewPage: React.FC = () => {
                                                         e.target.value,
                                                     )
                                                 }
-                                                className="text-lg text-purple-600 font-semibold w-full bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-sky-400"
+                                                className="text-lg text-purple-600 font-semibold w-full bg-white/5 px-3 py-2 rounded-lg border border-white/10 focus:outline-none focus:border-sky-400"
                                                 placeholder="Degree"
                                             />
                                             <div className="flex gap-3">
@@ -576,7 +576,7 @@ const ReviewPage: React.FC = () => {
                                                             e.target.value,
                                                         )
                                                     }
-                                                    className="flex-1 text-sm text-slate-600 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-sky-400"
+                                                    className="flex-1 text-sm text-slate-400 bg-white/5 px-3 py-2 rounded-lg border border-white/10 focus:outline-none focus:border-sky-400"
                                                     placeholder="Graduation Date"
                                                 />
                                                 <input
@@ -589,14 +589,14 @@ const ReviewPage: React.FC = () => {
                                                             e.target.value,
                                                         )
                                                     }
-                                                    className="flex-1 text-sm text-slate-600 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-sky-400"
+                                                    className="flex-1 text-sm text-slate-400 bg-white/5 px-3 py-2 rounded-lg border border-white/10 focus:outline-none focus:border-sky-400"
                                                     placeholder="GPA (Optional)"
                                                 />
                                             </div>
                                         </div>
                                     ) : (
                                         <div>
-                                            <h4 className="text-xl font-bold text-slate-900">
+                                            <h4 className="text-xl font-bold text-white">
                                                 {edu.institution}
                                             </h4>
                                             <p className="text-lg text-purple-600 font-semibold">
@@ -617,21 +617,22 @@ const ReviewPage: React.FC = () => {
             </div>
 
             {/* Continue Button */}
-            <motion.div
+            <motion.button
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50"
+                whileHover={{
+                    scale: 1.05,
+                    backgroundColor: "rgba(255, 255, 255, 0.15)",
+                    boxShadow: "0 0 40px rgba(255, 255, 255, 0.25)"
+                }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                onClick={handleContinue}
+                className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 px-8 py-4 bg-white/10 backdrop-blur-xl border border-white/20 text-white rounded-full font-bold shadow-[0_0_30px_rgba(255,255,255,0.15)] flex items-center gap-3"
             >
-                <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleContinue}
-                    className="px-8 py-4 bg-linear-to-r from-sky-500 to-cyan-500 text-white rounded-full font-bold shadow-2xl shadow-sky-400/50 flex items-center gap-3 hover:shadow-sky-400/70 transition-all"
-                >
-                    Continue to AI Refinement
-                    <FiArrowRight className="w-5 h-5" />
-                </motion.button>
-            </motion.div>
+                Continue to AI Refinement
+                <FiArrowRight className="w-5 h-5" />
+            </motion.button>
         </div>
     );
 };

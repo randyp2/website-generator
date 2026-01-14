@@ -174,18 +174,18 @@ const PortfolioManager: React.FC = () => {
     draft: {
       label: "Draft",
       color: "slate",
-      bgColor: "bg-slate-100",
-      textColor: "text-slate-700",
-      dotColor: "bg-slate-500",
+      bgColor: "bg-white/10",
+      textColor: "text-white/80",
+      dotColor: "bg-white/70",
     },
   };
 
   const getThumbnailGradient = (thumbnail: string) => {
     const gradients: Record<string, string> = {
-      "gradient-1": "from-sky-400 via-cyan-400 to-teal-400",
-      "gradient-2": "from-violet-400 via-purple-400 to-pink-400",
-      "gradient-3": "from-orange-400 via-red-400 to-pink-400",
-      "gradient-4": "from-emerald-400 via-teal-400 to-cyan-400",
+      "gradient-1": "from-sky-600 via-cyan-700 to-teal-700",
+      "gradient-2": "from-violet-600 via-purple-700 to-pink-700",
+      "gradient-3": "from-orange-600 via-red-700 to-pink-700",
+      "gradient-4": "from-emerald-600 via-teal-700 to-cyan-700",
     };
     return gradients[thumbnail] || gradients["gradient-1"];
   };
@@ -198,9 +198,9 @@ const PortfolioManager: React.FC = () => {
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            className="w-16 h-16 border-4 border-sky-200 border-t-sky-500 rounded-full mx-auto"
+            className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full mx-auto"
           />
-          <p className="mt-4 text-slate-600 font-medium">Loading portfolios...</p>
+          <p className="mt-4 text-white/70 font-medium">Loading portfolios...</p>
         </div>
       </div>
     );
@@ -215,10 +215,10 @@ const PortfolioManager: React.FC = () => {
         className="flex items-center justify-between"
       >
         <div>
-          <h1 className="text-4xl font-bold text-slate-900 mb-2">
+          <h1 className="text-4xl font-bold text-white mb-2">
             Your Portfolios
           </h1>
-          <p className="text-slate-600">
+          <p className="text-white/70">
             {portfolios.length} portfolio{portfolios.length !== 1 ? "s" : ""}{" "}
             created
           </p>
@@ -228,7 +228,7 @@ const PortfolioManager: React.FC = () => {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => router.push("/dashboard/create")}
-          className="hover:cursor-pointer hidden md:flex items-center gap-2 px-6 py-3 bg-linear-to-r from-sky-500 to-cyan-500 text-white rounded-xl font-semibold shadow-lg shadow-sky-400/30 hover:shadow-xl hover:shadow-sky-500/40 transition-all"
+          className="hover:cursor-pointer hidden md:flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-xl border border-white/20 hover:bg-white/15 hover:border-white/30 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
         >
           <FiPlus className="w-5 h-5" />
           New Portfolio
@@ -252,7 +252,7 @@ const PortfolioManager: React.FC = () => {
               className="group relative hover:cursor-pointer"
             >
               {/* Card Container */}
-              <div className="bg-white/80 backdrop-blur-xl rounded-2xl overflow border border-white/40 shadow-lg hover:shadow-2xl transition-all">
+              <div className="bg-white/5 backdrop-blur-xl rounded-2xl overflow border border-white/10 hover:border-white/20 shadow-lg hover:shadow-xl transition-all">
                 {/* Thumbnail with linear */}
                 <div className="relative h-48 overflow-hidden">
                   <div
@@ -298,11 +298,11 @@ const PortfolioManager: React.FC = () => {
                             whileHover={{ scale: 1.1, y: -2 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={action.onClick}
-                            className={`hover:cursor-pointer p-3 bg-white/90 hover:bg-sky-200 rounded-xl shadow-lg hover:shadow-xl transition-shadow group/btn`}
+                            className={`hover:cursor-pointer p-3 bg-white/10 hover:bg-white/20 rounded-xl shadow-lg hover:shadow-white/20 transition-all group/btn`}
                             title={action.label}
                           >
                             <action.icon
-                              className={`w-5 h-5 text-slate-700 group-hover/btn:text-sky-600 transition-colors`}
+                              className={`w-5 h-5 text-white/80 group-hover/btn:text-white transition-colors`}
                             />
                           </motion.button>
                         ))}
@@ -314,12 +314,12 @@ const PortfolioManager: React.FC = () => {
                 {/* Card Content */}
                 <div className="p-5">
                   {/* Title */}
-                  <h3 className="text-lg font-semibold text-slate-900 mb-1 truncate">
+                  <h3 className="text-lg font-semibold text-white mb-1 truncate">
                     {portfolio.title}
                   </h3>
 
                   {/* URL or Last Edited */}
-                  <div className="flex items-center gap-2 text-sm text-slate-500 mb-4">
+                  <div className="flex items-center gap-2 text-sm text-white/60 mb-4">
                     {portfolio.url ? (
                       <>
                         <FiGlobe className="w-4 h-4" />
@@ -331,8 +331,8 @@ const PortfolioManager: React.FC = () => {
                   </div>
 
                   {/* Stats */}
-                  <div className="flex items-center justify-between pt-4 border-t border-slate-200">
-                    <div className="flex items-center gap-1 text-sm text-slate-600">
+                  <div className="flex items-center justify-between pt-4 border-t border-white/10">
+                    <div className="flex items-center gap-1 text-sm text-white/70">
                       <FiEye className="w-4 h-4" />
                       <span>{portfolio.views} views</span>
                     </div>
@@ -347,9 +347,9 @@ const PortfolioManager: React.FC = () => {
                             activeMenu === portfolio.id ? null : portfolio.id
                           )
                         }
-                        className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                        className="p-2 hover:bg-white/10 rounded-lg transition-colors"
                       >
-                        <FiMoreVertical className="w-4 h-4 text-slate-600" />
+                        <FiMoreVertical className="w-4 h-4 text-white/70" />
                       </motion.button>
 
                       {/* Dropdown Menu */}
@@ -359,7 +359,7 @@ const PortfolioManager: React.FC = () => {
                             initial={{ opacity: 0, scale: 0.95, y: -10 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                            className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-10"
+                            className="absolute right-0 top-full mt-2 w-48 bg-[#1a1d21] rounded-xl shadow-2xl border border-white/10 py-2 z-10"
                           >
                             {[
                               {
@@ -374,22 +374,22 @@ const PortfolioManager: React.FC = () => {
                                 color: "cyan",
                                 onClick: () => { console.log("Duplicate")}
                               },
-                              { 
-                                icon: FiTrash2, 
+                              {
+                                icon: FiTrash2,
                                 label: "Delete",
-                                color: "red", 
+                                color: "red",
                                 onClick: () => handleDelete(portfolio.id),
                               },
                             ].map((action) => (
                               <button
                                 key={action.label}
-                                className={`w-full px-4 py-2 flex items-center gap-3 hover:bg-${action.color}-50 transition-colors text-left`}
+                                className={`w-full px-4 py-2 flex items-center gap-3 ${action.label === "Delete" ? "hover:bg-red-500/10" : "hover:bg-white/5"} transition-colors text-left group`}
                                 onClick={action.onClick}
                               >
                                 <action.icon
-                                  className={`w-4 h-4 text-${action.color}-600`}
+                                  className={`w-4 h-4 ${action.label === "Delete" ? "text-red-400" : action.label === "Export" ? "text-sky-400" : "text-cyan-400"}`}
                                 />
-                                <span className="text-sm font-medium text-slate-700">
+                                <span className={`text-sm font-medium text-white ${action.label === "Delete" ? "group-hover:text-red-400" : ""}`}>
                                   {action.label}
                                 </span>
                               </button>
@@ -411,7 +411,7 @@ const PortfolioManager: React.FC = () => {
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={() => router.push("/dashboard/create")}
-        className="md:hidden fixed bottom-8 right-8 w-16 h-16 bg-linear-to-r from-sky-500 to-cyan-500 text-white rounded-full shadow-2xl shadow-sky-400/50 flex items-center justify-center z-50"
+        className="md:hidden fixed bottom-8 right-8 w-16 h-16 bg-white/10 backdrop-blur-xl border border-white/20 text-white rounded-full shadow-[0_0_30px_rgba(255,255,255,0.15)] flex items-center justify-center z-50 hover:bg-white/15 hover:border-white/30 transition-all"
       >
         <FiPlus className="w-7 h-7" />
       </motion.button>
@@ -423,7 +423,7 @@ const PortfolioManager: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             onClick={handleCloseEdit}
           >
             {/* Modal content - prevents close when clicking inside */}
@@ -432,16 +432,16 @@ const PortfolioManager: React.FC = () => {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
+              className="bg-[#1a1d21] border border-white/10 rounded-2xl shadow-2xl max-w-md w-full p-6"
             >
               {/* Modal Header */}
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-slate-900">Edit Portfolio</h2>
+                <h2 className="text-2xl font-bold text-white">Edit Portfolio</h2>
                 <button
                   onClick={handleCloseEdit}
-                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
                 >
-                  <span className="text-2xl text-slate-600">&times;</span>
+                  <span className="text-2xl text-white/70">&times;</span>
                 </button>
               </div>
 
@@ -449,7 +449,7 @@ const PortfolioManager: React.FC = () => {
               <div className="space-y-4">
                 {/* Title Input */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  <label className="block text-sm font-semibold text-white/80 mb-2">
                     Portfolio Title
                   </label>
                   <input
@@ -458,14 +458,14 @@ const PortfolioManager: React.FC = () => {
                     onChange={(e) =>
                       setEditFormData({ ...editFormData, title: e.target.value })
                     }
-                    className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition-all"
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:ring-2 focus:ring-white/30 focus:border-white/30 outline-none transition-all text-white placeholder-white/50"
                     placeholder="Enter portfolio title"
                   />
                 </div>
 
                 {/* URL Input */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  <label className="block text-sm font-semibold text-white/80 mb-2">
                     Portfolio URL (optional)
                   </label>
                   <input
@@ -474,7 +474,7 @@ const PortfolioManager: React.FC = () => {
                     onChange={(e) =>
                       setEditFormData({ ...editFormData, url: e.target.value })
                     }
-                    className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition-all"
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:ring-2 focus:ring-white/30 focus:border-white/30 outline-none transition-all text-white placeholder-white/50"
                     placeholder="yourname.portfolio.ai"
                   />
                 </div>
@@ -484,14 +484,14 @@ const PortfolioManager: React.FC = () => {
                   <button
                     onClick={handleCloseEdit}
                     disabled={isSaving}
-                    className="flex-1 px-4 py-3 border border-slate-300 text-slate-700 rounded-xl font-semibold hover:bg-slate-50 transition-colors disabled:opacity-50"
+                    className="flex-1 px-4 py-3 border border-white/20 text-white/80 rounded-xl font-semibold hover:bg-white/5 transition-colors disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleUpdatePortfolio}
                     disabled={isSaving || !editFormData.title.trim()}
-                    className="flex-1 px-4 py-3 bg-linear-to-r from-sky-500 to-cyan-500 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed "
+                    className="flex-1 px-4 py-3 bg-white/10 backdrop-blur-xl border border-white/20 hover:bg-white/15 hover:border-white/30 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isSaving ? "Saving..." : "Save Changes"}
                   </button>
