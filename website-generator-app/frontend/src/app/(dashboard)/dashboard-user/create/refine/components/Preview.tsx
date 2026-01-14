@@ -1,105 +1,136 @@
 "use client";
 
-import { DeviceMode } from "@/types/preview";
-import { motion } from "framer-motion";
-import React from "react";
-import { FiMonitor, FiTablet, FiSmartphone } from "react-icons/fi";
+import React, { useState, useEffect } from "react";
+import { Sandpack } from "@codesandbox/sandpack-react";
+import { atomDark } from "@codesandbox/sandpack-themes";
+import type { SectionDTO } from "@/types/portfolio";
 
 interface PreviewProps {
-    setDeviceMode: React.Dispatch<React.SetStateAction<DeviceMode>>;
-    deviceMode: DeviceMode;
-    getPreviewWidth: () => string;
-    previewHtml: string | null;
+    sections: SectionDTO[] | null;
 }
-export const Preview: React.FC<PreviewProps> = ({ setDeviceMode, deviceMode, getPreviewWidth, previewHtml }) => {
-    return (
-        <div className="absolute inset-0 bg-slate-100">
-                <div className="h-full flex justify-center items-center">
-                    {/* Device Mode Buttons - Floating Top Right */}
-                    <div className="absolute top-6 right-6 flex gap-2 z-30">
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => setDeviceMode("desktop")}
-                            className={`p-2 rounded-lg transition-all backdrop-blur-xl border ${
-                                deviceMode === "desktop"
-                                    ? "bg-sky-500 text-white shadow-md border-sky-600"
-                                    : "bg-white/90 text-slate-600 hover:bg-white border-slate-200"
-                            }`}
-                            title="Desktop View"
-                        >
-                            <FiMonitor className="w-4 h-4" />
-                        </motion.button>
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => setDeviceMode("tablet")}
-                            className={`p-2 rounded-lg transition-all backdrop-blur-xl border ${
-                                deviceMode === "tablet"
-                                    ? "bg-sky-500 text-white shadow-md border-sky-600"
-                                    : "bg-white/90 text-slate-600 hover:bg-white border-slate-200"
-                            }`}
-                            title="Tablet View"
-                        >
-                            <FiTablet className="w-4 h-4" />
-                        </motion.button>
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => setDeviceMode("mobile")}
-                            className={`p-2 rounded-lg transition-all backdrop-blur-xl border ${
-                                deviceMode === "mobile"
-                                    ? "bg-sky-500 text-white shadow-md border-sky-600"
-                                    : "bg-white/90 text-slate-600 hover:bg-white border-slate-200"
-                            }`}
-                            title="Mobile View"
-                        >
-                            <FiSmartphone className="w-4 h-4" />
-                        </motion.button>
-                    </div>
 
-                    {/* Preview Canvas */}
-                    <motion.div
-                        animate={{ width: getPreviewWidth() }}
-                        transition={{ duration: 0.4, ease: "easeInOut" }}
-                        className="bg-white rounded-lg shadow-2xl border border-slate-300  overflow-hidden h-full"
-                    >
-                        {previewHtml ? (
-                            // Render AI-generated HTML in iframe for isolation
-                            // BACKEND NOTE: The previewHtml comes from Spring Boot's /api/portfolio/refine endpoint
-                            <iframe
-                                srcDoc={previewHtml}
-                                className="w-full h-full border-0"
-                                title="Portfolio Preview"
-                                sandbox="allow-scripts allow-same-origin"
-                            />
-                        ) : (
-                            // Placeholder when no HTML is generated yet
-                            <div className="h-full bg-linear-to-br from-slate-900 via-slate-800 to-slate-700 flex flex-col items-center justify-center text-center space-y-6 p-12 overflow-auto">
-                                <motion.div
-                                    animate={{ scale: [0.95, 1, 0.95] }}
-                                    transition={{ duration: 3, repeat: Infinity }}
-                                    className="w-24 h-24 bg-linear-to-br from-sky-400 to-cyan-400 rounded-full"
-                                />
-                                <h1 className="text-4xl font-bold text-white">Your Name</h1>
-                                <p className="text-slate-300 text-lg">Software Engineer</p>
-                                <div className="flex flex-wrap gap-3 justify-center mt-8">
-                                    {["React", "TypeScript", "Node.js", "Python"].map((skill) => (
-                                        <span
-                                            key={skill}
-                                            className="px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white text-sm"
-                                        >
-                                            {skill}
-                                        </span>
-                                    ))}
-                                </div>
-                                <p className="text-slate-400 text-sm mt-12">
-                                    Preview updates in real-time
-                                </p>
-                            </div>
-                        )}
-                    </motion.div>
-                </div>
-            </div>
+const buildSandpackFiles = (sections: SectionDTO[]) => {
+    // --- Sort from 0 - n indexing
+    const sorted = [...sections].sort(
+        (a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0),
     );
-}
+
+    // Extract section data
+    const sectionData = sorted.map((section) => ({
+        sectionKey: section.sectionKey,
+        title: section.title ?? "",
+        orderIndex: section.orderIndex ?? 0,
+        contentJson: section.contentJson ?? null,
+    }));
+
+    const imports = sorted
+        .map(
+            (_, index) =>
+                `import Section${index} from "./sections/Section${index}";`,
+        )
+        .join("\n");
+
+    const renders = sorted
+        .map(
+            (_, index) =>
+                `{sections[${index}] && <Section${index} content={sections[${index}].contentJson} data={sections[${index}].contentJson} />}`,
+        )
+        .join("\n");
+
+    const files: Record<string, string> = {
+        "/App.js": `
+        import sections from "./sections.json";
+        ${imports}
+
+        export default function App() {
+            return (
+                <main>
+                ${renders}
+                </main>
+            );
+        }
+        `,
+        "/sections.json": JSON.stringify(sectionData, null, 2),
+    };
+
+    const ensureMotionImport = (source: string) => {
+        if (source.includes("framer-motion")) {
+            return source;
+        }
+        return `import { motion } from "framer-motion";\n\n${source}`;
+    };
+
+    sorted.forEach((section, index) => {
+        files[`/sections/Section${index}.jsx`] = ensureMotionImport(
+            section.reactSource,
+        );
+    });
+
+    return files;
+};
+
+export const Preview: React.FC<PreviewProps> = ({ sections }) => {
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        const timeoutId = setTimeout(() => setIsMounted(true), 0);
+        return () => clearTimeout(timeoutId);
+    }, []);
+
+    if (!isMounted) {
+        return (
+            <div className="absolute inset-0 h-full w-full flex items-center justify-center bg-slate-900">
+                <div className="text-slate-400">Loading editor...</div>
+            </div>
+        );
+    }
+
+    const files =
+        sections && sections.length > 0
+            ? buildSandpackFiles(sections)
+            : {
+                  "/App.js": `
+                import { motion } from "framer-motion";
+
+                export default function App() {
+                    return (
+                        <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6 }}
+                        style={{ padding: 40 }}
+                        className="text-purple-600"
+                        >
+                        <h1>Hello with animation</h1>
+                        </motion.div>
+                    );
+                }
+                `,
+              };
+
+    return (
+        <div className="absolute inset-0 h-full w-full">
+            <Sandpack
+                files={files}
+                customSetup={{
+                    dependencies: {
+                        "framer-motion": "^10.0.0",
+                    },
+                }}
+                theme={atomDark}
+                template="react"
+                options={{
+                    externalResources: ["https://cdn.tailwindcss.com"], // Tailwind cdn
+                    showConsoleButton: true,
+                    showInlineErrors: true,
+                    showNavigator: true,
+                    showLineNumbers: true,
+                    showTabs: true,
+                    editorHeight: "calc(100vh)",
+                    editorWidthPercentage: 0,
+                    resizablePanels: false,
+                }}
+            />
+        </div>
+    );
+};

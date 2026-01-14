@@ -1,18 +1,19 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import SidebarNavigation from "./SidebarNavigation";
 import DashboardMotionWrapper from "./DashboardMotionWrapper";
 import { motion } from "framer-motion";
+import { SidebarProvider, useSidebar } from "@/context/SidebarContext";
 
 interface DashboardLayoutClientProps {
   children: React.ReactNode;
 }
 
-const DashboardLayoutClient: React.FC<DashboardLayoutClientProps> = ({
+const DashboardLayoutClientInner: React.FC<DashboardLayoutClientProps> = ({
   children,
 }) => {
-  const [collapsed, setCollapsed] = useState(false);
+  const { collapsed, setCollapsed } = useSidebar();
 
   const handleToggleCollapse = () => {
     setCollapsed(!collapsed);
@@ -35,6 +36,16 @@ const DashboardLayoutClient: React.FC<DashboardLayoutClientProps> = ({
         <DashboardMotionWrapper>{children}</DashboardMotionWrapper>
       </motion.main>
     </>
+  );
+};
+
+const DashboardLayoutClient: React.FC<DashboardLayoutClientProps> = ({
+  children,
+}) => {
+  return (
+    <SidebarProvider>
+      <DashboardLayoutClientInner>{children}</DashboardLayoutClientInner>
+    </SidebarProvider>
   );
 };
 
