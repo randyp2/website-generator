@@ -1,57 +1,47 @@
 "use client";
 
 import { motion } from "framer-motion";
-import React, { useState } from "react";
-import { FiEdit3, FiEye, FiTrash2, FiChevronDown, FiSearch, FiGrid, FiList } from "react-icons/fi";
+import React, { useEffect, useState } from "react";
+import {
+  FiEdit3,
+  FiEye,
+  FiTrash2,
+  FiChevronDown,
+  FiSearch,
+  FiGrid,
+  FiList,
+} from "react-icons/fi";
+import { useRouter } from "next/navigation";
+import { useUser } from "@/context/UserContext";
 
 // Portfolio interface
 interface Portfolio {
   id: string;
   title: string;
   dateModified: string;
-  status: 'active' | 'draft' | 'archived';
+  status: "active" | "draft" | "archived";
 }
 
-// Mock portfolio data
-const mockPortfolios: Portfolio[] = [
-  {
-    id: '1',
-    title: 'My Portfolio 2025',
-    dateModified: '2 hours ago',
-    status: 'active'
-  },
-  {
-    id: '2',
-    title: 'Creative Studio',
-    dateModified: 'Yesterday',
-    status: 'draft'
-  },
-  {
-    id: '3',
-    title: 'Photography Showcase',
-    dateModified: '3 days ago',
-    status: 'archived'
-  }
-];
-
 // Status Indicator Component
-const StatusIndicator: React.FC<{ status: 'active' | 'draft' | 'archived' }> = ({ status }) => {
+const StatusIndicator: React.FC<{
+  status: "active" | "draft" | "archived";
+}> = ({ status }) => {
   const config = {
     active: {
-      color: 'bg-green-500',
-      label: 'Active',
-      glow: 'shadow-[0_0_12px_rgba(34,197,94,0.5)]'
+      color: "bg-green-500",
+      label: "Active",
+      glow: "shadow-[0_0_12px_rgba(34,197,94,0.5)]",
     },
     draft: {
-      color: 'bg-yellow-500',
-      label: 'Draft',
-      glow: 'shadow-[0_0_12px_rgba(234,179,8,0.5)]'
+      color: "bg-yellow-500",
+      label: "Draft",
+      glow: "shadow-[0_0_12px_rgba(234,179,8,0.5)]",
     },
     archived: {
-      color: 'bg-red-500',
-      label: 'Archived',
-      glow: 'shadow-[0_0_12px_rgba(239,68,68,0.5)]'
-    }
+      color: "bg-red-500",
+      label: "Archived",
+      glow: "shadow-[0_0_12px_rgba(239,68,68,0.5)]",
+    },
   };
 
   const { color, label, glow } = config[status];
@@ -65,13 +55,68 @@ const StatusIndicator: React.FC<{ status: 'active' | 'draft' | 'archived' }> = (
 };
 
 export const RecentSection: React.FC = () => {
-  const [sortBy, setSortBy] = useState<'name' | 'date' | 'status'>('date');
+  const router = useRouter();
+  const { user } = useUser();
+  const [sortBy, setSortBy] = useState<"name" | "date" | "status">("date");
   const [showSortMenu, setShowSortMenu] = useState(false);
-  const [displayMode, setDisplayMode] = useState<'card' | 'list'>('list');
+  const [displayMode, setDisplayMode] = useState<"card" | "list">("list");
   const [showArchived, setShowArchived] = useState(true);
+  const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const formatRelativeTime = (timestamp?: string | null) => {
+    if (!timestamp) return "Just now";
+    const date = new Date(timestamp);
+    const diffMs = Date.now() - date.getTime();
+    const minutes = Math.floor(diffMs / 60000);
+    if (minutes < 60) return `${Math.max(minutes, 1)}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  useEffect(() => {
+    const loadPortfolios = async () => {
+      if (!user?.id) return;
+      setIsLoading(true);
+      try {
+        const response = await fetch(
+          `/api/portfolio/list?userId=${user.id}`,
+        );
+        if (!response.ok) {
+          throw new Error(`HTTP error: ${response.status}`);
+        }
+        const data = await response.json();
+        const rows = Array.isArray(data?.portfolios) ? data.portfolios : [];
+        const formatted = rows.map((item: any) => ({
+          id: item.id,
+          title: item.title ?? "Untitled Portfolio",
+          dateModified: formatRelativeTime(
+            item.updated_at ?? item.created_at ?? null,
+          ),
+          status:
+            item.status === "archived"
+              ? "archived"
+              : item.status === "active"
+                ? "active"
+                : "draft",
+        }));
+        setPortfolios(formatted);
+      } catch (error) {
+        console.error("Failed to load portfolios:", error);
+        setPortfolios([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPortfolios();
+  }, [user?.id]);
 
   // Sort and filter portfolios based on current options
-  const filteredAndSortedPortfolios = [...mockPortfolios]
+  const filteredAndSortedPortfolios = [...portfolios]
     .filter(portfolio => {
       // Filter out archived if showArchived is false
       if (!showArchived && portfolio.status === 'archived') {
@@ -218,7 +263,15 @@ export const RecentSection: React.FC = () => {
         transition={{ delay: 0.8, duration: 0.5 }}
         className="bg-white/5 rounded-2xl border border-white/10 h-[500px]"
       >
-        {displayMode === 'list' ? (
+        {isLoading ? (
+          <div className="h-full flex items-center justify-center text-white/60">
+            Loading portfolios...
+          </div>
+        ) : filteredAndSortedPortfolios.length === 0 ? (
+          <div className="h-full flex items-center justify-center text-white/60">
+            No portfolios yet.
+          </div>
+        ) : displayMode === "list" ? (
           /* List View */
           <div className="h-full overflow-y-auto divide-y divide-white/10 [&>*:last-child]:border-b [&>*:last-child]:border-white/10">
             {filteredAndSortedPortfolios.map((portfolio) => (
@@ -246,7 +299,15 @@ export const RecentSection: React.FC = () => {
                 <button className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
                   <FiEye className="w-4 h-4 text-white" />
                 </button>
-                <button className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
+                <button
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    router.push(
+                      `/dashboard-user/create/refine?portfolioId=${portfolio.id}`,
+                    );
+                  }}
+                  className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                >
                   <FiEdit3 className="w-4 h-4 text-white" />
                 </button>
                 <button className="w-8 h-8 rounded-lg bg-white/10 hover:bg-red-500/20 flex items-center justify-center transition-colors group">
@@ -291,7 +352,15 @@ export const RecentSection: React.FC = () => {
                       <FiEye className="w-3.5 h-3.5" />
                       View
                     </button>
-                    <button className="flex-1 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center gap-1.5 transition-colors text-white text-xs">
+                    <button
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        router.push(
+                          `/dashboard-user/create/refine?portfolioId=${portfolio.id}`,
+                        );
+                      }}
+                      className="flex-1 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center gap-1.5 transition-colors text-white text-xs"
+                    >
                       <FiEdit3 className="w-3.5 h-3.5" />
                       Edit
                     </button>

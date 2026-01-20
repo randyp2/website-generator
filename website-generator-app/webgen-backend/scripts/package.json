@@ -1,0 +1,9 @@
+{
+  "name": "webgen-jsx-validator",
+  "version": "1.0.0",
+  "description": "JSX validation script for webgen-backend",
+  "private": true,
+  "dependencies": {
+    "@babel/parser": "^7.23.0"
+  }
+}
