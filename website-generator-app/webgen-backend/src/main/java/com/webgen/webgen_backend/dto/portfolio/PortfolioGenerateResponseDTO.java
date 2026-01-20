@@ -9,4 +9,5 @@ public class PortfolioGenerateResponseDTO {
     String previewUrl;
     List<SectionDTO> sections;
     AssistantMessageDTO assistantMessage;
+    GlobalThemeDTO globalTheme;
 }

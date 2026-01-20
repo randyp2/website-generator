@@ -1,15 +1,13 @@
-package com.webgen.webgen_backend.dto.portfolio.clarifier;
+package com.webgen.webgen_backend.dto.portfolio.planner;
 
 import com.webgen.webgen_backend.dto.portfolio.AssetDTO;
 import lombok.Data;
-
 import java.util.List;
 import java.util.UUID;
 
 @Data
-public class ClarifierRequestDTO {
+public class PlannerRequestDTO {
     private UUID portfolioId;
-    private String userPrompt;
-    private List<SectionSummaryDTO> sections;
+    private List<SectionContentDTO> sections;
     private List<AssetDTO> assets;
 }
