@@ -1,19 +1,45 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Sandpack } from "@codesandbox/sandpack-react";
 import { atomDark } from "@codesandbox/sandpack-themes";
-import type { SectionDTO } from "@/types/portfolio";
+import type { SectionDTO, GlobalTheme } from "@/types/portfolio";
 
 interface PreviewProps {
     sections: SectionDTO[] | null;
+    globalTheme?: GlobalTheme | null;
 }
 
-const buildSandpackFiles = (sections: SectionDTO[]) => {
+const DEFAULT_THEME: GlobalTheme = {
+    background: "bg-slate-900",
+    textPrimary: "text-white",
+    textSecondary: "text-slate-400",
+    accentColor: "purple",
+};
+
+const normalizeTheme = (globalTheme?: GlobalTheme | null) => {
+    if (!globalTheme) return DEFAULT_THEME;
+    const background = globalTheme.background?.trim();
+    const textPrimary = globalTheme.textPrimary?.trim();
+    const textSecondary = globalTheme.textSecondary?.trim();
+    const accentColor = globalTheme.accentColor?.trim();
+    if (!background || !textPrimary) return DEFAULT_THEME;
+    return {
+        background,
+        textPrimary,
+        textSecondary: textSecondary || DEFAULT_THEME.textSecondary,
+        accentColor: accentColor || DEFAULT_THEME.accentColor,
+    };
+};
+
+const buildSandpackFiles = (sections: SectionDTO[], globalTheme?: GlobalTheme | null) => {
     // --- Sort from 0 - n indexing
     const sorted = [...sections].sort(
         (a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0),
     );
+
+    // Use provided theme or fallback to default
+    const theme = normalizeTheme(globalTheme);
 
     // Extract section data
     const sectionData = sorted.map((section) => ({
@@ -40,28 +66,51 @@ const buildSandpackFiles = (sections: SectionDTO[]) => {
     const files: Record<string, string> = {
         "/App.js": `
         import sections from "./sections.json";
+        import theme from "./theme.json";
         ${imports}
+
+        function ThemeWrapper({ children }) {
+            return (
+                <div className={\`min-h-screen \${theme.background}\`}>
+                    <div className={\`\${theme.textPrimary}\`}>
+                        {children}
+                    </div>
+                </div>
+            );
+        }
 
         export default function App() {
             return (
-                <main>
-                ${renders}
-                </main>
+                <ThemeWrapper>
+                    <main>
+                    ${renders}
+                    </main>
+                </ThemeWrapper>
             );
         }
         `,
         "/sections.json": JSON.stringify(sectionData, null, 2),
+        "/theme.json": JSON.stringify(theme, null, 2),
     };
 
-    const ensureMotionImport = (source: string) => {
-        if (source.includes("framer-motion")) {
-            return source;
-        }
-        return `import { motion } from "framer-motion";\n\n${source}`;
+    const ensureImports = (source: string) => {
+        const reactImport =
+            'import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";';
+        const framerImport =
+            'import { motion, AnimatePresence, useScroll, useTransform, useSpring, useInView } from "framer-motion";';
+        const hasReactImport = /^import\s+[^;]*\s+from\s+["']react["'];?\s*$/m.test(source);
+        const hasFramerImport = /^import\s+[^;]*\s+from\s+["']framer-motion["'];?\s*$/m.test(source);
+
+        const neededImports = [
+            ...(hasReactImport ? [] : [reactImport]),
+            ...(hasFramerImport ? [] : [framerImport]),
+        ].join("\n");
+
+        return neededImports ? `${neededImports}\n\n${source.trimStart()}` : source;
     };
 
     sorted.forEach((section, index) => {
-        files[`/sections/Section${index}.jsx`] = ensureMotionImport(
+        files[`/sections/Section${index}.jsx`] = ensureImports(
             section.reactSource,
         );
     });
@@ -69,13 +118,23 @@ const buildSandpackFiles = (sections: SectionDTO[]) => {
     return files;
 };
 
-export const Preview: React.FC<PreviewProps> = ({ sections }) => {
+export const Preview: React.FC<PreviewProps> = ({ sections, globalTheme }) => {
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
         const timeoutId = setTimeout(() => setIsMounted(true), 0);
         return () => clearTimeout(timeoutId);
     }, []);
+
+    // Generate a key based on section content and theme to force Sandpack re-mount on changes
+    const sandpackKey = useMemo(() => {
+        if (!sections || sections.length === 0) return "empty";
+        const sectionKey = sections
+            .map((s) => `${s.sectionKey}-${(s.reactSource || "").length}`)
+            .join("|");
+        const themeKey = globalTheme ? JSON.stringify(globalTheme) : "default";
+        return `${sectionKey}-${themeKey}`;
+    }, [sections, globalTheme]);
 
     if (!isMounted) {
         return (
@@ -87,22 +146,24 @@ export const Preview: React.FC<PreviewProps> = ({ sections }) => {
 
     const files =
         sections && sections.length > 0
-            ? buildSandpackFiles(sections)
+            ? buildSandpackFiles(sections, globalTheme)
             : {
                   "/App.js": `
                 import { motion } from "framer-motion";
 
                 export default function App() {
                     return (
-                        <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6 }}
-                        style={{ padding: 40 }}
-                        className="text-purple-600"
-                        >
-                        <h1>Hello with animation</h1>
-                        </motion.div>
+                        <div className="min-h-screen bg-slate-900">
+                            <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6 }}
+                            style={{ padding: 40 }}
+                            className="text-purple-600"
+                            >
+                            <h1>Hello with animation</h1>
+                            </motion.div>
+                        </div>
                     );
                 }
                 `,
@@ -111,6 +172,7 @@ export const Preview: React.FC<PreviewProps> = ({ sections }) => {
     return (
         <div className="absolute inset-0 h-full w-full">
             <Sandpack
+                key={sandpackKey}
                 files={files}
                 customSetup={{
                     dependencies: {

@@ -3,6 +3,7 @@ package com.webgen.webgen_backend.portfolio_service.parser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.dto.portfolio.AssistantMessageDTO;
+import com.webgen.webgen_backend.dto.portfolio.GlobalThemeDTO;
 import com.webgen.webgen_backend.dto.portfolio.PortfolioGenerateResponseDTO;
 import com.webgen.webgen_backend.dto.portfolio.SectionDTO;
 import lombok.RequiredArgsConstructor;
@@ -23,14 +24,35 @@ public class PortfolioResponseParser {
      * @return - response dto
      */
     public PortfolioGenerateResponseDTO parseGenerateResponse(String rawJson) {
+        System.out.println(">>> [PARSER] parseGenerateResponse() started");
+        System.out.println(">>> [PARSER] Raw JSON length: " + (rawJson != null ? rawJson.length() : 0));
+
         try {
             JsonNode root = objectMapper.readTree(rawJson);
+            System.out.println(">>> [PARSER] JSON parsed successfully");
 
             PortfolioGenerateResponseDTO response = new PortfolioGenerateResponseDTO();
 
+            // --- Parse globalTheme (required)
+            System.out.println(">>> [PARSER] Parsing globalTheme...");
+            JsonNode themeNode = root.path("globalTheme");
+            if (!themeNode.isMissingNode() && themeNode.isObject()) {
+                GlobalThemeDTO theme = new GlobalThemeDTO();
+                theme.setBackground(themeNode.path("background").asText(""));
+                theme.setTextPrimary(themeNode.path("textPrimary").asText(""));
+                theme.setTextSecondary(themeNode.path("textSecondary").asText(""));
+                theme.setAccentColor(themeNode.path("accentColor").asText(""));
+                response.setGlobalTheme(theme);
+                System.out.println(">>> [PARSER] GlobalTheme parsed: " + theme.getBackground());
+            } else {
+                System.out.println(">>> [PARSER] WARNING: globalTheme missing or invalid");
+            }
+
             // --- Parse assistant message
+            System.out.println(">>> [PARSER] Parsing assistantMessage...");
             JsonNode assistantNode = root.path("assistantMessage");
             if (assistantNode.isMissingNode() || !assistantNode.isObject()) {
+                System.out.println(">>> [PARSER] ERROR: Assistant message node missing");
                 throw new IllegalArgumentException("Assistant message node missing");
             }
 
@@ -47,13 +69,16 @@ public class PortfolioResponseParser {
             response.setAssistantMessage(msg);
 
             // --- Parse sections
+            System.out.println(">>> [PARSER] Parsing sections...");
             List<SectionDTO> sections = new ArrayList<>();
             JsonNode sectionsNode = root.path("sections");
 
             if (!sectionsNode.isArray()) {
-                System.out.println("NOT AN ARRAY! ");
+                System.out.println(">>> [PARSER] ERROR: sections is NOT an array!");
                 return new PortfolioGenerateResponseDTO();
             }
+
+            System.out.println(">>> [PARSER] Found " + sectionsNode.size() + " sections");
 
             for (JsonNode node : sectionsNode) {
                 SectionDTO section = new SectionDTO();
@@ -63,14 +88,17 @@ public class PortfolioResponseParser {
                 section.setContentJson(node.path("contentJson"));
                 section.setReactSource(sanitizeReactSource(node.path("reactSource").asText()));
 
+                System.out.println(">>> [PARSER] Parsed section: " + section.getSectionKey() + " (index: " + section.getOrderIndex() + ")");
                 sections.add(section);
             }
 
             response.setSections(sections);
-
+            System.out.println(">>> [PARSER] All sections parsed successfully");
 
             return response;
         } catch (Exception e) {
+            System.out.println(">>> [PARSER] ERROR: Failed to parse AI response JSON: " + e.getMessage());
+            e.printStackTrace();
             throw new IllegalArgumentException("Failed to parse AI response JSON", e);
         }
     }

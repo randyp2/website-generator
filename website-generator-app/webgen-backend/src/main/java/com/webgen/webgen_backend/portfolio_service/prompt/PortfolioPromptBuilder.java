@@ -183,7 +183,7 @@ public class PortfolioPromptBuilder {
                 ========================
                 PORTFOLIO THEME
                 ========================
-                
+
                 You MUST internally decide on a unifying portfolio theme such as:
                 - Minimal / editorial
                 - Bold / experimental
@@ -191,15 +191,47 @@ public class PortfolioPromptBuilder {
                 - Playful / creative
                 - Technical / futuristic
                 - Warm / human-centered
-                
+
                 This theme MUST influence:
                 - Typography scale and spacing
                 - Color usage and contrast
                 - Animation style and intensity
                 - Section layout density
-                
+
                 The theme does NOT need to be stated explicitly,
                 but it MUST be reflected consistently across sections.
+
+                ========================
+                GLOBAL THEME (REQUIRED)
+                ========================
+
+                You MUST output a `globalTheme` object alongside `sections`.
+
+                The globalTheme provides unified background and text styling
+                that wraps all sections at the page level.
+
+                globalTheme structure:
+                {
+                    "background": "<Tailwind background classes for full-page wrapper>",
+                    "textPrimary": "<Tailwind text color class>",
+                    "textSecondary": "<Tailwind text color class>",
+                    "accentColor": "<color name like 'purple', 'blue', 'emerald'>"
+                }
+
+                Example globalTheme:
+                {
+                    "background": "bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900",
+                    "textPrimary": "text-white",
+                    "textSecondary": "text-slate-400",
+                    "accentColor": "purple"
+                }
+
+                CRITICAL SECTION STYLING RULES:
+                - Sections MUST have transparent or semi-transparent backgrounds ONLY
+                - Allowed backgrounds: bg-transparent, bg-black/10, bg-white/5, bg-slate-900/50
+                - NOT allowed: bg-slate-900, bg-white, bg-gradient-*, any fully opaque colors
+                - The globalTheme provides the page background; sections provide content only
+                - This ensures visual continuity when individual sections are regenerated
                 
                 ========================
                 REQUIRED SECTIONS
@@ -238,7 +270,12 @@ public class PortfolioPromptBuilder {
                 ========================
                 SECTION STRATEGY
                 ========================
-                
+
+                You MUST include ALL resume sections provided in the input.
+                Each resume section MUST be represented as either:
+                - A dedicated portfolio section, OR
+                - A clearly labeled combined section that explicitly includes that resume content.
+
                 You MUST NOT simply mirror standard resume sections.
                 
                 At least TWO sections MUST:
@@ -277,8 +314,14 @@ public class PortfolioPromptBuilder {
                 ========================
                 OUTPUT FORMAT (EXACT)
                 ========================
-                
+
                 {
+                  "globalTheme": {
+                    "background": "<Tailwind classes>",
+                    "textPrimary": "<Tailwind text class>",
+                    "textSecondary": "<Tailwind text class>",
+                    "accentColor": "<color name>"
+                  },
                   "sections": [
                     {
                       "sectionKey": "<string>",
@@ -293,7 +336,9 @@ public class PortfolioPromptBuilder {
                      "suggestions": ["<string>"]
                   }
                 }
-                
+
+                IMPORTANT: The globalTheme field is REQUIRED and must be present.
+
                 If a requested feature would normally require page-level coordination
                 or additional props, implement a simpler version that respects these rules.
                 

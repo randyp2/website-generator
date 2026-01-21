@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import type { UploadedFile } from "@/types/file";
-import { Message } from "@/types/preview";
+import type { SectionDTO } from "@/types/portfolio";
+import { Message, SectionPlan } from "@/types/preview";
 import { Preview } from "./components/Preview";
 import { FloatingPromptBar } from "./components/FloatingPromptBar";
 import { ChatHistoryOverlay } from "./components/ChatHistoryOverlay";
@@ -12,15 +14,21 @@ import { usePortfolioStore } from "@/stores/usePortfolioStore";
 // MAIN COMPONENT
 // ============================================================================
 const AIRefinementPage: React.FC = () => {
+    const searchParams = useSearchParams();
+
     // Zustand store - All portfolio creation state
     const {
         portfolioId,
         templateId,
+        setTemplateId,
         parsedResumeData,
         stylePreferences,
         aiPrompt,
         sections,
         setSections,
+        setPortfolioId,
+        globalTheme,
+        setGlobalTheme,
         messages,
         setMessages,
         mediaFiles,
@@ -33,6 +41,9 @@ const AIRefinementPage: React.FC = () => {
 
     // Messages & AI response
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isHydrating, setIsHydrating] = useState(false);
+    const [currentPlan, setCurrentPlan] = useState<SectionPlan[] | null>(null);
+    const [isPlanApproved, setIsPlanApproved] = useState(false);
 
     const hasGeneratedRef = useRef(false);
     // Combine media and video files for display
@@ -48,6 +59,53 @@ const AIRefinementPage: React.FC = () => {
             })),
         [messages],
     );
+
+    // ========================================================================
+    // LOAD EXISTING PORTFOLIO (RESUME SESSION)
+    // ========================================================================
+    useEffect(() => {
+        const portfolioIdParam = searchParams.get("portfolioId");
+        if (!portfolioIdParam) return;
+        if (portfolioId === portfolioIdParam && sections && sections.length > 0) {
+            return;
+        }
+
+        const loadPortfolio = async () => {
+            setIsHydrating(true);
+            try {
+                const response = await fetch(
+                    `/api/portfolio/${portfolioIdParam}/load`,
+                );
+                const data = await response.json();
+
+                if (!response.ok) {
+                    console.error("Load portfolio error:", data);
+                    return;
+                }
+
+                setPortfolioId(portfolioIdParam);
+                setTemplateId(data?.templateId ?? null);
+                setSections(Array.isArray(data?.sections) ? data.sections : []);
+                setGlobalTheme(data?.globalTheme ?? null);
+                setMessages([]);
+            } catch (error) {
+                console.error("Failed to load portfolio:", error);
+            } finally {
+                setIsHydrating(false);
+            }
+        };
+
+        loadPortfolio();
+    }, [
+        searchParams,
+        portfolioId,
+        sections,
+        setPortfolioId,
+        setTemplateId,
+        setSections,
+        setGlobalTheme,
+        setMessages,
+    ]);
 
     // ========================================================================
     // ONE-SHOT GENERATION PREVIEW
@@ -87,55 +145,119 @@ const AIRefinementPage: React.FC = () => {
 
             setMessages([userMessage, tempAiMessage]);
 
-            const response: Response = await fetch(
-                `/api/portfolio/${portfolioId}/generate`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        templateId,
-                        resume: parsedResumeData,
-                        userPrompt: basePrompt,
-                        stylePrefs: stylePreferences,
-                    }),
-                },
-            );
+            // Helper function to load saved portfolio data (recovery mechanism)
+            const loadSavedPortfolio = async (): Promise<boolean> => {
+                try {
+                    console.log("[generate] Attempting to load saved portfolio data...");
+                    const loadResponse = await fetch(`/api/portfolio/${portfolioId}/load`);
+                    if (!loadResponse.ok) return false;
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error("Generate API error:", errorData);
-                // Remove the temporary loading message
-                setMessages((prev) =>
-                    prev.filter((m) => m.id !== tempAiMessage.id),
+                    const loadedData = await loadResponse.json();
+                    if (loadedData?.sections?.length > 0) {
+                        console.log("[generate] Successfully recovered portfolio with", loadedData.sections.length, "sections");
+                        setSections(loadedData.sections);
+                        if (loadedData?.globalTheme) {
+                            setGlobalTheme(loadedData.globalTheme);
+                        }
+                        return true;
+                    }
+                    return false;
+                } catch {
+                    return false;
+                }
+            };
+
+            try {
+                const response: Response = await fetch(
+                    `/api/portfolio/${portfolioId}/generate`,
+                    {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            templateId,
+                            resume: parsedResumeData,
+                            userPrompt: basePrompt,
+                            stylePrefs: stylePreferences,
+                        }),
+                    },
                 );
-                return;
-            }
 
-            const data = await response.json();
-            setSections(data?.sections ?? null);
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error("Generate API error:", errorData);
+                    // Remove the temporary loading message
+                    setMessages((prev) =>
+                        prev.filter((m) => m.id !== tempAiMessage.id),
+                    );
+                    return;
+                }
 
-            if (data?.assistantMessage) {
-                const { summary, suggestions } = data.assistantMessage;
-                const formattedSuggestions = Array.isArray(suggestions)
-                    ? suggestions.map((item: string) => `• ${item}`).join("\n")
-                    : "";
+                const data = await response.json();
+                setSections(data?.sections ?? null);
 
-                const content = [summary, formattedSuggestions]
-                    .filter(Boolean)
-                    .join("\n");
+                // Set global theme if present in response
+                if (data?.globalTheme) {
+                    setGlobalTheme(data.globalTheme);
+                }
 
-                const aiMessage: Message = {
-                    id: `ai-${Date.now()}`,
-                    role: "ai",
-                    content: content || "Portfolio generated.",
-                    timestamp: new Date(),
-                    isGenerating: false, // Not generating anymore
-                };
+                if (data?.assistantMessage) {
+                    const { summary, suggestions } = data.assistantMessage;
+                    const formattedSuggestions = Array.isArray(suggestions)
+                        ? suggestions.map((item: string) => `• ${item}`).join("\n")
+                        : "";
 
-                // Replace temp message with actual response
-                setMessages((prev) =>
-                    prev.filter((m) => m.id !== tempAiMessage.id).concat(aiMessage),
-                );
+                    const content = [summary, formattedSuggestions]
+                        .filter(Boolean)
+                        .join("\n");
+
+                    const aiMessage: Message = {
+                        id: `ai-${Date.now()}`,
+                        role: "ai",
+                        content: content || "Portfolio generated.",
+                        timestamp: new Date(),
+                        isGenerating: false, // Not generating anymore
+                    };
+
+                    // Replace temp message with actual response
+                    setMessages((prev) =>
+                        prev.filter((m) => m.id !== tempAiMessage.id).concat(aiMessage),
+                    );
+                }
+            } catch (fetchError) {
+                // Browser connection likely timed out, but server may have completed
+                console.error("[generate] Fetch failed:", fetchError);
+                console.log("[generate] Waiting 3s then attempting recovery...");
+
+                // Wait a moment for server to finish saving
+                await new Promise(resolve => setTimeout(resolve, 3000));
+
+                // Try to recover by loading the saved portfolio
+                const recovered = await loadSavedPortfolio();
+
+                if (recovered) {
+                    const recoveryMessage: Message = {
+                        id: `ai-${Date.now()}`,
+                        role: "ai",
+                        content: "Portfolio generated successfully! (Connection timed out but data was recovered.)",
+                        timestamp: new Date(),
+                        isGenerating: false,
+                    };
+                    setMessages((prev) =>
+                        prev.filter((m) => m.id !== tempAiMessage.id).concat(recoveryMessage),
+                    );
+                } else {
+                    // Complete failure
+                    const errorMessage: Message = {
+                        id: `ai-${Date.now()}`,
+                        role: "ai",
+                        content: "Generation timed out and could not recover. Please try again.",
+                        timestamp: new Date(),
+                        isGenerating: false,
+                    };
+                    setMessages((prev) =>
+                        prev.filter((m) => m.id !== tempAiMessage.id).concat(errorMessage),
+                    );
+                }
             }
         };
 
@@ -149,6 +271,7 @@ const AIRefinementPage: React.FC = () => {
         sections,
         setMessages,
         setSections,
+        setGlobalTheme,
     ]);
 
     // ========================================================================
@@ -208,6 +331,177 @@ const AIRefinementPage: React.FC = () => {
         }
     };
 
+    const summarizeSection = (section: SectionDTO) => {
+        let summary = "";
+        if (section.contentJson) {
+            try {
+                summary = JSON.stringify(section.contentJson);
+            } catch {
+                summary = "";
+            }
+        }
+        if (!summary && section.reactSource) summary = section.reactSource;
+        if (!summary && section.title) summary = section.title;
+        if (!summary) summary = section.sectionKey;
+        return summary.length > 500 ? `${summary.slice(0, 500)}...` : summary;
+    };
+
+    const buildSectionSummaries = (items: SectionDTO[] | null) =>
+        (items ?? []).map((section) => ({
+            sectionKey: section.sectionKey,
+            title: section.title ?? "",
+            orderIndex: section.orderIndex ?? null,
+            summary: summarizeSection(section),
+        }));
+
+    // Build full section content for planner/builder
+    const buildSectionContent = (items: SectionDTO[] | null) =>
+        (items ?? []).map((section) => ({
+            sectionKey: section.sectionKey,
+            title: section.title ?? "",
+            orderIndex: section.orderIndex ?? 0,
+            reactSource: section.reactSource ?? "",
+            contentJson: section.contentJson ?? {},
+        }));
+
+    // ========================================================================
+    // PLANNER API CALL
+    // ========================================================================
+    const callPlanner = async (): Promise<{
+        planSummary: string;
+        sectionPlans: SectionPlan[];
+    } | null> => {
+        if (!portfolioId) return null;
+
+        const response = await fetch(`/api/portfolio/${portfolioId}/refine/plan`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                sections: buildSectionContent(sections),
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error?.error ?? "Plan request failed");
+        }
+
+        return response.json();
+    };
+
+    // ========================================================================
+    // BUILDER API CALL
+    // ========================================================================
+    const callBuilder = async (
+        sectionPlans: SectionPlan[],
+    ): Promise<{
+        buildSummary: string;
+        modifiedSections: SectionDTO[];
+        globalTheme?: import("@/types/portfolio").GlobalTheme | null;
+    } | null> => {
+        if (!portfolioId) return null;
+
+        const response = await fetch(`/api/portfolio/${portfolioId}/refine/build`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                sections: buildSectionContent(sections),
+                sectionPlans,
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error?.error ?? "Build request failed");
+        }
+
+        return response.json();
+    };
+
+    // ========================================================================
+    // APPROVE PLAN & BUILD
+    // ========================================================================
+    const approvePlanAndBuild = async () => {
+        if (!currentPlan || currentPlan.length === 0) return;
+
+        setIsGenerating(true);
+
+        // Add building message
+        const buildingMessage: Message = {
+            id: `ai-building-${Date.now()}`,
+            role: "ai",
+            content: "Building your refined portfolio...",
+            timestamp: new Date(),
+            isGenerating: true,
+            messageType: "build",
+        };
+        setMessages((prev) => [...prev, buildingMessage]);
+
+        try {
+            const buildResult = await callBuilder(currentPlan);
+
+            if (buildResult?.modifiedSections) {
+                // Update sections with new content
+                const updatedSections = buildResult.modifiedSections.map((mod) => ({
+                    sectionKey: mod.sectionKey,
+                    title: mod.title,
+                    reactSource: mod.reactSource,
+                    contentJson: mod.contentJson,
+                    orderIndex: sections?.find((s) => s.sectionKey === mod.sectionKey)?.orderIndex ?? 0,
+                })) as SectionDTO[];
+
+                setSections(updatedSections);
+            }
+
+            // Update global theme if builder returned one (theme change)
+            if (buildResult?.globalTheme) {
+                setGlobalTheme(buildResult.globalTheme);
+            }
+
+            // Replace building message with completion
+            const completeMessage: Message = {
+                id: `ai-complete-${Date.now()}`,
+                role: "ai",
+                content: buildResult?.buildSummary ?? "Portfolio updated successfully!",
+                timestamp: new Date(),
+                messageType: "build",
+            };
+
+            setMessages((prev) =>
+                prev.filter((m) => m.id !== buildingMessage.id).concat(completeMessage),
+            );
+
+            // Clear the current plan
+            setCurrentPlan(null);
+        } catch (error) {
+            console.error("Build error:", error);
+            setIsPlanApproved(false);
+            const errorMessage: Message = {
+                id: `ai-error-${Date.now()}`,
+                role: "ai",
+                content: "Sorry, there was an error building your changes. Please try again.",
+                timestamp: new Date(),
+                messageType: "error",
+            };
+            setMessages((prev) =>
+                prev.filter((m) => m.id !== buildingMessage.id).concat(errorMessage),
+            );
+        } finally {
+            setIsGenerating(false);
+            setIsPlanApproved(false);
+        }
+    };
+
+    const handleApprovePlan = async () => {
+        setIsPlanApproved(true);
+        await sendMessage("approve", []);
+    };
+
+    const handleKeepChatting = () => {
+        setIsPlanApproved(false);
+        setCurrentPlan(null);
+    };
+
     // ========================================================================
     // SEND MESSAGE
     // ========================================================================
@@ -232,6 +526,35 @@ const AIRefinementPage: React.FC = () => {
         // Validate input
         if (!prompt.trim() && files.length === 0) return;
 
+        // Check if user is approving a plan
+        const isApproval = prompt.trim().toLowerCase() === "approve" && currentPlan;
+        if (isApproval) {
+            // Add user approval message
+            const approvalMessage: Message = {
+                id: Date.now().toString(),
+                role: "user",
+                content: "approve",
+                timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, approvalMessage]);
+
+            // Trigger build
+            await approvePlanAndBuild();
+            return;
+        }
+
+        if (!portfolioId) {
+            const errorMessage: Message = {
+                id: (Date.now() + 1).toString(),
+                role: "ai",
+                content:
+                    "Please create a portfolio first so I can refine its sections.",
+                timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, errorMessage]);
+            return;
+        }
+
         // Create user message
         const userMessage: Message = {
             id: Date.now().toString(),
@@ -240,8 +563,16 @@ const AIRefinementPage: React.FC = () => {
             timestamp: new Date(),
         };
 
+        const tempAiMessage: Message = {
+            id: `ai-temp-${Date.now()}`,
+            role: "ai",
+            content: "",
+            timestamp: new Date(),
+            isGenerating: true,
+        };
+
         // Add user message to chat history
-        setMessages((prev) => [...prev, userMessage]);
+        setMessages((prev) => [...prev, userMessage, tempAiMessage]);
 
         // Clear uploaded files from Zustand store
         // Note: We need to clear both mediaFiles and videoFiles
@@ -255,69 +586,117 @@ const AIRefinementPage: React.FC = () => {
         // Set loading state
         setIsGenerating(true);
 
+        // Clear any existing plan since user is starting new clarification
+        if (currentPlan) {
+            setCurrentPlan(null);
+        }
+
         try {
             // ============================================================
-            // BACKEND CALL: Spring Boot API
+            // BACKEND CALL: Clarifier API via Next.js route
             // ============================================================
-            // TODO: Replace this mock implementation with actual API call
+            // Endpoint: POST /api/portfolio/refine/clarify
             //
-            // Endpoint: POST /api/portfolio/refine
-            //
-            // Request Body (FormData):
-            // - prompt: string (user's refinement request)
-            // - files: File[] (optional media/video files)
-            // - resumeFile: File (from Zustand store - usePortfolioStore().resumeFile)
-            // - templateId: string (from Zustand store - usePortfolioStore().templateId)
-            // - currentHtml: string (from Zustand store - usePortfolioStore().previewHtml)
-            //
-            // Expected Response:
-            // {
-            //   success: boolean,
-            //   message: string (AI's response message),
-            //   updatedHtml: string (refined HTML for preview),
-            //   timestamp: string
-            // }
-            //
-            // Example implementation:
-            // const formData = new FormData();
-            // formData.append('prompt', prompt);
-            // formData.append('templateId', usePortfolioStore.getState().templateId || '');
-            // formData.append('currentHtml', usePortfolioStore.getState().previewHtml || '');
-            // files.forEach((file, index) => {
-            //   formData.append(`files[${index}]`, file);
-            // });
-            // const resumeFile = usePortfolioStore.getState().resumeFile;
-            // if (resumeFile) {
-            //   formData.append('resumeFile', resumeFile.file);
-            // }
-            //
-            // const response = await fetch('http://localhost:8080/api/portfolio/refine', {
-            //   method: 'POST',
-            //   body: formData,
-            //   headers: {
-            //     'Authorization': `Bearer ${token}` // Add auth token
-            //   }
-            // });
-            //
-            // const data = await response.json();
+            // Request Body (JSON):
+            // - portfolioId: string
+            // - userPrompt: string
+            // - sections: SectionSummaryDTO[]
             // ============================================================
+            const response = await fetch(
+                `/api/portfolio/${portfolioId}/refine/clarify`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        userPrompt: prompt,
+                        sections: buildSectionSummaries(sections),
+                    }),
+                },
+            );
 
-            // MOCK RESPONSE - Remove this when implementing real backend
-            await new Promise((resolve) => setTimeout(resolve, 1500));
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data?.error ?? "Clarification request failed.",
+                );
+            }
 
             const aiResponseText =
-                "I've refined your portfolio based on your request. The preview has been updated!";
+                data?.assistantMessage ??
+                "Thanks! I can help clarify that. What would you like to change?";
 
-            // Create AI message
-            const aiMessage: Message = {
+            const isReadyForPlanning = data?.readyForPlanning === true;
+
+            // Create clarifier response message
+            const clarifyMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 role: "ai",
                 content: aiResponseText,
                 timestamp: new Date(),
+                messageType: "clarify",
+                readyForPlanning: isReadyForPlanning,
             };
 
-            // Add AI message to chat history
-            setMessages((prev) => [...prev, aiMessage]);
+            setMessages((prev) =>
+                prev.filter((m) => m.id !== tempAiMessage.id).concat(clarifyMessage),
+            );
+
+            // If ready for planning, automatically call planner
+            if (isReadyForPlanning) {
+                const planningMessage: Message = {
+                    id: `ai-planning-${Date.now()}`,
+                    role: "ai",
+                    content: "Creating a modification plan...",
+                    timestamp: new Date(),
+                    isGenerating: true,
+                    messageType: "plan",
+                };
+                setMessages((prev) => [...prev, planningMessage]);
+
+                try {
+                    const planResult = await callPlanner();
+
+                    if (planResult?.sectionPlans) {
+                        setCurrentPlan(planResult.sectionPlans);
+                        setIsPlanApproved(false);
+
+                        // Format plan for display
+                        const planDetails = planResult.sectionPlans
+                            .filter((p) => p.action === "modify")
+                            .map((p) => `• ${p.sectionKey}: ${p.instruction}`)
+                            .join("\n");
+
+                        const planContent = `${planResult.planSummary}\n\n**Planned Changes:**\n${planDetails}\n\n_Use the buttons below to apply these changes, or keep chatting to adjust._`;
+
+                        const planMessage: Message = {
+                            id: `ai-plan-${Date.now()}`,
+                            role: "ai",
+                            content: planContent,
+                            timestamp: new Date(),
+                            messageType: "plan",
+                            sectionPlans: planResult.sectionPlans,
+                            planSummary: planResult.planSummary,
+                        };
+
+                        setMessages((prev) =>
+                            prev.filter((m) => m.id !== planningMessage.id).concat(planMessage),
+                        );
+                    }
+                } catch (planError) {
+                    console.error("Planning error:", planError);
+                    const errorMsg: Message = {
+                        id: `ai-error-${Date.now()}`,
+                        role: "ai",
+                        content: "Sorry, there was an error creating the plan. Please try again.",
+                        timestamp: new Date(),
+                        messageType: "error",
+                    };
+                    setMessages((prev) =>
+                        prev.filter((m) => m.id !== planningMessage.id).concat(errorMsg),
+                    );
+                }
+            }
         } catch (error) {
             console.error("Error sending message to AI:", error);
 
@@ -330,7 +709,11 @@ const AIRefinementPage: React.FC = () => {
                 timestamp: new Date(),
             };
 
-            setMessages((prev) => [...prev, errorMessage]);
+            setMessages((prev) =>
+                prev
+                    .filter((m) => m.id !== tempAiMessage.id)
+                    .concat(errorMessage),
+            );
         } finally {
             // Reset loading state
             setIsGenerating(false);
@@ -345,14 +728,14 @@ const AIRefinementPage: React.FC = () => {
             {/* ================================================ */}
             {/* LAYER 1: SANDBOX - FULL SCREEN (BASE, z-0) */}
             {/* ================================================ */}
-            <Preview sections={sections} />
+            <Preview sections={sections} globalTheme={globalTheme} />
 
             {/* ================================================ */}
             {/* LAYER 2: CHAT HISTORY OVERLAY - CENTER (z-40) */}
             {/* ================================================ */}
             <ChatHistoryOverlay
                 messages={normalizedMessages}
-                isGenerating={isGenerating}
+                isGenerating={isGenerating || isHydrating}
             />
 
             {/* ================================================ */}
@@ -363,7 +746,10 @@ const AIRefinementPage: React.FC = () => {
                 onSendMessage={sendMessage}
                 onFileSelect={handleFileSelect}
                 onRemoveFile={removeFile}
-                isGenerating={isGenerating}
+                isGenerating={isGenerating || isHydrating}
+                showPlanActions={Boolean(currentPlan) && !isPlanApproved}
+                onApprovePlan={handleApprovePlan}
+                onKeepChatting={handleKeepChatting}
             />
 
             {/* ================================================ */}
