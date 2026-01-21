@@ -7,7 +7,7 @@ import {
     ParsedProject,
 } from "@/types/resume";
 import { StylePreferences } from "@/types/style";
-import type { SectionDTO } from "@/types/portfolio";
+import type { SectionDTO, GlobalTheme } from "@/types/portfolio";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
@@ -32,6 +32,9 @@ export interface PortfolioCreateState {
 
     // Generated sections for preview
     sections: SectionDTO[] | null;
+
+    // Global theme for unified backgrounds
+    globalTheme: GlobalTheme | null;
 
     // Chat messages (persisted for preview page)
     messages: Message[];
@@ -104,6 +107,7 @@ export interface PortfolioCreateState {
     updateStylePreference: (key: keyof StylePreferences, value: string) => void;
 
     setSections: (sections: SectionDTO[] | null) => void;
+    setGlobalTheme: (theme: GlobalTheme | null) => void;
 
     setMessages: (
         updater: Message[] | ((prev: Message[]) => Message[]),
@@ -134,6 +138,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                 customNotes: "",
             },
             sections: null,
+            globalTheme: null,
             messages: [],
             aiPrompt: "",
             previewHtml: null,
@@ -456,6 +461,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             },
 
             setSections: (sections: SectionDTO[] | null) => set({ sections }),
+            setGlobalTheme: (theme: GlobalTheme | null) => set({ globalTheme: theme }),
 
             setMessages: (
                 updater: Message[] | ((prev: Message[]) => Message[]),
@@ -476,6 +482,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                     videoFiles: [],
                     parsedResumeData: null,
                     sections: null,
+                    globalTheme: null,
                     messages: [],
                     stylePreferences: {
                         colorScheme: null,
@@ -502,6 +509,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                 parsedResumeData: state.parsedResumeData,
                 stylePreferences: state.stylePreferences,
                 sections: state.sections,
+                globalTheme: state.globalTheme,
                 messages: state.messages,
                 aiPrompt: state.aiPrompt,
                 previewHtml: state.previewHtml,

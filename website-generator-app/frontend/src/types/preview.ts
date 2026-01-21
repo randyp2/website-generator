@@ -35,12 +35,26 @@ export interface FilePreview extends Omit<UploadedFile, "id"> {
     fileType: "image" | "video";
 }
 
+export interface SectionPlan {
+    sectionKey: string;
+    action: "modify" | "keep" | "reorder";
+    instruction: string;
+    rationale: string;
+    intensity: "LIGHT" | "MEDIUM" | "STRONG";
+    preserveElements: string[];
+}
+
 export interface Message {
     id: string;
     role: "user" | "ai";
     content: string;
     timestamp: Date;
-    isGenerating?: boolean; // Flag to indicate message is still generating
+    isGenerating?: boolean;
+    // Refinement flow metadata
+    messageType?: "clarify" | "plan" | "build" | "error";
+    readyForPlanning?: boolean;
+    sectionPlans?: SectionPlan[];
+    planSummary?: string;
 }
 
 export type DeviceMode = "desktop" | "tablet" | "mobile";
