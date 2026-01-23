@@ -9,10 +9,6 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-
-/* ====================================================================================*/
-// Service class that helps extract experiences and its metadata
-/* ====================================================================================*/
 @Service
 public class ExperienceExtractionService {
 

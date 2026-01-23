@@ -1,13 +1,11 @@
+import { enforceRateLimit } from "@/lib/enable-rate-limit";
 import { adminSupabase } from "@/utils/supabase/admin";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { request } from "undici";
 
-// Allow up to 10 minutes for portfolio generation (for Vercel deployments)
-export const maxDuration = 600;
-
 export async function POST(
-    req: Request,
+    req: NextRequest,
     context: { params: Promise<{ id: string }> },
 ) {
     try {
@@ -52,6 +50,12 @@ export async function POST(
             );
         }
 
+        // -- ENFORCE RATE LIMITING
+        const rateLimitResponse = await enforceRateLimit(
+            req,
+            `generate:user:${user.id}`,
+        );
+
         // --- Portfolio id owner check
         const { data: portfolio, error: portfolioError } = await adminSupabase
             .from("portfolios")
@@ -67,10 +71,7 @@ export async function POST(
         }
 
         if (portfolio.user_id !== user.id) {
-            return NextResponse.json(
-                { error: "Forbidden" },
-                { status: 403 },
-            );
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
         // --- Fetch asssets for this portfolio
@@ -99,7 +100,9 @@ export async function POST(
         }
 
         // Call backend api with extended timeout handling
-        console.log("[generate] Calling backend API for portfolio generation...");
+        console.log(
+            "[generate] Calling backend API for portfolio generation...",
+        );
 
         const requestBody = JSON.stringify({
             ...body,
@@ -142,9 +145,14 @@ export async function POST(
                 message: err instanceof Error ? err.message : String(err),
             });
 
-            if (errorCode === "UND_ERR_HEADERS_TIMEOUT" || errorCode === "UND_ERR_BODY_TIMEOUT") {
+            if (
+                errorCode === "UND_ERR_HEADERS_TIMEOUT" ||
+                errorCode === "UND_ERR_BODY_TIMEOUT"
+            ) {
                 return NextResponse.json(
-                    { error: "Portfolio generation timed out. Please try again." },
+                    {
+                        error: "Portfolio generation timed out. Please try again.",
+                    },
                     { status: 504 },
                 );
             }
@@ -158,7 +166,10 @@ export async function POST(
         try {
             data = JSON.parse(responseBody);
         } catch {
-            console.error("[generate] Failed to parse response:", responseBody.slice(0, 500));
+            console.error(
+                "[generate] Failed to parse response:",
+                responseBody.slice(0, 500),
+            );
             return NextResponse.json(
                 { error: "Invalid response from backend" },
                 { status: 502 },
@@ -174,7 +185,11 @@ export async function POST(
             );
         }
 
-        console.log("[generate] Successfully received portfolio data with", data?.sections?.length ?? 0, "sections");
+        console.log(
+            "[generate] Successfully received portfolio data with",
+            data?.sections?.length ?? 0,
+            "sections",
+        );
 
         const sectionsSnapshot = {
             sections: data?.sections ?? [],
@@ -198,7 +213,10 @@ export async function POST(
             .single();
 
         if (versionError || !version) {
-            console.error("[generate] Failed to persist generated version:", versionError);
+            console.error(
+                "[generate] Failed to persist generated version:",
+                versionError,
+            );
             return NextResponse.json(
                 { error: "Failed to persist generated version" },
                 { status: 500 },
@@ -216,7 +234,10 @@ export async function POST(
             .eq("id", portfolioId);
 
         if (portfolioUpdateError) {
-            console.error("[generate] Failed to set active version:", portfolioUpdateError);
+            console.error(
+                "[generate] Failed to set active version:",
+                portfolioUpdateError,
+            );
             return NextResponse.json(
                 { error: "Failed to set active version" },
                 { status: 500 },
@@ -243,7 +264,10 @@ export async function POST(
             );
 
         if (sectionsError) {
-            console.error("[generate] Failed to persist sections:", sectionsError);
+            console.error(
+                "[generate] Failed to persist sections:",
+                sectionsError,
+            );
             return NextResponse.json(
                 { error: "Failed to persist sections" },
                 { status: 500 },

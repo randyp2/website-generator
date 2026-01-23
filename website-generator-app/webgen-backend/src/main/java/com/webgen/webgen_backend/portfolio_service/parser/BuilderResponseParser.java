@@ -22,6 +22,7 @@ public class BuilderResponseParser {
 
             BuilderResponseDTO dto = new BuilderResponseDTO();
             dto.setBuildSummary(root.path("buildSummary").asText(""));
+            dto.setDeletedSectionKeys(readStringList(root.path("deletedSectionKeys")));
 
             // Parse optional globalTheme
             JsonNode themeNode = root.path("globalTheme");
@@ -57,6 +58,9 @@ public class BuilderResponseParser {
         ModifiedSectionDTO section = new ModifiedSectionDTO();
         section.setSectionKey(node.path("sectionKey").asText(""));
         section.setTitle(node.path("title").asText(""));
+        section.setOrderIndex(node.path("orderIndex").isNumber()
+                ? node.path("orderIndex").asInt()
+                : null);
         section.setReactSource(node.path("reactSource").asText(""));
         section.setChangeDescription(node.path("changeDescription").asText(""));
 
@@ -71,5 +75,15 @@ public class BuilderResponseParser {
         }
 
         return section;
+    }
+
+    private List<String> readStringList(JsonNode node) {
+        List<String> list = new ArrayList<>();
+        if (node.isArray()) {
+            for (JsonNode item : node) {
+                list.add(item.asText(""));
+            }
+        }
+        return list;
     }
 }

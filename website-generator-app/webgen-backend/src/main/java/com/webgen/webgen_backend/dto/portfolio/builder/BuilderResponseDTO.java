@@ -7,6 +7,7 @@ import java.util.List;
 @Data
 public class BuilderResponseDTO {
     private List<ModifiedSectionDTO> modifiedSections;
+    private List<String> deletedSectionKeys;
     private String buildSummary;
     private GlobalThemeDTO globalTheme;  // Optional: only present if theme was changed
 }

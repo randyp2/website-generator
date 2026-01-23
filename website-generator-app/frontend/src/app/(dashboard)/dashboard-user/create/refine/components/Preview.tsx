@@ -32,7 +32,10 @@ const normalizeTheme = (globalTheme?: GlobalTheme | null) => {
     };
 };
 
-const buildSandpackFiles = (sections: SectionDTO[], globalTheme?: GlobalTheme | null) => {
+const buildSandpackFiles = (
+    sections: SectionDTO[],
+    globalTheme?: GlobalTheme | null,
+) => {
     // --- Sort from 0 - n indexing
     const sorted = [...sections].sort(
         (a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0),
@@ -98,15 +101,26 @@ const buildSandpackFiles = (sections: SectionDTO[], globalTheme?: GlobalTheme | 
             'import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";';
         const framerImport =
             'import { motion, AnimatePresence, useScroll, useTransform, useSpring, useInView } from "framer-motion";';
-        const hasReactImport = /^import\s+[^;]*\s+from\s+["']react["'];?\s*$/m.test(source);
-        const hasFramerImport = /^import\s+[^;]*\s+from\s+["']framer-motion["'];?\s*$/m.test(source);
+        const lucideImport =
+            'import { Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight } from "lucide-react";';
+        const hasReactImport =
+            /^import\s+[^;]*\s+from\s+["']react["'];?\s*$/m.test(source);
+        const hasFramerImport =
+            /^import\s+[^;]*\s+from\s+["']framer-motion["'];?\s*$/m.test(
+                source,
+            );
+        const hasLucideImport =
+            /^import\s+[^;]*\s+from\s+["']lucide-react["'];?\s*$/m.test(source);
 
         const neededImports = [
             ...(hasReactImport ? [] : [reactImport]),
             ...(hasFramerImport ? [] : [framerImport]),
+            ...(hasLucideImport ? [] : [lucideImport]),
         ].join("\n");
 
-        return neededImports ? `${neededImports}\n\n${source.trimStart()}` : source;
+        return neededImports
+            ? `${neededImports}\n\n${source.trimStart()}`
+            : source;
     };
 
     sorted.forEach((section, index) => {
@@ -177,6 +191,7 @@ export const Preview: React.FC<PreviewProps> = ({ sections, globalTheme }) => {
                 customSetup={{
                     dependencies: {
                         "framer-motion": "^10.0.0",
+                        "lucide-react": "^0.294.0",
                     },
                 }}
                 theme={atomDark}

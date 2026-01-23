@@ -37,14 +37,6 @@ public class ResumeParserService  {
         ParsedResume parsedResume = resumeExtractionService.extract(normalizedText);
         parsedResume.setRawText(rawText);
 
-
-//        System.out.println("Raw text: " + rawText);
-//        System.out.println();
-//        System.out.println("Extracted skills section: " + parsedResume.getSkills());
-        // resumeExtractionService.extract
-
-
-
         return parsedResumeMapper.toDto(parsedResume);
     }
 }
