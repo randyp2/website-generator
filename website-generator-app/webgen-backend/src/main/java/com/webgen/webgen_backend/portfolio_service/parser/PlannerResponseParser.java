@@ -46,6 +46,11 @@ public class PlannerResponseParser {
         plan.setInstruction(node.path("instruction").asText(""));
         plan.setRationale(node.path("rationale").asText(""));
         plan.setPreserveElements(readStringList(node.path("preserveElements")));
+        plan.setNewSectionTitle(node.path("newSectionTitle").asText(""));
+        plan.setInsertAfterSectionKey(node.path("insertAfterSectionKey").asText(""));
+        plan.setOrderIndex(node.path("orderIndex").isNumber()
+                ? node.path("orderIndex").asInt()
+                : null);
 
         String intensity = node.path("intensity").asText("MEDIUM");
         try {

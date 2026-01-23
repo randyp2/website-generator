@@ -2,6 +2,7 @@ package com.webgen.webgen_backend.portfolio_service.validator;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.webgen.webgen_backend.dto.portfolio.SectionDTO;
 import com.webgen.webgen_backend.dto.portfolio.builder.ModifiedSectionDTO;
 import com.webgen.webgen_backend.dto.portfolio.builder.ValidationResult;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,30 @@ public class JsxValidatorService {
 
     @Value("${jsx.validator.node.path:node}")
     private String nodePath;
+
+    public ValidationResult validateGeneratedSections(List<SectionDTO> sections) {
+        ValidationResult result = new ValidationResult();
+        result.setValid(true);
+        result.setErrors(new ArrayList<>());
+
+        for (SectionDTO section : sections) {
+            if (section.getReactSource() == null || section.getReactSource().isBlank()) {
+                continue;
+            }
+
+            ValidationResult sectionResult = validateSingleSection(
+                    section.getSectionKey(),
+                    section.getReactSource()
+            );
+
+            if (!sectionResult.isValid()) {
+                result.setValid(false);
+                result.getErrors().addAll(sectionResult.getErrors());
+            }
+        }
+
+        return result;
+    }
 
     public ValidationResult validateSections(List<ModifiedSectionDTO> sections) {
         ValidationResult result = new ValidationResult();

@@ -4,22 +4,25 @@ import com.webgen.webgen_backend.dto.portfolio.PortfolioGenerateRequestDTO;
 import com.webgen.webgen_backend.dto.portfolio.PortfolioGenerateResponseDTO;
 import com.webgen.webgen_backend.dto.portfolio.SectionRefineRequestDTO;
 import com.webgen.webgen_backend.dto.portfolio.SectionRefineResponseDTO;
+import com.webgen.webgen_backend.dto.portfolio.builder.ValidationResult;
 import com.webgen.webgen_backend.dto.resume.ParsedResumeDTO;
 import com.webgen.webgen_backend.portfolio_service.PortfolioAiService;
 import com.webgen.webgen_backend.portfolio_service.parser.PortfolioResponseParser;
 import com.webgen.webgen_backend.portfolio_service.prompt.PortfolioPromptBuilder;
 import com.webgen.webgen_backend.portfolio_service.prompt.PromptRefinerService;
-import lombok.AllArgsConstructor;
+import com.webgen.webgen_backend.portfolio_service.validator.JsxValidatorService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class PortfolioAiServiceImpl implements PortfolioAiService {
 
     private final OpenAiChatModel openAiChatModel; // Create ai chat model (generate response)
@@ -28,6 +31,10 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
     private final PortfolioPromptBuilder portfolioPromptBuilder; // Build user prompt
 
     private final PortfolioResponseParser portfolioResponseParser;
+    private final JsxValidatorService jsxValidatorService;
+
+    @Value("${jsx.validator.max-retries:3}")
+    private int maxRetries;
 
 
 
@@ -49,8 +56,6 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
         if (resume.getEducations() == null) resume.setEducations(List.of());
         if (resume.getSummary() == null) resume.setSummary("");
 
-        System.out.println(">>> [SERVICE] Resume normalized - Name: " + resume.getFullName());
-
         // --- Refine & Build prompt
         String rawPrompt = req.getUserPrompt();
         System.out.println(">>> [SERVICE] Raw prompt: " + rawPrompt);
@@ -61,31 +66,65 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
         System.out.println(">>> [SERVICE] Prompt refined in " + (System.currentTimeMillis() - refineStart) + "ms");
         System.out.println(">>> [SERVICE] Refined prompt: " + refinedPrompt);
 
-        System.out.println(">>> [SERVICE] Building one-shot prompt...");
-        Prompt prompt = portfolioPromptBuilder.buildOneShotPrompt(req, refinedPrompt);
-        System.out.println(">>> [SERVICE] Prompt built successfully");
+        PortfolioGenerateResponseDTO parsedResponse = null;
+        ValidationResult validation = null;
+        String rawJson = null;
+        int attempt = 0;
 
-        // --- Call AI chat model
-        System.out.println(">>> [SERVICE] Calling OpenAI chat model...");
-        System.out.println(">>> [SERVICE] WARNING: This may take 30-120 seconds for large portfolios");
-        long aiStart = System.currentTimeMillis();
+        while (attempt < maxRetries) {
+            attempt++;
 
-        ChatResponse response = openAiChatModel.call(prompt);
+            // --- Build prompt (with errors if retry)
+            Prompt prompt;
+            if (validation == null || validation.isValid()) {
+                System.out.println(">>> [SERVICE] Building one-shot prompt...");
+                prompt = portfolioPromptBuilder.buildOneShotPrompt(req, refinedPrompt);
+            } else {
+                System.out.println(">>> [SERVICE] Building retry prompt (attempt " + attempt + ")...");
+                prompt = portfolioPromptBuilder.buildOneShotRetryPrompt(req, refinedPrompt, rawJson, validation.getErrors());
+            }
+            System.out.println(">>> [SERVICE] Prompt built successfully");
 
-        System.out.println(">>> [SERVICE] OpenAI call completed in " + (System.currentTimeMillis() - aiStart) + "ms");
+            // --- Call AI chat model
+            System.out.println(">>> [SERVICE] Calling OpenAI chat model...");
+            System.out.println(">>> [SERVICE] WARNING: This may take 30-120 seconds for large portfolios");
+            long aiStart = System.currentTimeMillis();
 
-        String rawJson = response.getResult().getOutput().getText();
-        System.out.println(">>> [SERVICE] Raw JSON response length: " + (rawJson != null ? rawJson.length() : 0) + " chars");
+            ChatResponse response = openAiChatModel.call(prompt);
 
-        // --- Parse json and validate
-        System.out.println(">>> [SERVICE] Parsing response JSON...");
-        PortfolioGenerateResponseDTO parsedResponse = portfolioResponseParser.parseGenerateResponse(rawJson);
-        System.out.println(">>> [SERVICE] Response parsed, sections: " + (parsedResponse.getSections() != null ? parsedResponse.getSections().size() : 0));
+            System.out.println(">>> [SERVICE] OpenAI call completed in " + (System.currentTimeMillis() - aiStart) + "ms");
 
-        System.out.println(">>> [SERVICE] Validating response...");
-        portfolioResponseParser.validateGenerateResponse(parsedResponse);
+            rawJson = response.getResult().getOutput().getText();
+            System.out.println(">>> [SERVICE] Raw JSON response length: " + (rawJson != null ? rawJson.length() : 0) + " chars");
+
+            // --- Parse json and validate structure
+            System.out.println(">>> [SERVICE] Parsing response JSON...");
+            parsedResponse = portfolioResponseParser.parseGenerateResponse(rawJson);
+            System.out.println(">>> [SERVICE] Response parsed, sections: " + (parsedResponse.getSections() != null ? parsedResponse.getSections().size() : 0));
+
+            System.out.println(">>> [SERVICE] Validating response structure...");
+            portfolioResponseParser.validateGenerateResponse(parsedResponse);
+            System.out.println(">>> [SERVICE] Structure validation passed");
+
+            // --- Validate JSX
+            System.out.println(">>> [SERVICE] Validating JSX...");
+            validation = jsxValidatorService.validateGeneratedSections(parsedResponse.getSections());
+
+            if (validation.isValid()) {
+                System.out.println(">>> [SERVICE] JSX validation passed on attempt " + attempt);
+                break; // Success
+            }
+
+            System.out.println(">>> [SERVICE] JSX validation failed (attempt " + attempt + "): " + validation.getErrors());
+        }
+
+        if (!validation.isValid()) {
+            throw new IllegalStateException(
+                    "Failed to generate valid JSX after " + maxRetries + " attempts. Errors: " + validation.getErrors()
+            );
+        }
+
         System.out.println(">>> [SERVICE] Validation passed, returning response");
-
         return parsedResponse;
     }
 

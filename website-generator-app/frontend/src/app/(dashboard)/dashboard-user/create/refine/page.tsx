@@ -447,7 +447,10 @@ const AIRefinementPage: React.FC = () => {
                     title: mod.title,
                     reactSource: mod.reactSource,
                     contentJson: mod.contentJson,
-                    orderIndex: sections?.find((s) => s.sectionKey === mod.sectionKey)?.orderIndex ?? 0,
+                    orderIndex:
+                        mod.orderIndex ??
+                        sections?.find((s) => s.sectionKey === mod.sectionKey)?.orderIndex ??
+                        0,
                 })) as SectionDTO[];
 
                 setSections(updatedSections);
@@ -663,7 +666,7 @@ const AIRefinementPage: React.FC = () => {
 
                         // Format plan for display
                         const planDetails = planResult.sectionPlans
-                            .filter((p) => p.action === "modify")
+                            .filter((p) => p.action === "modify" || p.action === "add")
                             .map((p) => `• ${p.sectionKey}: ${p.instruction}`)
                             .join("\n");
 

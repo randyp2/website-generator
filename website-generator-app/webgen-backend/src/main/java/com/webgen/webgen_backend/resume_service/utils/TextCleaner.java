@@ -13,7 +13,7 @@ public class TextCleaner {
          */
         public String clean(String rawText) {
             if (rawText == null || rawText.isBlank()) return "";
-            debugText(rawText.substring(0, Math.min(2000, rawText.length())));
+//            debugText(rawText.substring(0, Math.min(2000, rawText.length())));
             String text = rawText;
 
             // 1. Normalize line endings (Windows, Mac, Linux)
