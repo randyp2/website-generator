@@ -1,61 +1,76 @@
-import { enforceRateLimit } from "@/lib/enable-rate-limit";
+import { enforceRateLimit } from "@/lib/rate-limit/enable-rate-limit";
+import { generateRateLimit } from "@/lib/rate-limit/ratelimit";
+import { acquireLock, releaseLock } from "@/lib/rate-limit/redis-lock";
+import { GeneratedSection } from "@/types/portfolio";
 import { adminSupabase } from "@/utils/supabase/admin";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { request } from "undici";
 
+// Type guard for error code:
+//
 export async function POST(
-    req: NextRequest,
+    req: Request,
     context: { params: Promise<{ id: string }> },
 ) {
-    try {
-        const body = await req.json();
-        const { id: portfolioId } = await context.params;
+    const body = await req.json();
+    const { id: portfolioId } = await context.params;
 
-        // --- Validate request body
-        if (!body?.resume || !body?.templateId) {
-            return NextResponse.json(
-                {
-                    error: "Resume and templateId are required for portfolio generation",
-                },
-                { status: 400 },
-            );
-        }
-
-        // --- Extract and verify user
-        const supabase = await createServerSupabaseClient();
-
-        // Use getUser() to verify authenticity with Supabase Auth server
-        const {
-            data: { user },
-            error: userError,
-        } = await supabase.auth.getUser();
-
-        if (userError || !user) {
-            return NextResponse.json(
-                { error: "Unauthorized" },
-                { status: 401 },
-            );
-        }
-
-        // Get session for the access token (needed for backend call)
-        const {
-            data: { session },
-        } = await supabase.auth.getSession();
-
-        if (!session) {
-            return NextResponse.json(
-                { error: "Session expired" },
-                { status: 401 },
-            );
-        }
-
-        // -- ENFORCE RATE LIMITING
-        const rateLimitResponse = await enforceRateLimit(
-            req,
-            `generate:user:${user.id}`,
+    // --- Validate request body
+    if (!body?.resume || !body?.templateId) {
+        return NextResponse.json(
+            {
+                error: "Resume and templateId are required for portfolio generation",
+            },
+            { status: 400 },
         );
+    }
 
+    // --- Verify user
+    const supabase = await createServerSupabaseClient();
+
+    // Use getUser() to verify authenticity with Supabase Auth server
+    const {
+        data: { user },
+        error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get session for the access token (needed for backend call)
+    const {
+        data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session) {
+        return NextResponse.json({ error: "Session expired" }, { status: 401 });
+    }
+
+    // -- ENFORCE RATE LIMITING
+    const rateLimitKey: string = `generate:user:${user.id}`;
+    const rateLimitResponse = await enforceRateLimit(
+        generateRateLimit,
+        rateLimitKey,
+    );
+
+    if (rateLimitResponse) return rateLimitResponse;
+
+    // --- Acquire lock for preventing concurrent requests
+    const lockKey: string = `generate:lock:user:${user.id}`;
+    const lockAcquired = await acquireLock(lockKey, 600); // 10 minutes
+
+    if (!lockAcquired) {
+        return NextResponse.json(
+            {
+                error: "Portfolio generation already in progress, must wait",
+            },
+            { status: 409 },
+        );
+    }
+
+    try {
         // --- Portfolio id owner check
         const { data: portfolio, error: portfolioError } = await adminSupabase
             .from("portfolios")
@@ -139,7 +154,12 @@ export async function POST(
             statusCode = status;
             responseBody = await resBody.text();
         } catch (err) {
-            const errorCode = (err as any)?.code;
+            // Type gurad -> Check if object and has code property
+            const errorCode =
+                err && typeof err === "object" && "code" in err
+                    ? (err as { code: unknown }).code
+                    : undefined;
+
             console.error("[generate] Backend request failed:", {
                 code: errorCode,
                 message: err instanceof Error ? err.message : String(err),
@@ -250,7 +270,7 @@ export async function POST(
         const { error: sectionsError } = await adminSupabase
             .from("portfolio_sections")
             .upsert(
-                sections.map((section: any, index: number) => ({
+                sections.map((section: GeneratedSection, index: number) => ({
                     portfolio_id: portfolioId,
                     section_key: section.sectionKey,
                     title: section.title ?? null,
@@ -289,5 +309,7 @@ export async function POST(
             { error: `Unexpected server error: ${errorMessage}` },
             { status: 500 },
         );
+    } finally {
+        await releaseLock(lockKey); // Release lock
     }
 }
