@@ -77,4 +77,24 @@ public class OpenAiConfig {
                 .defaultOptions(options)
                 .build();
     }
+
+    @Bean("resumeParserModel")
+    public OpenAiChatModel resumeParserChatModel(
+            OpenAiApi openAiApi,
+            @Value("${spring.ai.openai.resume-parser.model}") String model,
+            @Value("${spring.ai.openai.resume-parser.max-tokens}") int maxTokens,
+            @Value("${spring.ai.openai.resume-parser.temperature}") double temperature) {
+
+        OpenAiChatOptions options = OpenAiChatOptions.builder()
+                .model(model)
+                .maxTokens(maxTokens)
+                .temperature(temperature)
+                .responseFormat(ResponseFormat.builder().type(ResponseFormat.Type.JSON_OBJECT).build())
+                .build();
+
+        return OpenAiChatModel.builder()
+                .openAiApi(openAiApi)
+                .defaultOptions(options)
+                .build();
+    }
 }
