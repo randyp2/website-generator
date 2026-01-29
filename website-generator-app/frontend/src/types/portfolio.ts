@@ -1,3 +1,15 @@
+import { Timestamp } from "next/dist/server/lib/cache-handlers/types";
+import { UUID } from "node:crypto";
+
+export interface Portfolio {
+    id: UUID;
+    title: string;
+    status: string;
+    template_id: string;
+    updated_at: Timestamp;
+    created_at: Timestamp;
+}
+
 export interface AssetMeta {
     title?: string;
     description?: string;
