@@ -37,8 +37,11 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
+    // --- Normalize email for consistent keys + storage
+    const normalizedEmail: string = email.toLowerCase().trim();
+
     // --- Enforce rate limits
-    const rateLimitKey: string = `preview_verification:${email}`;
+    const rateLimitKey: string = `preview_verification:${normalizedEmail}`;
     const rateLimitResponse: NextResponse | null = await enforceRateLimit(
         cheapRateLimit,
         rateLimitKey,
@@ -47,7 +50,7 @@ export async function POST(req: Request) {
     if (rateLimitResponse) return rateLimitResponse;
 
     // --- Acquire lock for preventing concurrency
-    const lockKey: string = `preview_verification:lock:${email}`;
+    const lockKey: string = `preview_verification:lock:${normalizedEmail}`;
     const lockAcquired = await acquireLock(lockKey, 600); // 10 minutes
 
     if (!lockAcquired)
@@ -74,7 +77,7 @@ export async function POST(req: Request) {
     const { error: insertError } = await adminSupabase
         .from("email_verifications")
         .insert({
-            email,
+            email: normalizedEmail,
             code,
             preview_file_content: fileContent,
             preview_file_name: fileName,
@@ -88,7 +91,7 @@ export async function POST(req: Request) {
     // Send email
     await resend.emails.send({
         from: "WebGen AI <noreply@portfoliogenai.com>",
-        to: email,
+        to: normalizedEmail,
         subject: "Your WebGen Verification Code",
         html: `
       <div style="font-family: Arial; padding: 20px">

@@ -3,11 +3,14 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Sandpack } from "@codesandbox/sandpack-react";
 import { atomDark } from "@codesandbox/sandpack-themes";
+import { Panel, Group, Separator } from "react-resizable-panels";
 import type { SectionDTO, GlobalTheme } from "@/types/portfolio";
 
 interface PreviewProps {
     sections: SectionDTO[] | null;
     globalTheme?: GlobalTheme | null;
+    layoutMode?: "sidebar" | "floating" | "preview";
+    sidebarContent?: React.ReactNode;
 }
 
 const DEFAULT_THEME: GlobalTheme = {
@@ -132,13 +135,35 @@ const buildSandpackFiles = (
     return files;
 };
 
-export const Preview: React.FC<PreviewProps> = ({ sections, globalTheme }) => {
-    const [isMounted, setIsMounted] = useState(false);
+export const Preview: React.FC<PreviewProps> = ({
+    sections,
+    globalTheme,
+    layoutMode = "sidebar",
+    sidebarContent,
+}) => {
+    const [isMounted, setIsMounted] = useState<boolean>(false);
+    const [isDragging, setIsDragging] = useState<boolean>(false);
 
     useEffect(() => {
         const timeoutId = setTimeout(() => setIsMounted(true), 0);
         return () => clearTimeout(timeoutId);
     }, []);
+
+    // Global listener for resizing
+    useEffect(() => {
+        if (!isDragging) return;
+
+        const handlePointerUp = () => setIsDragging(false);
+
+        window.addEventListener("pointerup", handlePointerUp);
+        window.addEventListener("pointercancel", handlePointerUp);
+
+        // Clean up
+        return () => {
+            window.removeEventListener("pointerup", handlePointerUp);
+            window.removeEventListener("pointercancel", handlePointerUp);
+        };
+    }, [isDragging]);
 
     // Generate a key based on section content and theme to force Sandpack re-mount on changes
     const sandpackKey = useMemo(() => {
@@ -183,6 +208,66 @@ export const Preview: React.FC<PreviewProps> = ({ sections, globalTheme }) => {
                 `,
               };
 
+    // Sidebar mode: resizable sidebar + preview
+    if (layoutMode === "sidebar" && sidebarContent) {
+        return (
+            <div className="absolute inset-0 h-full w-full">
+                <Group orientation="horizontal">
+                    {/* Sidebar Panel */}
+                    <Panel>
+                        <div className="h-full overflow-hidden">
+                            {sidebarContent}
+                        </div>
+                    </Panel>
+
+                    {/* The Draggable Gutter */}
+                    <Separator
+                        onPointerDownCapture={() => setIsDragging(true)}
+                        className="w-2 bg-slate-800 hover:bg-purple-500 transition-colors cursor-col-resize"
+                    />
+
+                    {/* Sandpack Panel */}
+                    <Panel>
+                        <div className="h-full overflow-hidden relative">
+                            {isDragging && (
+                                <div
+                                    className="absolute inset-0 z-50 cursor-col-resize bg-black/40"
+                                    style={{ pointerEvents: "auto" }}
+                                />
+                            )}
+                            <Sandpack
+                                key={sandpackKey}
+                                files={files}
+                                customSetup={{
+                                    dependencies: {
+                                        "framer-motion": "^10.0.0",
+                                        "lucide-react": "^0.294.0",
+                                    },
+                                }}
+                                theme={atomDark}
+                                template="react"
+                                options={{
+                                    externalResources: [
+                                        "https://cdn.tailwindcss.com",
+                                    ],
+                                    showConsoleButton: true,
+                                    showInlineErrors: true,
+                                    showNavigator: true,
+                                    showLineNumbers: true,
+                                    showTabs: true,
+                                    editorHeight: "calc(100vh)",
+                                    editorWidthPercentage: 0,
+                                    resizablePanels: false,
+                                }}
+                            />
+                        </div>
+                    </Panel>
+                </Group>
+            </div>
+        );
+    }
+
+    // Floating mode or Preview mode: full-width preview
     return (
         <div className="absolute inset-0 h-full w-full">
             <Sandpack
@@ -197,7 +282,7 @@ export const Preview: React.FC<PreviewProps> = ({ sections, globalTheme }) => {
                 theme={atomDark}
                 template="react"
                 options={{
-                    externalResources: ["https://cdn.tailwindcss.com"], // Tailwind cdn
+                    externalResources: ["https://cdn.tailwindcss.com"],
                     showConsoleButton: true,
                     showInlineErrors: true,
                     showNavigator: true,

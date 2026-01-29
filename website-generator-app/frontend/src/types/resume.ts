@@ -36,4 +36,8 @@ export interface ParsedResumeData {
   experiences: ParsedExperience[];
   projects: ParsedProject[];
   educations: ParsedEducation[];
+
+  // Parsing metadata
+  confidenceScore?: number;
+  parsingMethod?: 'regex' | 'llm' | 'regex_low_confidence';
 }

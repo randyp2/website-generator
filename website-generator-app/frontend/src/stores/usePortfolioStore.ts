@@ -39,6 +39,9 @@ export interface PortfolioCreateState {
     // Chat messages (persisted for preview page)
     messages: Message[];
 
+    // Chat layout mode for preview page
+    chatLayoutMode: 'sidebar' | 'floating' | 'preview';
+
     // AI-related info
     aiPrompt: string; // Prompt user types in for refinement
     previewHtml: string | null; // Generated preview from AI
@@ -113,6 +116,8 @@ export interface PortfolioCreateState {
         updater: Message[] | ((prev: Message[]) => Message[]),
     ) => void;
 
+    setChatLayoutMode: (mode: 'sidebar' | 'floating' | 'preview') => void;
+
     setAiPrompt: (prompt: string) => void;
     setPreviewHtml: (html: string) => void;
     reset: () => void;
@@ -140,6 +145,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             sections: null,
             globalTheme: null,
             messages: [],
+            chatLayoutMode: 'sidebar',
             aiPrompt: "",
             previewHtml: null,
 
@@ -473,6 +479,9 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                             : updater,
                 })),
 
+            setChatLayoutMode: (mode: 'sidebar' | 'floating' | 'preview') =>
+                set({ chatLayoutMode: mode }),
+
             reset: () => {
                 set({
                     templateId: null,
@@ -484,6 +493,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                     sections: null,
                     globalTheme: null,
                     messages: [],
+                    chatLayoutMode: 'sidebar',
                     stylePreferences: {
                         colorScheme: null,
                         layoutDensity: null,
@@ -511,6 +521,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                 sections: state.sections,
                 globalTheme: state.globalTheme,
                 messages: state.messages,
+                chatLayoutMode: state.chatLayoutMode,
                 aiPrompt: state.aiPrompt,
                 previewHtml: state.previewHtml,
                 // For files, store metadata only (File objects can't be serialized)
