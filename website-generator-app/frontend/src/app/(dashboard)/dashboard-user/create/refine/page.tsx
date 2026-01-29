@@ -8,7 +8,10 @@ import { Message, SectionPlan } from "@/types/preview";
 import { Preview } from "./components/Preview";
 import { FloatingPromptBar } from "./components/FloatingPromptBar";
 import { ChatHistoryOverlay } from "./components/ChatHistoryOverlay";
+import { PreviewActionBar } from "./components/PreviewActionBar";
+import { SidebarChatPanel } from "./components/SidebarChatPanel";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
+import { downloadPortfolioHtml } from "@/utils/downloadHtml";
 
 // ============================================================================
 // MAIN COMPONENT
@@ -37,6 +40,8 @@ const AIRefinementPage: React.FC = () => {
         addVideoFiles,
         removeMediaFile,
         removeVideoFile,
+        chatLayoutMode,
+        setChatLayoutMode,
     } = usePortfolioStore();
 
     // Messages & AI response
@@ -44,6 +49,7 @@ const AIRefinementPage: React.FC = () => {
     const [isHydrating, setIsHydrating] = useState(false);
     const [currentPlan, setCurrentPlan] = useState<SectionPlan[] | null>(null);
     const [isPlanApproved, setIsPlanApproved] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
 
     const hasGeneratedRef = useRef(false);
     // Combine media and video files for display
@@ -447,7 +453,10 @@ const AIRefinementPage: React.FC = () => {
                     title: mod.title,
                     reactSource: mod.reactSource,
                     contentJson: mod.contentJson,
-                    orderIndex: sections?.find((s) => s.sectionKey === mod.sectionKey)?.orderIndex ?? 0,
+                    orderIndex:
+                        mod.orderIndex ??
+                        sections?.find((s) => s.sectionKey === mod.sectionKey)?.orderIndex ??
+                        0,
                 })) as SectionDTO[];
 
                 setSections(updatedSections);
@@ -500,6 +509,27 @@ const AIRefinementPage: React.FC = () => {
     const handleKeepChatting = () => {
         setIsPlanApproved(false);
         setCurrentPlan(null);
+    };
+
+    // ========================================================================
+    // DOWNLOAD HTML
+    // ========================================================================
+    const handleDownloadHtml = async () => {
+        if (!portfolioId || !sections || sections.length === 0) {
+            throw new Error("No portfolio to download");
+        }
+
+        setIsDownloading(true);
+        try {
+            await downloadPortfolioHtml(
+                portfolioId,
+                sections,
+                globalTheme,
+                "My Portfolio"
+            );
+        } finally {
+            setIsDownloading(false);
+        }
     };
 
     // ========================================================================
@@ -663,7 +693,7 @@ const AIRefinementPage: React.FC = () => {
 
                         // Format plan for display
                         const planDetails = planResult.sectionPlans
-                            .filter((p) => p.action === "modify")
+                            .filter((p) => p.action === "modify" || p.action === "add")
                             .map((p) => `• ${p.sectionKey}: ${p.instruction}`)
                             .join("\n");
 
@@ -728,41 +758,67 @@ const AIRefinementPage: React.FC = () => {
             {/* ================================================ */}
             {/* LAYER 1: SANDBOX - FULL SCREEN (BASE, z-0) */}
             {/* ================================================ */}
-            <Preview sections={sections} globalTheme={globalTheme} />
+            <Preview
+                sections={sections}
+                globalTheme={globalTheme}
+                layoutMode={chatLayoutMode}
+                sidebarContent={
+                    chatLayoutMode === 'sidebar' ? (
+                        <SidebarChatPanel
+                            messages={normalizedMessages}
+                            isGenerating={isGenerating || isHydrating}
+                            uploadedFiles={uploadedFiles}
+                            onSendMessage={sendMessage}
+                            onFileSelect={handleFileSelect}
+                            onRemoveFile={removeFile}
+                            showPlanActions={Boolean(currentPlan) && !isPlanApproved}
+                            onApprovePlan={handleApprovePlan}
+                            onKeepChatting={handleKeepChatting}
+                        />
+                    ) : null
+                }
+            />
+
+            {/* ================================================ */}
+            {/* LAYER 1.5: PREVIEW ACTION BAR - TOP RIGHT (z-50) */}
+            {/* ================================================ */}
+            <PreviewActionBar
+                onDownload={handleDownloadHtml}
+                isDownloading={isDownloading}
+                disabled={!sections || sections.length === 0 || isGenerating || isHydrating}
+                layoutMode={chatLayoutMode}
+                onLayoutModeChange={setChatLayoutMode}
+            />
 
             {/* ================================================ */}
             {/* LAYER 2: CHAT HISTORY OVERLAY - CENTER (z-40) */}
+            {/* Only visible in floating mode */}
             {/* ================================================ */}
-            <ChatHistoryOverlay
-                messages={normalizedMessages}
-                isGenerating={isGenerating || isHydrating}
-            />
+            {chatLayoutMode === 'floating' && (
+                <ChatHistoryOverlay
+                    messages={normalizedMessages}
+                    isGenerating={isGenerating || isHydrating}
+                />
+            )}
 
             {/* ================================================ */}
             {/* LAYER 3: FLOATING PROMPT BAR - BOTTOM (z-50) */}
+            {/* Only visible in floating mode */}
             {/* ================================================ */}
-            <FloatingPromptBar
-                uploadedFiles={uploadedFiles}
-                onSendMessage={sendMessage}
-                onFileSelect={handleFileSelect}
-                onRemoveFile={removeFile}
-                isGenerating={isGenerating || isHydrating}
-                showPlanActions={Boolean(currentPlan) && !isPlanApproved}
-                onApprovePlan={handleApprovePlan}
-                onKeepChatting={handleKeepChatting}
-            />
+            {chatLayoutMode === 'floating' && (
+                <FloatingPromptBar
+                    uploadedFiles={uploadedFiles}
+                    onSendMessage={sendMessage}
+                    onFileSelect={handleFileSelect}
+                    onRemoveFile={removeFile}
+                    isGenerating={isGenerating || isHydrating}
+                    showPlanActions={Boolean(currentPlan) && !isPlanApproved}
+                    onApprovePlan={handleApprovePlan}
+                    onKeepChatting={handleKeepChatting}
+                />
+            )}
 
-            {/* ================================================ */}
-            {/* LAYER 2 (OLD): CHATBOT OVERLAY - LEFT SIDE (z-50) */}
-            {/* ================================================ */}
-            {/*<ChatbotOverlay
-                messages={messages}
-                isGenerating={isGenerating}
-                uploadedFiles={uploadedFiles}
-                onSendMessage={sendMessage}
-                onFileSelect={handleFileSelect}
-                onRemoveFile={removeFile}
-            />*/}
+            {/* Preview mode: no chat UI rendered */}
         </div>
     );
 };

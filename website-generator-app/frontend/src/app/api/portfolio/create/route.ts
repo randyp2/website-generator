@@ -1,16 +1,10 @@
+import { enforceRateLimit } from "@/lib/rate-limit/enable-rate-limit";
+import { uploadRateLimit } from "@/lib/rate-limit/ratelimit";
+import { AssetMeta } from "@/types/portfolio";
 import { adminSupabase } from "@/utils/supabase/admin";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
-
-type AssetMeta = {
-    title?: string;
-    description?: string;
-    label?: string;
-    sectionHint?: string;
-    alt?: string;
-    name?: string;
-};
 
 const parseMeta = (raw: FormDataEntryValue | null): AssetMeta[] => {
     if (!raw || typeof raw !== "string") return [];
@@ -23,22 +17,30 @@ const parseMeta = (raw: FormDataEntryValue | null): AssetMeta[] => {
 };
 
 export async function POST(req: Request) {
+    // --- Get user id ---
+    const supabase = await createServerSupabaseClient();
+    const {
+        data: { user },
+        error: authError,
+    } = await supabase.auth.getUser();
+
+    if (!user || authError)
+        return NextResponse.json(
+            { error: "Failed to create portfolio." },
+            { status: 500 },
+        );
+
+    // --- Enforce rate limiting ---
+    const rateLimitKey: string = `upload_portfolio:user:${user.id}`;
+    const rateLimitResponse: NextResponse | null = await enforceRateLimit(
+        uploadRateLimit,
+        rateLimitKey,
+    );
+
+    if (rateLimitResponse) return rateLimitResponse;
+
+    // --- Parse request body ---
     try {
-        // --- Get user id ---
-        const supabase = await createServerSupabaseClient();
-        const {
-            data: { user },
-            error: authError,
-        } = await supabase.auth.getUser();
-
-        if (!user || authError)
-            return NextResponse.json(
-                { error: "Failed to create portfolio." },
-                { status: 500 },
-            );
-
-        // --- Parse request body ---
-
         const formData = await req.formData();
 
         const templateId = formData.get("templateId") as string;

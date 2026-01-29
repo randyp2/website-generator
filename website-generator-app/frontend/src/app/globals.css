@@ -207,4 +207,34 @@
     --border-color-1: hsla(320, 75%, 90%, 0.2);
     --border-color-2: hsla(320, 50%, 90%, 0.75);
   }
+
+  /* React Split gutter styles */
+  .gutter {
+    background-color: rgba(255, 255, 255, 0.05);
+    transition: background-color 0.2s ease;
+    z-index: 10;
+  }
+
+  .gutter:hover {
+    background-color: rgba(168, 85, 247, 0.5);
+  }
+
+  .gutter:active {
+    background-color: rgba(168, 85, 247, 0.8);
+  }
+
+  .gutter.gutter-horizontal {
+    cursor: col-resize;
+    touch-action: none;
+  }
+
+  .gutter.gutter-vertical {
+    cursor: row-resize;
+    touch-action: none;
+  }
+
+  /* Prevent child elements from interfering with drag */
+  .gutter * {
+    pointer-events: none;
+  }
 }
