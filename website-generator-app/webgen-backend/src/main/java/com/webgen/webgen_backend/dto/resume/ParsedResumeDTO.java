@@ -18,4 +18,8 @@ public class ParsedResumeDTO {
     private List<ProjectDTO> projects;
     private List<EducationDTO> educations;
 
+    // Parsing metadata
+    private Double confidenceScore;
+    private String parsingMethod; // "regex", "llm", "regex_low_confidence"
+
 }
