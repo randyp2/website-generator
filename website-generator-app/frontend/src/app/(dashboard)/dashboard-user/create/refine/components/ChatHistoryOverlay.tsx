@@ -498,8 +498,10 @@ export const ChatHistoryOverlay: React.FC<ChatHistoryOverlayProps> = ({
                                                                                             <span className="text-white/70">
                                                                                                 {plan.sectionKey}
                                                                                             </span>
-                                                                                            {plan.action ===
-                                                                                                "modify" && (
+                                                                                            {(plan.action ===
+                                                                                                "modify" ||
+                                                                                                plan.action ===
+                                                                                                    "add") && (
                                                                                                 <span className="rounded-full border border-orange-400/40 px-2 py-0.5 text-orange-100">
                                                                                                     {
                                                                                                         plan.intensity

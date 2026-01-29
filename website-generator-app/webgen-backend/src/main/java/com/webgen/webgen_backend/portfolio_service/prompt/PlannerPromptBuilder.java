@@ -40,15 +40,22 @@ public class PlannerPromptBuilder {
                 YOUR RESPONSIBILITIES
 
                 For each section in targetSectionKeys:
-                - Decide action: "modify", "keep", or "reorder"
+                - Decide action: "modify", "keep", "reorder", "add", or "delete"
                 - Write clear instruction for what should change
                 - Explain rationale (why this change)
                 - Respect changeIntensity from constraints
                 - List elements to preserve (if any)
                 - If assets should be used, specify which asset(s) by label or description
 
+                If a targetSectionKey does NOT exist in current sections:
+                - Treat it as a NEW section
+                - Set action to "add"
+                - Provide a sensible title and placement guidance
+
                 For sections NOT in targetSectionKeys:
                 - Set action to "keep" (no changes)
+                - If user intent is to remove a section, set action to "delete"
+                - If preserveContent is true, do NOT use "delete"
 
                 ========================
                 CONSTRAINTS TO RESPECT
@@ -77,11 +84,14 @@ public class PlannerPromptBuilder {
                     "sectionPlans": [
                         {
                             "sectionKey": "<string>",
-                            "action": "modify" | "keep" | "reorder",
+                            "action": "modify" | "keep" | "reorder" | "add" | "delete",
                             "instruction": "<what to do - be specific, include asset references if applicable>",
                             "rationale": "<why this change aligns with user intent>",
                             "intensity": "LIGHT" | "MEDIUM" | "STRONG",
-                            "preserveElements": ["<elements NOT to change>"]
+                            "preserveElements": ["<elements NOT to change>"],
+                            "newSectionTitle": "<string for add only>",
+                            "insertAfterSectionKey": "<existing sectionKey or empty>",
+                            "orderIndex": <number or null>
                         }
                     ]
                 }

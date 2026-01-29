@@ -51,7 +51,10 @@ public class BuilderPromptBuilder {
                 For each section plan:
                 - If action = "keep": return section unchanged
                 - If action = "modify": apply the instruction and generate new React source
+                - If action = "add": create a NEW section using the provided sectionKey and instruction
                 - If action = "reorder": note the new order (handled by frontend)
+                - If action = "delete": omit that section from modifiedSections and include its key in deletedSectionKeys
+                - If action = "delete": omit that section from modifiedSections and include its key in deletedSectionKeys
 
                 ========================
                 CONSTRAINTS TO RESPECT
@@ -106,6 +109,20 @@ public class BuilderPromptBuilder {
                 Sections MUST remain transparent to allow the global theme to show through.
 
                 ========================
+                ICONS (REQUIRED WHERE APPROPRIATE)
+                ========================
+                Lucide React icons are AVAILABLE and should be used to enhance visual polish.
+                Assume these icons are in scope (NO import statements needed):
+                  Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight
+
+                You MUST use icons in these scenarios:
+                - Contact section: Use Mail for email, Phone for phone, MapPin for location
+                - Social links: Use Github, Linkedin, Globe for respective links
+                - External links: Use ArrowUpRight for "view project" or outbound links
+
+                Icons add visual clarity and professionalism. Do NOT omit them.
+
+                ========================
                 OUTPUT FORMAT (STRICT)
 
                 Return a single JSON object:
@@ -121,16 +138,18 @@ public class BuilderPromptBuilder {
                         {
                             "sectionKey": "<string>",
                             "title": "<string>",
+                            "orderIndex": <number>,
                             "reactSource": "<full React/JSX code for the section>",
                             "contentJson": <object with section data>,
                             "changeDescription": "<what was changed in this section>"
                         }
-                    ]
+                    ],
+                    "deletedSectionKeys": ["<sectionKey>", "..."] // OPTIONAL
                 }
 
                 IMPORTANT:
                 - reactSource must be valid React/JSX code
-                - Include ALL sections (modified and unchanged)
+                - Include ALL sections (modified, unchanged, and newly added), except those deleted
                 - Preserve Tailwind CSS classes and Framer Motion
                 - Return JSON ONLY. No markdown, no explanations.
                 - Only include globalTheme if the user explicitly requested a theme/background change
@@ -152,7 +171,9 @@ public class BuilderPromptBuilder {
                 TASK:
                 - Execute each plan instruction
                 - Generate modified React source for "modify" actions
+                - Create new sections for "add" actions
                 - Return unchanged sections for "keep" actions
+                - For "delete" actions, omit the section and add its key to deletedSectionKeys
                 - When adding media, use ONLY URLs from the AVAILABLE ASSETS list
                 - Add media URLs to contentJson, then reference them in reactSource
                 - Return JSON only
@@ -195,6 +216,7 @@ public class BuilderPromptBuilder {
                 For each section plan:
                 - If action = "keep": return section unchanged
                 - If action = "modify": apply the instruction and generate new React source
+                - If action = "add": create a NEW section using the provided sectionKey and instruction
                 - If action = "reorder": note the new order (handled by frontend)
 
                 ========================
@@ -250,6 +272,20 @@ public class BuilderPromptBuilder {
                 Sections MUST remain transparent to allow the global theme to show through.
 
                 ========================
+                ICONS (REQUIRED WHERE APPROPRIATE)
+                ========================
+                Lucide React icons are AVAILABLE and should be used to enhance visual polish.
+                Assume these icons are in scope (NO import statements needed):
+                  Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight
+
+                You MUST use icons in these scenarios:
+                - Contact section: Use Mail for email, Phone for phone, MapPin for location
+                - Social links: Use Github, Linkedin, Globe for respective links
+                - External links: Use ArrowUpRight for "view project" or outbound links
+
+                Icons add visual clarity and professionalism. Do NOT omit them.
+
+                ========================
                 OUTPUT FORMAT (STRICT)
 
                 Return a single JSON object:
@@ -265,11 +301,13 @@ public class BuilderPromptBuilder {
                         {
                             "sectionKey": "<string>",
                             "title": "<string>",
+                            "orderIndex": <number>,
                             "reactSource": "<full React/JSX code for the section>",
                             "contentJson": <object with section data>,
                             "changeDescription": "<what was changed in this section>"
                         }
-                    ]
+                    ],
+                    "deletedSectionKeys": ["<sectionKey>", "..."] // OPTIONAL
                 }
 
                 ========================
@@ -289,7 +327,7 @@ public class BuilderPromptBuilder {
 
                 IMPORTANT:
                 - reactSource must be valid React/JSX code
-                - Include ALL sections (modified and unchanged)
+                - Include ALL sections (modified, unchanged, and newly added), except those deleted
                 - Preserve Tailwind CSS classes and Framer Motion
                 - Return JSON ONLY. No markdown, no explanations.
                 - Only include globalTheme if the user explicitly requested a theme/background change
@@ -315,6 +353,7 @@ public class BuilderPromptBuilder {
                 - Fix the validation errors listed above
                 - Regenerate the React source code with correct syntax
                 - Return the complete corrected sections
+                - For "delete" actions, omit the section and add its key to deletedSectionKeys
                 - Return JSON only
                 """.formatted(contextJson, sectionsJson, plansJson, assetsJson, errorsJson));
 

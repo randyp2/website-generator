@@ -37,11 +37,14 @@ export interface FilePreview extends Omit<UploadedFile, "id"> {
 
 export interface SectionPlan {
     sectionKey: string;
-    action: "modify" | "keep" | "reorder";
+    action: "modify" | "keep" | "reorder" | "add" | "delete";
     instruction: string;
     rationale: string;
     intensity: "LIGHT" | "MEDIUM" | "STRONG";
     preserveElements: string[];
+    newSectionTitle?: string;
+    insertAfterSectionKey?: string;
+    orderIndex?: number | null;
 }
 
 export interface Message {

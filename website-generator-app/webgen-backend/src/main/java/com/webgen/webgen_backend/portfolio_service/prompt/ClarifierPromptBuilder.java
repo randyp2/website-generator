@@ -64,12 +64,14 @@ public class ClarifierPromptBuilder {
 
                 - Do NOT generate React, JSX, HTML, or CSS
                 - Do NOT rewrite portfolio content
-                - Do NOT invent new sections that do not exist
+                - Do NOT invent new sections that do not exist, UNLESS the user explicitly asks to add a new section
                 - Do NOT assume changes that were not requested
                 - Only ask questions when CRITICAL information is missing
                 - Do NOT ask about optional preferences (colors, easing, etc.) unless explicitly relevant
                 - If the user has provided enough information to proceed, PROCEED
-                - targetSectionKeys MUST come from the provided section summaries
+                - targetSectionKeys MUST come from the provided section summaries,
+                  EXCEPT when the user explicitly asks to add a new section
+                - When adding a new section, create a new sectionKey in kebab-case
 
                 ========================
                 USER CONFIRMATION SIGNALS

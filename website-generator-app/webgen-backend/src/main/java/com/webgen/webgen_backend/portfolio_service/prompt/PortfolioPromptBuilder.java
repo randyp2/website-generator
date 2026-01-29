@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.dto.portfolio.AssetDTO;
 import com.webgen.webgen_backend.dto.portfolio.PortfolioGenerateRequestDTO;
 import com.webgen.webgen_backend.dto.portfolio.PortfolioGenerateResponseDTO;
+import com.webgen.webgen_backend.dto.portfolio.builder.ValidationResult;
 import com.webgen.webgen_backend.dto.resume.ParsedResumeDTO;
 import lombok.RequiredArgsConstructor;
 import org.apache.catalina.User;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -73,13 +75,16 @@ public class PortfolioPromptBuilder {
                 
                 4. Component format (STRICT)
                 - Each reactSource MUST be plain JSX (NO TypeScript types).
+                - NEVER use React.createElement() - ALWAYS use JSX syntax like <div>, <section>, etc.
                 - Each reactSource MUST declare the component exactly as:
-                  export default function <SectionKey>Section({ data }) { ... }
-                - The function name MUST match <SectionKey>Section exactly.
+                  export default function <PascalCaseSectionKey>Section({ data }) { ... }
+                - The function name MUST be PascalCase + "Section" (e.g., sectionKey "work" → function "WorkSection").
+                - The sectionKey itself should be lowercase (e.g., "work", "projects", "intro").
                 - The function MUST be the default export.
                 - Arrow functions are NOT allowed.
                 - Assume React is in scope (NO import statements).
                 - Do NOT include backticks or code fences.
+                - Code MUST be properly formatted with newlines and indentation (NOT all on one line).
                 
                 5. Data rules
                 - All dynamic content MUST come from `contentJson`.
@@ -145,7 +150,7 @@ public class PortfolioPromptBuilder {
                 ========================
                 ANIMATION LIBRARY
                 ========================
-                
+
                 - Framer Motion is AVAILABLE and REQUIRED
                 - You MUST use Framer Motion for animations and transitions
                 - Assume `motion` is available in scope
@@ -158,6 +163,18 @@ public class PortfolioPromptBuilder {
                 - Avoid animating everything equally.
                 - Prefer staggered entrance and emphasis animations
                   over uniform fade-ins.
+                
+                ========================
+                REQUIRED INTERACTIONS
+                ========================
+                
+                You MUST include BOTH:
+                - On-view animations: elements animate when they enter the viewport.
+                - Hover animations: interactive elements (cards, buttons, links) animate on hover.
+                
+                These animations should be prominent and noticeable, not subtle.
+                Use Framer Motion only, and keep them scoped to the section.
+                You MAY add additional animations using available dependencies when useful.
                 
                 
                 ========================
@@ -232,6 +249,21 @@ public class PortfolioPromptBuilder {
                 - NOT allowed: bg-slate-900, bg-white, bg-gradient-*, any fully opaque colors
                 - The globalTheme provides the page background; sections provide content only
                 - This ensures visual continuity when individual sections are regenerated
+
+                ========================
+                ICONS (REQUIRED WHERE APPROPRIATE)
+                ========================
+                Lucide React icons are AVAILABLE and should be used to enhance visual polish.
+                Assume these icons are in scope (NO import statements needed):
+                  Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight
+
+                You MUST use icons in these scenarios:
+                - Contact section: Use Mail for email, Phone for phone, MapPin for location
+                - Social links: Use Github, Linkedin, Globe for respective links
+                - External links: Use ArrowUpRight for "view project" or outbound links
+
+                Icons add visual clarity and professionalism. Do NOT omit them from
+                contact info, social links, or call-to-action buttons.
                 
                 ========================
                 REQUIRED SECTIONS
@@ -263,6 +295,15 @@ public class PortfolioPromptBuilder {
                    - Must be given orderIndex: last
                    - May include copyright text, social links, or contact info
                    - MUST be self-contained
+
+                3. A Contact section WHEN contact info exists
+                   - If any contact info is present (email, phone, or location),
+                     you MUST include a dedicated "Contact Me" section.
+                   - sectionKey MUST be "contact"
+                   - The title should be "Contact Me" or "Get in Touch"
+                   - Place it near the end, before the Footer if possible
+                   - The section MUST be self-contained and use only contact info provided
+                   - Include the available contact fields (email/phone/location) in contentJson
                 
                 These sections are treated the same as all other sections and must
                 fully follow all section isolation, React contract, and styling rules.
@@ -358,6 +399,7 @@ public class PortfolioPromptBuilder {
                 Resume data (use as source material only):
                 Name: %s
                 Summary: %s
+                Contact info: %s
                 Skills:%s
                 Experience: %s
                 Projects: %s
@@ -371,6 +413,7 @@ public class PortfolioPromptBuilder {
                 stylePrefs,
                 safe(resume.getFullName()),
                 safe(resume.getSummary()),
+                formatContactInfo(resume),
                 formatList(resume.getSkills()),
                 resume.getExperiences() == null ? "none" : resume.getExperiences().toString(),
                 resume.getProjects() == null ? "none" : resume.getProjects().toString(),
@@ -394,6 +437,33 @@ public class PortfolioPromptBuilder {
         return text == null ? "none" : text;
     }
 
+    private String formatContactInfo(ParsedResumeDTO resume) {
+        if (resume == null)
+            return "none";
+
+        boolean hasEmail = resume.getEmail() != null && !resume.getEmail().isBlank();
+        boolean hasPhone = resume.getPhone() != null && !resume.getPhone().isBlank();
+        boolean hasLocation = resume.getLocation() != null && !resume.getLocation().isBlank();
+
+        if (!hasEmail && !hasPhone && !hasLocation)
+            return "none";
+
+        StringBuilder info = new StringBuilder();
+        if (hasEmail)
+            info.append("email=").append(resume.getEmail());
+        if (hasPhone) {
+            if (!info.isEmpty())
+                info.append(", ");
+            info.append("phone=").append(resume.getPhone());
+        }
+        if (hasLocation) {
+            if (!info.isEmpty())
+                info.append(", ");
+            info.append("location=").append(resume.getLocation());
+        }
+        return info.toString();
+    }
+
     private String serializeAssets(List<AssetDTO> assets) {
         if (assets == null || assets.isEmpty())
             return "[]";
@@ -403,5 +473,146 @@ public class PortfolioPromptBuilder {
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Failed to serialize assets for prompt", e);
         }
+    }
+
+    public Prompt buildOneShotRetryPrompt(
+            PortfolioGenerateRequestDTO req,
+            String refinedPrompt,
+            String previousResponse,
+            List<ValidationResult.ValidationError> errors
+    ) {
+        ParsedResumeDTO resume = req.getResume();
+        String stylePrefs = formatStylePrefs(req.getStylePrefs());
+        String assetsJson = serializeAssets(req.getAssets());
+
+        String errorSummary = errors.stream()
+                .map(e -> String.format("- Section '%s': %s (line %s, col %s)",
+                        e.getSectionKey(),
+                        e.getMessage(),
+                        e.getLine() != null ? e.getLine() : "?",
+                        e.getColumn() != null ? e.getColumn() : "?"))
+                .collect(Collectors.joining("\n"));
+
+        SystemMessage system = new SystemMessage("""
+                You are an AI software engineer working inside the PortfolioAI system.
+
+                Your previous attempt to generate a portfolio had JSX validation errors.
+                You MUST fix these errors while preserving the overall design intent.
+
+                Focus ONLY on fixing the specific errors listed below.
+                Do NOT make unnecessary changes to working sections.
+
+                You must output JSON ONLY, following the exact schema below.
+                Do NOT include markdown, explanations, comments, backticks, or extra text
+                outside of the defined JSON fields.
+
+                ========================
+                VALIDATION ERRORS TO FIX
+                ========================
+
+                %s
+
+                ========================
+                COMMON JSX ERRORS TO AVOID
+                ========================
+
+                1. Syntax errors:
+                   - Missing closing tags
+                   - Unclosed JSX expressions
+                   - Invalid attribute names (use camelCase: className, onClick)
+
+                2. Expression errors:
+                   - Unclosed curly braces in JSX
+                   - Invalid JavaScript inside JSX expressions
+
+                3. Component errors:
+                   - Missing default export
+                   - Invalid function declaration
+                   - Using TypeScript syntax (remove type annotations)
+
+                4. Data access errors:
+                   - Using data?.field (don't use optional chaining)
+                   - Using data.contentJson (access data directly)
+
+                ========================
+                ARCHITECTURAL RULES
+                ========================
+
+                All previous rules still apply:
+                - Section-level artifacts only
+                - Self-contained sections
+                - React contract: data prop always present, no optional chaining
+                - Plain JSX, no TypeScript
+                - Tailwind CSS only
+                - Framer Motion for animations
+                - Lucide icons in scope (Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight)
+
+                ========================
+                OUTPUT FORMAT (EXACT)
+                ========================
+
+                {
+                  "globalTheme": {
+                    "background": "<Tailwind classes>",
+                    "textPrimary": "<Tailwind text class>",
+                    "textSecondary": "<Tailwind text class>",
+                    "accentColor": "<color name>"
+                  },
+                  "sections": [
+                    {
+                      "sectionKey": "<string>",
+                      "title": "<string>",
+                      "orderIndex": <number>,
+                      "contentJson": { },
+                      "reactSource": "<escaped JSX React component source>"
+                    }
+                  ],
+                  "assistantMessage": {
+                     "summary": "<string>",
+                     "suggestions": ["<string>"]
+                  }
+                }
+                """.formatted(errorSummary));
+
+        UserMessage user = new UserMessage("""
+                Fix the JSX validation errors in your previous response.
+
+                PREVIOUS RESPONSE (with errors):
+                %s
+
+                ORIGINAL REQUEST:
+                User prompt: %s
+                Template ID: %s
+                Style preferences: %s
+
+                Resume data:
+                Name: %s
+                Summary: %s
+                Contact info: %s
+                Skills: %s
+                Experience: %s
+                Projects: %s
+                Education: %s
+
+                Uploaded media assets:
+                %s
+
+                Generate a corrected response with valid JSX for all sections.
+        """.formatted(
+                previousResponse,
+                refinedPrompt,
+                req.getTemplateId(),
+                stylePrefs,
+                safe(resume.getFullName()),
+                safe(resume.getSummary()),
+                formatContactInfo(resume),
+                formatList(resume.getSkills()),
+                resume.getExperiences() == null ? "none" : resume.getExperiences().toString(),
+                resume.getProjects() == null ? "none" : resume.getProjects().toString(),
+                resume.getEducations() == null ? "none" : resume.getEducations().toString(),
+                assetsJson
+        ));
+
+        return new Prompt(List.of(system, user));
     }
 }

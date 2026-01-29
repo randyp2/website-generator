@@ -1,58 +1,63 @@
 import { NextResponse } from "next/server";
 import { adminSupabase } from "@/utils/supabase/admin";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
+import { enforceRateLimit } from "@/lib/rate-limit/enable-rate-limit";
+import { refineRateLimit } from "@/lib/rate-limit/ratelimit";
 
 export async function POST(
     req: Request,
     context: { params: Promise<{ id: string }> },
 ) {
+    const body = await req.json();
+    const { sections } = body ?? {};
+    const { id: portfolioId } = await context.params;
+
+    if (!portfolioId) {
+        return NextResponse.json(
+            { error: "portfolioId is required" },
+            { status: 400 },
+        );
+    }
+
+    const supabase = await createServerSupabaseClient();
+
+    // Use getUser() to verify authenticity with Supabase Auth server
+    const {
+        data: { user },
+        error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get session for the access token (needed for backend call)
+    const {
+        data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session) {
+        return NextResponse.json({ error: "Session expired" }, { status: 401 });
+    }
+
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+    if (!backendUrl) {
+        return NextResponse.json(
+            { error: "BACKEND_URL not configured" },
+            { status: 500 },
+        );
+    }
+
+    // --- Enforce rate limiting ---
+    const rateLimitKey: string = `plan_portfolio:user:${user.id}`;
+    const rateLimitResponse: NextResponse | null = await enforceRateLimit(
+        refineRateLimit,
+        rateLimitKey,
+    );
+
+    if (rateLimitResponse) return rateLimitResponse;
+
     try {
-        const body = await req.json();
-        const { sections } = body ?? {};
-        const { id: portfolioId } = await context.params;
-
-        if (!portfolioId) {
-            return NextResponse.json(
-                { error: "portfolioId is required" },
-                { status: 400 },
-            );
-        }
-
-        const supabase = await createServerSupabaseClient();
-
-        // Use getUser() to verify authenticity with Supabase Auth server
-        const {
-            data: { user },
-            error: userError,
-        } = await supabase.auth.getUser();
-
-        if (userError || !user) {
-            return NextResponse.json(
-                { error: "Unauthorized" },
-                { status: 401 },
-            );
-        }
-
-        // Get session for the access token (needed for backend call)
-        const {
-            data: { session },
-        } = await supabase.auth.getSession();
-
-        if (!session) {
-            return NextResponse.json(
-                { error: "Session expired" },
-                { status: 401 },
-            );
-        }
-
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-        if (!backendUrl) {
-            return NextResponse.json(
-                { error: "BACKEND_URL not configured" },
-                { status: 500 },
-            );
-        }
-
         // Fetch assets for this portfolio
         const { data: assets, error: assetsError } = await adminSupabase
             .from("assets")
