@@ -15,6 +15,7 @@ import {
 } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
+import { DeletePortfolioOverlay } from "../components/DeletePortfolioOverlay";
 
 interface Portfolio {
   id: string;
@@ -37,6 +38,10 @@ const PortfolioManager: React.FC = () => {
   const [editingPortfolio, setEditingPortfolio] = useState<Portfolio | null>(null);
   const [editFormData, setEditFormData] = useState({ title: "", url: "" });
   const [isSaving, setIsSaving] = useState<boolean>(false);
+
+  // State for delete confirmation modal
+  const [deleteTarget, setDeleteTarget] = useState<Portfolio | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   // Extract user from context
   const { user } = useUser();
@@ -151,22 +156,25 @@ const PortfolioManager: React.FC = () => {
 
     // Handler to delete portfolio
     const handleDelete = async (portfolioId: string) => {
-        const confirmed = window.confirm("Are you sure you want to delete this portfolio? This action cannot be undone.");
-
-        if (!confirmed) return;
-
         try {
+            setIsDeleting(true);
             const res: Response = await fetch(`/api/portfolio/${portfolioId}/delete`, {
                 method: "DELETE",
-            })
+            });
 
+            if (!res.ok) {
+                throw new Error(`HTTP error: ${res.status}`);
+            }
 
             // Update UI
             setPortfolios(prev => prev.filter(p => p.id !== portfolioId));
-        
+            setDeleteTarget(null);
+
         } catch (error) {
             console.error("Deletion failed: ", error);
-            alert("Failed ot delete portfolio.");
+            alert("Failed to delete portfolio.");
+        } finally {
+            setIsDeleting(false);
         }
     }
 
@@ -378,7 +386,10 @@ const PortfolioManager: React.FC = () => {
                                 icon: FiTrash2,
                                 label: "Delete",
                                 color: "red",
-                                onClick: () => handleDelete(portfolio.id),
+                                onClick: () => {
+                                  setDeleteTarget(portfolio);
+                                  setActiveMenu(null);
+                                },
                               },
                             ].map((action) => (
                               <button
@@ -501,6 +512,14 @@ const PortfolioManager: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <DeletePortfolioOverlay
+        isOpen={Boolean(deleteTarget)}
+        portfolioTitle={deleteTarget?.title}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => deleteTarget && handleDelete(deleteTarget.id)}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 };

@@ -6,6 +6,7 @@ export interface Portfolio {
     title: string;
     status: string;
     template_id: string;
+    last_step?: string | null;
     updated_at: Timestamp;
     created_at: Timestamp;
 }
