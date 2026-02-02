@@ -15,7 +15,7 @@ export const metadata: Metadata = {
         description:
             "Generate AI-crafted portfolio websites in minutes. Fully customizable, responsive, and ready to deploy.",
         url: "https://yourdomain.com/",
-        siteName: "PortfolioAI",
+        siteName: "PortRN",
         // images: [{ url: "/og-image.png" }]
     },
     twitter: {

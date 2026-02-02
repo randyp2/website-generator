@@ -16,5 +16,4 @@ public class PortfolioGenerateRequestDTO {
     Map<String, String> stylePrefs;
 
     List<AssetDTO> assets; // media assets impl later
-
 }
