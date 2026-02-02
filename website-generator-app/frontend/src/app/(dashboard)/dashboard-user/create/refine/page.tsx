@@ -51,6 +51,7 @@ const AIRefinementPage: React.FC = () => {
     const [isDownloading, setIsDownloading] = useState(false);
 
     const hasGeneratedRef = useRef(false);
+    const lastLoadedIdRef = useRef<string | null>(null);
     // Combine media and video files for display
     const uploadedFiles = [...mediaFiles, ...videoFiles];
     const normalizedMessages = useMemo(
@@ -71,9 +72,20 @@ const AIRefinementPage: React.FC = () => {
     useEffect(() => {
         const portfolioIdParam = searchParams.get("portfolioId");
         if (!portfolioIdParam) return;
+        if (lastLoadedIdRef.current === portfolioIdParam) return;
+        lastLoadedIdRef.current = portfolioIdParam;
         if (portfolioId === portfolioIdParam && sections && sections.length > 0) {
             return;
         }
+        // Reset chat when switching to a new portfolio to avoid stale messages.
+        if (portfolioId !== portfolioIdParam) {
+            setMessages([]);
+        }
+        fetch(`/api/portfolio/${portfolioIdParam}/update`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ last_step: "refine" }),
+        }).catch(() => null);
 
         const loadPortfolio = async () => {
             setIsHydrating(true);
@@ -92,7 +104,6 @@ const AIRefinementPage: React.FC = () => {
                 setTemplateId(data?.templateId ?? null);
                 setSections(Array.isArray(data?.sections) ? data.sections : []);
                 setGlobalTheme(data?.globalTheme ?? null);
-                setMessages([]);
             } catch (error) {
                 console.error("Failed to load portfolio:", error);
             } finally {

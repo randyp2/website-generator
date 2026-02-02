@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
     FiArrowRight,
     FiEdit3,
@@ -18,16 +18,58 @@ import {
 } from "react-icons/fi";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
 import { ParsedExperience, ParsedEducation } from "@/types/resume";
+import { ResumeShimmerSkeleton } from "./components/ResumeShimmerSkeleton";
+import { useToast, isToastDismissed } from "@/hooks/useToast";
+import { ToastType } from "@/components/ui/toast";
+
+// Helper functions for confidence display
+const getConfidenceVariant = (score: number): ToastType => {
+    if (score >= 0.70) return "success";
+    if (score >= 0.40) return "warning";
+    return "error";
+};
+
+const getConfidenceLabel = (score: number): string => {
+    if (score >= 0.70) return "High";
+    if (score >= 0.40) return "Medium";
+    return "Low";
+};
+
+const getParsingMethodLabel = (method: string): string => {
+    switch (method) {
+        case "llm":
+            return "AI-Enhanced Parser";
+        case "regex":
+            return "Regex Parser";
+        case "regex_low_confidence":
+            return "Regex Parser (Low Confidence)";
+        default:
+            return method;
+    }
+};
 
 const ReviewPage: React.FC = () => {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [isEditing, setIsEditing] = useState(false);
+    const { addToast } = useToast();
+
+    // Track if we've shown the parsing complete toast
+    const parsingCompleteToastShown = useRef(false);
 
     // Get all state and update functions from Zustand store
     const {
         templateId,
         portfolioId,
         parsedResumeData,
+        isParsingResume,
+        parsingError,
+        setTemplateId,
+        setPortfolioId,
+        setParsedResumeData,
+        setParsedResumeSourceKey,
+        setIsParsingResume,
+        setParsingError,
         updateFullName,
         updateEmail,
         updatePhone,
@@ -42,6 +84,110 @@ const ReviewPage: React.FC = () => {
         removeExperienceBullet,
         updateEducation,
     } = usePortfolioStore();
+
+    useEffect(() => {
+        const portfolioIdParam = searchParams.get("portfolioId");
+        if (portfolioIdParam && portfolioIdParam !== portfolioId) {
+            setPortfolioId(portfolioIdParam);
+        }
+    }, [searchParams, portfolioId, setPortfolioId]);
+
+    useEffect(() => {
+        if (!portfolioId) return;
+        fetch(`/api/portfolio/${portfolioId}/update`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ last_step: "review" }),
+        }).catch(() => null);
+    }, [portfolioId]);
+
+    useEffect(() => {
+        if (!portfolioId || parsedResumeData) return;
+
+        const loadResume = async () => {
+            setIsParsingResume(true);
+            setParsingError(null);
+            try {
+                const resumeRes = await fetch(`/api/portfolio/${portfolioId}/resume`);
+                if (resumeRes.ok) {
+                    const data = await resumeRes.json();
+                    if (data?.parsedJson) {
+                        setParsedResumeData(data.parsedJson);
+                        setParsedResumeSourceKey(null);
+                    }
+                }
+
+                if (!templateId) {
+                    const loadRes = await fetch(`/api/portfolio/${portfolioId}/load`);
+                    if (loadRes.ok) {
+                        const loadData = await loadRes.json();
+                        if (loadData?.templateId) {
+                            setTemplateId(loadData.templateId);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to load resume data:", error);
+                setParsingError("Failed to load resume data.");
+            } finally {
+                setIsParsingResume(false);
+            }
+        };
+
+        loadResume();
+    }, [portfolioId, parsedResumeData, templateId, setParsedResumeData, setParsedResumeSourceKey, setTemplateId, setIsParsingResume, setParsingError]);
+
+    useEffect(() => {
+        if (isParsingResume) {
+            parsingCompleteToastShown.current = false;
+        }
+    }, [isParsingResume]);
+
+    // Generate unique keys for each toast type per portfolio
+    const getToastKey = (type: string) => `toast_${portfolioId}_${type}`;
+
+    // Show success toast when parsing completes with confidence info
+    useEffect(() => {
+        if (
+            parsedResumeData &&
+            !isParsingResume &&
+            !parsingCompleteToastShown.current
+        ) {
+            parsingCompleteToastShown.current = true;
+
+            const toastKey = getToastKey("parsing_complete");
+
+            // Don't show if already dismissed
+            if (isToastDismissed(toastKey)) return;
+
+            const confidence = parsedResumeData.confidenceScore ?? 0;
+            const method = parsedResumeData.parsingMethod ?? "unknown";
+
+            addToast({
+                type: getConfidenceVariant(confidence),
+                title: `Resume Parsed - ${Math.round(confidence * 100)}% Confidence`,
+                description: `${getConfidenceLabel(confidence)} quality • ${getParsingMethodLabel(method)}`,
+                dismissKey: toastKey,
+            });
+        }
+    }, [parsedResumeData, isParsingResume, addToast, portfolioId]);
+
+    // Show error toast when parsing fails
+    useEffect(() => {
+        if (parsingError && !isParsingResume) {
+            const toastKey = getToastKey("parsing_error");
+
+            // Don't show if already dismissed
+            if (isToastDismissed(toastKey)) return;
+
+            addToast({
+                type: "error",
+                title: "Parsing Failed",
+                description: parsingError,
+                dismissKey: toastKey,
+            });
+        }
+    }, [parsingError, isParsingResume, addToast, portfolioId]);
 
     const handleContinue = async () => {
         if (!parsedResumeData || !portfolioId) {
@@ -71,8 +217,14 @@ const ReviewPage: React.FC = () => {
                 throw new Error(errorData.error || "Failed to save resume data");
             }
 
+            await fetch(`/api/portfolio/${portfolioId}/update`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ last_step: "refine" }),
+            });
+
             router.push(
-                `/dashboard-user/create/refine?templateId=${templateId}`,
+                `/dashboard-user/create/refine?portfolioId=${portfolioId}`,
             );
         } catch (error) {
             console.error("Error saving resume data:", error);
@@ -127,6 +279,33 @@ const ReviewPage: React.FC = () => {
 
             {/* Main Content - Centered Resume Display */}
             <div className="max-w-5xl mx-auto">
+                {isParsingResume ? (
+                    <ResumeShimmerSkeleton />
+                ) : parsingError && !parsedResumeData ? (
+                    /* Error State */
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-gradient-to-br from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-white/10 text-center"
+                    >
+                        <div className="text-amber-400 text-lg mb-4">{parsingError}</div>
+                        <p className="text-slate-400">
+                            You can still continue and enter your information manually on the next page.
+                        </p>
+                    </motion.div>
+                ) : !parsedResumeData ? (
+                    /* Empty State */
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-gradient-to-br from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-white/10 text-center"
+                    >
+                        <p className="text-slate-400 text-lg">
+                            No resume data available. Please go back and upload a resume.
+                        </p>
+                    </motion.div>
+                ) : (
+                <>
                 {/* Personal Information Section */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -614,6 +793,8 @@ const ReviewPage: React.FC = () => {
                         )}
                     </div>
                 </motion.div>
+                </>
+                )}
             </div>
 
             {/* Continue Button */}
@@ -621,17 +802,27 @@ const ReviewPage: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 whileHover={{
-                    scale: 1.05,
-                    backgroundColor: "rgba(255, 255, 255, 0.15)",
-                    boxShadow: "0 0 40px rgba(255, 255, 255, 0.25)"
+                    scale: isParsingResume ? 1 : 1.05,
+                    backgroundColor: isParsingResume ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.15)",
+                    boxShadow: isParsingResume ? "none" : "0 0 40px rgba(255, 255, 255, 0.25)"
                 }}
-                whileTap={{ scale: 0.95 }}
+                whileTap={{ scale: isParsingResume ? 1 : 0.95 }}
                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 onClick={handleContinue}
-                className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 px-8 py-4 bg-white/10 backdrop-blur-xl border border-white/20 text-white rounded-full font-bold shadow-[0_0_30px_rgba(255,255,255,0.15)] flex items-center gap-3"
+                disabled={isParsingResume}
+                className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-50 px-8 py-4 bg-white/10 backdrop-blur-xl border border-white/20 text-white rounded-full font-bold shadow-[0_0_30px_rgba(255,255,255,0.15)] flex items-center gap-3 ${isParsingResume ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-                Continue to AI Refinement
-                <FiArrowRight className="w-5 h-5" />
+                {isParsingResume ? (
+                    <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+                        Parsing Resume...
+                    </>
+                ) : (
+                    <>
+                        Continue to AI Refinement
+                        <FiArrowRight className="w-5 h-5" />
+                    </>
+                )}
             </motion.button>
         </div>
     );

@@ -5,7 +5,7 @@ import { type NextRequest } from 'next/server'
 // Runs everytime request is being made 
 // Call supabase's helper function (updateSession)
 // Valid or refresh users JWT Tokens if expired
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
 
   // Pass incoming request to updateSession
   return await updateSession(request)

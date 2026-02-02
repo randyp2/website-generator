@@ -12,6 +12,7 @@ import { TemplateSection } from "./components/TemplateSection";
 const TemplateGallery: React.FC = () => {
   const router = useRouter();
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const { setTemplateId, setPortfolioId } = usePortfolioStore();
 
   // Reset Zustand store when starting a new portfolio to ensure fresh state
   useEffect(() => {
@@ -50,11 +51,34 @@ const TemplateGallery: React.FC = () => {
               }}
               whileTap={{ scale: 0.95 }}
               transition={{ type: "spring", stiffness: 400, damping: 30 }}
-              onClick={() =>
-                router.push(
-                  `/dashboard-user/create/style?templateId=${selectedTemplate}`
-                )
-              }
+              onClick={async () => {
+                if (!selectedTemplate) return;
+                try {
+                  const res = await fetch("/api/portfolio/draft", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ templateId: selectedTemplate }),
+                  });
+
+                  if (!res.ok) {
+                    const error = await res.json();
+                    alert(error?.error ?? "Failed to create draft");
+                    return;
+                  }
+
+                  const data = await res.json();
+                  const portfolioId = data?.portfolio?.id ?? null;
+                  setTemplateId(selectedTemplate);
+                  if (portfolioId) setPortfolioId(portfolioId);
+
+                  router.push(
+                    `/dashboard-user/create/style?portfolioId=${portfolioId}`
+                  );
+                } catch (error) {
+                  console.error("Draft creation failed:", error);
+                  alert("Failed to create draft. Please try again.");
+                }
+              }}
               className="hover:cursor-pointer px-8 py-4 bg-white/10 backdrop-blur-xl border border-white/20 text-white rounded-full font-bold shadow-[0_0_30px_rgba(255,255,255,0.15)] flex items-center gap-3"
             >
               Customize Style
