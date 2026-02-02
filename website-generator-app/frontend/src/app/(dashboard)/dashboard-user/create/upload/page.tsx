@@ -33,6 +33,7 @@ const UploadPage: React.FC = () => {
         setPortfolioId,
         setResumeFile,
         setParsedResumeData,
+        setParsedResumeSourceKey,
         addMediaFiles,
         removeMediaFile,
         updateMediaFileTitle,
@@ -69,6 +70,12 @@ const UploadPage: React.FC = () => {
 
     // Get parsed resume data from store to display confidence indicator
     const parsedResumeData = usePortfolioStore((s) => s.parsedResumeData);
+    const parsedResumeSourceKey = usePortfolioStore(
+        (s) => s.parsedResumeSourceKey,
+    );
+
+    const getResumeSourceKey = (file: File) =>
+        `${file.name}::${file.size}::${file.type}::${file.lastModified}`;
 
     /**
      * STATE: Pending media files awaiting metadata input
@@ -143,13 +150,21 @@ const UploadPage: React.FC = () => {
 
         if (type === "resume") {
             // Resume: directly set the first file (single file upload)
-            setResumeFile(fileArray[0]);
+            const resumeUpload = fileArray[0];
+            const sourceKey = getResumeSourceKey(resumeUpload.file);
+
+            if (parsedResumeSourceKey !== sourceKey) {
+                setParsedResumeData(null);
+                setParsedResumeSourceKey(null);
+            }
+
+            setResumeFile(resumeUpload);
 
             // Parse resume immediately after upload
             setIsParsingResume(true);
             setParsingError(null);
             try {
-                await parseResume(fileArray[0].file);
+                await parseResume(resumeUpload.file, sourceKey);
             } catch (error) {
                 console.error("Resume parsing failed:", error);
                 setParsingError(
@@ -193,6 +208,8 @@ const UploadPage: React.FC = () => {
         if (type === "resume") {
             // Resume: clear the single file
             setResumeFile(null);
+            setParsedResumeData(null);
+            setParsedResumeSourceKey(null);
         } else if (type === "media" && index !== undefined) {
             // Media: filter out the file at the specified index
             removeMediaFile(index);
@@ -438,7 +455,7 @@ const UploadPage: React.FC = () => {
      * Sends the uploaded resume to the backend for parsing
      * This will extract structured data from the resume (name, email, skills, etc.)
      */
-    const parseResume = async (file: File) => {
+    const parseResume = async (file: File, sourceKey?: string) => {
         const formData = new FormData();
         formData.append("file", file);
 
@@ -457,6 +474,9 @@ const UploadPage: React.FC = () => {
         // Store parsed data in Zustand store
         if (data.success && data.data) {
             setParsedResumeData(data.data);
+            setParsedResumeSourceKey(
+                sourceKey ?? getResumeSourceKey(file),
+            );
             console.log("Resume data saved to store");
         }
     };
@@ -478,9 +498,13 @@ const UploadPage: React.FC = () => {
             }
 
             // -- Resume is already parsed when uploaded, but parse again if not available
-            if (!parsedResumeData) {
+            const resumeSourceKey = getResumeSourceKey(resumeFile.file);
+            if (
+                !parsedResumeData ||
+                parsedResumeSourceKey !== resumeSourceKey
+            ) {
                 try {
-                    await parseResume(resumeFile.file);
+                    await parseResume(resumeFile.file, resumeSourceKey);
                 } catch (error) {
                     console.error("Resume parsing failed:", error);
                     // Continue anyway - user can still generate portfolio

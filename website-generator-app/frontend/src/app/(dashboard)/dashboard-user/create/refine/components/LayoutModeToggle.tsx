@@ -21,15 +21,15 @@ export const LayoutModeToggle: React.FC<LayoutModeToggleProps> = ({
     onChange,
 }) => {
     return (
-        <div className="flex items-center bg-slate-800/80 backdrop-blur-sm rounded-lg p-1 border border-white/10">
+        <div className="flex items-center bg-slate-800/80 backdrop-blur-sm rounded-sm p-1 border border-white/10">
             {modes.map(({ value, icon: Icon, tooltip }) => (
                 <button
                     key={value}
                     onClick={() => onChange(value)}
                     className={`
-                        relative group p-2 rounded-md transition-all duration-200
+                        relative group p-2 rounded-sm transition-all duration-200
                         ${mode === value
-                            ? 'bg-purple-600/90 text-white shadow-lg'
+                            ? 'bg-white text-slate-900 shadow-lg'
                             : 'text-slate-400 hover:text-white hover:bg-white/10'
                         }
                     `}

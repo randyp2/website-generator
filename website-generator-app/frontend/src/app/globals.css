@@ -216,11 +216,11 @@
   }
 
   .gutter:hover {
-    background-color: rgba(168, 85, 247, 0.5);
+    background-color: rgba(255, 255, 255, 0.5);
   }
 
   .gutter:active {
-    background-color: rgba(168, 85, 247, 0.8);
+    background-color: rgba(255, 255, 255, 0.8);
   }
 
   .gutter.gutter-horizontal {

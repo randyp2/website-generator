@@ -26,6 +26,8 @@ export interface PortfolioCreateState {
 
     // Parsed resume data
     parsedResumeData: ParsedResumeData | null;
+    parsedResumeSourceKey: string | null;
+    parsedResumeSourceKey: string | null;
 
     // Style preferences
     stylePreferences: StylePreferences;
@@ -52,6 +54,8 @@ export interface PortfolioCreateState {
 
     setResumeFile: (file: UploadedFile | null) => void;
     setParsedResumeData: (data: ParsedResumeData | null) => void;
+    setParsedResumeSourceKey: (key: string | null) => void;
+    setParsedResumeSourceKey: (key: string | null) => void;
 
     addMediaFiles: (file: UploadedFile[]) => void;
     removeMediaFile: (index: number) => void;
@@ -134,6 +138,8 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             mediaFiles: [],
             videoFiles: [],
             parsedResumeData: null,
+            parsedResumeSourceKey: null,
+            parsedResumeSourceKey: null,
             stylePreferences: {
                 colorScheme: null,
                 layoutDensity: null,
@@ -164,6 +170,12 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             // Set parsed resume data
             setParsedResumeData: (data: ParsedResumeData | null) =>
                 set({ parsedResumeData: data }),
+
+            setParsedResumeSourceKey: (key: string | null) =>
+                set({ parsedResumeSourceKey: key }),
+
+            setParsedResumeSourceKey: (key: string | null) =>
+                set({ parsedResumeSourceKey: key }),
 
             // Add/Remove media files & Update titles and descriptions
             addMediaFiles: (files: UploadedFile[]) => {
@@ -490,6 +502,8 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                     mediaFiles: [],
                     videoFiles: [],
                     parsedResumeData: null,
+                    parsedResumeSourceKey: null,
+                    parsedResumeSourceKey: null,
                     sections: null,
                     globalTheme: null,
                     messages: [],
@@ -517,6 +531,8 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                 templateId: state.templateId,
                 portfolioId: state.portfolioId,
                 parsedResumeData: state.parsedResumeData,
+                parsedResumeSourceKey: state.parsedResumeSourceKey,
+                parsedResumeSourceKey: state.parsedResumeSourceKey,
                 stylePreferences: state.stylePreferences,
                 sections: state.sections,
                 globalTheme: state.globalTheme,

@@ -3,6 +3,12 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
+    Download,
+    Eye,
+    Loader2,
+    MessageSquare,
+    Monitor,
+    PanelLeft,
     Paperclip,
     Palette,
     Send,
@@ -12,6 +18,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { UploadedFile } from "@/types/file";
+import { useVersions } from "@/hooks/useVersions";
+import { VersionTimelineTrigger, VersionTimelineDrawer } from "./version-timeline";
 
 interface FloatingPromptBarProps {
     uploadedFiles: UploadedFile[];
@@ -22,6 +30,12 @@ interface FloatingPromptBarProps {
     showPlanActions?: boolean;
     onApprovePlan?: () => void;
     onKeepChatting?: () => void;
+    portfolioId: string | null;
+    onVersionActivated?: () => void;
+    onDownload: () => Promise<void>;
+    isDownloading?: boolean;
+    layoutMode?: "sidebar" | "floating" | "preview";
+    onLayoutModeChange?: (mode: "sidebar" | "floating" | "preview") => void;
 }
 
 export const FloatingPromptBar: React.FC<FloatingPromptBarProps> = ({
@@ -33,10 +47,27 @@ export const FloatingPromptBar: React.FC<FloatingPromptBarProps> = ({
     showPlanActions = false,
     onApprovePlan,
     onKeepChatting,
+    portfolioId,
+    onVersionActivated,
+    onDownload,
+    isDownloading = false,
+    layoutMode = "sidebar",
+    onLayoutModeChange,
 }) => {
     // Local state
     const [prompt, setPrompt] = useState("");
     const [previewUrls, setPreviewUrls] = useState<Map<string, string>>(new Map());
+    const [isTimelineOpen, setIsTimelineOpen] = useState(false);
+    const [showTimelineTrigger, setShowTimelineTrigger] = useState(true);
+    const [showViewMenu, setShowViewMenu] = useState(false);
+
+    // Version management
+    const {
+        versions,
+        isLoading: isLoadingVersions,
+        activateVersion,
+        isActivating,
+    } = useVersions(portfolioId);
 
     // Refs
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -99,6 +130,24 @@ export const FloatingPromptBar: React.FC<FloatingPromptBarProps> = ({
         fileInputRef.current?.click();
     };
 
+    const handleDownload = async () => {
+        if (isGenerating || isDownloading) return;
+        try {
+            await onDownload();
+        } catch (err) {
+            console.error("Download error:", err);
+        }
+    };
+
+    // Version action handlers
+    const handleActivateVersion = async (versionId: string) => {
+        const success = await activateVersion(versionId);
+        if (success) {
+            setIsTimelineOpen(false);
+            onVersionActivated?.();
+        }
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -116,8 +165,40 @@ export const FloatingPromptBar: React.FC<FloatingPromptBarProps> = ({
                 className="hidden"
             />
 
+            {/* Version Timeline - expands upward from prompt bar */}
+            <div className="flex flex-col items-center">
+                {showTimelineTrigger && (
+                    <div data-version-trigger>
+                        <VersionTimelineTrigger
+                            isOpen={isTimelineOpen}
+                            onClick={() => {
+                                setShowTimelineTrigger(false);
+                                setIsTimelineOpen(true);
+                            }}
+                        />
+                    </div>
+                )}
+
+                <AnimatePresence
+                    onExitComplete={() => setShowTimelineTrigger(true)}
+                >
+                    {isTimelineOpen && (
+                        <VersionTimelineDrawer
+                            versions={versions}
+                            isLoading={isLoadingVersions}
+                            onClose={() => setIsTimelineOpen(false)}
+                            onActivate={handleActivateVersion}
+                            isActivating={isActivating}
+                        />
+                    )}
+                </AnimatePresence>
+            </div>
+
             {/* Main Prompt Bar */}
-            <div className="bg-[#1a1d21]/95 backdrop-blur-lg rounded-2xl border border-white/10 shadow-2xl shadow-black/50 p-4">
+            <div className={`
+                bg-[#1a1d21] backdrop-blur-lg border border-white/10 shadow-2xl shadow-black/50 p-4
+                ${isTimelineOpen ? "rounded-b-2xl border-t-0" : "rounded-2xl"}
+            `}>
                 {showPlanActions ? (
                     <div className="flex flex-col gap-4 rounded-2xl border border-orange-400/30 bg-gradient-to-br from-orange-500/10 via-amber-500/5 to-black/40 px-4 py-3 shadow-[0_0_30px_rgba(249,115,22,0.25)]">
                         <div className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-orange-300/80">
@@ -259,6 +340,66 @@ export const FloatingPromptBar: React.FC<FloatingPromptBarProps> = ({
 
                             {/* Spacer */}
                             <div className="flex-1" />
+
+                            {/* View Mode Toggle */}
+                            {onLayoutModeChange && (
+                                <div className="relative">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => setShowViewMenu((prev) => !prev)}
+                                        className="rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-300 transition-all"
+                                        title="View modes"
+                                    >
+                                        <Eye className="w-4 h-4" />
+                                    </Button>
+                                    {showViewMenu && (
+                                        <div className="absolute bottom-full right-0 mb-2 w-40 rounded-xl border border-white/10 bg-[#111318] shadow-lg overflow-hidden">
+                                            {[
+                                                { value: "sidebar", label: "Sidebar chat", icon: PanelLeft },
+                                                { value: "floating", label: "Floating chat", icon: MessageSquare },
+                                                { value: "preview", label: "Preview only", icon: Monitor },
+                                            ].map(({ value, label, icon: Icon }) => (
+                                                <button
+                                                    key={value}
+                                                    onClick={() => {
+                                                        onLayoutModeChange(value as "sidebar" | "floating" | "preview");
+                                                        setShowViewMenu(false);
+                                                    }}
+                                                    className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-left transition-colors ${
+                                                        layoutMode === value
+                                                            ? "bg-white/10 text-white"
+                                                            : "text-white/70 hover:bg-white/5"
+                                                    }`}
+                                                >
+                                                    <Icon className="w-3.5 h-3.5" />
+                                                    {label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Download */}
+                            <motion.div
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                            >
+                                <Button
+                                    size="icon"
+                                    onClick={handleDownload}
+                                    disabled={isDownloading || isGenerating}
+                                    className="rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-300 bg-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                    title="Download HTML"
+                                >
+                                    {isDownloading ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <Download className="w-4 h-4" />
+                                    )}
+                                </Button>
+                            </motion.div>
 
                             {/* Send Button */}
                             <motion.div
