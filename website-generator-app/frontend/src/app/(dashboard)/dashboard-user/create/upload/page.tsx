@@ -33,6 +33,9 @@ const UploadPage: React.FC = () => {
         setPortfolioId,
         setResumeFile,
         setParsedResumeData,
+        setParsedResumeSourceKey,
+        setIsParsingResume,
+        setParsingError,
         addMediaFiles,
         removeMediaFile,
         updateMediaFileTitle,
@@ -47,8 +50,41 @@ const UploadPage: React.FC = () => {
 
     useEffect(() => {
         const id = searchParams.get("templateId");
+        const portfolioId = searchParams.get("portfolioId");
         if (id) setTemplateId(id);
-    }, [searchParams, setTemplateId]);
+        if (portfolioId) setPortfolioId(portfolioId);
+    }, [searchParams, setTemplateId, setPortfolioId]);
+
+    useEffect(() => {
+        const portfolioId = searchParams.get("portfolioId");
+        if (!portfolioId) return;
+        fetch(`/api/portfolio/${portfolioId}/update`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ last_step: "upload" }),
+        }).catch(() => null);
+    }, [searchParams]);
+
+    useEffect(() => {
+        const portfolioId = searchParams.get("portfolioId");
+        if (!portfolioId) return;
+        if (templateId) return;
+
+        const loadTemplateId = async () => {
+            try {
+                const res = await fetch(`/api/portfolio/${portfolioId}/load`);
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data?.templateId) {
+                    setTemplateId(data.templateId);
+                }
+            } catch {
+                return;
+            }
+        };
+
+        loadTemplateId();
+    }, [searchParams, templateId, setTemplateId]);
 
     useEffect(() => {
         const unsub = usePortfolioStore.subscribe((state, prevState) => {
@@ -59,16 +95,13 @@ const UploadPage: React.FC = () => {
         return () => unsub(); // cleanup on unmount
     }, []);
 
-    /**
-     * STATE: Resume parsing status
-     *
-     * Tracks whether resume is being parsed and any parsing errors
-     */
-    const [isParsingResume, setIsParsingResume] = useState(false);
-    const [parsingError, setParsingError] = useState<string | null>(null);
+    // Get parsed resume data from store for checking if already parsed
+    const parsedResumeSourceKey = usePortfolioStore(
+        (s) => s.parsedResumeSourceKey,
+    );
 
-    // Get parsed resume data from store to display confidence indicator
-    const parsedResumeData = usePortfolioStore((s) => s.parsedResumeData);
+    const getResumeSourceKey = (file: File) =>
+        `${file.name}::${file.size}::${file.type}::${file.lastModified}`;
 
     /**
      * STATE: Pending media files awaiting metadata input
@@ -143,21 +176,17 @@ const UploadPage: React.FC = () => {
 
         if (type === "resume") {
             // Resume: directly set the first file (single file upload)
-            setResumeFile(fileArray[0]);
+            // Parsing is deferred to handleContinue for immediate navigation
+            const resumeUpload = fileArray[0];
+            const sourceKey = getResumeSourceKey(resumeUpload.file);
 
-            // Parse resume immediately after upload
-            setIsParsingResume(true);
-            setParsingError(null);
-            try {
-                await parseResume(fileArray[0].file);
-            } catch (error) {
-                console.error("Resume parsing failed:", error);
-                setParsingError(
-                    "Failed to parse resume. You can still continue.",
-                );
-            } finally {
-                setIsParsingResume(false);
+            if (parsedResumeSourceKey !== sourceKey) {
+                setParsedResumeData(null);
+                setParsedResumeSourceKey(null);
+                setParsingError(null);
             }
+
+            setResumeFile(resumeUpload);
         } else if (type === "media") {
             // Media: route to pending state for metadata input
             setPendingMediaFiles(fileArray);
@@ -193,6 +222,8 @@ const UploadPage: React.FC = () => {
         if (type === "resume") {
             // Resume: clear the single file
             setResumeFile(null);
+            setParsedResumeData(null);
+            setParsedResumeSourceKey(null);
         } else if (type === "media" && index !== undefined) {
             // Media: filter out the file at the specified index
             removeMediaFile(index);
@@ -438,7 +469,7 @@ const UploadPage: React.FC = () => {
      * Sends the uploaded resume to the backend for parsing
      * This will extract structured data from the resume (name, email, skills, etc.)
      */
-    const parseResume = async (file: File) => {
+    const parseResume = async (file: File, sourceKey?: string) => {
         const formData = new FormData();
         formData.append("file", file);
 
@@ -457,17 +488,34 @@ const UploadPage: React.FC = () => {
         // Store parsed data in Zustand store
         if (data.success && data.data) {
             setParsedResumeData(data.data);
+            setParsedResumeSourceKey(
+                sourceKey ?? getResumeSourceKey(file),
+            );
             console.log("Resume data saved to store");
+        }
+    };
+
+    /**
+     * Fire-and-forget parsing that runs in the background
+     * Updates Zustand state when complete/error occurs
+     */
+    const parseResumeInBackground = async (file: File, sourceKey: string) => {
+        try {
+            await parseResume(file, sourceKey);
+        } catch (error) {
+            console.error("Background resume parsing failed:", error);
+            setParsingError("Failed to parse resume. Please enter information manually.");
+        } finally {
+            setIsParsingResume(false);
         }
     };
 
     // Handler to navigate to next page
     const handleContinue = async () => {
         //  --- Call API Route to update Supbase Database
-        // alert("User id: " + id);
         // Extract current state values
         try {
-            const { templateId, resumeFile, mediaFiles, videoFiles } =
+            const { templateId, portfolioId, resumeFile, mediaFiles, videoFiles, parsedResumeData, parsedResumeSourceKey } =
                 usePortfolioStore.getState();
 
             if (!templateId || !resumeFile) {
@@ -477,20 +525,13 @@ const UploadPage: React.FC = () => {
                 return;
             }
 
-            // -- Resume is already parsed when uploaded, but parse again if not available
-            if (!parsedResumeData) {
-                try {
-                    await parseResume(resumeFile.file);
-                } catch (error) {
-                    console.error("Resume parsing failed:", error);
-                    // Continue anyway - user can still generate portfolio
-                }
-            }
-
             // -- Construct form data to send to API route
             const formData = new FormData();
             formData.append("templateId", templateId);
             formData.append("resumeFile", resumeFile.file);
+            if (portfolioId) {
+                formData.append("portfolioId", portfolioId);
+            }
 
             mediaFiles.forEach((mediaFile) => {
                 formData.append("mediaFiles", mediaFile.file);
@@ -531,18 +572,29 @@ const UploadPage: React.FC = () => {
             const data = await res.json();
             console.log("UPLOADED RESPONSE: ", data);
 
-            const portfolioId = data.portfolio?.id ?? data.portfolioId;
+            const createdPortfolioId = data.portfolio?.id ?? data.portfolioId;
 
-            if (!portfolioId) {
+            if (!createdPortfolioId) {
                 alert("Portfolio ID missing from response");
                 return;
             }
 
             // Save portfolio ID to Zustand store for later use
-            setPortfolioId(portfolioId);
+            setPortfolioId(createdPortfolioId);
 
+            // -- Fire-and-forget resume parsing (don't await)
+            // Start parsing in background if not already parsed
+            const resumeSourceKey = getResumeSourceKey(resumeFile.file);
+            if (!parsedResumeData || parsedResumeSourceKey !== resumeSourceKey) {
+                setIsParsingResume(true);
+                setParsingError(null);
+                // Fire and forget - don't await
+                parseResumeInBackground(resumeFile.file, resumeSourceKey);
+            }
+
+            // -- Navigate IMMEDIATELY - don't wait for parsing
             router.push(
-                `/dashboard-user/create/review?templateId=${templateId}`,
+                `/dashboard-user/create/review?portfolioId=${createdPortfolioId}`,
             );
         } catch (error) {
             console.error("Error during portfolio creation:", error);
@@ -555,7 +607,15 @@ const UploadPage: React.FC = () => {
 
     // Handler to skip upload and navigate to next page
     const handleSkip = () => {
-        router.push(`/dashboard-user/create/refine?templateId=${templateId}`);
+        const { portfolioId } = usePortfolioStore.getState();
+        if (portfolioId) {
+            fetch(`/api/portfolio/${portfolioId}/update`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ last_step: "refine" }),
+            }).catch(() => null);
+        }
+        router.push(`/dashboard-user/create/refine?portfolioId=${portfolioId}`);
     };
 
     return (
@@ -572,9 +632,6 @@ const UploadPage: React.FC = () => {
                         handleFileUpload={handleFileUpload}
                         formatFileSize={formatFileSize}
                         removeFile={removeFile}
-                        isParsingResume={isParsingResume}
-                        parsingError={parsingError}
-                        parsedResumeData={parsedResumeData}
                     />
 
                     {/* Right Column - Media and Video Uploads Stacked */}

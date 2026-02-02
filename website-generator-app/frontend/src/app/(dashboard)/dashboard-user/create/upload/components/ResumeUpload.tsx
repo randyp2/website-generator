@@ -4,8 +4,6 @@ import { motion } from "framer-motion";
 import React, { useEffect, useState } from "react";
 import { FiFile, FiUpload, FiCheck, FiX } from "react-icons/fi";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
-import { ParsedResumeData } from "@/types/resume";
-import ParsingConfidenceIndicator from "./ParsingConfidenceIndicator";
 // Import react-pdf components for PDF rendering
 import { Document, Page, pdfjs } from "react-pdf";
 // Import styles for react-pdf
@@ -27,18 +25,12 @@ interface ResumeUploadProps {
     e: React.ChangeEvent<HTMLInputElement>,
     type: "resume" | "media" | "video"
   ) => void;
-  isParsingResume: boolean;
-  parsingError: string | null;
-  parsedResumeData: ParsedResumeData | null;
 }
 
 export const ResumeUpload: React.FC<ResumeUploadProps> = ({
   formatFileSize,
   removeFile,
   handleFileUpload,
-  isParsingResume,
-  parsingError,
-  parsedResumeData,
 }) => {
   // Get resume file and parsed data setter from global store
   const resumeFile = usePortfolioStore(s => s.resumeFile);
@@ -198,28 +190,6 @@ export const ResumeUpload: React.FC<ResumeUploadProps> = ({
               )}
             </div>
 
-            {/* Parsing Status and Confidence Indicator */}
-            {isParsingResume && (
-              <div className="mt-4 p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
-                <div className="flex items-center gap-3">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white/60"></div>
-                  <p className="text-white/80">Parsing resume...</p>
-                </div>
-              </div>
-            )}
-
-            {parsingError && (
-              <div className="mt-4 p-4 bg-red-500/10 backdrop-blur-sm rounded-xl border border-red-500/20">
-                <p className="text-red-200 text-sm">{parsingError}</p>
-              </div>
-            )}
-
-            {!isParsingResume && !parsingError && parsedResumeData && (
-              <ParsingConfidenceIndicator
-                confidenceScore={parsedResumeData.confidenceScore}
-                parsingMethod={parsedResumeData.parsingMethod}
-              />
-            )}
           </motion.div>
         )}
       </div>

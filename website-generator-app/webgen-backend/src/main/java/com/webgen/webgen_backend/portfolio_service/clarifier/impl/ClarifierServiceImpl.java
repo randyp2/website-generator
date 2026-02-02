@@ -92,6 +92,13 @@ public class ClarifierServiceImpl implements ClarifierService {
             }
         }
 
+        // If we're ready to plan, ensure we don't ask another question
+        if (parsed.isReadyForPlanning()) {
+            parsed.setAssistantMessage(
+                    "Got it. I have enough context to proceed to planning your updates."
+            );
+        }
+
         // Debug: Print updated context
         System.out.println("=== CLARIFIER CONTEXT UPDATED ===");
         System.out.println("Portfolio ID: " + req.getPortfolioId());

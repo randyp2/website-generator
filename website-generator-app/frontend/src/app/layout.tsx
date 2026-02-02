@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Toaster } from "@/components/ui/toaster";
 
 
 
@@ -90,6 +91,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} overflow-x-hidden relative flex flex-col min-h-screen bg-linear-to-br from-white via-slate-50 to-cyan-100/20`}
       >
         {children}
+        <Toaster />
       </body>
     </html>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import { MessageSquare, PanelLeft, EyeOff } from "lucide-react";
 import { Sandpack } from "@codesandbox/sandpack-react";
 import { atomDark } from "@codesandbox/sandpack-themes";
 import { Panel, Group, Separator } from "react-resizable-panels";
@@ -11,6 +12,7 @@ interface PreviewProps {
     globalTheme?: GlobalTheme | null;
     layoutMode?: "sidebar" | "floating" | "preview";
     sidebarContent?: React.ReactNode;
+    onLayoutModeChange?: (mode: "sidebar" | "floating" | "preview") => void;
 }
 
 const DEFAULT_THEME: GlobalTheme = {
@@ -126,10 +128,33 @@ const buildSandpackFiles = (
             : source;
     };
 
-    sorted.forEach((section, index) => {
-        files[`/sections/Section${index}.jsx`] = ensureImports(
-            section.reactSource,
+    const ensureDefaultExport = (source: string, index: number) => {
+        const normalized = source.trim();
+        if (!normalized) {
+            return `export default function Section${index}() { return (<div className="p-8 text-white">Empty section source.</div>); }`;
+        }
+
+        if (/export\s+default/.test(normalized)) return normalized;
+
+        const functionMatch = normalized.match(
+            /function\s+([A-Z][A-Za-z0-9_]*)\s*\(/,
         );
+        const constMatch = normalized.match(
+            /const\s+([A-Z][A-Za-z0-9_]*)\s*=\s*(\(|function|\(.*\)\s*=>)/,
+        );
+        const componentName = functionMatch?.[1] || constMatch?.[1];
+
+        if (componentName) {
+            return `${normalized}\n\nexport default ${componentName};`;
+        }
+
+        return `export default function Section${index}() { return (<div className="p-8 text-white">Section missing default export.</div>); }`;
+    };
+
+    sorted.forEach((section, index) => {
+        const source = section.reactSource ?? "";
+        const withExport = ensureDefaultExport(source, index);
+        files[`/sections/Section${index}.jsx`] = ensureImports(withExport);
     });
 
     return files;
@@ -140,9 +165,11 @@ export const Preview: React.FC<PreviewProps> = ({
     globalTheme,
     layoutMode = "sidebar",
     sidebarContent,
+    onLayoutModeChange,
 }) => {
     const [isMounted, setIsMounted] = useState<boolean>(false);
     const [isDragging, setIsDragging] = useState<boolean>(false);
+    const [showExitMenu, setShowExitMenu] = useState(false);
 
     useEffect(() => {
         const timeoutId = setTimeout(() => setIsMounted(true), 0);
@@ -223,7 +250,7 @@ export const Preview: React.FC<PreviewProps> = ({
                     {/* The Draggable Gutter */}
                     <Separator
                         onPointerDownCapture={() => setIsDragging(true)}
-                        className="w-2 bg-slate-800 hover:bg-purple-500 transition-colors cursor-col-resize"
+                        className="w-2 bg-slate-800 hover:bg-white transition-colors cursor-col-resize"
                     />
 
                     {/* Sandpack Panel */}
@@ -252,7 +279,7 @@ export const Preview: React.FC<PreviewProps> = ({
                                     ],
                                     showConsoleButton: true,
                                     showInlineErrors: true,
-                                    showNavigator: true,
+                                    showNavigator: false,
                                     showLineNumbers: true,
                                     showTabs: true,
                                     editorHeight: "calc(100vh)",
@@ -270,6 +297,41 @@ export const Preview: React.FC<PreviewProps> = ({
     // Floating mode or Preview mode: full-width preview
     return (
         <div className="absolute inset-0 h-full w-full">
+            {layoutMode === "preview" && onLayoutModeChange && (
+                <div className="absolute top-4 right-4 z-50">
+                    <button
+                        onClick={() => setShowExitMenu((prev) => !prev)}
+                        className="w-9 h-9 rounded-full bg-black/60 border border-white/10 text-white/70 hover:text-white hover:bg-black/80 flex items-center justify-center transition-colors"
+                        title="Exit preview-only mode"
+                    >
+                        <EyeOff className="w-4 h-4" />
+                    </button>
+                    {showExitMenu && (
+                        <div className="absolute top-11 right-0 w-44 rounded-xl border border-white/10 bg-[#111318] shadow-lg overflow-hidden">
+                            <button
+                                onClick={() => {
+                                    onLayoutModeChange("sidebar");
+                                    setShowExitMenu(false);
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-left text-white/70 hover:bg-white/5 transition-colors"
+                            >
+                                <PanelLeft className="w-3.5 h-3.5" />
+                                Sidebar chat
+                            </button>
+                            <button
+                                onClick={() => {
+                                    onLayoutModeChange("floating");
+                                    setShowExitMenu(false);
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-left text-white/70 hover:bg-white/5 transition-colors"
+                            >
+                                <MessageSquare className="w-3.5 h-3.5" />
+                                Floating chat
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
             <Sandpack
                 key={sandpackKey}
                 files={files}
@@ -285,7 +347,7 @@ export const Preview: React.FC<PreviewProps> = ({
                     externalResources: ["https://cdn.tailwindcss.com"],
                     showConsoleButton: true,
                     showInlineErrors: true,
-                    showNavigator: true,
+                    showNavigator: false,
                     showLineNumbers: true,
                     showTabs: true,
                     editorHeight: "calc(100vh)",
