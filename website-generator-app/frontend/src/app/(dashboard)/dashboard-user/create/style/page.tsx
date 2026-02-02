@@ -13,26 +13,81 @@ const StyleDiscussionPage: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const templateId = searchParams.get("templateId");
+  const portfolioId = searchParams.get("portfolioId");
 
-  const { stylePreferences, updateStylePreference, setTemplateId } =
+  const { stylePreferences, updateStylePreference, setTemplateId, setPortfolioId } =
     usePortfolioStore();
 
   const [suggestions] = useState<StyleSuggestion | null>(FALLBACK_STYLE_OPTIONS);
 
-  // Save templateId to Zustand when page loads
+  // Save templateId and portfolioId to Zustand when page loads
   useEffect(() => {
     if (templateId) {
       setTemplateId(templateId);
     }
-  }, [templateId, setTemplateId]);
+    if (portfolioId) {
+      setPortfolioId(portfolioId);
+    }
+  }, [templateId, portfolioId, setTemplateId, setPortfolioId]);
+
+  useEffect(() => {
+    if (!portfolioId) return;
+    if (templateId) return;
+
+    const loadTemplateId = async () => {
+      try {
+        const res = await fetch(`/api/portfolio/${portfolioId}/load`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.templateId) {
+          setTemplateId(data.templateId);
+        }
+      } catch {
+        return;
+      }
+    };
+
+    loadTemplateId();
+  }, [portfolioId, templateId, setTemplateId]);
+
+  useEffect(() => {
+    if (!portfolioId) return;
+    fetch(`/api/portfolio/${portfolioId}/update`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ last_step: "style" }),
+    }).catch(() => null);
+  }, [portfolioId]);
 
 
-  const handleSkip = () => {
-    router.push(`/dashboard-user/create/upload?templateId=${templateId}`);
+  const handleSkip = async () => {
+    if (portfolioId) {
+      await fetch(`/api/portfolio/${portfolioId}/update`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ last_step: "upload" }),
+      });
+    }
+    if (portfolioId) {
+      router.push(`/dashboard-user/create/upload?portfolioId=${portfolioId}`);
+    } else {
+      router.push(`/dashboard-user/create/upload?templateId=${templateId}`);
+    }
   };
 
-  const handleContinue = () => {
-    router.push(`/dashboard-user/create/upload?templateId=${templateId}`);
+  const handleContinue = async () => {
+    if (portfolioId) {
+      await fetch(`/api/portfolio/${portfolioId}/update`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ last_step: "upload" }),
+      });
+    }
+    if (portfolioId) {
+      router.push(`/dashboard-user/create/upload?portfolioId=${portfolioId}`);
+    } else {
+      router.push(`/dashboard-user/create/upload?templateId=${templateId}`);
+    }
   };
 
   return (

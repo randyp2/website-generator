@@ -14,6 +14,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
 import { Portfolio as PortfolioRecord } from "@/types/portfolio";
+import { DeletePortfolioOverlay } from "./DeletePortfolioOverlay";
 
 // Status Indicator Component
 const StatusIndicator: React.FC<{
@@ -98,6 +99,17 @@ export const RecentSection: React.FC = () => {
         if (status === "archived") return "archived";
         if (status === "active") return "active";
         return "draft";
+    };
+
+    const resolveResumePath = (portfolio: PortfolioRecord) => {
+        const step = portfolio.last_step ?? "refine";
+        if (step === "template") return "/dashboard-user/create";
+        if (step === "style") return `/dashboard-user/create/style?portfolioId=${portfolio.id}`;
+        if (step === "upload") return `/dashboard-user/create/upload?portfolioId=${portfolio.id}`;
+        if (step === "review") return `/dashboard-user/create/review?portfolioId=${portfolio.id}`;
+        if (step === "refine") return `/dashboard-user/create/refine?portfolioId=${portfolio.id}`;
+        if (step === "publish") return `/dashboard-user/create/refine?portfolioId=${portfolio.id}`;
+        return `/dashboard-user/create/refine?portfolioId=${portfolio.id}`;
     };
 
     const getDateValue = (timestamp?: unknown | null) => {
@@ -433,9 +445,7 @@ export const RecentSection: React.FC = () => {
                                     <button
                                         onClick={(event) => {
                                             event.stopPropagation();
-                                            router.push(
-                                                `/dashboard-user/create/refine?portfolioId=${portfolio.id}`,
-                                            );
+                                            router.push(resolveResumePath(portfolio));
                                         }}
                                         className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors cursor-pointer"
                                     >
@@ -512,9 +522,7 @@ export const RecentSection: React.FC = () => {
                                         <button
                                             onClick={(event) => {
                                                 event.stopPropagation();
-                                                router.push(
-                                                    `/dashboard-user/create/refine?portfolioId=${portfolio.id}`,
-                                                );
+                                                router.push(resolveResumePath(portfolio));
                                             }}
                                             className="flex-1 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center gap-1.5 transition-colors text-white text-xs cursor-pointer"
                                         >
@@ -537,53 +545,13 @@ export const RecentSection: React.FC = () => {
                     </div>
                 )}
             </motion.div>
-            {deleteTarget && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center">
-                    <button
-                        aria-label="Close delete confirmation"
-                        onClick={() => setDeleteTarget(null)}
-                        className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
-                    />
-                    <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        className="relative w-full max-w-md mx-4 rounded-2xl border border-white/10 bg-[#121419] shadow-2xl p-6"
-                    >
-                        <div className="flex items-start justify-between gap-4">
-                            <div>
-                                <h3 className="text-xl font-semibold text-white">
-                                    Delete portfolio?
-                                </h3>
-                                <p className="mt-2 text-sm text-white/60">
-                                    You are about to permanently delete{" "}
-                                    <span className="text-white/90 font-medium">
-                                        {deleteTarget.title}
-                                    </span>
-                                    . This action cannot be undone.
-                                </p>
-                            </div>
-                            <div className="w-10 h-10 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center">
-                                <FiTrash2 className="w-5 h-5 text-red-300" />
-                            </div>
-                        </div>
-                        <div className="mt-6 flex items-center justify-end gap-3">
-                            <button
-                                onClick={() => setDeleteTarget(null)}
-                                className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors cursor-pointer"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={() => handleDelete(deleteTarget.id)}
-                                disabled={isDeleting}
-                                className="px-4 py-2 rounded-lg bg-red-500/80 hover:bg-red-500 text-white text-sm font-semibold transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                            >
-                                {isDeleting ? "Deleting..." : "Delete"}
-                            </button>
-                        </div>
-                    </motion.div>
-                </div>
-            )}
+            <DeletePortfolioOverlay
+                isOpen={Boolean(deleteTarget)}
+                portfolioTitle={deleteTarget?.title}
+                onCancel={() => setDeleteTarget(null)}
+                onConfirm={() => deleteTarget && handleDelete(deleteTarget.id)}
+                isDeleting={isDeleting}
+            />
             {renameTarget && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center">
                     <button

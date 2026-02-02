@@ -106,7 +106,7 @@ export const ChatbotOverlay: React.FC<ChatbotOverlayProps> = ({
                 </div>
                 <div>
                     <h2 className="text-base font-bold text-white">
-                        PortfolioAI Chat
+                        PortRN Chat
                     </h2>
                     <p className="text-xs text-white/40">
                         {messages.length === 0
@@ -129,8 +129,8 @@ export const ChatbotOverlay: React.FC<ChatbotOverlayProps> = ({
                             No messages yet
                         </h3>
                         <p className="text-sm text-white/40 max-w-sm">
-                            Ask PortfolioAI to refine your portfolio. You can
-                            upload images or videos to include in your design.
+                            Ask PortRN to refine your portfolio. You can upload
+                            images or videos to include in your design.
                         </p>
                     </div>
                 ) : (
@@ -332,87 +332,93 @@ export const ChatbotOverlay: React.FC<ChatbotOverlayProps> = ({
                                 {uploadedFiles.length > 0 && (
                                     <div className="mt-4 flex flex-wrap gap-3">
                                         <AnimatePresence>
-                                            {uploadedFiles.map((file, index) => {
-                                                const isImage =
-                                                    file.type.startsWith(
-                                                        "image/",
-                                                    );
-                                                const preview =
-                                                    URL.createObjectURL(
-                                                        file.file,
-                                                    );
+                                            {uploadedFiles.map(
+                                                (file, index) => {
+                                                    const isImage =
+                                                        file.type.startsWith(
+                                                            "image/",
+                                                        );
+                                                    const preview =
+                                                        URL.createObjectURL(
+                                                            file.file,
+                                                        );
 
-                                                return (
-                                                    <motion.div
-                                                        key={`${file.name}-${index}`}
-                                                        initial={{
-                                                            opacity: 0,
-                                                            scale: 0.8,
-                                                            y: 10,
-                                                        }}
-                                                        animate={{
-                                                            opacity: 1,
-                                                            scale: 1,
-                                                            y: 0,
-                                                        }}
-                                                        exit={{
-                                                            opacity: 0,
-                                                            scale: 0.8,
-                                                            x: -20,
-                                                        }}
-                                                        transition={{
-                                                            duration: 0.2,
-                                                        }}
-                                                        className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg p-2"
-                                                    >
-                                                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-[#1a1d21] flex items-center justify-center shrink-0">
-                                                            {isImage ? (
-                                                                <img
-                                                                    src={
-                                                                        preview
-                                                                    }
-                                                                    alt={
-                                                                        file.name
-                                                                    }
-                                                                    className="w-full h-full object-cover"
-                                                                />
-                                                            ) : (
-                                                                <FiVideo className="w-6 h-6 text-white/40" />
-                                                            )}
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-medium text-white/70 truncate">
-                                                                {file.name}
-                                                            </p>
-                                                            <p className="text-xs text-white/40">
-                                                                {(
-                                                                    file.size /
-                                                                    1024 /
-                                                                    1024
-                                                                ).toFixed(2)}{" "}
-                                                                MB
-                                                            </p>
-                                                        </div>
-                                                        <motion.button
-                                                            whileHover={{
-                                                                scale: 1.1,
+                                                    return (
+                                                        <motion.div
+                                                            key={`${file.name}-${index}`}
+                                                            initial={{
+                                                                opacity: 0,
+                                                                scale: 0.8,
+                                                                y: 10,
                                                             }}
-                                                            whileTap={{
-                                                                scale: 0.9,
+                                                            animate={{
+                                                                opacity: 1,
+                                                                scale: 1,
+                                                                y: 0,
                                                             }}
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                onRemoveFile(
-                                                                    index,
-                                                                );
+                                                            exit={{
+                                                                opacity: 0,
+                                                                scale: 0.8,
+                                                                x: -20,
                                                             }}
-                                                            className="w-6 h-6 rounded-full bg-white/10 hover:bg-red-500/20 flex items-center justify-center transition-colors"
+                                                            transition={{
+                                                                duration: 0.2,
+                                                            }}
+                                                            className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg p-2"
                                                         >
-                                                            <FiX className="w-4 h-4 text-white/60 hover:text-red-400" />
-                                                        </motion.button>
-                                                    </motion.div>
-                                                );
-                                            })}
+                                                            <div className="w-12 h-12 rounded-lg overflow-hidden bg-[#1a1d21] flex items-center justify-center shrink-0">
+                                                                {isImage ? (
+                                                                    <img
+                                                                        src={
+                                                                            preview
+                                                                        }
+                                                                        alt={
+                                                                            file.name
+                                                                        }
+                                                                        className="w-full h-full object-cover"
+                                                                    />
+                                                                ) : (
+                                                                    <FiVideo className="w-6 h-6 text-white/40" />
+                                                                )}
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-sm font-medium text-white/70 truncate">
+                                                                    {file.name}
+                                                                </p>
+                                                                <p className="text-xs text-white/40">
+                                                                    {(
+                                                                        file.size /
+                                                                        1024 /
+                                                                        1024
+                                                                    ).toFixed(
+                                                                        2,
+                                                                    )}{" "}
+                                                                    MB
+                                                                </p>
+                                                            </div>
+                                                            <motion.button
+                                                                whileHover={{
+                                                                    scale: 1.1,
+                                                                }}
+                                                                whileTap={{
+                                                                    scale: 0.9,
+                                                                }}
+                                                                onClick={(
+                                                                    e,
+                                                                ) => {
+                                                                    e.stopPropagation();
+                                                                    onRemoveFile(
+                                                                        index,
+                                                                    );
+                                                                }}
+                                                                className="w-6 h-6 rounded-full bg-white/10 hover:bg-red-500/20 flex items-center justify-center transition-colors"
+                                                            >
+                                                                <FiX className="w-4 h-4 text-white/60 hover:text-red-400" />
+                                                            </motion.button>
+                                                        </motion.div>
+                                                    );
+                                                },
+                                            )}
                                         </AnimatePresence>
                                     </div>
                                 )}

@@ -2,13 +2,27 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Paperclip, Palette, Send, X, Video } from "lucide-react";
+import {
+    Download,
+    Eye,
+    Loader2,
+    MessageSquare,
+    Monitor,
+    PanelLeft,
+    Paperclip,
+    Palette,
+    Send,
+    X,
+    Video,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { Message as PreviewMessage } from "@/types/preview";
 import type { UploadedFile } from "@/types/file";
 import { GenerationStatus } from "@/components/ui/GenerationStatus";
 import { StreamingText } from "@/components/ui/StreamingText";
+import { useVersions } from "@/hooks/useVersions";
+import { VersionTimelineTrigger, VersionTimelineDrawer } from "./version-timeline";
 
 type ChatMessage = PreviewMessage & { isGenerating?: boolean };
 
@@ -22,6 +36,12 @@ interface SidebarChatPanelProps {
     showPlanActions?: boolean;
     onApprovePlan?: () => void;
     onKeepChatting?: () => void;
+    portfolioId: string | null;
+    onVersionActivated?: () => void;
+    onDownload: () => Promise<void>;
+    isDownloading?: boolean;
+    layoutMode?: "sidebar" | "floating" | "preview";
+    onLayoutModeChange?: (mode: "sidebar" | "floating" | "preview") => void;
 }
 
 export const SidebarChatPanel: React.FC<SidebarChatPanelProps> = ({
@@ -34,9 +54,27 @@ export const SidebarChatPanel: React.FC<SidebarChatPanelProps> = ({
     showPlanActions = false,
     onApprovePlan,
     onKeepChatting,
+    portfolioId,
+    onVersionActivated,
+    onDownload,
+    isDownloading = false,
+    layoutMode = "sidebar",
+    onLayoutModeChange,
 }) => {
     // Local state for prompt input
     const [prompt, setPrompt] = useState("");
+    const [isTimelineOpen, setIsTimelineOpen] = useState(false);
+    const [showTimelineTrigger, setShowTimelineTrigger] = useState(true);
+    const [showViewMenu, setShowViewMenu] = useState(false);
+
+    // Version management
+    const {
+        versions,
+        isLoading: isLoadingVersions,
+        activateVersion,
+        isActivating,
+        refetch: refetchVersions,
+    } = useVersions(portfolioId);
     const [previewUrls, setPreviewUrls] = useState<Map<string, string>>(new Map());
     const [completedStreamingIds, setCompletedStreamingIds] = useState<Set<string>>(new Set());
 
@@ -151,6 +189,24 @@ export const SidebarChatPanel: React.FC<SidebarChatPanelProps> = ({
     // Open file explorer
     const handleAttachClick = () => {
         fileInputRef.current?.click();
+    };
+
+    const handleDownload = async () => {
+        if (isGenerating || isDownloading) return;
+        try {
+            await onDownload();
+        } catch (err) {
+            console.error("Download error:", err);
+        }
+    };
+
+    // Version action handlers
+    const handleActivateVersion = async (versionId: string) => {
+        const success = await activateVersion(versionId);
+        if (success) {
+            setIsTimelineOpen(false);
+            onVersionActivated?.();
+        }
     };
 
     return (
@@ -288,8 +344,42 @@ export const SidebarChatPanel: React.FC<SidebarChatPanelProps> = ({
                 </div>
             )}
 
-            {/* Prompt Input Area */}
-            <div className="p-4 border-t border-white/10 flex-shrink-0">
+            {/* Prompt Input Area with Version Timeline */}
+            <div className="flex-shrink-0 px-4 pb-4">
+                {/* Version Timeline - expands upward */}
+                <div className="flex flex-col items-center">
+                    {showTimelineTrigger && (
+                        <div data-version-trigger>
+                            <VersionTimelineTrigger
+                                isOpen={isTimelineOpen}
+                                onClick={() => {
+                                    setShowTimelineTrigger(false);
+                                    setIsTimelineOpen(true);
+                                }}
+                            />
+                        </div>
+                    )}
+
+                    <AnimatePresence
+                        onExitComplete={() => setShowTimelineTrigger(true)}
+                    >
+                        {isTimelineOpen && (
+                            <VersionTimelineDrawer
+                                versions={versions}
+                                isLoading={isLoadingVersions}
+                                onClose={() => setIsTimelineOpen(false)}
+                                onActivate={handleActivateVersion}
+                                isActivating={isActivating}
+                            />
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                {/* Prompt container */}
+                <div className={`
+                    bg-[#1a1d21] backdrop-blur-lg border border-white/10 p-4
+                    ${isTimelineOpen ? "rounded-b-2xl border-t-0" : "rounded-2xl"}
+                `}>
                 {/* Hidden file input */}
                 <input
                     ref={fileInputRef}
@@ -401,6 +491,63 @@ export const SidebarChatPanel: React.FC<SidebarChatPanelProps> = ({
                     {/* Spacer */}
                     <div className="flex-1" />
 
+                    {/* View Mode Toggle */}
+                    {onLayoutModeChange && (
+                        <div className="relative">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setShowViewMenu((prev) => !prev)}
+                                className="rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-300 transition-all"
+                                title="View modes"
+                            >
+                                <Eye className="w-4 h-4" />
+                            </Button>
+                            {showViewMenu && (
+                                <div className="absolute bottom-full right-0 mb-2 w-40 rounded-xl border border-white/10 bg-[#111318] shadow-lg overflow-hidden">
+                                    {[
+                                        { value: "sidebar", label: "Sidebar chat", icon: PanelLeft },
+                                        { value: "floating", label: "Floating chat", icon: MessageSquare },
+                                        { value: "preview", label: "Preview only", icon: Monitor },
+                                    ].map(({ value, label, icon: Icon }) => (
+                                        <button
+                                            key={value}
+                                            onClick={() => {
+                                                onLayoutModeChange(value as "sidebar" | "floating" | "preview");
+                                                setShowViewMenu(false);
+                                            }}
+                                            className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-left transition-colors ${
+                                                layoutMode === value
+                                                    ? "bg-white/10 text-white"
+                                                    : "text-white/70 hover:bg-white/5"
+                                            }`}
+                                        >
+                                            <Icon className="w-3.5 h-3.5" />
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Download */}
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <Button
+                            size="icon"
+                            onClick={handleDownload}
+                            disabled={isDownloading || isGenerating}
+                            className="rounded-xl text-slate-400 hover:bg-slate-800/50 hover:text-slate-300 bg-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                            title="Download HTML"
+                        >
+                            {isDownloading ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                                <Download className="w-4 h-4" />
+                            )}
+                        </Button>
+                    </motion.div>
+
                     {/* Send Button */}
                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                         <Button
@@ -412,6 +559,7 @@ export const SidebarChatPanel: React.FC<SidebarChatPanelProps> = ({
                             <Send className="w-4 h-4" />
                         </Button>
                     </motion.div>
+                </div>
                 </div>
             </div>
         </div>

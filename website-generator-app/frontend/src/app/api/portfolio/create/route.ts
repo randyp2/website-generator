@@ -16,7 +16,12 @@ const parseMeta = (raw: FormDataEntryValue | null): AssetMeta[] => {
     }
 };
 
-export async function POST(req: Request) {
+type PortfolioRow = {
+    id: string;
+    user_id?: string;
+};
+
+export const POST = async (req: Request) => {
     // --- Get user id ---
     const supabase = await createServerSupabaseClient();
     const {
@@ -43,7 +48,14 @@ export async function POST(req: Request) {
     try {
         const formData = await req.formData();
 
-        const templateId = formData.get("templateId") as string;
+        const rawTemplateId = formData.get("templateId");
+        const rawExistingPortfolioId = formData.get("portfolioId");
+
+        const templateId = typeof rawTemplateId === "string" ? rawTemplateId : "";
+        const existingPortfolioId =
+            typeof rawExistingPortfolioId === "string"
+                ? rawExistingPortfolioId
+                : null;
 
         const resumeFile = formData.get("resumeFile");
         const mediaFiles = formData.getAll("mediaFiles");
@@ -64,28 +76,53 @@ export async function POST(req: Request) {
         // UPLOAD PORTFOLIO
         // ==============================================================
 
-        // Insert row and return the row in portfolioRow
-        const { data: portfolioRow, error: portfolioError } =
-            await adminSupabase
+        let portfolioRow: PortfolioRow | null = null;
+        let portfolioId = existingPortfolioId ?? null;
+
+        if (portfolioId) {
+            const { data: existing, error: existingError } = await adminSupabase
+                .from("portfolios")
+                .select("id, user_id")
+                .eq("id", portfolioId)
+                .single();
+
+            if (existingError || !existing) {
+                return NextResponse.json(
+                    { error: "Portfolio not found." },
+                    { status: 404 },
+                );
+            }
+
+            if ((existing as PortfolioRow).user_id !== userId) {
+                return NextResponse.json(
+                    { error: "Unauthorized" },
+                    { status: 403 },
+                );
+            }
+        } else {
+            const { data, error: portfolioError } = await adminSupabase
                 .from("portfolios")
                 .insert({
                     title: "Untitled Portfolio",
                     user_id: userId,
                     template_id: templateId,
                     status: "draft",
+                    last_step: "review",
                 })
                 .select()
                 .single();
 
-        if (portfolioError) {
-            console.error("Portfolio creation error:", portfolioError);
-            return NextResponse.json(
-                { error: "Failed to create portfolio." },
-                { status: 500 },
-            );
-        }
+            if (portfolioError) {
+                console.error("Portfolio creation error:", portfolioError);
+                return NextResponse.json(
+                    { error: "Failed to create portfolio." },
+                    { status: 500 },
+                );
+            }
 
-        const portfolioId = portfolioRow.id;
+            portfolioRow = data as PortfolioRow;
+            portfolioId = (data as PortfolioRow).id;
+        }
 
         // ==============================================================
         // UPLOAD RESUME
@@ -252,9 +289,20 @@ export async function POST(req: Request) {
             });
         }
 
+        if (existingPortfolioId) {
+            await adminSupabase
+                .from("portfolios")
+                .update({
+                    template_id: templateId,
+                    last_step: "review",
+                    updated_at: new Date().toISOString(),
+                })
+                .eq("id", portfolioId);
+        }
+
         // Return success
         return NextResponse.json({
-            portfolio: portfolioRow,
+            portfolio: portfolioRow ?? { id: portfolioId as string },
             resume: resumeRecord,
             assetsUploaded: mediaFiles.length + videoFiles.length,
         });
@@ -266,4 +314,4 @@ export async function POST(req: Request) {
             { status: 500 },
         );
     }
-}
+};

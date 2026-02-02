@@ -1,14 +1,18 @@
 import { NextResponse } from "next/server";
-import { Ratelimit } from "@upstash/ratelimit";
+import { RateLimiter } from "./rate-limit-types";
+import { isRateLimitDisabled } from "./rate-limit-config";
 
 /**
  * Scopes should be fined with this format:
  * <type_of_route>:<user>:<user_id>
  */
 export async function enforceRateLimit(
-    limiter: Ratelimit,
+    limiter: RateLimiter,
     key: string,
 ): Promise<NextResponse | null> {
+    if (isRateLimitDisabled()) {
+        return null;
+    }
     // const ip = req.headers.get("x-forwarded-for")?.split(",")[0] ?? "127.0.0.1";
 
     // const key = `${scope}:${ip}`;

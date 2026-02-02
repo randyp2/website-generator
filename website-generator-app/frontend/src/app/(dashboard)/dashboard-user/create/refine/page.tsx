@@ -8,7 +8,6 @@ import { Message, SectionPlan } from "@/types/preview";
 import { Preview } from "./components/Preview";
 import { FloatingPromptBar } from "./components/FloatingPromptBar";
 import { ChatHistoryOverlay } from "./components/ChatHistoryOverlay";
-import { PreviewActionBar } from "./components/PreviewActionBar";
 import { SidebarChatPanel } from "./components/SidebarChatPanel";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
 import { downloadPortfolioHtml } from "@/utils/downloadHtml";
@@ -52,6 +51,7 @@ const AIRefinementPage: React.FC = () => {
     const [isDownloading, setIsDownloading] = useState(false);
 
     const hasGeneratedRef = useRef(false);
+    const lastLoadedIdRef = useRef<string | null>(null);
     // Combine media and video files for display
     const uploadedFiles = [...mediaFiles, ...videoFiles];
     const normalizedMessages = useMemo(
@@ -72,9 +72,20 @@ const AIRefinementPage: React.FC = () => {
     useEffect(() => {
         const portfolioIdParam = searchParams.get("portfolioId");
         if (!portfolioIdParam) return;
+        if (lastLoadedIdRef.current === portfolioIdParam) return;
+        lastLoadedIdRef.current = portfolioIdParam;
         if (portfolioId === portfolioIdParam && sections && sections.length > 0) {
             return;
         }
+        // Reset chat when switching to a new portfolio to avoid stale messages.
+        if (portfolioId !== portfolioIdParam) {
+            setMessages([]);
+        }
+        fetch(`/api/portfolio/${portfolioIdParam}/update`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ last_step: "refine" }),
+        }).catch(() => null);
 
         const loadPortfolio = async () => {
             setIsHydrating(true);
@@ -93,7 +104,6 @@ const AIRefinementPage: React.FC = () => {
                 setTemplateId(data?.templateId ?? null);
                 setSections(Array.isArray(data?.sections) ? data.sections : []);
                 setGlobalTheme(data?.globalTheme ?? null);
-                setMessages([]);
             } catch (error) {
                 console.error("Failed to load portfolio:", error);
             } finally {
@@ -206,29 +216,30 @@ const AIRefinementPage: React.FC = () => {
                     setGlobalTheme(data.globalTheme);
                 }
 
-                if (data?.assistantMessage) {
-                    const { summary, suggestions } = data.assistantMessage;
-                    const formattedSuggestions = Array.isArray(suggestions)
-                        ? suggestions.map((item: string) => `• ${item}`).join("\n")
-                        : "";
+                const assistantMessage = data?.assistantMessage ?? null;
+                const summary = assistantMessage?.summary ?? "";
+                const suggestions = assistantMessage?.suggestions ?? [];
+                const formattedSuggestions = Array.isArray(suggestions)
+                    ? suggestions.map((item: string) => `• ${item}`).join("\n")
+                    : "";
 
-                    const content = [summary, formattedSuggestions]
-                        .filter(Boolean)
-                        .join("\n");
+                const content = [summary, formattedSuggestions]
+                    .filter(Boolean)
+                    .join("\n")
+                    .trim() || "Portfolio generated.";
 
-                    const aiMessage: Message = {
-                        id: `ai-${Date.now()}`,
-                        role: "ai",
-                        content: content || "Portfolio generated.",
-                        timestamp: new Date(),
-                        isGenerating: false, // Not generating anymore
-                    };
+                const aiMessage: Message = {
+                    id: `ai-${Date.now()}`,
+                    role: "ai",
+                    content,
+                    timestamp: new Date(),
+                    isGenerating: false, // Not generating anymore
+                };
 
-                    // Replace temp message with actual response
-                    setMessages((prev) =>
-                        prev.filter((m) => m.id !== tempAiMessage.id).concat(aiMessage),
-                    );
-                }
+                // Replace temp message with actual response
+                setMessages((prev) =>
+                    prev.filter((m) => m.id !== tempAiMessage.id).concat(aiMessage),
+                );
             } catch (fetchError) {
                 // Browser connection likely timed out, but server may have completed
                 console.error("[generate] Fetch failed:", fetchError);
@@ -512,6 +523,27 @@ const AIRefinementPage: React.FC = () => {
     };
 
     // ========================================================================
+    // VERSION ACTIVATED HANDLER
+    // ========================================================================
+    const handleVersionActivated = async () => {
+        if (!portfolioId) return;
+
+        try {
+            const response = await fetch(`/api/portfolio/${portfolioId}/load`);
+            const data = await response.json();
+
+            if (response.ok) {
+                setSections(Array.isArray(data?.sections) ? data.sections : []);
+                if (data?.globalTheme) {
+                    setGlobalTheme(data.globalTheme);
+                }
+            }
+        } catch (error) {
+            console.error("Failed to reload portfolio after version change:", error);
+        }
+    };
+
+    // ========================================================================
     // DOWNLOAD HTML
     // ========================================================================
     const handleDownloadHtml = async () => {
@@ -762,6 +794,7 @@ const AIRefinementPage: React.FC = () => {
                 sections={sections}
                 globalTheme={globalTheme}
                 layoutMode={chatLayoutMode}
+                onLayoutModeChange={setChatLayoutMode}
                 sidebarContent={
                     chatLayoutMode === 'sidebar' ? (
                         <SidebarChatPanel
@@ -774,20 +807,15 @@ const AIRefinementPage: React.FC = () => {
                             showPlanActions={Boolean(currentPlan) && !isPlanApproved}
                             onApprovePlan={handleApprovePlan}
                             onKeepChatting={handleKeepChatting}
+                            portfolioId={portfolioId}
+                            onVersionActivated={handleVersionActivated}
+                            onDownload={handleDownloadHtml}
+                            isDownloading={isDownloading}
+                            layoutMode={chatLayoutMode}
+                            onLayoutModeChange={setChatLayoutMode}
                         />
                     ) : null
                 }
-            />
-
-            {/* ================================================ */}
-            {/* LAYER 1.5: PREVIEW ACTION BAR - TOP RIGHT (z-50) */}
-            {/* ================================================ */}
-            <PreviewActionBar
-                onDownload={handleDownloadHtml}
-                isDownloading={isDownloading}
-                disabled={!sections || sections.length === 0 || isGenerating || isHydrating}
-                layoutMode={chatLayoutMode}
-                onLayoutModeChange={setChatLayoutMode}
             />
 
             {/* ================================================ */}
@@ -815,6 +843,12 @@ const AIRefinementPage: React.FC = () => {
                     showPlanActions={Boolean(currentPlan) && !isPlanApproved}
                     onApprovePlan={handleApprovePlan}
                     onKeepChatting={handleKeepChatting}
+                    portfolioId={portfolioId}
+                    onVersionActivated={handleVersionActivated}
+                    onDownload={handleDownloadHtml}
+                    isDownloading={isDownloading}
+                    layoutMode={chatLayoutMode}
+                    onLayoutModeChange={setChatLayoutMode}
                 />
             )}
 

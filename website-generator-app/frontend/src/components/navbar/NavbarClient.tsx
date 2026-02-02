@@ -48,7 +48,6 @@ const NavbarClient: React.FC = () => {
     useEffect(() => {
         // Try to restore the user session immediately
         const initUser = async () => {
-
             // Get data from session based on the browsers local storage
             const {
                 data: { session },
@@ -76,7 +75,7 @@ const NavbarClient: React.FC = () => {
                 {/* Left: Logo + Brand */}
                 <Link href="/" className="flex items-center gap-3">
                     <span className="text-2xl font-bold text-white">
-                        PortfolioAI
+                        PortRN
                     </span>
                 </Link>
 
@@ -139,7 +138,6 @@ const NavbarClient: React.FC = () => {
             </div>
         </>
     );
-
-}
+};
 
 export default NavbarClient;
