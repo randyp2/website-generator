@@ -3,6 +3,7 @@ package com.webgen.webgen_backend.config;
 import ch.qos.logback.classic.spi.ConfiguratorRank;
 import com.webgen.webgen_backend.filter.JWTFilter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -22,6 +23,10 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
     @Autowired
     private JWTFilter jwtFilter;
+
+    // Inject allowed origins from properties file
+    @Value("${cors.allowed.origins}")
+    private String allowedOrigins;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -46,7 +51,12 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.addAllowedOrigin("http://localhost:3000"); // Frontend origin
+
+
+        // Split comma-separated origins
+        for (String origin : allowedOrigins.split(",")) {
+            config.addAllowedOrigin(origin.trim());
+        }
         config.addAllowedHeader("*"); // Allow all headers (i.e. JWT's)
         config.addAllowedMethod("*"); // Allow all http methods
         config.setAllowCredentials(true); // allow cookies, auth, etc.

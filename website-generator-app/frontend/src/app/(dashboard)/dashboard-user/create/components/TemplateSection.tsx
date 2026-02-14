@@ -14,6 +14,7 @@ import {
   FiUser,
   FiZap,
 } from "react-icons/fi";
+import { TemplatePreviewRouter } from "./template-previews";
 
 /* ============== TEMPLATE DATA ============== */
 interface Template {
@@ -26,6 +27,18 @@ interface Template {
   popular?: boolean;
   icon: IconType;
   tags: string[];
+  themeColors: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    background: string;
+    text: string;
+  };
+  layoutStyle: {
+    density: "compact" | "spacious" | "minimal";
+    headerStyle: "transparent" | "solid" | "glass";
+    cardStyle: "flat" | "elevated" | "glass";
+  };
 }
 const templates: Template[] = [
   {
@@ -39,6 +52,18 @@ const templates: Template[] = [
     popular: true,
     icon: FiCode,
     tags: ["Developer", "Minimal", "Dark"],
+    themeColors: {
+      primary: "#0f172a", // slate-900
+      secondary: "#64748b", // slate-500
+      accent: "#0ea5e9", // sky-500
+      background: "#1e293b", // slate-800
+      text: "#f8fafc", // slate-50
+    },
+    layoutStyle: {
+      density: "compact",
+      headerStyle: "transparent",
+      cardStyle: "flat",
+    },
   },
   {
     id: "creative-gradient",
@@ -50,6 +75,18 @@ const templates: Template[] = [
     popular: true,
     icon: FiHeart,
     tags: ["Designer", "Colorful", "Modern"],
+    themeColors: {
+      primary: "#8b5cf6", // violet-500
+      secondary: "#a855f7", // purple-500
+      accent: "#ec4899", // pink-500
+      background: "#ffffff", // white
+      text: "#0f172a", // slate-900
+    },
+    layoutStyle: {
+      density: "spacious",
+      headerStyle: "glass",
+      cardStyle: "glass",
+    },
   },
   {
     id: "neon-dystopian",
@@ -60,6 +97,18 @@ const templates: Template[] = [
     pattern: "grid",
     icon: FiZap,
     tags: ["Bold", "Futuristic", "Eye-catching"],
+    themeColors: {
+      primary: "#06b6d4", // cyan-500
+      secondary: "#3b82f6", // blue-500
+      accent: "#7c3aed", // violet-600
+      background: "#000000", // black
+      text: "#06b6d4", // cyan-500
+    },
+    layoutStyle: {
+      density: "minimal",
+      headerStyle: "solid",
+      cardStyle: "elevated",
+    },
   },
   {
     id: "academic-elegant",
@@ -70,6 +119,18 @@ const templates: Template[] = [
     pattern: "paper",
     icon: FiBookOpen,
     tags: ["Academic", "Professional", "Classic"],
+    themeColors: {
+      primary: "#92400e", // amber-800
+      secondary: "#ea580c", // orange-600
+      accent: "#dc2626", // red-600
+      background: "#fefce8", // yellow-50
+      text: "#78350f", // amber-900
+    },
+    layoutStyle: {
+      density: "spacious",
+      headerStyle: "solid",
+      cardStyle: "flat",
+    },
   },
   {
     id: "personal-storytelling",
@@ -81,6 +142,18 @@ const templates: Template[] = [
     popular: true,
     icon: FiUser,
     tags: ["Personal", "Friendly", "Approachable"],
+    themeColors: {
+      primary: "#34d399", // emerald-400
+      secondary: "#14b8a6", // teal-500
+      accent: "#06b6d4", // cyan-500
+      background: "#f0fdf4", // green-50
+      text: "#064e3b", // emerald-900
+    },
+    layoutStyle: {
+      density: "compact",
+      headerStyle: "glass",
+      cardStyle: "glass",
+    },
   },
 ];
 
@@ -250,39 +323,11 @@ export const TemplateSection: React.FC<TemplateSectionProps> = ({
               } shadow-lg hover:shadow-2xl transition-all h-full`}
             >
               {/* Template Preview */}
-              <div className="relative h-56 overflow-hidden">
-                <div
-                  className={`absolute inset-0 bg-linear-to-br ${template.gradient}`}
-                >
-                  {/* Pattern Overlay */}
-                  <svg
-                    className="absolute inset-0 w-full h-full opacity-20"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <defs>
-                      <pattern
-                        id={`pattern-${template.id}`}
-                        x="0"
-                        y="0"
-                        width="20"
-                        height="20"
-                        patternUnits="userSpaceOnUse"
-                      >
-                        <path
-                          d={getPatternSVG(template.pattern)}
-                          fill="none"
-                          stroke="white"
-                          strokeWidth="1"
-                        />
-                      </pattern>
-                    </defs>
-                    <rect
-                      width="100%"
-                      height="100%"
-                      fill={`url(#pattern-${template.id})`}
-                    />
-                  </svg>
-                </div>
+              <div className="relative h-56 overflow-hidden bg-slate-50">
+                <TemplatePreviewRouter
+                  template={template}
+                  isHovered={hoveredTemplate === template.id}
+                />
 
                 {/* Hover Overlay */}
                 <AnimatePresence>

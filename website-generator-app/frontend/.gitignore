@@ -2,6 +2,8 @@
 
 # dependencies
 /node_modules
+.pnpm/
+.pnpm-store/
 /.pnp
 .pnp.*
 .yarn/*
@@ -39,3 +41,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# architecture docs
+portfolioai-architecture.md
+

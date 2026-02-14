@@ -4,7 +4,7 @@
  *  - Message
  *  - Device Mode
  *
- * Type definitions for AI preview page 
+ * Type definitions for AI preview page
  */
 
 import { UploadedFile } from "./file";
@@ -28,11 +28,23 @@ import { UploadedFile } from "./file";
  * @property title - Optional user-provided title
  * @property description - Optional user-provided description
  */
-export interface FilePreview extends Omit<UploadedFile, 'id'> {
+export interface FilePreview extends Omit<UploadedFile, "id"> {
     id: string; // Make id required instead of optional
     file: File;
     preview: string;
     fileType: "image" | "video";
+}
+
+export interface SectionPlan {
+    sectionKey: string;
+    action: "modify" | "keep" | "reorder" | "add" | "delete";
+    instruction: string;
+    rationale: string;
+    intensity: "LIGHT" | "MEDIUM" | "STRONG";
+    preserveElements: string[];
+    newSectionTitle?: string;
+    insertAfterSectionKey?: string;
+    orderIndex?: number | null;
 }
 
 export interface Message {
@@ -40,7 +52,12 @@ export interface Message {
     role: "user" | "ai";
     content: string;
     timestamp: Date;
+    isGenerating?: boolean;
+    // Refinement flow metadata
+    messageType?: "clarify" | "plan" | "build" | "error";
+    readyForPlanning?: boolean;
+    sectionPlans?: SectionPlan[];
+    planSummary?: string;
 }
 
 export type DeviceMode = "desktop" | "tablet" | "mobile";
-

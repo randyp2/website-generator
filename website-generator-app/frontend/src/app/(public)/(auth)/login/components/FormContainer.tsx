@@ -54,15 +54,15 @@ const FormContainer: React.FC<FormContainerProps> = ({
   };
 
   return (
-    <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/40 overflow-hidden">
+    <div className="bg-[#1a1a1a]/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/10 overflow-hidden">
       {/* Mode Toggle */}
-      <div className="bg-linear-to-r from-sky-50 to-cyan-50 p-2 flex gap-2">
+      <div className="bg-[#0a0a0a]/50 p-2 flex gap-2">
         <button
           onClick={() => onModeChange("login")}
           className={`flex-1 py-3 rounded-xl font-semibold transition-all hover:cursor-pointer ${
             mode === "login"
-              ? "bg-white text-sky-600 shadow-md"
-              : "text-slate-600 hover:text-slate-900"
+              ? "bg-[#0084ff] text-white shadow-md"
+              : "text-gray-400 hover:text-white"
           }`}
         >
           Login
@@ -71,8 +71,8 @@ const FormContainer: React.FC<FormContainerProps> = ({
           onClick={() => onModeChange("register")}
           className={`flex-1 py-3 rounded-xl font-semibold transition-all hover:cursor-pointer ${
             mode === "register"
-              ? "bg-white text-sky-600 shadow-md"
-              : "text-slate-600 hover:text-slate-900"
+              ? "bg-[#0084ff] text-white shadow-md"
+              : "text-gray-400 hover:text-white"
           }`}
         >
           Sign Up
@@ -89,10 +89,10 @@ const FormContainer: React.FC<FormContainerProps> = ({
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
           >
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">
+            <h2 className="text-3xl font-bold text-white mb-2">
               {mode === "login" ? "Welcome Back!" : "Create Account"}
             </h2>
-            <p className="text-slate-600">
+            <p className="text-gray-400">
               {mode === "login"
                 ? "Sign in to continue building your portfolio"
                 : "Join thousands creating amazing portfolios"}
@@ -127,13 +127,13 @@ const FormContainer: React.FC<FormContainerProps> = ({
 
       {/* Footer */}
       <div className="px-8 pb-8 text-center">
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-gray-400">
           {mode === "login" ? (
             <>
               Don't have an account?{" "}
               <button
                 onClick={() => onModeChange("register")}
-                className="font-semibold text-sky-600 hover:text-sky-700 transition-colors"
+                className="font-semibold text-[#0084ff] hover:text-[#0066cc] transition-colors"
               >
                 Sign up for free
               </button>
@@ -143,7 +143,7 @@ const FormContainer: React.FC<FormContainerProps> = ({
               Already have an account?{" "}
               <button
                 onClick={() => onModeChange("login")}
-                className="font-semibold text-sky-600 hover:text-sky-700 transition-colors"
+                className="font-semibold text-[#0084ff] hover:text-[#0066cc] transition-colors"
               >
                 Sign in
               </button>
