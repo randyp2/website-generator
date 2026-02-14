@@ -26,7 +26,7 @@ const NavbarClient: React.FC = () => {
         const iconMap: Record<string, any> = {
             Home,
             About: Info,
-            Examples: LayoutDashboard,
+            Explore: LayoutDashboard,
             Features: Sparkles,
             Profile: User2,
             default: Home,

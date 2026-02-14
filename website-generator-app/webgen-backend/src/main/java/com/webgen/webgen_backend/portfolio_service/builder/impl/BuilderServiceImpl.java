@@ -30,16 +30,26 @@ public class BuilderServiceImpl implements BuilderService {
 
     @Override
     public BuilderResponseDTO build(BuilderRequestDTO req) {
+        System.out.println(">>> [BUILDER] build() started");
         if (req == null || req.getPortfolioId() == null)
             throw new IllegalArgumentException("portfolioId required!");
 
         if (req.getSectionPlans() == null || req.getSectionPlans().isEmpty())
             throw new IllegalArgumentException("sectionPlans required!");
+        System.out.println(">>> [BUILDER] Input validation passed");
+        System.out.println(">>> [BUILDER] Portfolio ID: " + req.getPortfolioId());
+        System.out.println(">>> [BUILDER] Sections count: " + (req.getSections() == null ? 0 : req.getSections().size()));
+        System.out.println(">>> [BUILDER] Section plans count: " + req.getSectionPlans().size());
+        System.out.println(">>> [BUILDER] Assets count: " + (req.getAssets() == null ? 0 : req.getAssets().size()));
 
         // Get context from clarifier for constraints
+        System.out.println(">>> [BUILDER] Loading clarifier context...");
         ClarifierContext context = clarifierService.getContext(req.getPortfolioId());
         if (context == null)
             throw new IllegalStateException("No clarifier context found. Run clarify first.");
+        System.out.println(">>> [BUILDER] Context loaded with turnCount=" + context.getTurnCount()
+                + ", confidence=" + context.getConfidenceScore()
+                + ", scope=" + context.getScope());
 
         BuilderResponseDTO response = null;
         ValidationResult validation = null;
@@ -47,18 +57,23 @@ public class BuilderServiceImpl implements BuilderService {
 
         while (attempt < maxRetries) {
             attempt++;
+            System.out.println(">>> [BUILDER] Attempt " + attempt + " of " + maxRetries);
 
             // Build prompt (with errors if retry)
             Prompt prompt;
             if (validation == null || validation.isValid()) {
+                System.out.println(">>> [BUILDER] Building primary prompt...");
+                long promptStart = System.currentTimeMillis();
                 prompt = builderPromptBuilder.buildPrompt(
                         context,
                         req.getSections(),
                         req.getSectionPlans(),
                         req.getAssets()
                 );
+                System.out.println(">>> [BUILDER] Primary prompt built in " + (System.currentTimeMillis() - promptStart) + "ms");
             } else {
                 System.out.println(">>> Retrying with validation errors (attempt " + attempt + ")");
+                long promptStart = System.currentTimeMillis();
                 prompt = builderPromptBuilder.buildRetryPrompt(
                         context,
                         req.getSections(),
@@ -66,15 +81,26 @@ public class BuilderServiceImpl implements BuilderService {
                         req.getAssets(),
                         validation.getErrors()
                 );
+                System.out.println(">>> [BUILDER] Retry prompt built in " + (System.currentTimeMillis() - promptStart) + "ms");
             }
 
             // Call AI model
+            System.out.println(">>> [BUILDER] Calling OpenAI model...");
+            long aiStart = System.currentTimeMillis();
             ChatResponse aiResponse = openAiChatModel.call(prompt);
-            response = builderResponseParser.parse(
-                    aiResponse.getResult().getOutput().getText()
-            );
+            System.out.println(">>> [BUILDER] OpenAI call completed in " + (System.currentTimeMillis() - aiStart) + "ms");
+            String rawJson = aiResponse.getResult().getOutput().getText();
+            System.out.println(">>> [BUILDER] Raw response length: " + (rawJson == null ? 0 : rawJson.length()) + " chars");
+
+            System.out.println(">>> [BUILDER] Parsing response...");
+            long parseStart = System.currentTimeMillis();
+            response = builderResponseParser.parse(rawJson);
+            System.out.println(">>> [BUILDER] Parse completed in " + (System.currentTimeMillis() - parseStart) + "ms");
+            System.out.println(">>> [BUILDER] Parsed modified sections: " +
+                    (response.getModifiedSections() == null ? 0 : response.getModifiedSections().size()));
 
             // Validate JSX
+            System.out.println(">>> [BUILDER] Validating JSX...");
             validation = jsxValidatorService.validateSections(response.getModifiedSections());
 
             if (validation.isValid()) {
@@ -100,6 +126,7 @@ public class BuilderServiceImpl implements BuilderService {
                 System.out.println("  - " + s.getSectionKey() + ": " + s.getChangeDescription())
         );
         System.out.println("========================");
+        System.out.println(">>> [BUILDER] Returning builder response");
 
         return response;
     }

@@ -22,7 +22,17 @@ const DEFAULT_THEME: GlobalTheme = {
     accentColor: "purple",
 };
 
-const normalizeTheme = (globalTheme?: GlobalTheme | null) => {
+const buildGoogleFontsUrl = (fonts?: { heading: string; body: string }) => {
+    if (!fonts) return null;
+    const uniqueFonts = [...new Set([fonts.heading, fonts.body].filter(Boolean))];
+    if (uniqueFonts.length === 0) return null;
+    const families = uniqueFonts
+        .map((f) => `family=${f.replace(/ /g, "+")}:wght@300;400;500;600;700`)
+        .join("&");
+    return `https://fonts.googleapis.com/css2?${families}&display=swap`;
+};
+
+const normalizeTheme = (globalTheme?: GlobalTheme | null): GlobalTheme => {
     if (!globalTheme) return DEFAULT_THEME;
     const background = globalTheme.background?.trim();
     const textPrimary = globalTheme.textPrimary?.trim();
@@ -34,6 +44,7 @@ const normalizeTheme = (globalTheme?: GlobalTheme | null) => {
         textPrimary,
         textSecondary: textSecondary || DEFAULT_THEME.textSecondary,
         accentColor: accentColor || DEFAULT_THEME.accentColor,
+        fonts: globalTheme.fonts,
     };
 };
 
@@ -71,6 +82,9 @@ const buildSandpackFiles = (
         )
         .join("\n");
 
+    const bodyFont = theme.fonts?.body || "Inter";
+    const headingFont = theme.fonts?.heading || bodyFont;
+
     const files: Record<string, string> = {
         "/App.js": `
         import sections from "./sections.json";
@@ -80,6 +94,10 @@ const buildSandpackFiles = (
         function ThemeWrapper({ children }) {
             return (
                 <div className={\`min-h-screen \${theme.background}\`}>
+                    <style dangerouslySetInnerHTML={{ __html: \`
+                        body { font-family: '${bodyFont}', sans-serif; }
+                        h1, h2, h3, h4, h5, h6 { font-family: '${headingFont}', sans-serif; }
+                    \`}} />
                     <div className={\`\${theme.textPrimary}\`}>
                         {children}
                     </div>
@@ -100,7 +118,7 @@ const buildSandpackFiles = (
         "/sections.json": JSON.stringify(sectionData, null, 2),
         "/theme.json": JSON.stringify(theme, null, 2),
     };
-
+    
     const ensureImports = (source: string) => {
         const reactImport =
             'import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";';
@@ -210,6 +228,12 @@ export const Preview: React.FC<PreviewProps> = ({
         );
     }
 
+    const fontUrl = buildGoogleFontsUrl(globalTheme?.fonts);
+    const externalResources = [
+        "https://cdn.tailwindcss.com",
+        ...(fontUrl ? [fontUrl] : []),
+    ];
+
     const files =
         sections && sections.length > 0
             ? buildSandpackFiles(sections, globalTheme)
@@ -274,9 +298,7 @@ export const Preview: React.FC<PreviewProps> = ({
                                 theme={atomDark}
                                 template="react"
                                 options={{
-                                    externalResources: [
-                                        "https://cdn.tailwindcss.com",
-                                    ],
+                                    externalResources,
                                     showConsoleButton: true,
                                     showInlineErrors: true,
                                     showNavigator: false,
@@ -344,7 +366,7 @@ export const Preview: React.FC<PreviewProps> = ({
                 theme={atomDark}
                 template="react"
                 options={{
-                    externalResources: ["https://cdn.tailwindcss.com"],
+                    externalResources,
                     showConsoleButton: true,
                     showInlineErrors: true,
                     showNavigator: false,

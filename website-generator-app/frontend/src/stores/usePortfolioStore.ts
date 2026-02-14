@@ -34,6 +34,7 @@ export interface PortfolioCreateState {
 
     // Style preferences
     stylePreferences: StylePreferences;
+    isSendingStyle: boolean;
 
     // Generated sections for preview
     sections: SectionDTO[] | null;
@@ -43,6 +44,7 @@ export interface PortfolioCreateState {
 
     // Chat messages (persisted for preview page)
     messages: Message[];
+    styleMessages: Message[];
 
     // Chat layout mode for preview page
     chatLayoutMode: 'sidebar' | 'floating' | 'preview';
@@ -116,11 +118,15 @@ export interface PortfolioCreateState {
     // Style preferences management
     setStylePreferences: (prefs: StylePreferences) => void;
     updateStylePreference: (key: keyof StylePreferences, value: string) => void;
+    setIsSendingStyle: (isSending: boolean) => void;
 
     setSections: (sections: SectionDTO[] | null) => void;
     setGlobalTheme: (theme: GlobalTheme | null) => void;
 
     setMessages: (
+        updater: Message[] | ((prev: Message[]) => Message[]),
+    ) => void;
+    setStyleMessages: (
         updater: Message[] | ((prev: Message[]) => Message[]),
     ) => void;
 
@@ -151,11 +157,18 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                 tone: null,
                 visualStyle: null,
                 sectionEmphasis: null,
+                typography: null,
+                animationStyle: null,
+                whitespace: null,
+                imageryStyle: null,
+                interactiveElements: null,
                 customNotes: "",
             },
+            isSendingStyle: false,
             sections: null,
             globalTheme: null,
             messages: [],
+            styleMessages: [],
             chatLayoutMode: 'sidebar',
             aiPrompt: "",
             previewHtml: null,
@@ -486,6 +499,9 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                 set({ stylePreferences: { ...current, [key]: value } });
             },
 
+            setIsSendingStyle: (isSending: boolean) =>
+                set({ isSendingStyle: isSending }),
+
             setSections: (sections: SectionDTO[] | null) => set({ sections }),
             setGlobalTheme: (theme: GlobalTheme | null) => set({ globalTheme: theme }),
 
@@ -496,6 +512,16 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                     messages:
                         typeof updater === "function"
                             ? updater(state.messages)
+                            : updater,
+                })),
+
+            setStyleMessages: (
+                updater: Message[] | ((prev: Message[]) => Message[]),
+            ) =>
+                set((state) => ({
+                    styleMessages:
+                        typeof updater === "function"
+                            ? updater(state.styleMessages)
                             : updater,
                 })),
 
@@ -516,6 +542,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                     sections: null,
                     globalTheme: null,
                     messages: [],
+                    styleMessages: [],
                     chatLayoutMode: 'sidebar',
                     stylePreferences: {
                         colorScheme: null,
@@ -523,8 +550,14 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                         tone: null,
                         visualStyle: null,
                         sectionEmphasis: null,
+                        typography: null,
+                        animationStyle: null,
+                        whitespace: null,
+                        imageryStyle: null,
+                        interactiveElements: null,
                         customNotes: "",
                     },
+                    isSendingStyle: false,
                     aiPrompt: "",
                     previewHtml: null,
                 });
@@ -547,6 +580,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                 sections: state.sections,
                 globalTheme: state.globalTheme,
                 messages: state.messages,
+                styleMessages: state.styleMessages,
                 chatLayoutMode: state.chatLayoutMode,
                 aiPrompt: state.aiPrompt,
                 previewHtml: state.previewHtml,

@@ -34,30 +34,52 @@ public class ClarifierServiceImpl implements ClarifierService {
 
     @Override
     public ClarifierResponseDTO clarify(ClarifierRequestDTO req) {
+        System.out.println(">>> [CLARIFIER] clarify() started");
         if (req == null || req.getPortfolioId() == null || req.getUserPrompt() == null )
             throw new IllegalArgumentException("portfolioId and userPrompt required!");
+        System.out.println(">>> [CLARIFIER] Input validation passed");
+        System.out.println(">>> [CLARIFIER] Portfolio ID: " + req.getPortfolioId());
+        System.out.println(">>> [CLARIFIER] User prompt: " + req.getUserPrompt());
+        System.out.println(">>> [CLARIFIER] Sections count: " + (req.getSections() == null ? 0 : req.getSections().size()));
+        System.out.println(">>> [CLARIFIER] Assets count: " + (req.getAssets() == null ? 0 : req.getAssets().size()));
 
         // Load or retrieve context given portfolioId
         ClarifierContext context = contextStore.computeIfAbsent(
                 req.getPortfolioId(),
                 id -> newContext()
         );
+        System.out.println(">>> [CLARIFIER] Loaded context with turnCount=" + context.getTurnCount()
+                + ", confidence=" + context.getConfidenceScore()
+                + ", scope=" + context.getScope());
 
         // Build prompt
         // Contains fields for classfierResponseDTO
         // Contains updated context
+        System.out.println(">>> [CLARIFIER] Building prompt...");
+        long promptStart = System.currentTimeMillis();
         Prompt prompt = clarifierPromptBuilder.buildPrompt(
                 req.getUserPrompt(),
                 req.getSections(),
                 context,
                 req.getAssets()
         );
+        System.out.println(">>> [CLARIFIER] Prompt built in " + (System.currentTimeMillis() - promptStart) + "ms");
 
         // Call model
+        System.out.println(">>> [CLARIFIER] Calling OpenAI model...");
+        long aiStart = System.currentTimeMillis();
         ChatResponse response = openAiChatModel.call(prompt);
+        System.out.println(">>> [CLARIFIER] OpenAI call completed in " + (System.currentTimeMillis() - aiStart) + "ms");
+        String rawJson = response.getResult().getOutput().getText();
+        System.out.println(">>> [CLARIFIER] Raw response length: " + (rawJson == null ? 0 : rawJson.length()) + " chars");
 
         // Parse + validate response JSON
-        ClarifierResponseDTO parsed = clarifierResponseParser.parse(response.getResult().getOutput().getText());
+        System.out.println(">>> [CLARIFIER] Parsing response...");
+        long parseStart = System.currentTimeMillis();
+        ClarifierResponseDTO parsed = clarifierResponseParser.parse(rawJson);
+        System.out.println(">>> [CLARIFIER] Parse completed in " + (System.currentTimeMillis() - parseStart) + "ms");
+        System.out.println(">>> [CLARIFIER] Parsed flags: clarificationComplete=" + parsed.isClarificationComplete()
+                + ", readyForPlanning=" + parsed.isReadyForPlanning());
 
         // Update in memory context store
         ClarifierContext updatedContext = clarifierResponseParser.getUpdatedContext();
@@ -111,6 +133,7 @@ public class ClarifierServiceImpl implements ClarifierService {
         System.out.println("Assumptions: " + updatedContext.getAssumptions());
         System.out.println("Constraints: " + updatedContext.getConstraints());
         System.out.println("=================================");
+        System.out.println(">>> [CLARIFIER] Returning clarify response");
 
         return parsed;
     }

@@ -1,7 +1,6 @@
 import { Metadata } from "next";
-import { FeatureSection } from "./components/FeatureSection";
-import { VisualFeaturesSection } from "./components/VisualFeaturesSection";
-import AboutSection from "./components/AboutSection";
+import { GallerySection } from "./components/GallerySection";
+import { BeamWorkflowSection } from "./components/BeamWorkflowSection";
 import { CTASection } from "./components/CTASection";
 import HeroSection from "./components/HeroSection";
 import { ProcessSection } from "./components/ProcessSection";
@@ -27,14 +26,14 @@ export const metadata: Metadata = {
 
 const sections = [
     { key: "process", Component: ProcessSection },
-    { key: "features", Component: FeatureSection },
-    { key: "visual-features", Component: VisualFeaturesSection },
+    { key: "beam-workflow", Component: BeamWorkflowSection },
+    { key: "gallery", Component: GallerySection },
     { key: "cta", Component: CTASection },
 ];
 
 export default function LandingPage() {
     return (
-        <main className="min-h-screen bg-[#26282a] text-white">
+        <main className="min-h-screen bg-black text-white">
             <HeroSection />
             {sections.map(({ key, Component }) => (
                 <Component key={key} />

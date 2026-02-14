@@ -129,10 +129,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
         return (
             <Link href={item.path} onClick={() => setMobileOpen(false)}>
                 <motion.div
-                    whileHover={{
-                        x: collapsed ? 0 : 4,
-                        scale: collapsed ? 1.05 : 1,
-                    }}
+                    whileHover={{ scale: collapsed ? 1.05 : 1 }}
                     whileTap={{ scale: 0.98 }}
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl group relative overflow-hidden ${
