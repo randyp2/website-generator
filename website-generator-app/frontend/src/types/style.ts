@@ -6,7 +6,27 @@ export interface StylePreferences {
   tone: string | null;
   visualStyle: string | null;
   sectionEmphasis: string | null;
+  typography: string | null;
+  animationStyle: string | null;
+  whitespace: string | null;
+  imageryStyle: string | null;
+  interactiveElements: string | null;
   customNotes: string;
+}
+
+export interface StyleChatRequest {
+  portfolioId: string;
+  userMessage?: string;
+  colorSelections?: Record<string, string>;
+}
+
+export interface StyleChatResponse {
+  assistantMessage: string;
+  questionNumber: number;
+  totalQuestions: number;
+  isComplete: boolean;
+  stylePreferences?: Record<string, string>;
+  showColorPicker?: boolean;
 }
 
 export interface StyleSuggestion {

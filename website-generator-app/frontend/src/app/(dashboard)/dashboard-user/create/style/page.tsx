@@ -1,241 +1,361 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { useRouter, useSearchParams } from "next/navigation";
-import { FiArrowRight, FiSkipForward, FiDroplet } from "react-icons/fi";
+import { PortfolioStyleChat } from "@/components/chat/PortfolioStyleChat";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
-import { QuestionCard } from "./components/QuestionCard";
-import { CustomNotesSection } from "./components/CustomNotesSection";
-import { STYLE_QUESTIONS, FALLBACK_STYLE_OPTIONS, StyleSuggestion } from "@/types/style";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { StyleChatResponse } from "@/types/style";
 
 const StyleDiscussionPage: React.FC = () => {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const templateId = searchParams.get("templateId");
-  const portfolioId = searchParams.get("portfolioId");
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const templateId = searchParams.get("templateId");
+    const portfolioId = searchParams.get("portfolioId");
 
-  const { stylePreferences, updateStylePreference, setTemplateId, setPortfolioId } =
-    usePortfolioStore();
+    const {
+        setTemplateId,
+        setPortfolioId,
+        styleMessages,
+        stylePreferences,
+        setStyleMessages,
+        setStylePreferences,
+        isSendingStyle,
+        setIsSendingStyle,
+    } = usePortfolioStore();
 
-  const [suggestions] = useState<StyleSuggestion | null>(FALLBACK_STYLE_OPTIONS);
+    const [showColorPicker, setShowColorPicker] = useState(false);
 
-  // Save templateId and portfolioId to Zustand when page loads
-  useEffect(() => {
-    if (templateId) {
-      setTemplateId(templateId);
-    }
-    if (portfolioId) {
-      setPortfolioId(portfolioId);
-    }
-  }, [templateId, portfolioId, setTemplateId, setPortfolioId]);
+    useEffect(() => {
+        if (styleMessages.length > 0) return;
+        setStyleMessages([
+            {
+                id: "style-assistant-intro",
+                role: "ai",
+                content:
+                    "Hey! I'm your design consultant. Tell me about your vision — what's the overall theme or goal for your portfolio? For example: 'clean minimalist developer portfolio' or 'bold creative agency showcase'.",
+                timestamp: new Date(),
+            },
+        ]);
+    }, [setStyleMessages, styleMessages.length]);
 
-  useEffect(() => {
-    if (!portfolioId) return;
-    if (templateId) return;
+    const normalizedStyleMessages = useMemo(
+        () =>
+            styleMessages.map((message) => ({
+                ...message,
+                timestamp:
+                    message.timestamp instanceof Date
+                        ? message.timestamp
+                        : new Date(message.timestamp),
+            })),
+        [styleMessages],
+    );
 
-    const loadTemplateId = async () => {
-      try {
-        const res = await fetch(`/api/portfolio/${portfolioId}/load`);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data?.templateId) {
-          setTemplateId(data.templateId);
+    useEffect(() => {
+        if (templateId) {
+            setTemplateId(templateId);
         }
-      } catch {
-        return;
-      }
+        if (portfolioId) {
+            setPortfolioId(portfolioId);
+        }
+    }, [portfolioId, setPortfolioId, setTemplateId, templateId]);
+
+    useEffect(() => {
+        if (!portfolioId) return;
+        fetch(`/api/portfolio/${portfolioId}/update`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ last_step: "style" }),
+        }).catch(() => null);
+    }, [portfolioId]);
+
+    const handleSend = useCallback(
+        async (prompt: string) => {
+            const hasUserMessages = styleMessages.some((m) => m.role === "user");
+            if (!hasUserMessages) {
+                const seededNotes = stylePreferences.customNotes?.trim()
+                    ? `${stylePreferences.customNotes}\n${prompt}`
+                    : prompt;
+                setStylePreferences({
+                    ...stylePreferences,
+                    customNotes: seededNotes,
+                });
+            }
+
+            setStyleMessages((prev) => [
+                ...prev,
+                {
+                    id: `user-${Date.now()}`,
+                    role: "user",
+                    content: prompt,
+                    timestamp: new Date(),
+                },
+            ]);
+
+            if (!portfolioId) return;
+
+            setIsSendingStyle(true);
+            try {
+                console.log(
+                    "[style-chat] Sending message with stylePrefs:",
+                    stylePreferences,
+                );
+                const res = await fetch("/api/portfolio/style-chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ portfolioId, userMessage: prompt }),
+                });
+
+                if (!res.ok) {
+                    throw new Error("Style chat request failed");
+                }
+
+                const data: StyleChatResponse = await res.json();
+
+                setStyleMessages((prev) => [
+                    ...prev,
+                    {
+                        id: `ai-${Date.now()}`,
+                        role: "ai",
+                        content: data.assistantMessage,
+                        timestamp: new Date(),
+                    },
+                ]);
+
+                if (data.showColorPicker) {
+                    setShowColorPicker(true);
+                }
+
+                if (data.stylePreferences) {
+                    const prefs = data.stylePreferences;
+                    console.log(
+                        "[style-chat] Received stylePrefs update:",
+                        prefs,
+                    );
+                    setStylePreferences({
+                        colorScheme:
+                            prefs.colorScheme ?? stylePreferences.colorScheme,
+                        layoutDensity:
+                            prefs.layoutDensity ?? stylePreferences.layoutDensity,
+                        tone: prefs.tone ?? stylePreferences.tone,
+                        visualStyle:
+                            prefs.visualStyle ?? stylePreferences.visualStyle,
+                        sectionEmphasis:
+                            prefs.sectionEmphasis ??
+                            stylePreferences.sectionEmphasis,
+                        typography:
+                            prefs.typography ?? stylePreferences.typography,
+                        animationStyle:
+                            prefs.animationStyle ??
+                            stylePreferences.animationStyle,
+                        whitespace:
+                            prefs.whitespace ?? stylePreferences.whitespace,
+                        imageryStyle:
+                            prefs.imageryStyle ?? stylePreferences.imageryStyle,
+                        interactiveElements:
+                            prefs.interactiveElements ??
+                            stylePreferences.interactiveElements,
+                        customNotes:
+                            prefs.customNotes?.trim() ||
+                            stylePreferences.customNotes,
+                    });
+                }
+            } catch (error) {
+                console.error("Style chat error:", error);
+                setStyleMessages((prev) => [
+                    ...prev,
+                    {
+                        id: `error-${Date.now()}`,
+                        role: "ai",
+                        content:
+                            "Sorry, something went wrong. Please try sending your message again.",
+                        timestamp: new Date(),
+                    },
+                ]);
+            } finally {
+                setIsSendingStyle(false);
+            }
+        },
+        [
+            portfolioId,
+            styleMessages,
+            stylePreferences,
+            setStyleMessages,
+            setStylePreferences,
+            setIsSendingStyle,
+        ],
+    );
+
+    const handleColorSubmit = useCallback(
+        async (colors: Record<string, string>) => {
+            // Add a user message showing selected colors
+            const colorSummary = Object.entries(colors)
+                .map(([key, value]) => `${key}: ${value}`)
+                .join(", ");
+
+            setStyleMessages((prev) => [
+                ...prev,
+                {
+                    id: `user-colors-${Date.now()}`,
+                    role: "user",
+                    content: `Selected colors: ${colorSummary}`,
+                    timestamp: new Date(),
+                },
+            ]);
+
+            setShowColorPicker(false);
+
+            if (!portfolioId) return;
+
+            setIsSendingStyle(true);
+            try {
+                console.log(
+                    "[style-chat] Submitting colors with stylePrefs:",
+                    stylePreferences,
+                );
+                const res = await fetch("/api/portfolio/style-chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        portfolioId,
+                        colorSelections: colors,
+                    }),
+                });
+
+                if (!res.ok) {
+                    throw new Error("Color submission failed");
+                }
+
+                const data: StyleChatResponse = await res.json();
+
+                setStyleMessages((prev) => [
+                    ...prev,
+                    {
+                        id: `ai-${Date.now()}`,
+                        role: "ai",
+                        content: data.assistantMessage,
+                        timestamp: new Date(),
+                    },
+                ]);
+
+                if (data.stylePreferences) {
+                    const prefs = data.stylePreferences;
+                    console.log(
+                        "[style-chat] Received stylePrefs update:",
+                        prefs,
+                    );
+                    setStylePreferences({
+                        colorScheme:
+                            prefs.colorScheme ?? stylePreferences.colorScheme,
+                        layoutDensity:
+                            prefs.layoutDensity ?? stylePreferences.layoutDensity,
+                        tone: prefs.tone ?? stylePreferences.tone,
+                        visualStyle:
+                            prefs.visualStyle ?? stylePreferences.visualStyle,
+                        sectionEmphasis:
+                            prefs.sectionEmphasis ??
+                            stylePreferences.sectionEmphasis,
+                        typography:
+                            prefs.typography ?? stylePreferences.typography,
+                        animationStyle:
+                            prefs.animationStyle ??
+                            stylePreferences.animationStyle,
+                        whitespace:
+                            prefs.whitespace ?? stylePreferences.whitespace,
+                        imageryStyle:
+                            prefs.imageryStyle ?? stylePreferences.imageryStyle,
+                        interactiveElements:
+                            prefs.interactiveElements ??
+                            stylePreferences.interactiveElements,
+                        customNotes:
+                            prefs.customNotes?.trim() ||
+                            stylePreferences.customNotes,
+                    });
+                }
+            } catch (error) {
+                console.error("Color submit error:", error);
+                setStyleMessages((prev) => [
+                    ...prev,
+                    {
+                        id: `error-${Date.now()}`,
+                        role: "ai",
+                        content:
+                            "Sorry, something went wrong submitting your colors. Please try again.",
+                        timestamp: new Date(),
+                    },
+                ]);
+            } finally {
+                setIsSendingStyle(false);
+            }
+        },
+        [
+            portfolioId,
+            stylePreferences,
+            setStyleMessages,
+            setStylePreferences,
+            setIsSendingStyle,
+        ],
+    );
+
+    const handleContinueToResume = async () => {
+        if (!portfolioId) {
+            if (templateId) {
+                router.push(`/dashboard-user/create/upload?templateId=${templateId}`);
+                return;
+            }
+            router.push("/dashboard-user/create/upload");
+            return;
+        }
+
+        try {
+            const resumeRes = await fetch(`/api/portfolio/${portfolioId}/resume`);
+            const resumeData = resumeRes.ok ? await resumeRes.json() : null;
+            const hasParsedResume = Boolean(resumeData?.parsedJson);
+
+            const nextStep = hasParsedResume ? "review" : "upload";
+            await fetch(`/api/portfolio/${portfolioId}/update`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ last_step: nextStep }),
+            }).catch(() => null);
+
+            if (hasParsedResume) {
+                router.push(`/dashboard-user/create/review?portfolioId=${portfolioId}`);
+                return;
+            }
+
+            router.push(`/dashboard-user/create/upload?portfolioId=${portfolioId}`);
+        } catch {
+            await fetch(`/api/portfolio/${portfolioId}/update`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ last_step: "upload" }),
+            }).catch(() => null);
+            router.push(`/dashboard-user/create/upload?portfolioId=${portfolioId}`);
+        }
     };
 
-    loadTemplateId();
-  }, [portfolioId, templateId, setTemplateId]);
+    return (
+        <main className="min-h-screen bg-gradient-to-b from-[#0f172a] via-[#0b1220] to-black px-6 py-8 md:px-10 md:py-10">
+            <div className="mx-auto mb-6 w-full max-w-5xl">
+                <h1 className="text-3xl font-semibold text-white md:text-4xl">
+                    Customize Your Style
+                </h1>
+                <p className="mt-2 text-sm text-white/65 md:text-base">
+                    Use chat to guide the look and feel of your portfolio.
+                </p>
+            </div>
 
-  useEffect(() => {
-    if (!portfolioId) return;
-    fetch(`/api/portfolio/${portfolioId}/update`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ last_step: "style" }),
-    }).catch(() => null);
-  }, [portfolioId]);
-
-
-  const handleSkip = async () => {
-    if (portfolioId) {
-      await fetch(`/api/portfolio/${portfolioId}/update`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ last_step: "upload" }),
-      });
-    }
-    if (portfolioId) {
-      router.push(`/dashboard-user/create/upload?portfolioId=${portfolioId}`);
-    } else {
-      router.push(`/dashboard-user/create/upload?templateId=${templateId}`);
-    }
-  };
-
-  const handleContinue = async () => {
-    if (portfolioId) {
-      await fetch(`/api/portfolio/${portfolioId}/update`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ last_step: "upload" }),
-      });
-    }
-    if (portfolioId) {
-      router.push(`/dashboard-user/create/upload?portfolioId=${portfolioId}`);
-    } else {
-      router.push(`/dashboard-user/create/upload?templateId=${templateId}`);
-    }
-  };
-
-  return (
-    <div className="relative min-h-screen p-10 pb-32">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-5xl mx-auto mb-8"
-      >
-        <div className="flex items-center gap-3 mb-6">
-          <FiDroplet className="w-10 h-10 text-sky-400" />
-          <div>
-            <h1 className="text-4xl font-bold text-white">
-              Customize Your Style
-            </h1>
-            <p className="text-slate-300 text-lg mt-2">
-              Answer a few questions to personalize your portfolio design
-            </p>
-          </div>
-        </div>
-
-      </motion.div>
-
-      {/* Main Content */}
-      <div className="max-w-5xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-gradient-to-br from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/10"
-        >
-          <div className="space-y-8">
-            {/* Question 1: Color Scheme */}
-            <QuestionCard
-              question={STYLE_QUESTIONS.colorScheme.question}
-              description={STYLE_QUESTIONS.colorScheme.description}
-              options={suggestions?.colorScheme || []}
-              selectedValue={stylePreferences.colorScheme}
-              onSelect={(value) => updateStylePreference("colorScheme", value)}
-              questionKey="colorScheme"
+            <PortfolioStyleChat
+                messages={normalizedStyleMessages}
+                isSending={isSendingStyle}
+                onSendMessage={handleSend}
+                onContinue={handleContinueToResume}
+                continueLabel="Continue to Resume Parser"
+                showColorPicker={showColorPicker}
+                onColorSubmit={handleColorSubmit}
             />
-
-            {/* Divider */}
-            <div className="border-t border-white/10" />
-
-            {/* Question 2: Layout Density */}
-            <QuestionCard
-              question={STYLE_QUESTIONS.layoutDensity.question}
-              description={STYLE_QUESTIONS.layoutDensity.description}
-              options={suggestions?.layoutDensity || []}
-              selectedValue={stylePreferences.layoutDensity}
-              onSelect={(value) => updateStylePreference("layoutDensity", value)}
-              questionKey="layoutDensity"
-            />
-
-            {/* Divider */}
-            <div className="border-t border-white/10" />
-
-            {/* Question 3: Tone */}
-            <QuestionCard
-              question={STYLE_QUESTIONS.tone.question}
-              description={STYLE_QUESTIONS.tone.description}
-              options={suggestions?.tone || []}
-              selectedValue={stylePreferences.tone}
-              onSelect={(value) => updateStylePreference("tone", value)}
-              questionKey="tone"
-            />
-
-            {/* Divider */}
-            <div className="border-t border-white/10" />
-
-            {/* Question 4: Visual Style */}
-            <QuestionCard
-              question={STYLE_QUESTIONS.visualStyle.question}
-              description={STYLE_QUESTIONS.visualStyle.description}
-              options={suggestions?.visualStyle || []}
-              selectedValue={stylePreferences.visualStyle}
-              onSelect={(value) => updateStylePreference("visualStyle", value)}
-              questionKey="visualStyle"
-            />
-
-            {/* Divider */}
-            <div className="border-t border-white/10" />
-
-            {/* Question 5: Section Emphasis */}
-            <QuestionCard
-              question={STYLE_QUESTIONS.sectionEmphasis.question}
-              description={STYLE_QUESTIONS.sectionEmphasis.description}
-              options={suggestions?.sectionEmphasis || []}
-              selectedValue={stylePreferences.sectionEmphasis}
-              onSelect={(value) => updateStylePreference("sectionEmphasis", value)}
-              questionKey="sectionEmphasis"
-            />
-
-            {/* Divider */}
-            <div className="border-t border-white/10" />
-
-            {/* Custom Notes */}
-            <CustomNotesSection
-              value={stylePreferences.customNotes}
-              onChange={(value) => updateStylePreference("customNotes", value)}
-            />
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Floating Action Buttons */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="fixed bottom-8 left-1/2 transform -translate-x-1/2 flex items-center gap-4"
-      >
-        {/* Skip Button */}
-        <motion.button
-          whileHover={{
-            scale: 1.05,
-            backgroundColor: "rgba(255, 255, 255, 0.1)",
-            boxShadow: "0 0 25px rgba(255, 255, 255, 0.15)"
-          }}
-          whileTap={{ scale: 0.95 }}
-          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-          onClick={handleSkip}
-          className="px-6 py-3 bg-white/5 backdrop-blur-xl border border-white/20 text-white/90 rounded-full font-semibold shadow-[0_0_20px_rgba(255,255,255,0.1)] flex items-center gap-2"
-        >
-          <FiSkipForward className="w-5 h-5" />
-          Use Template Defaults
-        </motion.button>
-
-        {/* Continue Button */}
-        <motion.button
-          whileHover={{
-            scale: 1.05,
-            backgroundColor: "rgba(255, 255, 255, 0.15)",
-            boxShadow: "0 0 40px rgba(255, 255, 255, 0.25)"
-          }}
-          whileTap={{ scale: 0.95 }}
-          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-          onClick={handleContinue}
-          className="px-8 py-4 bg-white/10 backdrop-blur-xl border border-white/20 text-white rounded-full font-bold shadow-[0_0_30px_rgba(255,255,255,0.15)] flex items-center gap-3"
-        >
-          Continue to Upload
-          <FiArrowRight className="w-5 h-5" />
-        </motion.button>
-      </motion.div>
-    </div>
-  );
+        </main>
+    );
 };
 
 export default StyleDiscussionPage;

@@ -65,7 +65,7 @@ export const FeatureSection: React.FC = () => {
     };
 
     return (
-        <section className="relative pt-4 pb-24 px-6 bg-[#26282a] text-white overflow-hidden">
+        <section className="relative pt-4 pb-24 px-6 bg-black text-white overflow-hidden">
             <div className="max-w-7xl mx-auto relative z-10">
                 {/* Section Header */}
                 <div className="text-center mb-20">

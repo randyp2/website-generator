@@ -6,7 +6,7 @@ import { FileText } from 'lucide-react';
 
 export function VisualFeaturesSection() {
     return (
-        <section className="bg-[#26282a] py-16 md:py-24">
+        <section className="bg-black py-16 md:py-24">
             <div className="mx-auto max-w-7xl px-6">
                 {/* Grid: Bento grid on desktop, 1 column on mobile */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-6 auto-rows-auto">
@@ -19,7 +19,7 @@ export function VisualFeaturesSection() {
                         viewport={{ once: true }}
                         className="lg:col-span-8 lg:row-span-2"
                     >
-                        <div className="relative h-[450px] lg:h-[656px] overflow-hidden group rounded-xl border border-white/10 hover:border-white/30 transition-all bg-[#1a1d21]">
+                        <div className="relative h-[450px] lg:h-[656px] overflow-hidden group rounded-xl border border-white/10 hover:border-white/30 transition-all bg-black">
                             {/* Content Container */}
                             <div className="relative h-full flex flex-col">
                                 {/* Contained Image with Chatbot Overlay - Extended to right edge, less tall */}
@@ -110,7 +110,7 @@ export function VisualFeaturesSection() {
                         viewport={{ once: true }}
                         className="lg:col-span-4 lg:row-span-1"
                     >
-                        <div className="relative h-[450px] lg:h-[316px] overflow-hidden group rounded-xl border border-white/10 hover:border-white/30 transition-all bg-[#1a1d21]">
+                        <div className="relative h-[450px] lg:h-[316px] overflow-hidden group rounded-xl border border-white/10 hover:border-white/30 transition-all bg-black">
                             {/* Title at Top */}
                             <div className="relative z-10 p-6 md:pt-20 md:px-8">
                                 <h3 className="text-xl md:text-2xl font-bold text-white mb-1 md:mb-2">
@@ -142,7 +142,7 @@ export function VisualFeaturesSection() {
                         viewport={{ once: true }}
                         className="lg:col-span-4 lg:row-span-1"
                     >
-                        <div className="relative h-[450px] lg:h-[316px] overflow-hidden group rounded-xl border border-white/10 hover:border-white/30 transition-all bg-[#1a1d21]">
+                        <div className="relative h-[450px] lg:h-[316px] overflow-hidden group rounded-xl border border-white/10 hover:border-white/30 transition-all bg-black">
                             {/* Image from top right */}
                             <div className="absolute top-0 right-0 w-full h-[70%]">
                                 <Image
@@ -197,7 +197,7 @@ export function VisualFeaturesSection() {
                         viewport={{ once: true }}
                         className="lg:col-span-9 lg:row-span-1"
                     >
-                        <div className="relative h-[300px] lg:h-[380px] overflow-hidden group rounded-xl border border-white/10 hover:border-white/30 transition-all bg-[#1a1d21]">
+                        <div className="relative h-[300px] lg:h-[380px] overflow-hidden group rounded-xl border border-white/10 hover:border-white/30 transition-all bg-black">
                             {/* Analytics Visual - Chart/Graph */}
                             <div className="absolute inset-0 flex items-center justify-center p-8 opacity-20">
                                 <svg className="w-full h-full text-green-400" fill="none" viewBox="0 0 400 200">
@@ -276,7 +276,7 @@ export function VisualFeaturesSection() {
 const TemplateSelectionVisual = () => (
     <div className="relative h-64">
         {/* Header - Top left */}
-        <div className="absolute top-0 left-0 right-0 bg-[#1a1d21] rounded-xl px-4 py-3 border border-white/10 shadow-2xl z-10 flex items-center justify-between">
+        <div className="absolute top-0 left-0 right-0 bg-black rounded-xl px-4 py-3 border border-white/10 shadow-2xl z-10 flex items-center justify-between">
             <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-purple-500"></div>
                 <span className="text-white/80 text-xs font-medium">Choose Template</span>
@@ -285,7 +285,7 @@ const TemplateSelectionVisual = () => (
         </div>
 
         {/* Template 1 - Coming from left, larger */}
-        <div className="absolute top-16 left-0 w-44 bg-[#1a1d21] rounded-lg p-3 border-2 border-blue-400 shadow-2xl z-30">
+        <div className="absolute top-16 left-0 w-44 bg-black rounded-lg p-3 border-2 border-blue-400 shadow-2xl z-30">
             <div className="aspect-3/4 bg-linear-to-br from-blue-500/20 to-purple-500/20 rounded mb-2 overflow-hidden">
                 <div className="w-full h-full p-2 space-y-1">
                     <div className="h-2 bg-white/30 rounded w-3/4"></div>
@@ -303,7 +303,7 @@ const TemplateSelectionVisual = () => (
         </div>
 
         {/* Template 2 - Coming from right, slightly smaller */}
-        <div className="absolute top-24 right-0 w-36 bg-[#1a1d21] rounded-lg p-3 border border-white/10 shadow-2xl z-20 opacity-60">
+        <div className="absolute top-24 right-0 w-36 bg-black rounded-lg p-3 border border-white/10 shadow-2xl z-20 opacity-60">
             <div className="aspect-3/4 bg-linear-to-br from-purple-500/20 to-pink-500/20 rounded mb-2 overflow-hidden">
                 <div className="w-full h-full p-2 space-y-1">
                     <div className="h-2 bg-white/30 rounded w-2/3"></div>
@@ -318,7 +318,7 @@ const TemplateSelectionVisual = () => (
         </div>
 
         {/* Template 3 - Peek from bottom */}
-        <div className="absolute bottom-0 left-16 right-16 bg-[#1a1d21] rounded-t-lg p-3 border border-white/10 border-b-0 shadow-2xl z-10 opacity-40">
+        <div className="absolute bottom-0 left-16 right-16 bg-black rounded-t-lg p-3 border border-white/10 border-b-0 shadow-2xl z-10 opacity-40">
             <div className="h-16 bg-linear-to-br from-green-500/20 to-teal-500/20 rounded"></div>
         </div>
     </div>
@@ -328,16 +328,16 @@ const TemplateSelectionVisual = () => (
 const LivePreviewVisual = () => (
     <div className="relative h-64">
         {/* Mac Browser Window - Main element */}
-        <div className="absolute top-0 left-0 right-0 bg-[#1a1d21] rounded-xl shadow-2xl z-20 border border-white/10">
+        <div className="absolute top-0 left-0 right-0 bg-black rounded-xl shadow-2xl z-20 border border-white/10">
             {/* Browser Chrome */}
-            <div className="bg-[#2d3139] px-3 py-2 rounded-t-xl border-b border-white/10">
+            <div className="bg-black px-3 py-2 rounded-t-xl border-b border-white/10">
                 <div className="flex items-center gap-2">
                     <div className="flex gap-1.5">
                         <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]"></div>
                         <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]"></div>
                         <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]"></div>
                     </div>
-                    <div className="flex-1 bg-[#1a1d21] rounded px-2 py-1 flex items-center gap-1.5">
+                    <div className="flex-1 bg-black rounded px-2 py-1 flex items-center gap-1.5">
                         <div className="text-[10px]">🔒</div>
                         <span className="text-white/60 text-[10px] font-mono">johndoe.vercel.app</span>
                     </div>
@@ -345,7 +345,7 @@ const LivePreviewVisual = () => (
             </div>
 
             {/* Portfolio Preview */}
-            <div className="bg-[#0f1115] p-4 rounded-b-xl">
+            <div className="bg-black p-4 rounded-b-xl">
                 <div className="bg-linear-to-br from-blue-500/10 to-purple-500/10 rounded-lg p-4 border border-white/10">
                     <div className="w-8 h-8 rounded-full bg-linear-to-br from-blue-500 to-purple-500 mb-2"></div>
                     <div className="h-3 bg-white/20 rounded w-2/3 mb-1.5"></div>
@@ -355,7 +355,7 @@ const LivePreviewVisual = () => (
         </div>
 
         {/* Project Cards - Overlapping from bottom */}
-        <div className="absolute bottom-0 left-4 right-4 bg-[#1a1d21] rounded-xl p-4 border border-white/10 shadow-2xl z-30">
+        <div className="absolute bottom-0 left-4 right-4 bg-black rounded-xl p-4 border border-white/10 shadow-2xl z-30">
             <div className="grid grid-cols-2 gap-2">
                 <div className="bg-white/5 rounded p-2 border border-white/10">
                     <div className="aspect-video bg-linear-to-br from-blue-500/20 to-cyan-500/20 rounded mb-1.5"></div>
@@ -374,7 +374,7 @@ const LivePreviewVisual = () => (
 const DeploymentVisual = () => (
     <div className="relative h-80">
         {/* Build Status - Top card */}
-        <div className="absolute top-0 left-0 right-0 bg-[#1a1d21] rounded-xl p-4 border border-white/10 shadow-2xl z-20">
+        <div className="absolute top-0 left-0 right-0 bg-black rounded-xl p-4 border border-white/10 shadow-2xl z-20">
             <div className="flex items-center gap-3 mb-3">
                 <div className="w-7 h-7 rounded bg-green-500/20 flex items-center justify-center shrink-0">
                     <span className="text-green-400 text-sm">✓</span>
@@ -422,10 +422,10 @@ const DeploymentVisual = () => (
 
         {/* Secondary Actions - Bottom right */}
         <div className="absolute bottom-0 right-0 left-20 flex gap-2 z-20">
-            <button className="flex-1 bg-[#1a1d21] border border-white/10 rounded-lg p-2 shadow-xl">
+            <button className="flex-1 bg-black border border-white/10 rounded-lg p-2 shadow-xl">
                 <p className="text-white text-[10px] font-medium">Preview</p>
             </button>
-            <button className="flex-1 bg-[#1a1d21] border border-white/10 rounded-lg p-2 shadow-xl">
+            <button className="flex-1 bg-black border border-white/10 rounded-lg p-2 shadow-xl">
                 <p className="text-white text-[10px] font-medium">Download</p>
             </button>
         </div>

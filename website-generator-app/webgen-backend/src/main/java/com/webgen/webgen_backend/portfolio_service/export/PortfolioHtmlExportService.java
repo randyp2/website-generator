@@ -7,8 +7,7 @@ import com.webgen.webgen_backend.dto.portfolio.SectionDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -173,6 +172,26 @@ public class PortfolioHtmlExportService {
                 ? globalTheme.getTextPrimary()
                 : "text-white";
 
+        // Build dynamic Google Fonts URL
+        String bodyFont = "Inter";
+        String headingFont = "Inter";
+        if (globalTheme != null && globalTheme.getFonts() != null) {
+            Map<String, String> fonts = globalTheme.getFonts();
+            if (fonts.get("body") != null && !fonts.get("body").isBlank()) {
+                bodyFont = fonts.get("body");
+            }
+            if (fonts.get("heading") != null && !fonts.get("heading").isBlank()) {
+                headingFont = fonts.get("heading");
+            }
+        }
+        Set<String> uniqueFonts = new LinkedHashSet<>();
+        uniqueFonts.add(bodyFont);
+        uniqueFonts.add(headingFont);
+        String googleFontsFamilies = uniqueFonts.stream()
+                .map(f -> "family=" + f.replace(" ", "+") + ":wght@300;400;500;600;700")
+                .collect(Collectors.joining("&"));
+        String googleFontsUrl = "https://fonts.googleapis.com/css2?" + googleFontsFamilies + "&display=swap";
+
         return String.format("""
 <!DOCTYPE html>
 <html lang="en">
@@ -184,7 +203,7 @@ public class PortfolioHtmlExportService {
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="%s" rel="stylesheet">
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -201,9 +220,12 @@ public class PortfolioHtmlExportService {
 
   <style>
     body {
-      font-family: 'Inter', sans-serif;
+      font-family: '%s', sans-serif;
       margin: 0;
       padding: 0;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      font-family: '%s', sans-serif;
     }
   </style>
 </head>
@@ -280,6 +302,9 @@ public class PortfolioHtmlExportService {
 </html>
 """,
                 pageTitle,
+                googleFontsUrl,
+                bodyFont,
+                headingFont,
                 buildIconDefinitions(),
                 themeJson,
                 sectionsData,

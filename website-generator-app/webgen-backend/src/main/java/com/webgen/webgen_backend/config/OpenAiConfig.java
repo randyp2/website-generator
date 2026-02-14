@@ -97,4 +97,24 @@ public class OpenAiConfig {
                 .defaultOptions(options)
                 .build();
     }
+
+    @Bean("styleChatModel")
+    public OpenAiChatModel styleChatModel(
+            OpenAiApi openAiApi,
+            @Value("${spring.ai.openai.style-chat.model}") String model,
+            @Value("${spring.ai.openai.style-chat.max-tokens}") int maxTokens,
+            @Value("${spring.ai.openai.style-chat.temperature}") double temperature) {
+
+        OpenAiChatOptions options = OpenAiChatOptions.builder()
+                .model(model)
+                .maxTokens(maxTokens)
+                .temperature(temperature)
+                .responseFormat(ResponseFormat.builder().type(ResponseFormat.Type.JSON_OBJECT).build())
+                .build();
+
+        return OpenAiChatModel.builder()
+                .openAiApi(openAiApi)
+                .defaultOptions(options)
+                .build();
+    }
 }

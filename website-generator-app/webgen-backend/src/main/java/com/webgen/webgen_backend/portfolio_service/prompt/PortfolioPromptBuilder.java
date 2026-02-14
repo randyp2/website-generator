@@ -28,6 +28,8 @@ public class PortfolioPromptBuilder {
 
         ParsedResumeDTO resume = req.getResume();
         String stylePrefs = formatStylePrefs(req.getStylePrefs());
+        String customNotes = extractCustomNotes(req.getStylePrefs());
+        String effectivePrompt = applyCustomNotes(refinedPrompt, customNotes);
 
         String assetsJson = serializeAssets(req.getAssets());
 
@@ -110,7 +112,39 @@ public class PortfolioPromptBuilder {
                 - Use Tailwind CSS utility classes for styling.
                 - Do NOT write raw CSS, style tags, or external stylesheets.
                 - Assume Tailwind is available and configured.
-                
+
+                ========================
+                TYPOGRAPHY (CRITICAL)
+                ========================
+
+                You MUST select fonts from the approved Google Fonts whitelist below.
+                Do NOT use system fonts, do NOT invent font names.
+
+                APPROVED FONTS:
+                - Sans-serif: Inter, Outfit, Space Grotesk, DM Sans, Plus Jakarta Sans
+                - Serif: Playfair Display, Lora, Source Serif 4, Merriweather
+                - Monospace: JetBrains Mono, Fira Code, IBM Plex Mono
+                - Display: Syne
+
+                You MUST include a "fonts" field in the globalTheme object:
+                {
+                  "fonts": {
+                    "heading": "<font name from whitelist>",
+                    "body": "<font name from whitelist>"
+                  }
+                }
+
+                In reactSource, apply fonts using inline style:
+                  style={{ fontFamily: "'Playfair Display', serif" }}
+                Or Tailwind arbitrary values:
+                  className="font-['Playfair_Display']"
+
+                The user's typography preference from style chat should guide your choice:
+                - "serif" → pick a serif font for body, optionally serif or display for headings
+                - "sans-serif" → pick a sans-serif font for both
+                - "monospace" → pick a monospace font for body, sans-serif for headings
+                - "mixed" → pick different categories for heading vs body
+
                 9. Code quality & safety
                 - Output MUST be valid JSON.
                 - reactSource MUST be a valid JSON string with correct escaping.
@@ -119,6 +153,10 @@ public class PortfolioPromptBuilder {
                 - Do NOT introduce side effects outside rendering.
                 - Prefer clear, stable implementations over clever ones.
                 - reactSource MUST NOT reference any media URLs that are not present in contentJson
+                
+                10. Custom style notes (CRITICAL)
+                - If custom style notes are provided, you MUST implement them.
+                - Treat them as hard requirements for the visual design.
                 
                 ========================
                 MEDIA USAGE RULES
@@ -361,7 +399,11 @@ public class PortfolioPromptBuilder {
                     "background": "<Tailwind classes>",
                     "textPrimary": "<Tailwind text class>",
                     "textSecondary": "<Tailwind text class>",
-                    "accentColor": "<color name>"
+                    "accentColor": "<color name>",
+                    "fonts": {
+                      "heading": "<font name from approved whitelist>",
+                      "body": "<font name from approved whitelist>"
+                    }
                   },
                   "sections": [
                     {
@@ -379,6 +421,7 @@ public class PortfolioPromptBuilder {
                 }
 
                 IMPORTANT: The globalTheme field is REQUIRED and must be present.
+                IMPORTANT: The fonts field inside globalTheme is REQUIRED.
 
                 If a requested feature would normally require page-level coordination
                 or additional props, implement a simpler version that respects these rules.
@@ -395,6 +438,7 @@ public class PortfolioPromptBuilder {
                 User prompt: %s
                 Template ID: %s
                 Style preferences: %s
+                Custom style notes (MUST implement): %s
 
                 Resume data (use as source material only):
                 Name: %s
@@ -408,9 +452,10 @@ public class PortfolioPromptBuilder {
                 Uploaded media asets (URL + metadata only, optional to use):
                 %s
         """. formatted(
-                refinedPrompt,
+                effectivePrompt,
                 req.getTemplateId(),
                 stylePrefs,
+                customNotes.isBlank() ? "none" : customNotes,
                 safe(resume.getFullName()),
                 safe(resume.getSummary()),
                 formatContactInfo(resume),
@@ -426,7 +471,24 @@ public class PortfolioPromptBuilder {
 
 
     private String formatStylePrefs(Map<String, String> stylePrefs) {
-        return stylePrefs == null || stylePrefs.isEmpty() ? "none" : stylePrefs.toString();
+        if (stylePrefs == null || stylePrefs.isEmpty()) return "none";
+        return stylePrefs.entrySet()
+                .stream()
+                .map(e -> e.getKey() + ": " + (e.getValue() == null || e.getValue().isBlank() ? "none" : e.getValue()))
+                .collect(Collectors.joining("; "));
+    }
+    
+    private String extractCustomNotes(Map<String, String> stylePrefs) {
+        if (stylePrefs == null) return "";
+        String notes = stylePrefs.get("customNotes");
+        if (notes == null) return "";
+        String trimmed = notes.trim();
+        return trimmed.isBlank() ? "" : trimmed;
+    }
+    
+    private String applyCustomNotes(String refinedPrompt, String customNotes) {
+        if (customNotes == null || customNotes.isBlank()) return refinedPrompt;
+        return refinedPrompt + "\n\nCUSTOM STYLE NOTES (must implement): " + customNotes;
     }
 
     private String formatList(List<String> list) {
@@ -483,6 +545,8 @@ public class PortfolioPromptBuilder {
     ) {
         ParsedResumeDTO resume = req.getResume();
         String stylePrefs = formatStylePrefs(req.getStylePrefs());
+        String customNotes = extractCustomNotes(req.getStylePrefs());
+        String effectivePrompt = applyCustomNotes(refinedPrompt, customNotes);
         String assetsJson = serializeAssets(req.getAssets());
 
         String errorSummary = errors.stream()
@@ -546,6 +610,23 @@ public class PortfolioPromptBuilder {
                 - Tailwind CSS only
                 - Framer Motion for animations
                 - Lucide icons in scope (Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight)
+                - Custom style notes are mandatory if provided
+
+                ========================
+                TYPOGRAPHY (CRITICAL)
+                ========================
+
+                You MUST select fonts from the approved Google Fonts whitelist below.
+                Do NOT use system fonts, do NOT invent font names.
+
+                APPROVED FONTS:
+                - Sans-serif: Inter, Outfit, Space Grotesk, DM Sans, Plus Jakarta Sans
+                - Serif: Playfair Display, Lora, Source Serif 4, Merriweather
+                - Monospace: JetBrains Mono, Fira Code, IBM Plex Mono
+                - Display: Syne
+
+                You MUST include a "fonts" field in the globalTheme object.
+                In reactSource, apply fonts using inline style or Tailwind arbitrary values.
 
                 ========================
                 OUTPUT FORMAT (EXACT)
@@ -556,7 +637,11 @@ public class PortfolioPromptBuilder {
                     "background": "<Tailwind classes>",
                     "textPrimary": "<Tailwind text class>",
                     "textSecondary": "<Tailwind text class>",
-                    "accentColor": "<color name>"
+                    "accentColor": "<color name>",
+                    "fonts": {
+                      "heading": "<font name from approved whitelist>",
+                      "body": "<font name from approved whitelist>"
+                    }
                   },
                   "sections": [
                     {
@@ -584,6 +669,7 @@ public class PortfolioPromptBuilder {
                 User prompt: %s
                 Template ID: %s
                 Style preferences: %s
+                Custom style notes (MUST implement): %s
 
                 Resume data:
                 Name: %s
@@ -600,9 +686,10 @@ public class PortfolioPromptBuilder {
                 Generate a corrected response with valid JSX for all sections.
         """.formatted(
                 previousResponse,
-                refinedPrompt,
+                effectivePrompt,
                 req.getTemplateId(),
                 stylePrefs,
+                customNotes.isBlank() ? "none" : customNotes,
                 safe(resume.getFullName()),
                 safe(resume.getSummary()),
                 formatContactInfo(resume),

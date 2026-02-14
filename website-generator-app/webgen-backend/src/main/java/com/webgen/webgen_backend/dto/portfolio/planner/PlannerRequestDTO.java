@@ -8,6 +8,6 @@ import java.util.UUID;
 @Data
 public class PlannerRequestDTO {
     private UUID portfolioId;
-    private List<SectionContentDTO> sections;
+    private List<SectionPlanInputDTO> sections;
     private List<AssetDTO> assets;
 }

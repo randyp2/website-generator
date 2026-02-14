@@ -61,7 +61,7 @@ export default function AboutSection() {
   const current = reasons[activeIndex]
 
   return (
-    <div className="-mt-50 z-100 flex items-center justify-center min-h-screen bg-[#26282a] overflow-hidden py-20 px-6">
+    <div className="-mt-50 z-100 flex items-center justify-center min-h-screen bg-black overflow-hidden py-20 px-6">
       <div ref={containerRef} className="relative w-full max-w-5xl" onMouseMove={handleMouseMove}>
         {/* Oversized index number - positioned to bleed off left edge */}
         <motion.div

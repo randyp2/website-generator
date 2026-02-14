@@ -184,6 +184,7 @@ const AIRefinementPage: React.FC = () => {
             };
 
             try {
+                console.log("[generate] Sending stylePrefs:", stylePreferences);
                 const response: Response = await fetch(
                     `/api/portfolio/${portfolioId}/generate`,
                     {
@@ -371,13 +372,22 @@ const AIRefinementPage: React.FC = () => {
             summary: summarizeSection(section),
         }));
 
-    // Build full section content for planner/builder
+    // Build full section content for builder (includes reactSource)
     const buildSectionContent = (items: SectionDTO[] | null) =>
         (items ?? []).map((section) => ({
             sectionKey: section.sectionKey,
             title: section.title ?? "",
             orderIndex: section.orderIndex ?? 0,
             reactSource: section.reactSource ?? "",
+            contentJson: section.contentJson ?? {},
+        }));
+
+    // Build lightweight section data for planner (no reactSource to save tokens)
+    const buildPlannerSections = (items: SectionDTO[] | null) =>
+        (items ?? []).map((section) => ({
+            sectionKey: section.sectionKey,
+            title: section.title ?? "",
+            orderIndex: section.orderIndex ?? 0,
             contentJson: section.contentJson ?? {},
         }));
 
@@ -394,7 +404,7 @@ const AIRefinementPage: React.FC = () => {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                sections: buildSectionContent(sections),
+                sections: buildPlannerSections(sections),
             }),
         });
 

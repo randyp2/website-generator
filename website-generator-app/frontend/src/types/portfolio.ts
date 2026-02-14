@@ -33,6 +33,7 @@ export interface GlobalTheme {
     textPrimary: string; // "text-white"
     textSecondary: string; // "text-slate-400"
     accentColor: string; // "purple"
+    fonts?: { heading: string; body: string };
 }
 
 export interface GeneratedSection {

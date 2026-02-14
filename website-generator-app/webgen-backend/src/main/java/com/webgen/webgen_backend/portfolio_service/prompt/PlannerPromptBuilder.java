@@ -3,7 +3,7 @@ package com.webgen.webgen_backend.portfolio_service.prompt;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.dto.portfolio.AssetDTO;
-import com.webgen.webgen_backend.dto.portfolio.planner.SectionContentDTO;
+import com.webgen.webgen_backend.dto.portfolio.planner.SectionPlanInputDTO;
 import com.webgen.webgen_backend.model.portfolio.clarifier.ClarifierContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -18,7 +18,7 @@ import java.util.List;
 public class PlannerPromptBuilder {
     private final ObjectMapper objectMapper;
 
-    public Prompt buildPrompt(ClarifierContext context, List<SectionContentDTO> sections, List<AssetDTO> assets) {
+    public Prompt buildPrompt(ClarifierContext context, List<SectionPlanInputDTO> sections, List<AssetDTO> assets) {
         String contextJson = safeJson(context);
         String sectionsJson = safeJson(sections);
         String assetsJson = safeJson(assets);
