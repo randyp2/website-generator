@@ -19,8 +19,8 @@ export const NavbarMenu: NavbarItem[] = [
   },
   {
     id: 2,
-    title: "Examples",
-    link: "/examples",
+    title: "Explore",
+    link: "/explore",
     showInNav: true,
   },
   {

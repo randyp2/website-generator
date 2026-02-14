@@ -1,115 +1,296 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-    FiMonitor,
-    FiTablet,
-    FiSmartphone,
-    FiPlus,
-    FiUpload,
-    FiX,
-    FiSend,
-    FiVideo,
-    FiMessageSquare,
-    FiZap,
-} from "react-icons/fi";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import type { UploadedFile } from "@/types/file";
-import { DeviceMode, FilePreview, Message } from "@/types/preview";
+import type { SectionDTO } from "@/types/portfolio";
+import { Message, SectionPlan } from "@/types/preview";
 import { Preview } from "./components/Preview";
-import { AiResponse } from "./components/AiResponse";
+import { FloatingPromptBar } from "./components/FloatingPromptBar";
+import { ChatHistoryOverlay } from "./components/ChatHistoryOverlay";
+import { SidebarChatPanel } from "./components/SidebarChatPanel";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
+import { downloadPortfolioHtml } from "@/utils/downloadHtml";
 
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 const AIRefinementPage: React.FC = () => {
-    // Device preview mode
-    const [deviceMode, setDeviceMode] = useState<DeviceMode>("desktop");
+    const searchParams = useSearchParams();
 
     // Zustand store - All portfolio creation state
     const {
+        portfolioId,
+        templateId,
+        setTemplateId,
+        parsedResumeData,
+        stylePreferences,
         aiPrompt,
-        setAiPrompt,
-        previewHtml,
-        setPreviewHtml,
+        sections,
+        setSections,
+        setPortfolioId,
+        globalTheme,
+        setGlobalTheme,
+        messages,
+        setMessages,
         mediaFiles,
         videoFiles,
         addMediaFiles,
         addVideoFiles,
         removeMediaFile,
         removeVideoFile,
+        chatLayoutMode,
+        setChatLayoutMode,
     } = usePortfolioStore();
 
-    const [uploadBoxOpen, setUploadBoxOpen] = useState(false);
-    const [isDragging, setIsDragging] = useState(false);
-
     // Messages & AI response
-    const [messages, setMessages] = useState<Message[]>([]);
     const [isGenerating, setIsGenerating] = useState(false);
-    const [currentAIResponse, setCurrentAIResponse] = useState<string | null>(
-        null
-    );
+    const [isHydrating, setIsHydrating] = useState(false);
+    const [currentPlan, setCurrentPlan] = useState<SectionPlan[] | null>(null);
+    const [isPlanApproved, setIsPlanApproved] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
 
-    // Chat history drawer
-    const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
-
-    // Refs
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
+    const hasGeneratedRef = useRef(false);
+    const lastLoadedIdRef = useRef<string | null>(null);
     // Combine media and video files for display
     const uploadedFiles = [...mediaFiles, ...videoFiles];
-
-    /**
-     * Auto-resize textarea effect.
-     * Dynamically adjusts textarea height based on content.
-     * Resets to auto first to allow shrinking, then sets to scrollHeight.
-     * Triggers whenever promptText changes.
-     */
-    useEffect(() => {
-        if (textareaRef.current) {
-            textareaRef.current.style.height = "auto";
-            textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-        }
-    }, [aiPrompt]);
-
-    /**
-     * Auto-fade AI response overlay after 5 seconds.
-     * Only fades when chat drawer is closed (prevents interference with drawer).
-     * Cleans up timer if component unmounts or dependencies change.
-     *
-     * Dependencies:
-     * - currentAIResponse: The AI message to display
-     * - chatDrawerOpen: Prevents auto-fade when user is viewing chat history
-     */
-    useEffect(() => {
-        if (currentAIResponse && !chatDrawerOpen) {
-            const timer = setTimeout(() => {
-                setCurrentAIResponse(null);
-            }, 5000);
-            return () => clearTimeout(timer);
-        }
-    }, [currentAIResponse, chatDrawerOpen]);
+    const normalizedMessages = useMemo(
+        () =>
+            messages.map((message) => ({
+                ...message,
+                timestamp:
+                    message.timestamp instanceof Date
+                        ? message.timestamp
+                        : new Date(message.timestamp),
+            })),
+        [messages],
+    );
 
     // ========================================================================
-    // DEVICE MODE WIDTH
+    // LOAD EXISTING PORTFOLIO (RESUME SESSION)
     // ========================================================================
-    /**
-     * Returns the width for the preview canvas based on the selected device mode.
-     * @returns CSS width value as string (px or %)
-     */
-    const getPreviewWidth = () => {
-        switch (deviceMode) {
-            case "mobile":
-                return "420px";
-            case "tablet":
-                return "768px";
-            case "desktop":
-            default:
-                return "100%";
+    useEffect(() => {
+        const portfolioIdParam = searchParams.get("portfolioId");
+        if (!portfolioIdParam) return;
+        if (lastLoadedIdRef.current === portfolioIdParam) return;
+        lastLoadedIdRef.current = portfolioIdParam;
+        if (portfolioId === portfolioIdParam && sections && sections.length > 0) {
+            return;
         }
-    };
+        // Reset chat when switching to a new portfolio to avoid stale messages.
+        if (portfolioId !== portfolioIdParam) {
+            setMessages([]);
+        }
+        fetch(`/api/portfolio/${portfolioIdParam}/update`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ last_step: "refine" }),
+        }).catch(() => null);
+
+        const loadPortfolio = async () => {
+            setIsHydrating(true);
+            try {
+                const response = await fetch(
+                    `/api/portfolio/${portfolioIdParam}/load`,
+                );
+                const data = await response.json();
+
+                if (!response.ok) {
+                    console.error("Load portfolio error:", data);
+                    return;
+                }
+
+                setPortfolioId(portfolioIdParam);
+                setTemplateId(data?.templateId ?? null);
+                setSections(Array.isArray(data?.sections) ? data.sections : []);
+                setGlobalTheme(data?.globalTheme ?? null);
+            } catch (error) {
+                console.error("Failed to load portfolio:", error);
+            } finally {
+                setIsHydrating(false);
+            }
+        };
+
+        loadPortfolio();
+    }, [
+        searchParams,
+        portfolioId,
+        sections,
+        setPortfolioId,
+        setTemplateId,
+        setSections,
+        setGlobalTheme,
+        setMessages,
+    ]);
+
+    // ========================================================================
+    // ONE-SHOT GENERATION PREVIEW
+    // ========================================================================
+    useEffect(() => {
+        const generate = async () => {
+            if (hasGeneratedRef.current) return;
+            if (sections && sections.length > 0) {
+                hasGeneratedRef.current = true;
+                return;
+            }
+            if (!portfolioId || !parsedResumeData) return;
+            console.log("GENERATING...");
+
+            hasGeneratedRef.current = true;
+
+            // Add user's prompt to chat
+            const basePrompt =
+                aiPrompt ||
+                "Generate a visually appealing one-shot portfolio that reflects the parsed resume data and style preferences.";
+
+            const userMessage: Message = {
+                id: `user-${Date.now()}`,
+                role: "user",
+                content: basePrompt,
+                timestamp: new Date(),
+            };
+
+            // Add temporary AI message with loading indicator
+            const tempAiMessage: Message = {
+                id: `ai-temp-${Date.now()}`,
+                role: "ai",
+                content: "", // Empty content, will render status component
+                timestamp: new Date(),
+                isGenerating: true, // Flag to trigger status component
+            };
+
+            setMessages([userMessage, tempAiMessage]);
+
+            // Helper function to load saved portfolio data (recovery mechanism)
+            const loadSavedPortfolio = async (): Promise<boolean> => {
+                try {
+                    console.log("[generate] Attempting to load saved portfolio data...");
+                    const loadResponse = await fetch(`/api/portfolio/${portfolioId}/load`);
+                    if (!loadResponse.ok) return false;
+
+                    const loadedData = await loadResponse.json();
+                    if (loadedData?.sections?.length > 0) {
+                        console.log("[generate] Successfully recovered portfolio with", loadedData.sections.length, "sections");
+                        setSections(loadedData.sections);
+                        if (loadedData?.globalTheme) {
+                            setGlobalTheme(loadedData.globalTheme);
+                        }
+                        return true;
+                    }
+                    return false;
+                } catch {
+                    return false;
+                }
+            };
+
+            try {
+                console.log("[generate] Sending stylePrefs:", stylePreferences);
+                const response: Response = await fetch(
+                    `/api/portfolio/${portfolioId}/generate`,
+                    {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            templateId,
+                            resume: parsedResumeData,
+                            userPrompt: basePrompt,
+                            stylePrefs: stylePreferences,
+                        }),
+                    },
+                );
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error("Generate API error:", errorData);
+                    // Remove the temporary loading message
+                    setMessages((prev) =>
+                        prev.filter((m) => m.id !== tempAiMessage.id),
+                    );
+                    return;
+                }
+
+                const data = await response.json();
+                setSections(data?.sections ?? null);
+
+                // Set global theme if present in response
+                if (data?.globalTheme) {
+                    setGlobalTheme(data.globalTheme);
+                }
+
+                const assistantMessage = data?.assistantMessage ?? null;
+                const summary = assistantMessage?.summary ?? "";
+                const suggestions = assistantMessage?.suggestions ?? [];
+                const formattedSuggestions = Array.isArray(suggestions)
+                    ? suggestions.map((item: string) => `• ${item}`).join("\n")
+                    : "";
+
+                const content = [summary, formattedSuggestions]
+                    .filter(Boolean)
+                    .join("\n")
+                    .trim() || "Portfolio generated.";
+
+                const aiMessage: Message = {
+                    id: `ai-${Date.now()}`,
+                    role: "ai",
+                    content,
+                    timestamp: new Date(),
+                    isGenerating: false, // Not generating anymore
+                };
+
+                // Replace temp message with actual response
+                setMessages((prev) =>
+                    prev.filter((m) => m.id !== tempAiMessage.id).concat(aiMessage),
+                );
+            } catch (fetchError) {
+                // Browser connection likely timed out, but server may have completed
+                console.error("[generate] Fetch failed:", fetchError);
+                console.log("[generate] Waiting 3s then attempting recovery...");
+
+                // Wait a moment for server to finish saving
+                await new Promise(resolve => setTimeout(resolve, 3000));
+
+                // Try to recover by loading the saved portfolio
+                const recovered = await loadSavedPortfolio();
+
+                if (recovered) {
+                    const recoveryMessage: Message = {
+                        id: `ai-${Date.now()}`,
+                        role: "ai",
+                        content: "Portfolio generated successfully! (Connection timed out but data was recovered.)",
+                        timestamp: new Date(),
+                        isGenerating: false,
+                    };
+                    setMessages((prev) =>
+                        prev.filter((m) => m.id !== tempAiMessage.id).concat(recoveryMessage),
+                    );
+                } else {
+                    // Complete failure
+                    const errorMessage: Message = {
+                        id: `ai-${Date.now()}`,
+                        role: "ai",
+                        content: "Generation timed out and could not recover. Please try again.",
+                        timestamp: new Date(),
+                        isGenerating: false,
+                    };
+                    setMessages((prev) =>
+                        prev.filter((m) => m.id !== tempAiMessage.id).concat(errorMessage),
+                    );
+                }
+            }
+        };
+
+        generate();
+    }, [
+        portfolioId,
+        parsedResumeData,
+        templateId,
+        aiPrompt,
+        stylePreferences,
+        sections,
+        setMessages,
+        setSections,
+        setGlobalTheme,
+    ]);
 
     // ========================================================================
     // FILE HANDLING
@@ -131,53 +312,24 @@ const AIRefinementPage: React.FC = () => {
     const handleFileSelect = (files: FileList | null) => {
         if (!files) return;
 
-
         Array.from(files).forEach((file) => {
             const isImage = file.type.startsWith("image/");
             const isVideo = file.type.startsWith("video/");
-            
+
             if (!isImage && !isVideo) return; // Skip unsupported file types
 
             const newUploadedFile: UploadedFile = {
-                file, 
+                file,
                 name: file.name,
                 size: file.size,
                 type: file.type,
                 title: "",
                 description: "",
-            }
+            };
 
             if (isImage) addMediaFiles([newUploadedFile]);
-            else if(isVideo) addVideoFiles([newUploadedFile]);
+            else if (isVideo) addVideoFiles([newUploadedFile]);
         });
-    };
-
-    /**
-     * Handles drag over event for drag & drop file upload.
-     * Prevents default browser behavior and sets dragging state to true for visual feedback.
-     */
-    const handleDragOver = (e: React.DragEvent) => {
-        e.preventDefault();
-        setIsDragging(true);
-    };
-
-    /**
-     * Handles drag leave event when user drags files away from drop zone.
-     * Resets dragging state to remove visual feedback.
-     */
-    const handleDragLeave = (e: React.DragEvent) => {
-        e.preventDefault();
-        setIsDragging(false);
-    };
-
-    /**
-     * Handles drop event when files are dropped into the drop zone.
-     * Extracts files from dataTransfer and passes them to handleFileSelect for processing.
-     */
-    const handleDrop = (e: React.DragEvent) => {
-        e.preventDefault();
-        setIsDragging(false);
-        handleFileSelect(e.dataTransfer.files);
     };
 
     /**
@@ -194,6 +346,231 @@ const AIRefinementPage: React.FC = () => {
             // It's a video file, adjust index to videoFiles array
             const videoIndex = index - mediaFiles.length;
             removeVideoFile(videoIndex);
+        }
+    };
+
+    const summarizeSection = (section: SectionDTO) => {
+        let summary = "";
+        if (section.contentJson) {
+            try {
+                summary = JSON.stringify(section.contentJson);
+            } catch {
+                summary = "";
+            }
+        }
+        if (!summary && section.reactSource) summary = section.reactSource;
+        if (!summary && section.title) summary = section.title;
+        if (!summary) summary = section.sectionKey;
+        return summary.length > 500 ? `${summary.slice(0, 500)}...` : summary;
+    };
+
+    const buildSectionSummaries = (items: SectionDTO[] | null) =>
+        (items ?? []).map((section) => ({
+            sectionKey: section.sectionKey,
+            title: section.title ?? "",
+            orderIndex: section.orderIndex ?? null,
+            summary: summarizeSection(section),
+        }));
+
+    // Build full section content for builder (includes reactSource)
+    const buildSectionContent = (items: SectionDTO[] | null) =>
+        (items ?? []).map((section) => ({
+            sectionKey: section.sectionKey,
+            title: section.title ?? "",
+            orderIndex: section.orderIndex ?? 0,
+            reactSource: section.reactSource ?? "",
+            contentJson: section.contentJson ?? {},
+        }));
+
+    // Build lightweight section data for planner (no reactSource to save tokens)
+    const buildPlannerSections = (items: SectionDTO[] | null) =>
+        (items ?? []).map((section) => ({
+            sectionKey: section.sectionKey,
+            title: section.title ?? "",
+            orderIndex: section.orderIndex ?? 0,
+            contentJson: section.contentJson ?? {},
+        }));
+
+    // ========================================================================
+    // PLANNER API CALL
+    // ========================================================================
+    const callPlanner = async (): Promise<{
+        planSummary: string;
+        sectionPlans: SectionPlan[];
+    } | null> => {
+        if (!portfolioId) return null;
+
+        const response = await fetch(`/api/portfolio/${portfolioId}/refine/plan`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                sections: buildPlannerSections(sections),
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error?.error ?? "Plan request failed");
+        }
+
+        return response.json();
+    };
+
+    // ========================================================================
+    // BUILDER API CALL
+    // ========================================================================
+    const callBuilder = async (
+        sectionPlans: SectionPlan[],
+    ): Promise<{
+        buildSummary: string;
+        modifiedSections: SectionDTO[];
+        globalTheme?: import("@/types/portfolio").GlobalTheme | null;
+    } | null> => {
+        if (!portfolioId) return null;
+
+        const response = await fetch(`/api/portfolio/${portfolioId}/refine/build`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                sections: buildSectionContent(sections),
+                sectionPlans,
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error?.error ?? "Build request failed");
+        }
+
+        return response.json();
+    };
+
+    // ========================================================================
+    // APPROVE PLAN & BUILD
+    // ========================================================================
+    const approvePlanAndBuild = async () => {
+        if (!currentPlan || currentPlan.length === 0) return;
+
+        setIsGenerating(true);
+
+        // Add building message
+        const buildingMessage: Message = {
+            id: `ai-building-${Date.now()}`,
+            role: "ai",
+            content: "Building your refined portfolio...",
+            timestamp: new Date(),
+            isGenerating: true,
+            messageType: "build",
+        };
+        setMessages((prev) => [...prev, buildingMessage]);
+
+        try {
+            const buildResult = await callBuilder(currentPlan);
+
+            if (buildResult?.modifiedSections) {
+                // Update sections with new content
+                const updatedSections = buildResult.modifiedSections.map((mod) => ({
+                    sectionKey: mod.sectionKey,
+                    title: mod.title,
+                    reactSource: mod.reactSource,
+                    contentJson: mod.contentJson,
+                    orderIndex:
+                        mod.orderIndex ??
+                        sections?.find((s) => s.sectionKey === mod.sectionKey)?.orderIndex ??
+                        0,
+                })) as SectionDTO[];
+
+                setSections(updatedSections);
+            }
+
+            // Update global theme if builder returned one (theme change)
+            if (buildResult?.globalTheme) {
+                setGlobalTheme(buildResult.globalTheme);
+            }
+
+            // Replace building message with completion
+            const completeMessage: Message = {
+                id: `ai-complete-${Date.now()}`,
+                role: "ai",
+                content: buildResult?.buildSummary ?? "Portfolio updated successfully!",
+                timestamp: new Date(),
+                messageType: "build",
+            };
+
+            setMessages((prev) =>
+                prev.filter((m) => m.id !== buildingMessage.id).concat(completeMessage),
+            );
+
+            // Clear the current plan
+            setCurrentPlan(null);
+        } catch (error) {
+            console.error("Build error:", error);
+            setIsPlanApproved(false);
+            const errorMessage: Message = {
+                id: `ai-error-${Date.now()}`,
+                role: "ai",
+                content: "Sorry, there was an error building your changes. Please try again.",
+                timestamp: new Date(),
+                messageType: "error",
+            };
+            setMessages((prev) =>
+                prev.filter((m) => m.id !== buildingMessage.id).concat(errorMessage),
+            );
+        } finally {
+            setIsGenerating(false);
+            setIsPlanApproved(false);
+        }
+    };
+
+    const handleApprovePlan = async () => {
+        setIsPlanApproved(true);
+        await sendMessage("approve", []);
+    };
+
+    const handleKeepChatting = () => {
+        setIsPlanApproved(false);
+        setCurrentPlan(null);
+    };
+
+    // ========================================================================
+    // VERSION ACTIVATED HANDLER
+    // ========================================================================
+    const handleVersionActivated = async () => {
+        if (!portfolioId) return;
+
+        try {
+            const response = await fetch(`/api/portfolio/${portfolioId}/load`);
+            const data = await response.json();
+
+            if (response.ok) {
+                setSections(Array.isArray(data?.sections) ? data.sections : []);
+                if (data?.globalTheme) {
+                    setGlobalTheme(data.globalTheme);
+                }
+            }
+        } catch (error) {
+            console.error("Failed to reload portfolio after version change:", error);
+        }
+    };
+
+    // ========================================================================
+    // DOWNLOAD HTML
+    // ========================================================================
+    const handleDownloadHtml = async () => {
+        if (!portfolioId || !sections || sections.length === 0) {
+            throw new Error("No portfolio to download");
+        }
+
+        setIsDownloading(true);
+        try {
+            await downloadPortfolioHtml(
+                portfolioId,
+                sections,
+                globalTheme,
+                "My Portfolio"
+            );
+        } finally {
+            setIsDownloading(false);
         }
     };
 
@@ -221,6 +598,35 @@ const AIRefinementPage: React.FC = () => {
         // Validate input
         if (!prompt.trim() && files.length === 0) return;
 
+        // Check if user is approving a plan
+        const isApproval = prompt.trim().toLowerCase() === "approve" && currentPlan;
+        if (isApproval) {
+            // Add user approval message
+            const approvalMessage: Message = {
+                id: Date.now().toString(),
+                role: "user",
+                content: "approve",
+                timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, approvalMessage]);
+
+            // Trigger build
+            await approvePlanAndBuild();
+            return;
+        }
+
+        if (!portfolioId) {
+            const errorMessage: Message = {
+                id: (Date.now() + 1).toString(),
+                role: "ai",
+                content:
+                    "Please create a portfolio first so I can refine its sections.",
+                timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, errorMessage]);
+            return;
+        }
+
         // Create user message
         const userMessage: Message = {
             id: Date.now().toString(),
@@ -229,12 +635,16 @@ const AIRefinementPage: React.FC = () => {
             timestamp: new Date(),
         };
 
-        // Add user message to chat history
-        setMessages((prev) => [...prev, userMessage]);
+        const tempAiMessage: Message = {
+            id: `ai-temp-${Date.now()}`,
+            role: "ai",
+            content: "",
+            timestamp: new Date(),
+            isGenerating: true,
+        };
 
-        // Reset input state
-        setAiPrompt("");
-        setUploadBoxOpen(false);
+        // Add user message to chat history
+        setMessages((prev) => [...prev, userMessage, tempAiMessage]);
 
         // Clear uploaded files from Zustand store
         // Note: We need to clear both mediaFiles and videoFiles
@@ -248,76 +658,117 @@ const AIRefinementPage: React.FC = () => {
         // Set loading state
         setIsGenerating(true);
 
+        // Clear any existing plan since user is starting new clarification
+        if (currentPlan) {
+            setCurrentPlan(null);
+        }
+
         try {
             // ============================================================
-            // BACKEND CALL: Spring Boot API
+            // BACKEND CALL: Clarifier API via Next.js route
             // ============================================================
-            // TODO: Replace this mock implementation with actual API call
+            // Endpoint: POST /api/portfolio/refine/clarify
             //
-            // Endpoint: POST /api/portfolio/refine
-            //
-            // Request Body (FormData):
-            // - prompt: string (user's refinement request)
-            // - files: File[] (optional media/video files)
-            // - resumeFile: File (from Zustand store - usePortfolioStore().resumeFile)
-            // - templateId: string (from Zustand store - usePortfolioStore().templateId)
-            // - currentHtml: string (from Zustand store - usePortfolioStore().previewHtml)
-            //
-            // Expected Response:
-            // {
-            //   success: boolean,
-            //   message: string (AI's response message),
-            //   updatedHtml: string (refined HTML for preview),
-            //   timestamp: string
-            // }
-            //
-            // Example implementation:
-            // const formData = new FormData();
-            // formData.append('prompt', prompt);
-            // formData.append('templateId', usePortfolioStore.getState().templateId || '');
-            // formData.append('currentHtml', usePortfolioStore.getState().previewHtml || '');
-            // files.forEach((file, index) => {
-            //   formData.append(`files[${index}]`, file);
-            // });
-            // const resumeFile = usePortfolioStore.getState().resumeFile;
-            // if (resumeFile) {
-            //   formData.append('resumeFile', resumeFile.file);
-            // }
-            //
-            // const response = await fetch('http://localhost:8080/api/portfolio/refine', {
-            //   method: 'POST',
-            //   body: formData,
-            //   headers: {
-            //     'Authorization': `Bearer ${token}` // Add auth token
-            //   }
-            // });
-            //
-            // const data = await response.json();
+            // Request Body (JSON):
+            // - portfolioId: string
+            // - userPrompt: string
+            // - sections: SectionSummaryDTO[]
             // ============================================================
+            const response = await fetch(
+                `/api/portfolio/${portfolioId}/refine/clarify`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        userPrompt: prompt,
+                        sections: buildSectionSummaries(sections),
+                    }),
+                },
+            );
 
-            // MOCK RESPONSE - Remove this when implementing real backend
-            await new Promise((resolve) => setTimeout(resolve, 1500));
+            const data = await response.json();
 
-            const aiResponseText = "I've refined your portfolio based on your request. The preview has been updated!";
-            const mockUpdatedHtml = "<div>Updated portfolio HTML</div>";
+            if (!response.ok) {
+                throw new Error(
+                    data?.error ?? "Clarification request failed.",
+                );
+            }
 
-            // Update preview HTML in Zustand store
-            setPreviewHtml(mockUpdatedHtml);
+            const aiResponseText =
+                data?.assistantMessage ??
+                "Thanks! I can help clarify that. What would you like to change?";
 
-            // Create AI message
-            const aiMessage: Message = {
+            const isReadyForPlanning = data?.readyForPlanning === true;
+
+            // Create clarifier response message
+            const clarifyMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 role: "ai",
                 content: aiResponseText,
                 timestamp: new Date(),
+                messageType: "clarify",
+                readyForPlanning: isReadyForPlanning,
             };
 
-            // Add AI message to chat history
-            setMessages((prev) => [...prev, aiMessage]);
+            setMessages((prev) =>
+                prev.filter((m) => m.id !== tempAiMessage.id).concat(clarifyMessage),
+            );
 
-            // Show AI response overlay
-            setCurrentAIResponse(aiResponseText);
+            // If ready for planning, automatically call planner
+            if (isReadyForPlanning) {
+                const planningMessage: Message = {
+                    id: `ai-planning-${Date.now()}`,
+                    role: "ai",
+                    content: "Creating a modification plan...",
+                    timestamp: new Date(),
+                    isGenerating: true,
+                    messageType: "plan",
+                };
+                setMessages((prev) => [...prev, planningMessage]);
 
+                try {
+                    const planResult = await callPlanner();
+
+                    if (planResult?.sectionPlans) {
+                        setCurrentPlan(planResult.sectionPlans);
+                        setIsPlanApproved(false);
+
+                        // Format plan for display
+                        const planDetails = planResult.sectionPlans
+                            .filter((p) => p.action === "modify" || p.action === "add")
+                            .map((p) => `• ${p.sectionKey}: ${p.instruction}`)
+                            .join("\n");
+
+                        const planContent = `${planResult.planSummary}\n\n**Planned Changes:**\n${planDetails}\n\n_Use the buttons below to apply these changes, or keep chatting to adjust._`;
+
+                        const planMessage: Message = {
+                            id: `ai-plan-${Date.now()}`,
+                            role: "ai",
+                            content: planContent,
+                            timestamp: new Date(),
+                            messageType: "plan",
+                            sectionPlans: planResult.sectionPlans,
+                            planSummary: planResult.planSummary,
+                        };
+
+                        setMessages((prev) =>
+                            prev.filter((m) => m.id !== planningMessage.id).concat(planMessage),
+                        );
+                    }
+                } catch (planError) {
+                    console.error("Planning error:", planError);
+                    const errorMsg: Message = {
+                        id: `ai-error-${Date.now()}`,
+                        role: "ai",
+                        content: "Sorry, there was an error creating the plan. Please try again.",
+                        timestamp: new Date(),
+                        messageType: "error",
+                    };
+                    setMessages((prev) =>
+                        prev.filter((m) => m.id !== planningMessage.id).concat(errorMsg),
+                    );
+                }
+            }
         } catch (error) {
             console.error("Error sending message to AI:", error);
 
@@ -325,38 +776,19 @@ const AIRefinementPage: React.FC = () => {
             const errorMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 role: "ai",
-                content: "Sorry, there was an error processing your request. Please try again.",
+                content:
+                    "Sorry, there was an error processing your request. Please try again.",
                 timestamp: new Date(),
             };
 
-            setMessages((prev) => [...prev, errorMessage]);
-            setCurrentAIResponse("Error processing request. Please try again.");
+            setMessages((prev) =>
+                prev
+                    .filter((m) => m.id !== tempAiMessage.id)
+                    .concat(errorMessage),
+            );
         } finally {
             // Reset loading state
             setIsGenerating(false);
-        }
-    };
-
-    /**
-     * Handler for send button click.
-     * Extracts File objects from uploadedFiles and triggers sendMessage.
-     */
-    const handleSend = () => {
-        const files = uploadedFiles.map((f) => f.file);
-        sendMessage(aiPrompt, files);
-    };
-
-    /**
-     * Handles keyboard events in the textarea.
-     * Sends message on Enter key press (without Shift).
-     * Allows Shift+Enter for multi-line input.
-     *
-     * @param e - Keyboard event from textarea
-     */
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            handleSend();
         }
     };
 
@@ -364,277 +796,73 @@ const AIRefinementPage: React.FC = () => {
     // RENDER
     // ========================================================================
     return (
-        <div className="h-screen flex flex-col overflow-hidden relative ">
+        <div className="h-screen flex flex-col overflow-hidden relative">
             {/* ================================================ */}
-            {/* LAYER 1: FULL SCREEN PREVIEW (BASE) */}
+            {/* LAYER 1: SANDBOX - FULL SCREEN (BASE, z-0) */}
             {/* ================================================ */}
             <Preview
-                setDeviceMode={setDeviceMode}
-                deviceMode={deviceMode}
-                getPreviewWidth={getPreviewWidth}
-                previewHtml={previewHtml}
+                sections={sections}
+                globalTheme={globalTheme}
+                layoutMode={chatLayoutMode}
+                onLayoutModeChange={setChatLayoutMode}
+                sidebarContent={
+                    chatLayoutMode === 'sidebar' ? (
+                        <SidebarChatPanel
+                            messages={normalizedMessages}
+                            isGenerating={isGenerating || isHydrating}
+                            uploadedFiles={uploadedFiles}
+                            onSendMessage={sendMessage}
+                            onFileSelect={handleFileSelect}
+                            onRemoveFile={removeFile}
+                            showPlanActions={Boolean(currentPlan) && !isPlanApproved}
+                            onApprovePlan={handleApprovePlan}
+                            onKeepChatting={handleKeepChatting}
+                            portfolioId={portfolioId}
+                            onVersionActivated={handleVersionActivated}
+                            onDownload={handleDownloadHtml}
+                            isDownloading={isDownloading}
+                            layoutMode={chatLayoutMode}
+                            onLayoutModeChange={setChatLayoutMode}
+                        />
+                    ) : null
+                }
             />
 
             {/* ================================================ */}
-            {/* LAYER 2: AI RESPONSE (SMALL OVERLAY) */}
+            {/* LAYER 2: CHAT HISTORY OVERLAY - CENTER (z-40) */}
+            {/* Only visible in floating mode */}
             {/* ================================================ */}
-            <AiResponse 
-                currentAIResponse={currentAIResponse}
-                setCurrentAIResponse={setCurrentAIResponse}
-                chatDrawerOpen={chatDrawerOpen}
-                setChatDrawerOpen={setChatDrawerOpen}
-            />
-
-            {/* ================================================ */}
-            {/* LAYER 3: CHAT HISTORY DRAWER (FULL HEIGHT) */}
-            {/* ================================================ */}
-            <AnimatePresence>
-                {chatDrawerOpen && (
-                    <motion.div
-                        initial={{ x: "100%" }}
-                        animate={{ x: 0 }}
-                        exit={{ x: "100%" }}
-                        transition={{ duration: 0.3, ease: "easeInOut" }}
-                        className="absolute top-0 right-0 bottom-0 w-[400px] bg-white border-l border-slate-200 flex flex-col z-50 shadow-2xl"
-                    >
-                        {/* Header */}
-                        <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <FiMessageSquare className="w-4 h-4 text-sky-600" />
-                                <span className="text-sm font-semibold text-slate-700">
-                                    Chat History
-                                </span>
-                            </div>
-                            <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                onClick={() => setChatDrawerOpen(false)}
-                                className="w-6 h-6 rounded-full hover:bg-slate-200 flex items-center justify-center"
-                            >
-                                <FiX className="w-4 h-4 text-slate-600" />
-                            </motion.button>
-                        </div>
-
-                        {/* Content */}
-                        <div className="flex-1 overflow-auto p-4">
-                            <div className="space-y-4">
-                                {messages.length === 0 ? (
-                                    <p className="text-sm text-slate-500 text-center mt-8">
-                                        No messages yet. Start a conversation!
-                                    </p>
-                                ) : (
-                                    messages.map((msg) => (
-                                        <motion.div
-                                            key={msg.id}
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            className={`${msg.role === "user" ? "text-right" : "text-left"
-                                                }`}
-                                        >
-                                            <div
-                                                className={`inline-block max-w-[85%] px-3 py-2 rounded-lg text-sm ${msg.role === "user"
-                                                        ? "bg-linear-to-r from-sky-500 to-cyan-500 text-white"
-                                                        : "bg-slate-100 text-slate-900"
-                                                    }`}
-                                            >
-                                                {msg.role === "ai" && (
-                                                    <div className="flex items-center gap-1 mb-1">
-                                                        <FiZap className="w-3 h-3 text-sky-600" />
-                                                        <span className="text-xs font-semibold text-slate-600">
-                                                            AI
-                                                        </span>
-                                                    </div>
-                                                )}
-                                                <p>{msg.content}</p>
-                                            </div>
-                                        </motion.div>
-                                    ))
-                                )}
-                                {isGenerating && (
-                                    <div className="text-left">
-                                        <div className="inline-block bg-slate-100 px-3 py-2 rounded-lg">
-                                            <p className="text-sm text-slate-600">Thinking...</p>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {chatLayoutMode === 'floating' && (
+                <ChatHistoryOverlay
+                    messages={normalizedMessages}
+                    isGenerating={isGenerating || isHydrating}
+                />
+            )}
 
             {/* ================================================ */}
-            {/* LAYER 4: BOTTOM PROMPT DOCK (OVERLAY) */}
+            {/* LAYER 3: FLOATING PROMPT BAR - BOTTOM (z-50) */}
+            {/* Only visible in floating mode */}
             {/* ================================================ */}
-            <div className="absolute bottom-6 left-0 right-0 z-40 flex justify-center pointer-events-none">
-                <div className="w-full max-w-[1600px] px-6 pointer-events-auto">
-                    {/* Upload Box */}
-                    <AnimatePresence>
-                        {uploadBoxOpen && (
-                            <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: "auto", opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.3, ease: "easeInOut" }}
-                                className="overflow-hidden mb-2"
-                            >
-                                <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-slate-200 shadow-lg p-4">
-                                    {/* Drag & Drop Zone */}
-                                    <div
-                                        onDragOver={handleDragOver}
-                                        onDragLeave={handleDragLeave}
-                                        onDrop={handleDrop}
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className={`relative border-2 border-dashed rounded-xl p-8 transition-all cursor-pointer ${isDragging
-                                                ? "border-sky-400 bg-sky-50 shadow-lg"
-                                                : "border-slate-300 bg-slate-50 hover:border-sky-300"
-                                            }`}
-                                    >
-                                        <div className="flex flex-col items-center gap-3">
-                                            <motion.div
-                                                animate={isDragging ? { scale: 1.1 } : { scale: 1 }}
-                                                transition={{ duration: 0.2 }}
-                                            >
-                                                <FiUpload className="w-8 h-8 text-slate-400" />
-                                            </motion.div>
-                                            <div className="text-center">
-                                                <p className="text-sm font-medium text-slate-700">
-                                                    Drop images or videos here
-                                                </p>
-                                                <p className="text-xs text-slate-500 mt-1">
-                                                    or click to browse (jpg, png, webp, mp4, mov)
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <input
-                                            ref={fileInputRef}
-                                            type="file"
-                                            accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
-                                            multiple
-                                            onChange={(e) => handleFileSelect(e.target.files)}
-                                            className="hidden"
-                                        />
-                                    </div>
+            {chatLayoutMode === 'floating' && (
+                <FloatingPromptBar
+                    uploadedFiles={uploadedFiles}
+                    onSendMessage={sendMessage}
+                    onFileSelect={handleFileSelect}
+                    onRemoveFile={removeFile}
+                    isGenerating={isGenerating || isHydrating}
+                    showPlanActions={Boolean(currentPlan) && !isPlanApproved}
+                    onApprovePlan={handleApprovePlan}
+                    onKeepChatting={handleKeepChatting}
+                    portfolioId={portfolioId}
+                    onVersionActivated={handleVersionActivated}
+                    onDownload={handleDownloadHtml}
+                    isDownloading={isDownloading}
+                    layoutMode={chatLayoutMode}
+                    onLayoutModeChange={setChatLayoutMode}
+                />
+            )}
 
-                                    {/* File Preview Chips */}
-                                    {uploadedFiles.length > 0 && (
-                                        <div className="mt-4 flex flex-wrap gap-3">
-                                            <AnimatePresence>
-                                                {uploadedFiles.map((file, index) => {
-                                                    const isImage = file.type.startsWith("image/");
-                                                    const preview = URL.createObjectURL(file.file);
-
-                                                    return (
-                                                        <motion.div
-                                                            key={`${file.name}-${index}`}
-                                                            initial={{ opacity: 0, scale: 0.8, y: 10 }}
-                                                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                                                            exit={{ opacity: 0, scale: 0.8, x: -20 }}
-                                                            transition={{ duration: 0.2 }}
-                                                            className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl p-2 pr-3 shadow-sm"
-                                                        >
-                                                            <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center shrink-0">
-                                                                {isImage ? (
-                                                                    <img
-                                                                        src={preview}
-                                                                        alt={file.name}
-                                                                        className="w-full h-full object-cover"
-                                                                    />
-                                                                ) : (
-                                                                    <FiVideo className="w-6 h-6 text-slate-400" />
-                                                                )}
-                                                            </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="text-sm font-medium text-slate-700 truncate">
-                                                                    {file.name}
-                                                                </p>
-                                                                <p className="text-xs text-slate-500">
-                                                                    {(file.size / 1024 / 1024).toFixed(2)} MB
-                                                                </p>
-                                                            </div>
-                                                            <motion.button
-                                                                whileHover={{ scale: 1.1 }}
-                                                                whileTap={{ scale: 0.9 }}
-                                                                onClick={() => removeFile(index)}
-                                                                className="w-6 h-6 rounded-full bg-slate-100 hover:bg-red-100 flex items-center justify-center transition-colors"
-                                                            >
-                                                                <FiX className="w-4 h-4 text-slate-600" />
-                                                            </motion.button>
-                                                        </motion.div>
-                                                    );
-                                                })}
-                                            </AnimatePresence>
-                                        </div>
-                                    )}
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-
-                    {/* Main Prompt Bar */}
-                    <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-slate-200 shadow-xl">
-                        <div className="p-4">
-                            <div className="flex items-end gap-3">
-                                {/* Plus Button */}
-                                <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() => setUploadBoxOpen(!uploadBoxOpen)}
-                                    className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${uploadBoxOpen
-                                            ? "bg-sky-500 text-white shadow-lg"
-                                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                                        }`}
-                                >
-                                    <motion.div
-                                        animate={uploadBoxOpen ? { rotate: 45 } : { rotate: 0 }}
-                                        transition={{ duration: 0.2 }}
-                                    >
-                                        <FiPlus className="w-5 h-5" />
-                                    </motion.div>
-                                </motion.button>
-
-                                {/* Textarea */}
-                                <div className="flex-1">
-                                    <textarea
-                                        ref={textareaRef}
-                                        value={aiPrompt}
-                                        onChange={(e) => setAiPrompt(e.target.value)}
-                                        onKeyDown={handleKeyDown}
-                                        placeholder="Ask PortfolioAI to refine something…"
-                                        disabled={isGenerating}
-                                        rows={1}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-400/10 transition-all resize-none text-sm text-slate-900 placeholder:text-slate-400 max-h-[200px] overflow-y-auto"
-                                    />
-                                </div>
-
-                                {/* Send Button */}
-                                <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={handleSend}
-                                    disabled={
-                                        isGenerating ||
-                                        (!aiPrompt.trim() && uploadedFiles.length === 0)
-                                    }
-                                    className="shrink-0 w-10 h-10 rounded-xl bg-linear-to-r from-sky-500 to-cyan-500 text-white flex items-center justify-center shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    <FiSend className="w-5 h-5" />
-                                </motion.button>
-                            </div>
-
-                            {uploadedFiles.length > 0 && (
-                                <motion.p
-                                    initial={{ opacity: 0, y: -5 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="text-xs text-sky-600 mt-2 ml-14"
-                                >
-                                    {uploadedFiles.length} file(s) attached
-                                </motion.p>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
+            {/* Preview mode: no chat UI rendered */}
         </div>
     );
 };

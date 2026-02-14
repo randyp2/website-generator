@@ -1,0 +1,9 @@
+verify user:
+rjpahang@Mac webgen-backend % aws sts get-caller-identity
+
+{
+    "UserId": "AIDARKMJYCB542OHD2SNV",
+    "Account": "091020071035",
+    "Arn": "arn:aws:iam::091020071035:user/rjpahang-dev"
+}
+rjpahang@Mac webgen-backend %

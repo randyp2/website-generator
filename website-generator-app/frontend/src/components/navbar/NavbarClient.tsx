@@ -2,13 +2,14 @@
 
 import { getNavbarItems } from "@/data/navLinks";
 import { signoutClient } from "@/lib/logout-client";
-
+import { NavBar } from "@/components/ui/tube-light-navbar";
 import { createClient } from "@/utils/supabase/client";
+import { Home, Info, LayoutDashboard, Sparkles, User2 } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
-import { FiUser, FiZap } from "react-icons/fi";
+import React, { useEffect, useMemo, useState } from "react";
+import { FiUser } from "react-icons/fi";
 
 const NavbarClient: React.FC = () => {
     const [user, setUser] = useState<any>(null);
@@ -16,6 +17,26 @@ const NavbarClient: React.FC = () => {
     const supabase = createClient();
     const navLinks = getNavbarItems(); // Return links to display on navbar
     const pathname = usePathname();
+    const activeName =
+        navLinks.find((link) => link.link === pathname)?.title ??
+        navLinks[0]?.title ??
+        "";
+
+    const navItems = useMemo(() => {
+        const iconMap: Record<string, any> = {
+            Home,
+            About: Info,
+            Explore: LayoutDashboard,
+            Features: Sparkles,
+            Profile: User2,
+            default: Home,
+        };
+        return navLinks.map((link) => ({
+            name: link.title,
+            url: link.link,
+            icon: iconMap[link.title] ?? iconMap.default,
+        }));
+    }, [navLinks]);
 
     /* ---------- SESSION MANAGEMENT ---------- */
     /**
@@ -27,7 +48,6 @@ const NavbarClient: React.FC = () => {
     useEffect(() => {
         // Try to restore the user session immediately
         const initUser = async () => {
-
             // Get data from session based on the browsers local storage
             const {
                 data: { session },
@@ -53,56 +73,55 @@ const NavbarClient: React.FC = () => {
         <>
             <div className="flex justify-between items-center gap-6 pr-5 w-full">
                 {/* Left: Logo + Brand */}
-                <Link href="/" className="flex items-center gap-2">
-                    <div className="w-10 h-10 bg-linear-to-br from-sky-400 to-cyan-400 rounded-xl flex items-center justify-center shadow-lg shadow-sky-300/30">
-                        <FiZap className="w-5 h-5 text-white" />
-                    </div>
-                    <span className="text-xl font-bold bg-linear-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                        PortfolioAI
+                <Link href="/" className="flex items-center gap-3">
+                    <span className="text-2xl font-bold text-white">
+                        PortRN
                     </span>
                 </Link>
 
-                {/* Right: Static Links */}
-                <nav role="navigation" aria-label="Main Navigation" className="hidden md:flex gap-6">
-                    {navLinks.map((link) => (
-                        <Link
-                            key={link.id}
-                            href={link.link}
-                            className={`font-medium relative group transition-colors ${pathname === link.link
-                                ? "text-sky-600"
-                                : "text-slate-600 hover:text-slate-900"
-                                }`}
-                        >
-                            {link.title}
-                            <span
-                                className={`absolute -bottom-1 left-0 h-0.5 bg-sky-400 transition-all duration-300 ${pathname === link.link ? "w-full" : "w-0 group-hover:w-full"
-                                    }`}
-                            />
-                        </Link>
-                    ))}
-                </nav>
+                {/* Center: Nav links */}
+                <div className="flex-1 flex justify-center">
+                    {navItems.length > 0 && (
+                        <NavBar
+                            items={navItems}
+                            inline
+                            activeName={activeName}
+                            className="hidden md:block"
+                        />
+                    )}
+                </div>
             </div>
 
             <div className="flex items-center gap-4">
                 {user ? (
-                    <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={async () => {
-                            await signoutClient(); // Sign out user from client side function since invoked by button and not form
-                            router.push("/"); // Redirect to home page
-                        }}
-                        className="px-5 py-2.5 bg-white text-slate-700 rounded-lg font-semibold border-2 border-slate-200 hover:border-slate-300 hover:shadow-md transition-all"
-                    >
-                        Logout
-                    </motion.button>
+                    <>
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => router.push("/dashboard-user")}
+                            className="hover:cursor-pointer px-5 py-2.5 bg-linear-to-r from-cyan-500 via-sky-500 to-cyan-400 text-white rounded-lg font-semibold shadow-md shadow-cyan-400/30 hover:shadow-lg hover:shadow-cyan-400/50 transition-all"
+                        >
+                            Continue to Dashboard
+                        </motion.button>
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={async () => {
+                                await signoutClient(); // Sign out user from client side function since invoked by button and not form
+                                router.push("/"); // Redirect to home page
+                            }}
+                            className="px-5 py-2.5 bg-white text-slate-900 rounded-lg font-semibold border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all"
+                        >
+                            Logout
+                        </motion.button>
+                    </>
                 ) : (
                     <>
                         <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => router.push("/login")}
-                            className="hover:cursor-pointer flex items-center gap-2 px-5 py-2.5 bg-white text-slate-700 rounded-lg font-semibold border-2 border-slate-200 hover:border-slate-300 hover:shadow-md transition-all"
+                            className="hover:cursor-pointer flex items-center gap-2 px-5 py-2.5 bg-white text-slate-900 rounded-lg font-semibold border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all"
                         >
                             <FiUser className="w-4 h-4" /> Login
                         </motion.button>
@@ -110,7 +129,7 @@ const NavbarClient: React.FC = () => {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => router.push("/dashboard")}
-                            className="hover:cursor-pointer w-35 px-6 py-3 bg-linear-to-r from-sky-400 to-cyan-400 text-white rounded-lg font-semibold shadow-md shadow-sky-300/30 hover:shadow-lg hover:shadow-sky-400/40 transition-all"
+                            className="hover:cursor-pointer w-35 px-6 py-3 bg-linear-to-r from-cyan-500 via-sky-500 to-cyan-400 text-white rounded-lg font-semibold shadow-md shadow-cyan-400/30 hover:shadow-lg hover:shadow-cyan-400/50 transition-all"
                         >
                             Get Started
                         </motion.button>
@@ -119,7 +138,6 @@ const NavbarClient: React.FC = () => {
             </div>
         </>
     );
-
-}
+};
 
 export default NavbarClient;

@@ -17,11 +17,12 @@
  * @property description - (Optional) User-provided description of the file
  */
 export interface UploadedFile {
-  id?: string; 
-  file: File;
-  name: string;
-  size: number;
-  type: string;
-  title?: string;
-  description?: string;
+    id?: string;
+    file: File;
+    type: string;
+    name: string;
+    title?: string;
+    description?: string;
+    sectionHint?: string;
+    size: number;
 }
