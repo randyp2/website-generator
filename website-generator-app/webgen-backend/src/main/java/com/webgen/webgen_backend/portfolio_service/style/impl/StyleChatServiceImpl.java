@@ -67,6 +67,11 @@ public class StyleChatServiceImpl implements StyleChatService {
             return handleColorSelection(req, context);
         }
 
+        // Font selection — user submits typography picker selections
+        if (req.getFontSelections() != null && !req.getFontSelections().isEmpty()) {
+            return handleFontSelection(req, context);
+        }
+
         // Phase 3: Conversational AI questions (Q2-Q10)
         if (req.getUserMessage() == null || req.getUserMessage().isBlank())
             throw new IllegalArgumentException("userMessage is required!");
@@ -136,6 +141,12 @@ public class StyleChatServiceImpl implements StyleChatService {
 
         contextStore.put(req.getPortfolioId(), context);
 
+        // Track typography picker if AI triggered it in the first question
+        if (parsed.isShowTypographyPicker()) {
+            context.setTypographyPickerShown(true);
+            contextStore.put(req.getPortfolioId(), context);
+        }
+
         // Build response
         parsed.setQuestionNumber(2);
         parsed.setTotalQuestions(TOTAL_QUESTIONS);
@@ -144,6 +155,45 @@ public class StyleChatServiceImpl implements StyleChatService {
         parsed.setShowColorPicker(false);
 
         debugContext("COLOR SELECTION COMPLETE", context);
+
+        return parsed;
+    }
+
+    private StyleChatResponseDTO handleFontSelection(StyleChatRequestDTO req, StyleContext context) {
+        // Store font selections
+        context.setFontSelections(req.getFontSelections());
+        context.setTypographyPickerShown(true);
+
+        // Record as Q&A pair
+        StyleQAPair qa = new StyleQAPair();
+        qa.setQuestionNumber(context.getCurrentQuestionNumber());
+        qa.setQuestion("Typography selection");
+        qa.setAnswer(formatFontSelections(req.getFontSelections()));
+        context.getConversationHistory().add(qa);
+
+        // Call AI to continue the conversation after font selection
+        String fontMessage = "I selected these fonts: " + formatFontSelections(req.getFontSelections());
+        Prompt prompt = styleChatPromptBuilder.buildPrompt(fontMessage, context);
+        ChatResponse response = openAiChatModel.call(prompt);
+        StyleChatResponseParser.StyleChatParseResult parseResult = styleChatResponseParser.parse(
+                response.getResult().getOutput().getText()
+        );
+        StyleChatResponseDTO parsed = parseResult.response();
+
+        // Advance to next question
+        int nextQuestion = context.getCurrentQuestionNumber() + 1;
+        context.setCurrentQuestionNumber(nextQuestion);
+        context.setCurrentQuestion(parsed.getAssistantMessage());
+
+        contextStore.put(req.getPortfolioId(), context);
+
+        parsed.setQuestionNumber(nextQuestion);
+        parsed.setTotalQuestions(TOTAL_QUESTIONS);
+        parsed.setComplete(false);
+        parsed.setStylePreferences(buildProgressStylePreferences(context));
+        parsed.setShowTypographyPicker(false);
+
+        debugContext("FONT SELECTION COMPLETE", context);
 
         return parsed;
     }
@@ -158,6 +208,14 @@ public class StyleChatServiceImpl implements StyleChatService {
                 response.getResult().getOutput().getText()
         );
         StyleChatResponseDTO parsed = parseResult.response();
+
+        // Track typography picker state: if AI wants to show it and it hasn't been shown yet, mark it
+        if (parsed.isShowTypographyPicker() && !context.isTypographyPickerShown()) {
+            context.setTypographyPickerShown(true);
+        } else {
+            // Prevent re-triggering if already shown
+            parsed.setShowTypographyPicker(false);
+        }
 
         boolean answerValid = parseResult.answerValid();
         boolean provisionalAdvance = false;
@@ -249,6 +307,11 @@ public class StyleChatServiceImpl implements StyleChatService {
             compiled.setColorScheme(formatColorSelections(context.getColorSelections()));
         }
 
+        // Store font info into compiled preferences
+        if (context.getFontSelections() != null) {
+            compiled.setTypography(formatFontSelections(context.getFontSelections()));
+        }
+
         context.setCompiledStylePreferences(compiled);
 
         // Convert compiled preferences to Map<String, String>
@@ -289,12 +352,22 @@ public class StyleChatServiceImpl implements StyleChatService {
         context.setCompiledStylePreferences(null);
         context.setLastUserMessage(null);
         context.setInvalidAttemptsForCurrentQuestion(0);
+        context.setFontSelections(null);
+        context.setTypographyPickerShown(false);
         return context;
     }
 
     private boolean isIndecisiveReply(String userMessage) {
         if (userMessage == null || userMessage.isBlank()) return false;
         return INDECISIVE_PATTERN.matcher(userMessage).find();
+    }
+
+    private String formatFontSelections(Map<String, String> fonts) {
+        if (fonts == null || fonts.isEmpty()) return "none";
+        return fonts.entrySet().stream()
+                .map(e -> e.getKey() + ": " + e.getValue())
+                .reduce((a, b) -> a + ", " + b)
+                .orElse("none");
     }
 
     private String formatColorSelections(Map<String, String> colors) {
@@ -312,7 +385,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         map.put("tone", "");
         map.put("visualStyle", "");
         map.put("sectionEmphasis", "");
-        map.put("typography", "");
+        map.put("typography", context.getFontSelections() == null ? "" : formatFontSelections(context.getFontSelections()));
         map.put("animationStyle", "");
         map.put("whitespace", "");
         map.put("imageryStyle", "");
@@ -373,6 +446,8 @@ public class StyleChatServiceImpl implements StyleChatService {
         sb.append("║  Last User Msg: ").append(context.getLastUserMessage()).append("\n");
         sb.append("║  Design Goal: ").append(context.getDesignGoal()).append("\n");
         sb.append("║  Color Selections: ").append(context.getColorSelections()).append("\n");
+        sb.append("║  Font Selections: ").append(context.getFontSelections()).append("\n");
+        sb.append("║  Typography Picker Shown: ").append(context.isTypographyPickerShown()).append("\n");
         sb.append("║  Invalid Attempts (current question): ")
           .append(context.getInvalidAttemptsForCurrentQuestion()).append("\n");
         sb.append("║  Conversation History (").append(context.getConversationHistory().size()).append(" entries):\n");
