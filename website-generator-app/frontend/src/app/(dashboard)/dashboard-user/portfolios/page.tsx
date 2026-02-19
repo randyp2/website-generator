@@ -66,10 +66,10 @@ const PortfolioManager: React.FC = () => {
         const data = await response.json();
 
         // Convert DB Rows to card format
-        const formattedPortfolios: Portfolio[] = data.portfolios.map((item: any) => ({
+        const formattedPortfolios: Portfolio[] = data.portfolios.map((item: any, idx: number) => ({
           id: item.id,
           title: item.title,
-          thumbnail: "graident-1", // Placeholder - replace with actual thumbnail logic
+          thumbnail: `gradient-${(idx % 4) + 1}`,
           status: item.status,
           lastEdited: new Date(item.updated_at ?? item.created_at).toLocaleDateString(), // Format as needed
           views: 0, // Placeholder - replace with actual views logic
@@ -190,10 +190,10 @@ const PortfolioManager: React.FC = () => {
 
   const getThumbnailGradient = (thumbnail: string) => {
     const gradients: Record<string, string> = {
-      "gradient-1": "from-sky-600 via-cyan-700 to-teal-700",
-      "gradient-2": "from-violet-600 via-purple-700 to-pink-700",
-      "gradient-3": "from-orange-600 via-red-700 to-pink-700",
-      "gradient-4": "from-emerald-600 via-teal-700 to-cyan-700",
+      "gradient-1": "from-slate-900 via-slate-800 to-cyan-900",
+      "gradient-2": "from-zinc-900 via-emerald-900 to-teal-900",
+      "gradient-3": "from-neutral-900 via-rose-950 to-orange-900",
+      "gradient-4": "from-stone-900 via-amber-950 to-yellow-900",
     };
     return gradients[thumbnail] || gradients["gradient-1"];
   };
@@ -257,10 +257,12 @@ const PortfolioManager: React.FC = () => {
               whileHover={{ y: -8 }}
               onHoverStart={() => setHoveredId(portfolio.id)}
               onHoverEnd={() => setHoveredId(null)}
-              className="group relative hover:cursor-pointer"
+              className={`group relative hover:cursor-pointer ${
+                activeMenu === portfolio.id ? "z-50" : "z-0"
+              }`}
             >
               {/* Card Container */}
-              <div className="bg-white/5 backdrop-blur-xl rounded-2xl overflow border border-white/10 hover:border-white/20 shadow-lg hover:shadow-xl transition-all">
+              <div className="bg-white/[0.06] backdrop-blur-xl rounded-2xl overflow-hidden border border-white/[0.12] hover:border-white/[0.25] shadow-lg hover:shadow-xl transition-all">
                 {/* Thumbnail with linear */}
                 <div className="relative h-48 overflow-hidden">
                   <div
@@ -269,7 +271,9 @@ const PortfolioManager: React.FC = () => {
                     )}`}
                   >
                     {/* Overlay pattern */}
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-size-[24px_24px]" />
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-size-[24px_24px]" />
+                    <div className="absolute inset-0 bg-linear-to-t from-black/45 via-black/10 to-white/5" />
+                    <div className="absolute -top-20 right-[-20%] h-40 w-40 rounded-full bg-white/10 blur-3xl" />
                   </div>
 
                   {/* Status Badge */}
@@ -367,7 +371,7 @@ const PortfolioManager: React.FC = () => {
                             initial={{ opacity: 0, scale: 0.95, y: -10 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                            className="absolute right-0 top-full mt-2 w-48 bg-[#1a1d21] rounded-xl shadow-2xl border border-white/10 py-2 z-10"
+                            className="absolute right-0 top-full mt-2 w-48 bg-[#1a1d21] rounded-xl shadow-2xl border border-white/10 py-2 z-[60]"
                           >
                             {[
                               {

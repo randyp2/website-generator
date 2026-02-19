@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
-import { FALLBACK_STYLE_OPTIONS } from "@/types/style";
+
+const FALLBACK_STYLE_OPTIONS = {
+    colorScheme: ["Professional Blues", "Vibrant Gradients", "Warm Neutrals"],
+    layoutDensity: ["Spacious & Minimal", "Balanced", "Content-Rich"],
+    tone: ["Professional", "Creative", "Approachable"],
+    visualStyle: ["Modern & Clean", "Classic & Timeless", "Bold & Experimental"],
+    sectionEmphasis: ["Work Experience", "Projects", "Skills & Expertise"],
+};
 
 export async function POST(req: Request) {
     try {

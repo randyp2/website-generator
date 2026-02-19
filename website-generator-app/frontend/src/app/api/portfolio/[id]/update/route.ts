@@ -1,11 +1,14 @@
 import { adminSupabase } from "@/utils/supabase/admin";
 import { NextResponse } from "next/server";
+import { isStyleChatHistory } from "@/lib/style-chat-history";
+import type { PersistedStyleChatMessage } from "@/types/style-chat";
 
 
 type UpdatePortfolioBody = {
     title?: string;
     last_step?: string;
     template_id?: string;
+    style_chat_history?: PersistedStyleChatMessage[];
 };
 
 export const PATCH = async (
@@ -19,6 +22,20 @@ export const PATCH = async (
     const title = typeof body?.title === "string" ? body.title : undefined;
     const lastStep = typeof body?.last_step === "string" ? body.last_step : undefined;
     const templateId = typeof body?.template_id === "string" ? body.template_id : undefined;
+    const styleChatHistory = body?.style_chat_history;
+    const normalizedStyleChatHistory: PersistedStyleChatMessage[] | undefined | null =
+        styleChatHistory === undefined
+            ? undefined
+            : isStyleChatHistory(styleChatHistory)
+                ? styleChatHistory
+                : null;
+
+    if (normalizedStyleChatHistory === null) {
+        return NextResponse.json(
+            { error: "style_chat_history must be an array of chat messages" },
+            { status: 400 },
+        );
+    }
 
     try {
         const { data, error } = await adminSupabase
@@ -27,6 +44,9 @@ export const PATCH = async (
                 ...(title && { title }),
                 ...(lastStep && { last_step: lastStep }),
                 ...(templateId && { template_id: templateId }),
+                ...(normalizedStyleChatHistory !== undefined && {
+                    style_chat_history: normalizedStyleChatHistory,
+                }),
                 updated_at: new Date().toISOString(),
             })
             .eq("id", portfolioId)

@@ -24,6 +24,11 @@ public class StyleChatResponseParser {
 
             StyleChatResponseDTO dto = new StyleChatResponseDTO();
             dto.setAssistantMessage(root.path("assistantMessage").asText(""));
+            dto.setShowTypographyPicker(root.path("showTypographyPicker").asBoolean(false));
+            String recHeading = root.path("recommendedHeadingFont").asText(null);
+            dto.setRecommendedHeadingFont(recHeading);
+            String recBody = root.path("recommendedBodyFont").asText(null);
+            dto.setRecommendedBodyFont(recBody);
 
             boolean answerValid = root.path("isAnswerValid").asBoolean(true);
 

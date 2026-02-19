@@ -1,5 +1,7 @@
-import { Timestamp } from "next/dist/server/lib/cache-handlers/types";
 import { UUID } from "node:crypto";
+
+type Timestamp = string;
+import type { PersistedStyleChatMessage } from "./style-chat";
 
 export interface Portfolio {
     id: UUID;
@@ -7,6 +9,7 @@ export interface Portfolio {
     status: string;
     template_id: string;
     last_step?: string | null;
+    style_chat_history?: PersistedStyleChatMessage[] | null;
     updated_at: Timestamp;
     created_at: Timestamp;
 }
