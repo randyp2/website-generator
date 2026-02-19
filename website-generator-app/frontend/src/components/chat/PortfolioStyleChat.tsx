@@ -7,6 +7,7 @@ import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ColorPickerPanel } from "./ColorPickerPanel";
+import { TypographyPickerPanel } from "./TypographyPickerPanel";
 
 interface PortfolioStyleChatProps {
   messages: Message[];
@@ -17,6 +18,10 @@ interface PortfolioStyleChatProps {
   isContinueDisabled?: boolean;
   showColorPicker?: boolean;
   onColorSubmit?: (colors: Record<string, string>) => void;
+  showTypographyPicker?: boolean;
+  onTypographySubmit?: (fonts: { heading: string; body: string }) => void;
+  recommendedHeadingFont?: string;
+  recommendedBodyFont?: string;
   className?: string;
 }
 
@@ -44,6 +49,10 @@ export function PortfolioStyleChat({
   isContinueDisabled = false,
   showColorPicker = false,
   onColorSubmit,
+  showTypographyPicker = false,
+  onTypographySubmit,
+  recommendedHeadingFont,
+  recommendedBodyFont,
   className,
 }: PortfolioStyleChatProps) {
   const [prompt, setPrompt] = useState("");
@@ -121,13 +130,21 @@ export function PortfolioStyleChat({
           <ColorPickerPanel onSubmit={onColorSubmit} />
         )}
 
+        {showTypographyPicker && onTypographySubmit && (
+          <TypographyPickerPanel
+            onSubmit={onTypographySubmit}
+            recommendedHeadingFont={recommendedHeadingFont}
+            recommendedBodyFont={recommendedBodyFont}
+          />
+        )}
+
         {isSending && (
           <div className="text-xs text-white/50">Generating response...</div>
         )}
         <div ref={endRef} />
       </div>
 
-      {!showColorPicker && (
+      {!showColorPicker && !showTypographyPicker && (
       <div className="border-t border-white/10 p-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-end">
           <Textarea

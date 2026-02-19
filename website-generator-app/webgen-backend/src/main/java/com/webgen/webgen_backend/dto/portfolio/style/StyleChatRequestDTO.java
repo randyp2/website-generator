@@ -10,4 +10,5 @@ public class StyleChatRequestDTO {
     private UUID portfolioId;
     private String userMessage;
     private Map<String, String> colorSelections; // only for Q1
+    private Map<String, String> fontSelections;  // e.g. { "heading": "Playfair Display", "body": "Inter" }
 }

@@ -69,6 +69,21 @@ public class StyleChatPromptBuilder {
                 - Keep messages concise but substantive (2-3 sentences, max 70 words).
 
                 ========================
+                TYPOGRAPHY PICKER
+
+                We have a typography picker UI that shows the user our approved fonts with live previews.
+                The approved font whitelist is:
+                - Sans-serif: Inter, Outfit, Space Grotesk, DM Sans, Plus Jakarta Sans
+                - Serif: Playfair Display, Lora, Source Serif 4, Merriweather
+                - Monospace: JetBrains Mono, Fira Code, IBM Plex Mono
+                - Display: Syne
+
+                When you want to discuss or finalize typography choices, set "showTypographyPicker": true.
+                You can also suggest a heading and body font using "recommendedHeadingFont" and "recommendedBodyFont".
+                For this first question, you may set showTypographyPicker to true if typography is the
+                first topic you bring up, otherwise set it to false.
+
+                ========================
                 OUTPUT FORMAT (STRICT)
 
                 Return a single JSON object:
@@ -76,6 +91,9 @@ public class StyleChatPromptBuilder {
                     "assistantMessage": "<your conversational message>",
                     "isAnswerValid": true,
                     "nextQuestionNumber": 2,
+                    "showTypographyPicker": false,
+                    "recommendedHeadingFont": null,
+                    "recommendedBodyFont": null,
                     "compiledStylePreferences": null
                 }
 
@@ -164,6 +182,24 @@ public class StyleChatPromptBuilder {
                    - Give a brief, enthusiastic closing summary of the design direction
 
                 ========================
+                TYPOGRAPHY PICKER
+
+                We have a typography picker UI that shows the user our approved fonts with live previews.
+                The approved font whitelist is:
+                - Sans-serif: Inter, Outfit, Space Grotesk, DM Sans, Plus Jakarta Sans
+                - Serif: Playfair Display, Lora, Source Serif 4, Merriweather
+                - Monospace: JetBrains Mono, Fira Code, IBM Plex Mono
+                - Display: Syne
+
+                When you want to discuss or finalize typography choices, set "showTypographyPicker": true
+                in your response. This will display an interactive font picker to the user.
+                You can also suggest a heading and body font from the whitelist above using
+                "recommendedHeadingFont" and "recommendedBodyFont".
+
+                Typography picker has %s been shown to this user.
+                If it has already been shown, do NOT set showTypographyPicker to true again.
+
+                ========================
                 RULES
 
                 - Do NOT number questions or reference turn numbers
@@ -183,6 +219,9 @@ public class StyleChatPromptBuilder {
                     "assistantMessage": "<your conversational message>",
                     "isAnswerValid": <true if user expressed a preference, false if they asked a question or need guidance>,
                     "nextQuestionNumber": <current+1 if valid, current if invalid, %d if completing>,
+                    "showTypographyPicker": <true to show the font picker UI, false otherwise>,
+                    "recommendedHeadingFont": <a font name from the approved whitelist or null>,
+                    "recommendedBodyFont": <a font name from the approved whitelist or null>,
                     "compiledStylePreferences": <null unless final turn answer is valid, then object below>
                 }
 
@@ -207,6 +246,7 @@ public class StyleChatPromptBuilder {
                 context.getTotalQuestions(),
                 safe(context.getDesignGoal()),
                 context.getTotalQuestions(),
+                context.isTypographyPickerShown() ? "already" : "NOT yet",
                 context.getTotalQuestions()
         ));
 

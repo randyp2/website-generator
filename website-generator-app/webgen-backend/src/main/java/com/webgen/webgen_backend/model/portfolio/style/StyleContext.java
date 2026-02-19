@@ -17,4 +17,6 @@ public class StyleContext {
     private CompiledStylePreferences compiledStylePreferences; // only after Q10
     private String lastUserMessage;
     private int invalidAttemptsForCurrentQuestion;
+    private Map<String, String> fontSelections;    // user's font picks from typography picker
+    private boolean typographyPickerShown;         // prevent re-triggering
 }
