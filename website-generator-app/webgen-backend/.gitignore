@@ -36,3 +36,5 @@ build/
 ### Plan spec ###
 src/main/resources/ai/portfolio-plan-spec.md
 
+### SQL dump ###
+supabase_schema.sql
