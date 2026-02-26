@@ -23,3 +23,12 @@ dist-ssr
 *.sln
 *.sw?
 .DS_Store
+
+# pnpm store
+.pnpm-store/
+
+# AI agent / dev notes
+AGENTS.md
+
+# Claude Code local config
+.claude/

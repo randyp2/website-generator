@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# pnpm store
+.pnpm-store/
+
+# Dev / architecture notes
+portfolioai-architecture.md
