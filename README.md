@@ -2,7 +2,7 @@
 
 An AI-powered portfolio generator that transforms your resume, media, and personal info into a fully responsive, styled portfolio website — no coding required.
 
-![Hero Screenshot](docs/images/hero.png)
+![Hero Screenshot](website-generator-app/docs/images/hero.png)
 
 ---
 
@@ -22,7 +22,7 @@ An AI-powered portfolio generator that transforms your resume, media, and person
 
 PortfolioAI lets users create professional portfolio websites in minutes. Users fill out a multi-step form, upload their resume and media files, pick a design style, and the app uses OpenAI to generate a unique, production-ready HTML/CSS portfolio. Portfolios can be previewed live, shared via email, and saved to their account.
 
-![App Demo](docs/images/demo.gif)
+![App Demo](website-generator-app/docs/images/demo.gif)
 
 ---
 
@@ -42,7 +42,7 @@ Choose from 5 distinct visual styles:
 ### Multi-Step Form Workflow
 Guided creation flow covering personal info, skills, custom sections, file uploads, and style selection.
 
-![Form Workflow](docs/images/form-flow.png)
+![Form Workflow](website-generator-app/docs/images/form-flow.png)
 
 ### Resume & Media Upload
 Upload a PDF or DOCX resume and any images or videos. Files are stored in Supabase Storage and parsed into the generation prompt automatically.
@@ -57,20 +57,20 @@ Guided step-by-step process to build your portfolio:
 | Resume | Upload your resume and media files |
 | Refine | Fine-tune sections and preview the result |
 
-![Step 1 — Template](docs/images/step-template.png)
-![Step 2 — Style](docs/images/step-style.png)
-![Step 3 — Resume](docs/images/step-resume.png)
-![Step 4 — Refine](docs/images/step-refine.png)
+![Step 1 — Template](website-generator-app/docs/images/step-template.png)
+![Step 2 — Style](website-generator-app/docs/images/step-style.png)
+![Step 3 — Resume](website-generator-app/docs/images/step-resume.png)
+![Step 4 — Refine](website-generator-app/docs/images/step-refine.png)
 
 ### Live Preview
 Instantly preview your generated portfolio in the browser. View the source code or share a preview link via email with a verification code.
 
-![Preview](docs/images/preview.png)
+![Preview](website-generator-app/docs/images/preview.png)
 
 ### Portfolio Dashboard
 Manage all your portfolios in one place. Edit, version, and track the status of each one.
 
-![Dashboard](docs/images/dashboard.png)
+![Dashboard](website-generator-app/docs/images/dashboard.png)
 
 ### Authentication
 Secure sign-in via Supabase Auth. JWT tokens are validated server-side against Supabase's public JWKS endpoint — no secrets stored client-side.
