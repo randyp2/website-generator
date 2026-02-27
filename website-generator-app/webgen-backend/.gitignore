@@ -38,3 +38,10 @@ src/main/resources/ai/portfolio-plan-spec.md
 
 ### SQL dump ###
 supabase_schema.sql
+
+### Dev notes with secrets ###
+docker-exec.txt
+aws.txt
+
+### JSX validator dependencies ###
+scripts/node_modules/
