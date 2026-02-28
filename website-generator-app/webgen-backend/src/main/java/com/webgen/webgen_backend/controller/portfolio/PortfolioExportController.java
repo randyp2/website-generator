@@ -1,4 +1,4 @@
-package com.webgen.webgen_backend.controller;
+package com.webgen.webgen_backend.controller.portfolio;
 
 import com.webgen.webgen_backend.dto.portfolio.PortfolioExportRequestDTO;
 import com.webgen.webgen_backend.portfolio_service.export.PortfolioHtmlExportService;

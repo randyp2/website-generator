@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class StyleChatMessage {
+    private String id;
     private String role;
     private String content;
+    private String timestamp;
 }

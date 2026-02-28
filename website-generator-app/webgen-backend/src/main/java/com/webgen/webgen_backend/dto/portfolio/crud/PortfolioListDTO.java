@@ -1,6 +1,10 @@
 package com.webgen.webgen_backend.dto.portfolio.crud;
 
-public class PortfolioListResponseDTO {
+import lombok.Data;
 
+import java.util.List;
 
+@Data
+public class PortfolioListDTO {
+    private List<PortfolioDTO> portfolios;
 }
