@@ -2,13 +2,13 @@ package com.webgen.webgen_backend.controller.portfolio;
 
 import com.webgen.webgen_backend.dto.portfolio.crud.CreatePortfolioRequestDTO;
 import com.webgen.webgen_backend.dto.portfolio.crud.PortfolioDTO;
+import com.webgen.webgen_backend.dto.portfolio.crud.PortfolioDetailDTO;
 import com.webgen.webgen_backend.dto.portfolio.crud.PortfolioListDTO;
 import com.webgen.webgen_backend.dto.portfolio.crud.UpdatePortfolioRequestDTO;
 import com.webgen.webgen_backend.portfolio_service.crud.PortfolioCrudService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -41,6 +41,14 @@ public class PortfolioCrudController {
         );
         PortfolioDTO response = portfolioCrudService.createDraft(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<PortfolioDetailDTO> getPortfolio(@PathVariable UUID id) {
+        UUID userId = UUID.fromString(
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
+        );
+        return ResponseEntity.ok(portfolioCrudService.getPortfolio(userId, id));
     }
 
     @PatchMapping("/{id}")

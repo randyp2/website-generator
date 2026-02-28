@@ -1,7 +1,6 @@
 import { enforceRateLimit } from "@/lib/rate-limit/enable-rate-limit";
 import { generateRateLimit } from "@/lib/rate-limit/ratelimit";
 import { acquireLock, releaseLock } from "@/lib/rate-limit/redis-lock";
-import { GeneratedSection } from "@/types/portfolio";
 import { adminSupabase } from "@/utils/supabase/admin";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
@@ -139,7 +138,7 @@ export async function POST(
         try {
             // Use undici directly to configure extended timeouts (10 minutes)
             const { statusCode: status, body: resBody } = await request(
-                `${backendUrl}/api/portfolio/generate`,
+                `${backendUrl}/api/v1/portfolio/${portfolioId}/generate`,
                 {
                     method: "POST",
                     headers: {
@@ -211,89 +210,71 @@ export async function POST(
             "sections",
         );
 
-        const sectionsSnapshot = {
-            sections: data?.sections ?? [],
-            globalTheme: data?.globalTheme ?? null,
-        };
+        // DB writes (generated_versions, portfolio active_version_id, portfolio_sections)
+        // are now handled by Spring Boot inside POST /api/v1/portfolio/{id}/generate.
 
-        console.log("[generate] Saving generated version to database...");
-        const { data: version, error: versionError } = await adminSupabase
-            .from("generated_versions")
-            .insert({
-                portfolio_id: portfolioId,
-                prompt_used: body?.userPrompt ?? null,
-                model_used: null,
-                sections_snapshot: sectionsSnapshot,
-                global_theme: data?.globalTheme ?? null,
-                assistant_message: data?.assistantMessage ?? null,
-                preview_url: data?.previewUrl ?? null,
-                html: "", // Required NOT NULL field - empty since we use React components
-            })
-            .select("id")
-            .single();
+        // const sectionsSnapshot = {
+        //     sections: data?.sections ?? [],
+        //     globalTheme: data?.globalTheme ?? null,
+        // };
 
-        if (versionError || !version) {
-            console.error(
-                "[generate] Failed to persist generated version:",
-                versionError,
-            );
-            return NextResponse.json(
-                { error: "Failed to persist generated version" },
-                { status: 500 },
-            );
-        }
-        console.log("[generate] Version saved with id:", version.id);
+        // console.log("[generate] Saving generated version to database...");
+        // const { data: version, error: versionError } = await adminSupabase
+        //     .from("generated_versions")
+        //     .insert({
+        //         portfolio_id: portfolioId,
+        //         prompt_used: body?.userPrompt ?? null,
+        //         model_used: null,
+        //         sections_snapshot: sectionsSnapshot,
+        //         global_theme: data?.globalTheme ?? null,
+        //         assistant_message: data?.assistantMessage ?? null,
+        //         preview_url: data?.previewUrl ?? null,
+        //         html: "", // Required NOT NULL field - empty since we use React components
+        //     })
+        //     .select("id")
+        //     .single();
 
-        console.log("[generate] Updating portfolio active_version_id...");
-        const { error: portfolioUpdateError } = await adminSupabase
-            .from("portfolios")
-            .update({
-                active_version_id: version.id,
-                updated_at: new Date().toISOString(),
-            })
-            .eq("id", portfolioId);
+        // if (versionError || !version) {
+        //     console.error("[generate] Failed to persist generated version:", versionError);
+        //     return NextResponse.json({ error: "Failed to persist generated version" }, { status: 500 });
+        // }
+        // console.log("[generate] Version saved with id:", version.id);
 
-        if (portfolioUpdateError) {
-            console.error(
-                "[generate] Failed to set active version:",
-                portfolioUpdateError,
-            );
-            return NextResponse.json(
-                { error: "Failed to set active version" },
-                { status: 500 },
-            );
-        }
-        console.log("[generate] Portfolio active version updated");
+        // console.log("[generate] Updating portfolio active_version_id...");
+        // const { error: portfolioUpdateError } = await adminSupabase
+        //     .from("portfolios")
+        //     .update({ active_version_id: version.id, updated_at: new Date().toISOString() })
+        //     .eq("id", portfolioId);
 
-        const sections = Array.isArray(data?.sections) ? data.sections : [];
-        console.log("[generate] Upserting", sections.length, "sections...");
-        const { error: sectionsError } = await adminSupabase
-            .from("portfolio_sections")
-            .upsert(
-                sections.map((section: GeneratedSection, index: number) => ({
-                    portfolio_id: portfolioId,
-                    section_key: section.sectionKey,
-                    title: section.title ?? null,
-                    react_source: section.reactSource ?? null,
-                    content_json: section.contentJson ?? {},
-                    order_index: section.orderIndex ?? index,
-                    source: "ai",
-                    updated_at: new Date().toISOString(),
-                })),
-                { onConflict: "portfolio_id,section_key" },
-            );
+        // if (portfolioUpdateError) {
+        //     console.error("[generate] Failed to set active version:", portfolioUpdateError);
+        //     return NextResponse.json({ error: "Failed to set active version" }, { status: 500 });
+        // }
+        // console.log("[generate] Portfolio active version updated");
 
-        if (sectionsError) {
-            console.error(
-                "[generate] Failed to persist sections:",
-                sectionsError,
-            );
-            return NextResponse.json(
-                { error: "Failed to persist sections" },
-                { status: 500 },
-            );
-        }
-        console.log("[generate] All sections saved successfully");
+        // const sections = Array.isArray(data?.sections) ? data.sections : [];
+        // console.log("[generate] Upserting", sections.length, "sections...");
+        // const { error: sectionsError } = await adminSupabase
+        //     .from("portfolio_sections")
+        //     .upsert(
+        //         sections.map((section: GeneratedSection, index: number) => ({
+        //             portfolio_id: portfolioId,
+        //             section_key: section.sectionKey,
+        //             title: section.title ?? null,
+        //             react_source: section.reactSource ?? null,
+        //             content_json: section.contentJson ?? {},
+        //             order_index: section.orderIndex ?? index,
+        //             source: "ai",
+        //             updated_at: new Date().toISOString(),
+        //         })),
+        //         { onConflict: "portfolio_id,section_key" },
+        //     );
+
+        // if (sectionsError) {
+        //     console.error("[generate] Failed to persist sections:", sectionsError);
+        //     return NextResponse.json({ error: "Failed to persist sections" }, { status: 500 });
+        // }
+        // console.log("[generate] All sections saved successfully");
 
         return NextResponse.json(data);
     } catch (err) {
