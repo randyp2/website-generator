@@ -1,48 +1,42 @@
-import { adminSupabase } from "@/utils/supabase/admin";
+import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 
-/**
- *
- * @param req Query parameter passed through url/path
- * (i.e. /api/portfolio/list?userId=7913f5f7-a9a1-4688-be20-01a5adc11a4a)
- * @returns HTTP status and/or list of portfolios
- */
-export async function GET(req: Request, {}) {
-    // Parse the userId from the URL query parameters
-    const { searchParams } = new URL(req.url);
-    const userId = searchParams.get("userId");
-
-    // Validate userId
-    if (!userId) {
-        return NextResponse.json(
-            { error: "userId and templateId are required." },
-            { status: 400 },
-        );
-    }
-
-    // ==============================================================
-    // FETCH ALL PORTFOLIOS FOR USER
-    // ==============================================================
+export async function GET() {
     try {
-        // Fetch all portfolios with matching userId - Sort by created_at descending
-        const { data, error } = await adminSupabase
-            .from("portfolios")
-            .select("*")
-            .eq("user_id", userId)
-            .order("created_at", { ascending: false });
+        const supabase = await createServerSupabaseClient();
 
-        if (error) {
-            console.error("Portfolio get error:", error);
+        const {
+            data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session) {
             return NextResponse.json(
-                { error: "Failed to fetch all portfolios." },
-                { status: 500 },
+                { error: "Unauthorized" },
+                { status: 401 },
             );
         }
 
-        // SUCCESS — return all portfolios belonging to this user
-        return NextResponse.json({ portfolios: data });
+        const backendUrl: string =
+            process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
+
+        const res = await fetch(`${backendUrl}/api/v1/portfolio/list`, {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${session.access_token}`,
+            },
+        });
+
+        if (!res.ok) {
+            console.error("Backend portfolio list failed:", res.status);
+            return NextResponse.json(
+                { error: "Failed to fetch portfolios." },
+                { status: res.status },
+            );
+        }
+
+        const data = await res.json();
+        return NextResponse.json(data);
     } catch (err) {
-        // Handle unexpected errors
         console.error("Server error:", err);
         return NextResponse.json(
             { error: "Unexpected server error" },
@@ -51,3 +45,46 @@ export async function GET(req: Request, {}) {
     }
 }
 
+// --- OLD IMPL (direct Supabase) ---
+// import { adminSupabase } from "@/utils/supabase/admin";
+//
+// /**
+//  * @param req Query parameter passed through url/path
+//  * (i.e. /api/portfolio/list?userId=7913f5f7-a9a1-4688-be20-01a5adc11a4a)
+//  * @returns HTTP status and/or list of portfolios
+//  */
+// export async function GET(req: Request, {}) {
+//     const { searchParams } = new URL(req.url);
+//     const userId = searchParams.get("userId");
+//
+//     if (!userId) {
+//         return NextResponse.json(
+//             { error: "userId and templateId are required." },
+//             { status: 400 },
+//         );
+//     }
+//
+//     try {
+//         const { data, error } = await adminSupabase
+//             .from("portfolios")
+//             .select("*")
+//             .eq("user_id", userId)
+//             .order("created_at", { ascending: false });
+//
+//         if (error) {
+//             console.error("Portfolio get error:", error);
+//             return NextResponse.json(
+//                 { error: "Failed to fetch all portfolios." },
+//                 { status: 500 },
+//             );
+//         }
+//
+//         return NextResponse.json({ portfolios: data });
+//     } catch (err) {
+//         console.error("Server error:", err);
+//         return NextResponse.json(
+//             { error: "Unexpected server error" },
+//             { status: 500 },
+//         );
+//     }
+// }
