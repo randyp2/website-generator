@@ -193,6 +193,18 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
     }
 
     @Override
+    public ResumeDTO getResume(UUID userId, UUID portfolioId) {
+        Portfolio portfolio = portfolioRepository.findById(portfolioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio not found"));
+        if (!portfolio.getUserId().equals(userId))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+
+        Resume resume = resumeRepository.findByPortfolioId(portfolioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resume not found"));
+        return resumeMapper.toDto(resume);
+    }
+
+    @Override
     public PortfolioLoadResponseDTO loadPortfolio(UUID userId, UUID portfolioId) {
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio not found"));
@@ -235,5 +247,51 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         response.setGlobalTheme(globalTheme);
         response.setAssistantMessage(assistantMessage);
         return response;
+    }
+
+    @Override
+    public VersionListResponseDTO listVersions(UUID userId, UUID portfolioId) {
+        Portfolio portfolio = portfolioRepository.findById(portfolioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio not found"));
+
+        if (!portfolio.getUserId().equals(userId))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+
+        List<VersionDTO> versions = generatedVersionRepository
+                .findByPortfolio_IdOrderByCreatedAtDesc(portfolioId)
+                .stream()
+                .map(v -> {
+                    VersionDTO dto = new VersionDTO();
+                    dto.setId(v.getId());
+                    dto.setCreatedAt(v.getCreatedAt());
+                    dto.setAssistantMessage(v.getAssistantMessage());
+                    dto.setPromptUsed(v.getPromptUsed());
+                    dto.setPreviewUrl(v.getPreviewUrl());
+                    dto.setActive(v.getId().equals(portfolio.getActiveVersionId()));
+                    return dto;
+                })
+                .toList();
+
+        VersionListResponseDTO response = new VersionListResponseDTO();
+        response.setVersions(versions);
+        return response;
+    }
+
+    @Override
+    public ActivateVersionResponseDTO activateVersion(UUID userId, UUID portfolioId, UUID versionId) {
+        Portfolio portfolio = portfolioRepository.findById(portfolioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio not found"));
+
+        if (!portfolio.getUserId().equals(userId))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+
+        generatedVersionRepository.findByIdAndPortfolio_Id(versionId, portfolioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Version not found"));
+
+        portfolio.setActiveVersionId(versionId);
+        portfolio.setUpdatedAt(OffsetDateTime.now());
+        portfolioRepository.save(portfolio);
+
+        return new ActivateVersionResponseDTO(portfolioId, versionId);
     }
 }

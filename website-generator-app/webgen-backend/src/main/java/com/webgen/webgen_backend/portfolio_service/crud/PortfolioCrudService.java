@@ -59,12 +59,21 @@ public interface PortfolioCrudService {
 
     /**
      * Upsert and save resume info
-     * 
+     *
      * @param userId     - UUID of the authenticated user (for ownership check)
      * @param portflioId - UUID of portfolio
      * @param req        - Parsed json and extracted raw, normalized text
      */
     ResumeDTO updateResume(UUID userId, UUID portfolioId, UpdateResumeRequestDTO req);
+
+    /**
+     * Fetch the resume for a portfolio
+     *
+     * @param userId      - UUID of the authenticated user (for ownership check)
+     * @param portfolioId - UUID of the portfolio
+     * @return ResumeDTO - The resume data
+     */
+    ResumeDTO getResume(UUID userId, UUID portfolioId);
 
     /**
      * Load a portfolio's sections and theme data for the refine page
@@ -74,4 +83,23 @@ public interface PortfolioCrudService {
      * @return PortfolioLoadResponseDTO - sections, globalTheme, assistantMessage, templateId
      */
     PortfolioLoadResponseDTO loadPortfolio(UUID userId, UUID portfolioId);
+
+    /**
+     * List all generated versions for a portfolio
+     *
+     * @param userId      - UUID of the authenticated user (for ownership check)
+     * @param portfolioId - UUID of the portfolio
+     * @return VersionListResponseDTO - list of versions with isActive flag
+     */
+    VersionListResponseDTO listVersions(UUID userId, UUID portfolioId);
+
+    /**
+     * Activate a specific version, updating the portfolio's active_version_id
+     *
+     * @param userId      - UUID of the authenticated user (for ownership check)
+     * @param portfolioId - UUID of the portfolio
+     * @param versionId   - UUID of the version to activate
+     * @return ActivateVersionResponseDTO - portfolioId and new activeVersionId
+     */
+    ActivateVersionResponseDTO activateVersion(UUID userId, UUID portfolioId, UUID versionId);
 }

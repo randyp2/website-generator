@@ -82,6 +82,15 @@ public class PortfolioCrudController {
         return ResponseEntity.ok(uploadPortfolioResponseDTO);
     }
 
+    @GetMapping("/{id}/resume")
+    public ResponseEntity<ResumeDTO> getResume(@PathVariable UUID id) {
+        UUID userId = UUID.fromString(
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
+        );
+        ResumeDTO resumeDTO = portfolioCrudService.getResume(userId, id);
+        return ResponseEntity.ok(resumeDTO);
+    }
+
     @PatchMapping("/{id}/resume")
     public ResponseEntity<ResumeDTO> updateResume(
             @PathVariable UUID id,
@@ -101,6 +110,26 @@ public class PortfolioCrudController {
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
         );
         PortfolioLoadResponseDTO response = portfolioCrudService.loadPortfolio(userId, id);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}/versions")
+    public ResponseEntity<VersionListResponseDTO> listVersions(@PathVariable UUID id) {
+        UUID userId = UUID.fromString(
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
+        );
+        VersionListResponseDTO response = portfolioCrudService.listVersions(userId, id);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/versions/{versionId}/activate")
+    public ResponseEntity<ActivateVersionResponseDTO> activateVersion(
+            @PathVariable UUID id,
+            @PathVariable UUID versionId) {
+        UUID userId = UUID.fromString(
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
+        );
+        ActivateVersionResponseDTO response = portfolioCrudService.activateVersion(userId, id, versionId);
         return ResponseEntity.ok(response);
     }
 }

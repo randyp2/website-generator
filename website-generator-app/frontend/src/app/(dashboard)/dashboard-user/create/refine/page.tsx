@@ -200,7 +200,18 @@ const AIRefinementPage: React.FC = () => {
                 );
 
                 if (!response.ok) {
-                    const errorData = await response.json();
+                    let errorData: unknown = null;
+                    try {
+                        errorData = await response.json();
+                    } catch {
+                        const errorText = await response.text();
+                        errorData = {
+                            error:
+                                errorText?.trim() ||
+                                `Generate request failed with status ${response.status}`,
+                            stage: "client_parse_error_response",
+                        };
+                    }
                     console.error("Generate API error:", errorData);
                     // Remove the temporary loading message
                     setMessages((prev) =>

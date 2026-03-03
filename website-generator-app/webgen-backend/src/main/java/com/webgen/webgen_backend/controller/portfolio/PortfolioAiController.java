@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
 import java.util.UUID;
@@ -47,14 +48,18 @@ public class PortfolioAiController {
             System.out.println(">>> [CONTROLLER] Response sections count: " + (response.getSections() != null ? response.getSections().size() : 0));
 
             return ResponseEntity.ok(response);
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (IllegalArgumentException e) {
             System.err.println(">>> [CONTROLLER] Generate error (bad request): " + e.getMessage());
             e.printStackTrace();
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            return ResponseEntity.badRequest().body(Map.of("error", msg));
         } catch (Exception e) {
             System.err.println(">>> [CONTROLLER] Generate error (internal): " + e.getMessage());
             e.printStackTrace();
-            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+            String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            return ResponseEntity.internalServerError().body(Map.of("error", msg));
         }
     }
 }
