@@ -1,6 +1,7 @@
 import { enforceRateLimit } from "@/lib/rate-limit/enable-rate-limit";
 import { generateRateLimit } from "@/lib/rate-limit/ratelimit";
 import { acquireLock, releaseLock } from "@/lib/rate-limit/redis-lock";
+import { getBackendUrlOrNull } from "@/lib/server-env";
 import { adminSupabase } from "@/utils/supabase/admin";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
@@ -105,7 +106,7 @@ export async function POST(
             );
 
         // Validate backend url config
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+        const backendUrl = getBackendUrlOrNull();
         if (!backendUrl) {
             return NextResponse.json(
                 { error: "BACKEND_URL not configured" },

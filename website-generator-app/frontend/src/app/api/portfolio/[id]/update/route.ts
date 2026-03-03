@@ -1,3 +1,4 @@
+import { getBackendUrl } from "@/lib/server-env";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -26,7 +27,7 @@ export const PATCH = async (
 
     const body = (await req.json()) as UpdatePortfolioBody | null;
 
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
+    const backendUrl = getBackendUrl();
 
     const res = await fetch(`${backendUrl}/api/v1/portfolio/${portfolioId}`, {
         method: "PATCH",

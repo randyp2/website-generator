@@ -1,3 +1,4 @@
+import { getBackendUrl } from "@/lib/server-env";
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 
@@ -21,13 +22,7 @@ export async function POST(req: Request) {
 
         const token = session.access_token;
 
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-        if (!backendUrl) {
-            return NextResponse.json(
-                { error: "Backend URL not configured" },
-                { status: 500 },
-            );
-        }
+        const backendUrl = getBackendUrl();
 
         const response = await fetch(
             `${backendUrl}/api/portfolio/style/chat`,

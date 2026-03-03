@@ -65,4 +65,13 @@ public interface PortfolioCrudService {
      * @param req        - Parsed json and extracted raw, normalized text
      */
     ResumeDTO updateResume(UUID userId, UUID portfolioId, UpdateResumeRequestDTO req);
+
+    /**
+     * Load a portfolio's sections and theme data for the refine page
+     *
+     * @param userId      - UUID of the authenticated user (for ownership check)
+     * @param portfolioId - UUID of the portfolio to load
+     * @return PortfolioLoadResponseDTO - sections, globalTheme, assistantMessage, templateId
+     */
+    PortfolioLoadResponseDTO loadPortfolio(UUID userId, UUID portfolioId);
 }

@@ -1,3 +1,4 @@
+import { getBackendUrl } from "@/lib/server-env";
 import { ParsedResumeData, ResumeDTO } from "@/types/resume";
 import { adminSupabase } from "@/utils/supabase/admin";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
@@ -29,8 +30,7 @@ export const PATCH = async (
 
     const body = (await req.json()) as UpdateResumeBody | null;
 
-    const backendURL: string =
-        process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
+    const backendURL = getBackendUrl();
 
     const res: Response = await fetch(
         `${backendURL}/api/v1/portfolio/${portfolioId}/resume`,

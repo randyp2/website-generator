@@ -1,3 +1,4 @@
+import { getBackendUrl } from "@/lib/server-env";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -19,8 +20,7 @@ export async function DELETE(
             { status: 401 },
         );
 
-    const backendUrl: string =
-        process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
+    const backendUrl = getBackendUrl();
 
     const res: Response = await fetch(
         `${backendUrl}/api/v1/portfolio/${portfolioId}`,

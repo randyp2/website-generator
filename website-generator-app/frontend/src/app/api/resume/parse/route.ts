@@ -1,5 +1,6 @@
 import { enforceRateLimit } from "@/lib/rate-limit/enable-rate-limit";
 import { expensiveRateLimit } from "@/lib/rate-limit/ratelimit";
+import { getBackendUrl } from "@/lib/server-env";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -59,14 +60,13 @@ export async function POST(req: Request) {
 
         const token = session.access_token;
 
-        const BACKEND_URL =
-            process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
+        const backendUrl = getBackendUrl();
 
         // Call backend endpoint
         const backendFormData = new FormData();
         backendFormData.append("file", resumeFile);
 
-        const response = await fetch(`${BACKEND_URL}/api/resume/parse`, {
+        const response = await fetch(`${backendUrl}/api/resume/parse`, {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${token}`,

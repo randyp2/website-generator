@@ -94,5 +94,14 @@ public class PortfolioCrudController {
 
         return ResponseEntity.ok(resumeDTO);
     }
+
+    @GetMapping("/{id}/load")
+    public ResponseEntity<PortfolioLoadResponseDTO> loadPortfolio(@PathVariable UUID id) {
+        UUID userId = UUID.fromString(
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
+        );
+        PortfolioLoadResponseDTO response = portfolioCrudService.loadPortfolio(userId, id);
+        return ResponseEntity.ok(response);
+    }
 }
 

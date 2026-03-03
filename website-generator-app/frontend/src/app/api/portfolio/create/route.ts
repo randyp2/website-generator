@@ -1,5 +1,6 @@
 import { enforceRateLimit } from "@/lib/rate-limit/enable-rate-limit";
 import { uploadRateLimit } from "@/lib/rate-limit/ratelimit";
+import { getBackendUrl } from "@/lib/server-env";
 import { AssetMeta } from "@/types/portfolio";
 import { adminSupabase } from "@/utils/supabase/admin";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
@@ -203,8 +204,7 @@ export const POST = async (req: Request) => {
         // ==============================================================
         // CALL SPRING BOOT — save DB records
         // ==============================================================
-        const backendUrl =
-            process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
+        const backendUrl = getBackendUrl();
 
         const uploadPayload = {
             resumeRawFileUrl: publicResumeUrl,

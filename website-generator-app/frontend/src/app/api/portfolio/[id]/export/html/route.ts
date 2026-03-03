@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { enforceRateLimit } from "@/lib/rate-limit/enable-rate-limit";
 import { cheapRateLimit } from "@/lib/rate-limit/ratelimit";
+import { getBackendUrlOrNull } from "@/lib/server-env";
 
 export async function POST(
     req: Request,
@@ -46,7 +47,7 @@ export async function POST(
         return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
 
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+    const backendUrl = getBackendUrlOrNull();
     if (!backendUrl) {
         return NextResponse.json(
             { error: "BACKEND_URL not configured" },

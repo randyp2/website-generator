@@ -1,3 +1,4 @@
+import { getBackendUrlOrNull } from "@/lib/server-env";
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
         const token = session.access_token;
 
         // Get backend URL
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+        const backendUrl = getBackendUrlOrNull();
         if (!backendUrl) {
             console.error("BACKEND_URL not configured, using fallback options");
             return NextResponse.json({
