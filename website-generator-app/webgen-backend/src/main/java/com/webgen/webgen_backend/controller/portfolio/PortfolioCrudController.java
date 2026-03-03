@@ -1,10 +1,7 @@
 package com.webgen.webgen_backend.controller.portfolio;
 
-import com.webgen.webgen_backend.dto.portfolio.crud.CreatePortfolioRequestDTO;
-import com.webgen.webgen_backend.dto.portfolio.crud.PortfolioDTO;
-import com.webgen.webgen_backend.dto.portfolio.crud.PortfolioDetailDTO;
-import com.webgen.webgen_backend.dto.portfolio.crud.PortfolioListDTO;
-import com.webgen.webgen_backend.dto.portfolio.crud.UpdatePortfolioRequestDTO;
+import com.webgen.webgen_backend.dto.portfolio.ResumeDTO;
+import com.webgen.webgen_backend.dto.portfolio.crud.*;
 import com.webgen.webgen_backend.portfolio_service.crud.PortfolioCrudService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -48,7 +45,9 @@ public class PortfolioCrudController {
         UUID userId = UUID.fromString(
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
         );
-        return ResponseEntity.ok(portfolioCrudService.getPortfolio(userId, id));
+
+        PortfolioDetailDTO portfolioDetailDTO = portfolioCrudService.getPortfolio(userId, id);
+        return ResponseEntity.ok(portfolioDetailDTO);
     }
 
     @PatchMapping("/{id}")
@@ -69,6 +68,31 @@ public class PortfolioCrudController {
         );
         portfolioCrudService.deletePortfolio(userId, id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/uploads")
+    public ResponseEntity<UploadPortfolioResponseDTO> saveUploads(
+            @PathVariable UUID id,
+            @RequestBody UploadPortfolioRequestDTO request) {
+        UUID userId = UUID.fromString(
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
+        );
+
+        UploadPortfolioResponseDTO uploadPortfolioResponseDTO = portfolioCrudService.saveUploads(userId, id, request);
+        return ResponseEntity.ok(uploadPortfolioResponseDTO);
+    }
+
+    @PatchMapping("/{id}/resume")
+    public ResponseEntity<ResumeDTO> updateResume(
+            @PathVariable UUID id,
+            @RequestBody UpdateResumeRequestDTO request
+    ) {
+        UUID userId = UUID.fromString(
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
+        );
+        ResumeDTO resumeDTO = portfolioCrudService.updateResume(userId, id, request);
+
+        return ResponseEntity.ok(resumeDTO);
     }
 }
 

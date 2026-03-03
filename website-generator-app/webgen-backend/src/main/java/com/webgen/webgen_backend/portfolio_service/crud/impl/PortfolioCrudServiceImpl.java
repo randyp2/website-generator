@@ -2,12 +2,10 @@ package com.webgen.webgen_backend.portfolio_service.crud.impl;
 
 import com.webgen.webgen_backend.dto.portfolio.AssetDTO;
 import com.webgen.webgen_backend.dto.portfolio.ResumeDTO;
-import com.webgen.webgen_backend.dto.portfolio.crud.CreatePortfolioRequestDTO;
-import com.webgen.webgen_backend.dto.portfolio.crud.PortfolioDTO;
-import com.webgen.webgen_backend.dto.portfolio.crud.PortfolioDetailDTO;
-import com.webgen.webgen_backend.dto.portfolio.crud.PortfolioListDTO;
-import com.webgen.webgen_backend.dto.portfolio.crud.UpdatePortfolioRequestDTO;
+import com.webgen.webgen_backend.dto.portfolio.crud.*;
+import com.webgen.webgen_backend.entity.Asset;
 import com.webgen.webgen_backend.entity.Portfolio;
+import com.webgen.webgen_backend.entity.Resume;
 import com.webgen.webgen_backend.mapper.AssetMapper;
 import com.webgen.webgen_backend.mapper.PortfolioMapper;
 import com.webgen.webgen_backend.mapper.ResumeMapper;
@@ -21,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -40,7 +39,7 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
     public PortfolioListDTO listPortfolios(UUID userId) {
         List<PortfolioDTO> portfolios = portfolioRepository.findByUserId(userId)
                 .stream()
-                .map(portfolioMapper :: toDto)
+                .map(portfolioMapper::toDto)
                 .toList();
 
         PortfolioListDTO response = new PortfolioListDTO();
@@ -94,11 +93,14 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         if (!portfolio.getUserId().equals(userId))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
 
-
-        if (request.getTitle() != null) portfolio.setTitle(request.getTitle());
-        if (request.getLastStep() != null) portfolio.setLastStep(request.getLastStep());
-        if (request.getTemplateId() != null) portfolio.setTemplateId(request.getTemplateId());
-        if (request.getStyleChatHistory() != null) portfolio.setStyleChatHistory(request.getStyleChatHistory());
+        if (request.getTitle() != null)
+            portfolio.setTitle(request.getTitle());
+        if (request.getLastStep() != null)
+            portfolio.setLastStep(request.getLastStep());
+        if (request.getTemplateId() != null)
+            portfolio.setTemplateId(request.getTemplateId());
+        if (request.getStyleChatHistory() != null)
+            portfolio.setStyleChatHistory(request.getStyleChatHistory());
 
         Portfolio saved = portfolioRepository.save(portfolio);
         return portfolioMapper.toDto(saved);
@@ -113,5 +115,73 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
 
         portfolioRepository.deleteById(portfolioId);
+    }
+
+    @Override
+    public UploadPortfolioResponseDTO saveUploads(UUID userId, UUID portfolioId, UploadPortfolioRequestDTO req) {
+        // Ownership check
+        Portfolio portfolio = portfolioRepository.findById(portfolioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio not found"));
+        if (!portfolio.getUserId().equals(userId))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+
+        // Upsert resume (safe for re-uploads)
+        Resume resume = resumeRepository.findByPortfolioId(portfolioId).orElse(new Resume());
+        if (resume.getId() == null) {
+            resume.setId(UUID.randomUUID());
+            resume.setPortfolio(portfolio);
+            resume.setCreatedAt(OffsetDateTime.now());
+        }
+        resume.setRawFileUrl(req.getResumeRawFileUrl());
+        resumeRepository.save(resume);
+
+        // Insert assets
+        OffsetDateTime now = OffsetDateTime.now();
+        List<Asset> savedAssets = new ArrayList<>();
+        if (req.getAssets() != null) {
+            for (AssetDTO assetDto : req.getAssets()) {
+                Asset asset = new Asset();
+                asset.setId(UUID.randomUUID());
+                asset.setPortfolio(portfolio);
+                asset.setFileUrl(assetDto.getUrl());
+                asset.setFileType(assetDto.getType());
+                asset.setTitle(assetDto.getTitle());
+                asset.setDescription(assetDto.getDescription());
+                asset.setLabel(assetDto.getLabel());
+                asset.setSectionHint(assetDto.getSectionHint());
+                asset.setAlt(assetDto.getAlt());
+                asset.setCreatedAt(now);
+                savedAssets.add(assetRepository.save(asset));
+            }
+        }
+
+        // Update optional portfolio fields
+        if (req.getTemplateId() != null) portfolio.setTemplateId(req.getTemplateId());
+        if (req.getLastStep() != null) portfolio.setLastStep(req.getLastStep());
+        Portfolio saved = portfolioRepository.save(portfolio);
+
+        // Build response
+        UploadPortfolioResponseDTO response = new UploadPortfolioResponseDTO();
+        response.setPortfolio(portfolioMapper.toDto(saved));
+        response.setResume(resumeMapper.toDto(resume));
+        response.setAssetsUploaded(savedAssets.size());
+        return response;
+    }
+
+    @Override
+    public ResumeDTO updateResume(UUID userId, UUID portfolioId, UpdateResumeRequestDTO req) {
+
+        // Ownership check
+        Portfolio portfolio = portfolioRepository.findById(portfolioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio not found"));
+        if (!portfolio.getUserId().equals(userId))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+
+        Resume resume = resumeRepository.findByPortfolioId(portfolioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resume not found"));
+        resume.setParsedJson(req.getParsedJson());
+        resume.setExtractedText(req.getExtractedText());
+
+        return resumeMapper.toDto(resumeRepository.save(resume));
     }
 }
