@@ -62,7 +62,7 @@ export async function POST(
     if (rateLimitResponse) return rateLimitResponse;
 
     try {
-        const res = await fetch(`${backendUrl}/api/portfolio/export/html`, {
+        const res = await fetch(`${backendUrl}/api/v1/portfolio/${portfolioId}/export/html`, {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${session.access_token}`,

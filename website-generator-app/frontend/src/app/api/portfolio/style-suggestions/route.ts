@@ -48,32 +48,10 @@ export async function POST(req: Request) {
             });
         }
 
-        // TODO: Implement Spring Boot endpoint
-        // Expected endpoint: POST ${backendUrl}/api/portfolio/style-suggestions
-        //
-        // Request body:
-        // {
-        //   templateId: string,
-        //   resume: ParsedResumeData | null  // May be null if user hasn't uploaded resume yet
-        // }
-        //
-        // Expected response:
-        // {
-        //   success: boolean,
-        //   suggestions: {
-        //     colorScheme: string[],
-        //     layoutDensity: string[],
-        //     tone: string[],
-        //     visualStyle: string[],
-        //     sectionEmphasis: string[]
-        //   },
-        //   fallbackUsed: boolean
-        // }
-
         try {
             // Call Spring Boot backend
             const response = await fetch(
-                `${backendUrl}/api/portfolio/style-suggestions`,
+                `${backendUrl}/api/v1/portfolio/style/suggestions`,
                 {
                     method: "POST",
                     headers: {

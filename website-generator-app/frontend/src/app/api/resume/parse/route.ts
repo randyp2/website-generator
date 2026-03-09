@@ -66,7 +66,7 @@ export async function POST(req: Request) {
         const backendFormData = new FormData();
         backendFormData.append("file", resumeFile);
 
-        const response = await fetch(`${backendUrl}/api/resume/parse`, {
+        const response = await fetch(`${backendUrl}/api/v1/resume/parse`, {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${token}`,

@@ -25,7 +25,7 @@ export async function POST(req: Request) {
         const backendUrl = getBackendUrl();
 
         const response = await fetch(
-            `${backendUrl}/api/portfolio/style/chat`,
+            `${backendUrl}/api/v1/portfolio/style/chat`,
             {
                 method: "POST",
                 headers: {

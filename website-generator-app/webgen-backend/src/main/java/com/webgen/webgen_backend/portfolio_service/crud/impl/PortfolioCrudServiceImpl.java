@@ -278,6 +278,15 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
     }
 
     @Override
+    public void verifyOwnership(UUID userId, UUID portfolioId) {
+        Portfolio portfolio = portfolioRepository.findById(portfolioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio not found"));
+
+        if (!portfolio.getUserId().equals(userId))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+    }
+
+    @Override
     public ActivateVersionResponseDTO activateVersion(UUID userId, UUID portfolioId, UUID versionId) {
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio not found"));

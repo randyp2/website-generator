@@ -94,7 +94,7 @@ export async function POST(
             );
         }
 
-        const res = await fetch(`${backendUrl}/api/portfolio/refine/build`, {
+        const res = await fetch(`${backendUrl}/api/v1/portfolio/refine/build`, {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${session.access_token}`,

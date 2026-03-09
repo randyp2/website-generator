@@ -102,4 +102,13 @@ public interface PortfolioCrudService {
      * @return ActivateVersionResponseDTO - portfolioId and new activeVersionId
      */
     ActivateVersionResponseDTO activateVersion(UUID userId, UUID portfolioId, UUID versionId);
+
+    /**
+     * Verify that the authenticated user owns the given portfolio.
+     * Throws ResponseStatusException(FORBIDDEN) if not, or NOT_FOUND if portfolio doesn't exist.
+     *
+     * @param userId      - UUID of the authenticated user
+     * @param portfolioId - UUID of the portfolio to check
+     */
+    void verifyOwnership(UUID userId, UUID portfolioId);
 }
