@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/api/resume")
+@RequestMapping("/api/v1/resume")
 @RequiredArgsConstructor
 public class ResumeController {
 

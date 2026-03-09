@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
-import { adminSupabase } from "@/utils/supabase/admin";
+import { getBackendUrl } from "@/lib/server-env";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
+import { NextResponse } from "next/server";
 
 export async function POST(
     _req: Request,
@@ -16,73 +16,38 @@ export async function POST(
             );
         }
 
-        // Validate user
         const supabase = await createServerSupabaseClient();
         const {
-            data: { user },
-            error: userError,
-        } = await supabase.auth.getUser();
+            data: { session },
+        } = await supabase.auth.getSession();
 
-        if (userError || !user) {
+        if (!session) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const backendUrl = getBackendUrl();
+        const res = await fetch(
+            `${backendUrl}/api/v1/portfolio/${portfolioId}/versions/${versionId}/activate`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${session.access_token}`,
+                },
+            },
+        );
+
+        if (!res.ok) {
+            const error = await res.json().catch(() => ({}));
             return NextResponse.json(
-                { error: "Unauthorized" },
-                { status: 401 },
+                { error: error?.message ?? "Failed to activate version" },
+                { status: res.status },
             );
         }
 
-        // Get portfolio that matches the current portfolioId
-        const { data: portfolio, error: portfolioError } = await adminSupabase
-            .from("portfolios")
-            .select("id, user_id")
-            .eq("id", portfolioId)
-            .single();
-
-        if (portfolioError || !portfolio) {
-            return NextResponse.json(
-                { error: "Portfolio not found" },
-                { status: 404 },
-            );
-        }
-
-        if (portfolio.user_id !== user.id) {
-            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-        }
-
-        // Get the generate_version row that equals this
-        const { data: version, error: versionError } = await adminSupabase
-            .from("generated_versions")
-            .select("id, portfolio_id")
-            .eq("id", versionId)
-            .eq("portfolio_id", portfolioId)
-            .single();
-
-        // Ensure this version exists
-        if (versionError || !version) {
-            return NextResponse.json(
-                { error: "Version not found" },
-                { status: 404 },
-            );
-        }
-
-        // Update the active version id to versionId
-        const { error: updateError } = await adminSupabase
-            .from("portfolios")
-            .update({
-                active_version_id: versionId,
-                updated_at: new Date().toISOString(),
-            })
-            .eq("id", portfolioId);
-
-        if (updateError) {
-            return NextResponse.json(
-                { error: "Failed to activate version" },
-                { status: 500 },
-            );
-        }
-
+        const data = await res.json();
         return NextResponse.json({
-            portfolioId,
-            activeVersionId: versionId,
+            portfolioId: data.portfolioId,
+            activeVersionId: data.activeVersionId,
         });
     } catch (err) {
         console.error("Activate version error:", err);

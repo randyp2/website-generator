@@ -36,9 +36,12 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(customizer -> customizer.disable()) // Disable CSRF for stateless
                 .authorizeHttpRequests(request -> request
-
-                        .requestMatchers("/api/generate/ping", "/api/generate")
-                        .permitAll() // Endpoints that don't need auth
+                        .requestMatchers(HttpMethod.GET, "/api/generate/ping").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/generate").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/debug/all").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/debug/create").permitAll()
+//                        .requestMatchers("/api/generate/ping", "/api/generate", "/api/debug/create", "/api/debug/all")
+//                        .permitAll() // Endpoints that don't need auth
                         .anyRequest().authenticated())
                 .httpBasic(http2 -> http2.disable()) // Enable REST access
                 .sessionManagement(

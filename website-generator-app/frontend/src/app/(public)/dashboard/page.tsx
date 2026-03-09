@@ -7,6 +7,7 @@ import FormContainer from "@/app/(public)/dashboard/components/FormContainer";
 import { formReducer } from "@/webgenForm/useFormReducer";
 import PreviewContainer from "@/app/(public)/dashboard/components/PreviewContainer";
 import { initialState } from "@/webgenForm/formType";
+import { getPublicBackendUrlOrNull } from "@/lib/public-env";
 
 
 
@@ -28,9 +29,14 @@ export default function DashboardPage() {
     setIsLoading(true);
 
     try {
+      const backendUrl = getPublicBackendUrlOrNull();
+      if (!backendUrl) {
+        throw new Error("NEXT_PUBLIC_BACKEND_URL is not configured");
+      }
+
       const response: Response = await fetch(
         // "http://localhost:8080/api/generate", // Change to when in dev
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate`,
+        `${backendUrl}/api/generate`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -183,4 +189,3 @@ export default function DashboardPage() {
     </div>
   );
 };
-

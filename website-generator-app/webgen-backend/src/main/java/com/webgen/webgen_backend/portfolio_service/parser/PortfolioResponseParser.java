@@ -75,7 +75,7 @@ public class PortfolioResponseParser {
 
             if (!sectionsNode.isArray()) {
                 System.out.println(">>> [PARSER] ERROR: sections is NOT an array!");
-                return new PortfolioGenerateResponseDTO();
+                throw new IllegalArgumentException("AI response sections field is not an array");
             }
 
             System.out.println(">>> [PARSER] Found " + sectionsNode.size() + " sections");

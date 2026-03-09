@@ -1,24 +1,37 @@
 package com.webgen.webgen_backend.portfolio_service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.webgen.webgen_backend.dto.portfolio.PortfolioGenerateRequestDTO;
 import com.webgen.webgen_backend.dto.portfolio.PortfolioGenerateResponseDTO;
+import com.webgen.webgen_backend.dto.portfolio.SectionDTO;
 import com.webgen.webgen_backend.dto.portfolio.SectionRefineRequestDTO;
 import com.webgen.webgen_backend.dto.portfolio.SectionRefineResponseDTO;
 import com.webgen.webgen_backend.dto.portfolio.builder.ValidationResult;
 import com.webgen.webgen_backend.dto.resume.ParsedResumeDTO;
+import com.webgen.webgen_backend.entity.GeneratedVersion;
+import com.webgen.webgen_backend.entity.Portfolio;
+import com.webgen.webgen_backend.entity.PortfolioSection;
 import com.webgen.webgen_backend.portfolio_service.PortfolioAiService;
 import com.webgen.webgen_backend.portfolio_service.parser.PortfolioResponseParser;
 import com.webgen.webgen_backend.portfolio_service.prompt.PortfolioPromptBuilder;
 import com.webgen.webgen_backend.portfolio_service.prompt.PromptRefinerService;
 import com.webgen.webgen_backend.portfolio_service.validator.JsxValidatorService;
+import com.webgen.webgen_backend.repository.GeneratedVersionRepository;
+import com.webgen.webgen_backend.repository.PortfolioRepository;
+import com.webgen.webgen_backend.repository.PortfolioSectionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.UUID;
 
 
 @Service
@@ -33,14 +46,25 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
     private final PortfolioResponseParser portfolioResponseParser;
     private final JsxValidatorService jsxValidatorService;
 
+    private final PortfolioRepository portfolioRepository;
+    private final GeneratedVersionRepository generatedVersionRepository;
+    private final PortfolioSectionRepository sectionRepository;
+    private final ObjectMapper objectMapper;
+
     @Value("${jsx.validator.max-retries:3}")
     private int maxRetries;
 
 
 
     @Override
-    public PortfolioGenerateResponseDTO generatePortfolio(PortfolioGenerateRequestDTO req) {
+    public PortfolioGenerateResponseDTO generatePortfolio(UUID portfolioId, UUID userId, PortfolioGenerateRequestDTO req) {
         System.out.println(">>> [SERVICE] generatePortfolio() started");
+
+        // --- Ownership check
+        Portfolio portfolio = portfolioRepository.findById(portfolioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio not found"));
+        if (!portfolio.getUserId().equals(userId))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
 
         // --- Validate and normalize input
         if (req == null || req.getResume() == null) // Require resume for now
@@ -124,8 +148,62 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
             );
         }
 
-        System.out.println(">>> [SERVICE] Validation passed, returning response");
+        System.out.println(">>> [SERVICE] Validation passed, persisting to database...");
+        persistGenerationResults(portfolioId, portfolio, req, parsedResponse);
+
         return parsedResponse;
+    }
+
+    private void persistGenerationResults(
+            UUID portfolioId,
+            Portfolio portfolio,
+            PortfolioGenerateRequestDTO req,
+            PortfolioGenerateResponseDTO response
+    ) {
+        // --- Insert GeneratedVersion
+        ObjectNode snapshot = objectMapper.createObjectNode();
+        snapshot.set("sections", objectMapper.valueToTree(response.getSections()));
+        snapshot.set("globalTheme", objectMapper.valueToTree(response.getGlobalTheme()));
+
+        GeneratedVersion version = new GeneratedVersion();
+        version.setId(UUID.randomUUID());
+        version.setPortfolio(portfolio);
+        version.setHtml(""); // NOT NULL field, not used (React-based rendering)
+        version.setPromptUsed(req.getUserPrompt());
+        version.setSectionsSnapshot(snapshot);
+        version.setGlobalTheme(objectMapper.valueToTree(response.getGlobalTheme()));
+        version.setAssistantMessage(objectMapper.valueToTree(response.getAssistantMessage()));
+        version.setCreatedAt(OffsetDateTime.now());
+        generatedVersionRepository.save(version);
+        System.out.println(">>> [SERVICE] GeneratedVersion saved: " + version.getId());
+
+        // --- Update portfolio.activeVersionId
+        portfolio.setActiveVersionId(version.getId());
+        portfolioRepository.save(portfolio);
+        System.out.println(">>> [SERVICE] Portfolio active version updated");
+
+        // --- Upsert portfolio_sections
+        OffsetDateTime now = OffsetDateTime.now();
+        for (SectionDTO sectionDto : response.getSections()) {
+            PortfolioSection section = sectionRepository
+                    .findByPortfolioIdAndSectionKey(portfolioId, sectionDto.getSectionKey())
+                    .orElse(new PortfolioSection());
+
+            if (section.getId() == null) { // new section
+                section.setId(UUID.randomUUID());
+                section.setPortfolio(portfolio);
+                section.setSectionKey(sectionDto.getSectionKey());
+                section.setCreatedAt(now);
+                section.setSource("ai");
+            }
+            section.setTitle(sectionDto.getTitle());
+            section.setContentJson(sectionDto.getContentJson());
+            section.setReactSource(sectionDto.getReactSource());
+            section.setOrderIndex(sectionDto.getOrderIndex() != null ? sectionDto.getOrderIndex() : 0);
+            section.setUpdatedAt(now);
+            sectionRepository.save(section);
+        }
+        System.out.println(">>> [SERVICE] Portfolio sections upserted: " + response.getSections().size());
     }
 
     @Override

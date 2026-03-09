@@ -41,3 +41,17 @@ export interface ParsedResumeData {
   confidenceScore?: number;
   parsingMethod?: 'regex' | 'llm' | 'regex_low_confidence';
 }
+
+export interface UpdateResumeBody {
+  parsedJson: ParsedResumeData;
+  extractedText?: string | null;
+}
+
+export interface ResumeDTO {
+  id: string;
+  portfolioId: string;
+  rawFileUrl: string | null;
+  extractedText: string | null;
+  parsedJson: ParsedResumeData | null;
+  createdAt: string;
+}

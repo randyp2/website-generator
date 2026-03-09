@@ -1,4 +1,4 @@
-import { adminSupabase } from "@/utils/supabase/admin";
+import { getBackendUrl } from "@/lib/server-env";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -18,59 +18,54 @@ export const GET = async (
 
         const supabase = await createServerSupabaseClient();
         const {
-            data: { user },
-            error: userError,
-        } = await supabase.auth.getUser();
+            data: { session },
+        } = await supabase.auth.getSession();
 
-        if (userError || !user) {
+        if (!session) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const backendUrl = getBackendUrl();
+        const res = await fetch(
+            `${backendUrl}/api/v1/portfolio/${portfolioId}/versions`,
+            {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${session.access_token}`,
+                },
+            },
+        );
+
+        if (!res.ok) {
+            const error = await res.json().catch(() => ({}));
             return NextResponse.json(
-                { error: "Unauthorized" },
-                { status: 401 },
+                { error: error?.message ?? "Failed to fetch versions" },
+                { status: res.status },
             );
         }
 
-        const { data: portfolio, error: portfolioError } = await adminSupabase
-            .from("portfolios")
-            .select("id, user_id, active_version_id")
-            .eq("id", portfolioId)
-            .single();
+        const data = await res.json();
 
-        if (portfolioError || !portfolio) {
-            return NextResponse.json(
-                { error: "Portfolio not found" },
-                { status: 404 },
-            );
-        }
-
-        if (portfolio.user_id !== user.id) {
-            return NextResponse.json(
-                { error: "Forbidden" },
-                { status: 403 },
-            );
-        }
-
-        const { data: versions, error: versionsError } = await adminSupabase
-            .from("generated_versions")
-            .select(
-                "id, created_at, assistant_message, prompt_used, preview_url",
-            )
-            .eq("portfolio_id", portfolioId)
-            .order("created_at", { ascending: false });
-
-        if (versionsError) {
-            return NextResponse.json(
-                { error: "Failed to fetch versions" },
-                { status: 500 },
-            );
-        }
-
+        // Translate camelCase from Spring Boot → snake_case expected by the frontend
         return NextResponse.json({
-            versions: (versions ?? []).map((version) => ({
-                ...version,
-                is_active: version.id === portfolio.active_version_id,
+            versions: (data.versions ?? []).map((v: {
+                id: string;
+                createdAt: string;
+                assistantMessage: unknown;
+                promptUsed: string | null;
+                previewUrl: string | null;
+                active: boolean;
+            }) => ({
+                id: v.id,
+                created_at: v.createdAt,
+                assistant_message: v.assistantMessage,
+                prompt_used: v.promptUsed,
+                preview_url: v.previewUrl,
+                is_active: v.active,
             })),
         });
     } catch (error) {
+        console.error("Versions fetch error:", error);
         return NextResponse.json(
             { error: "Unexpected server error" },
             { status: 500 },

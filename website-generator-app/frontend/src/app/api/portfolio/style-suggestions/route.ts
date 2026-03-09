@@ -1,3 +1,4 @@
+import { getBackendUrlOrNull } from "@/lib/server-env";
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
         const token = session.access_token;
 
         // Get backend URL
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+        const backendUrl = getBackendUrlOrNull();
         if (!backendUrl) {
             console.error("BACKEND_URL not configured, using fallback options");
             return NextResponse.json({
@@ -47,32 +48,10 @@ export async function POST(req: Request) {
             });
         }
 
-        // TODO: Implement Spring Boot endpoint
-        // Expected endpoint: POST ${backendUrl}/api/portfolio/style-suggestions
-        //
-        // Request body:
-        // {
-        //   templateId: string,
-        //   resume: ParsedResumeData | null  // May be null if user hasn't uploaded resume yet
-        // }
-        //
-        // Expected response:
-        // {
-        //   success: boolean,
-        //   suggestions: {
-        //     colorScheme: string[],
-        //     layoutDensity: string[],
-        //     tone: string[],
-        //     visualStyle: string[],
-        //     sectionEmphasis: string[]
-        //   },
-        //   fallbackUsed: boolean
-        // }
-
         try {
             // Call Spring Boot backend
             const response = await fetch(
-                `${backendUrl}/api/portfolio/style-suggestions`,
+                `${backendUrl}/api/v1/portfolio/style/suggestions`,
                 {
                     method: "POST",
                     headers: {

@@ -76,30 +76,43 @@ export function TypographyPickerPanel({
       key={font.name}
       type="button"
       onClick={onClick}
-      className={`relative flex flex-col items-start gap-1.5 rounded-xl border p-3 text-left transition-all ${
+      className={`group relative flex min-h-[84px] flex-col justify-between rounded-xl border px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
         selected
-          ? "border-blue-500 bg-blue-500/10 shadow-[0_0_0_1px_rgba(59,130,246,0.3)]"
-          : "border-white/15 bg-white/5 hover:border-white/30"
+          ? "border-white/45 bg-white/[0.07]"
+          : "border-white/15 bg-transparent hover:border-white/30 hover:bg-white/[0.03]"
       }`}
+      aria-pressed={selected}
     >
       {recommended && (
-        <span className="absolute -top-2 right-2 flex items-center gap-1 rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-medium text-amber-300">
+        <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/[0.06] px-2 py-0.5 text-[10px] font-medium tracking-wide text-white/75">
           <Sparkles className="h-3 w-3" />
-          Recommended
+          AI Recommended
         </span>
       )}
       {selected && (
-        <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500">
-          <Check className="h-3 w-3 text-white" />
+        <span className="absolute bottom-3 right-3 flex h-5 w-5 items-center justify-center rounded-full border border-white/35 bg-white/10">
+          <Check className="h-3 w-3 text-white/90" />
         </span>
       )}
-      <span
-        className="text-lg text-white/90"
+      <div className="pr-24">
+        <span
+          className={`block text-lg ${
+            selected ? "text-white" : "text-white/85"
+          }`}
+          style={{ fontFamily: `'${font.name}', sans-serif` }}
+        >
+          {font.name}
+        </span>
+        <span className="block pt-1 text-xs uppercase tracking-[0.16em] text-white/45">
+          {font.category}
+        </span>
+      </div>
+      <p
+        className="mt-3 line-clamp-1 text-[13px] text-white/55 group-hover:text-white/70"
         style={{ fontFamily: `'${font.name}', sans-serif` }}
       >
-        {font.name}
-      </span>
-      <span className="text-[11px] text-white/40">{font.category}</span>
+        Sphinx of black quartz, judge my vow.
+      </p>
     </button>
   );
 
@@ -109,14 +122,18 @@ export function TypographyPickerPanel({
     setFont: (f: string) => void,
     recommendedFont?: string
   ) => (
-    <div className="space-y-3">
-      <h3 className="text-sm font-semibold text-white/85">{label}</h3>
+    <section className="space-y-4">
+      <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-white/75">
+        {label}
+      </h3>
       {CATEGORIES.map((category) => {
         const fonts = APPROVED_FONTS.filter((f) => f.category === category);
         if (fonts.length === 0) return null;
         return (
-          <div key={category}>
-            <p className="mb-2 text-xs font-medium text-white/50">{category}</p>
+          <div key={category} className="space-y-2">
+            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-white/45">
+              {category}
+            </p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {fonts.map((font) =>
                 renderFontCard(
@@ -130,28 +147,25 @@ export function TypographyPickerPanel({
           </div>
         );
       })}
-    </div>
+    </section>
   );
 
   return (
-    <div className="relative mx-auto w-full max-w-5xl overflow-hidden rounded-3xl border border-white/10 bg-black p-6 md:p-8">
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 md:h-44">
-        <svg
-          viewBox="0 0 1200 260"
-          preserveAspectRatio="none"
-          className="h-full w-full"
-          aria-hidden="true"
-        >
-          <path
-            d="M0,128 C130,60 275,218 430,142 C585,72 730,228 900,140 C1045,72 1125,190 1200,126 L1200,260 L0,260 Z"
-            fill="#6B7280"
-            opacity={0.82}
-          />
-        </svg>
-      </div>
+    <div className="mx-auto w-full max-w-5xl rounded-3xl border border-white/15 bg-black/70 p-6 md:p-8">
+      <div className="space-y-8">
+        <div className="space-y-1 border-b border-white/10 pb-4">
+          <p className="text-xs uppercase tracking-[0.18em] text-white/45">
+            Typography Picker
+          </p>
+          <h2 className="text-xl font-semibold text-white/90 md:text-2xl">
+            Choose Your Font Pairing
+          </h2>
+          <p className="text-sm text-white/60">
+            Select heading and body fonts with live specimens and AI recommendations.
+          </p>
+        </div>
 
-      <div className="relative z-10 space-y-8">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-10">
+        <div className="grid grid-cols-1 gap-8 xl:grid-cols-2 xl:gap-10">
           {renderSection(
             "Heading Font",
             headingFont,
@@ -166,40 +180,47 @@ export function TypographyPickerPanel({
           )}
         </div>
 
-        {/* Live Preview */}
-        <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-5">
-          <p className="text-xs font-medium text-white/50">Live Preview</p>
+        <section className="space-y-4 rounded-2xl border border-white/15 bg-white/[0.02] p-5 md:p-6">
+          <p className="text-xs uppercase tracking-[0.16em] text-white/45">Live Specimen</p>
           <h2
-            className="text-2xl font-bold text-white/90"
+            className="text-3xl font-bold tracking-tight text-white/90 md:text-4xl"
             style={{ fontFamily: `'${headingFont}', sans-serif` }}
           >
-            The quick brown fox jumps over the lazy dog
+            Build Better Work, Then Show It Well
           </h2>
           <p
-            className="text-sm leading-relaxed text-white/70"
+            className="max-w-3xl text-sm leading-relaxed text-white/70 md:text-[15px]"
             style={{ fontFamily: `'${bodyFont}', sans-serif` }}
           >
-            Typography is the art and technique of arranging type to make written
-            language legible, readable, and appealing when displayed. The
-            arrangement of type involves selecting typefaces, point sizes, line
-            lengths, line-spacing, and letter-spacing.
+            Typography defines the pace and clarity of your portfolio. A strong heading
+            style should create immediate structure, while the body type should stay
+            effortless to read across project descriptions and case studies.
           </p>
-          <div className="flex gap-4 pt-2 text-xs text-white/40">
+          <div
+            className="rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white/65"
+            style={{ fontFamily: `'${bodyFont}', sans-serif` }}
+          >
+            <p className="text-[11px] uppercase tracking-[0.16em] text-white/45">
+              UI Microcopy
+            </p>
+            <p className="mt-2">Selected template • Last updated just now • Continue</p>
+          </div>
+          <div className="flex flex-wrap gap-3 pt-1 text-xs text-white/50">
             <span>
               Heading:{" "}
-              <span className="text-white/60">{headingFont}</span>
+              <span className="font-medium text-white/80">{headingFont}</span>
             </span>
             <span>
               Body:{" "}
-              <span className="text-white/60">{bodyFont}</span>
+              <span className="font-medium text-white/80">{bodyFont}</span>
             </span>
           </div>
-        </div>
+        </section>
 
         <Button
           type="button"
           onClick={() => onSubmit({ heading: headingFont, body: bodyFont })}
-          className="h-12 w-full rounded-2xl bg-blue-600 text-white hover:bg-blue-500"
+          className="h-12 w-full rounded-2xl border border-white/20 bg-white text-black hover:bg-white/90"
         >
           Confirm Fonts
         </Button>
