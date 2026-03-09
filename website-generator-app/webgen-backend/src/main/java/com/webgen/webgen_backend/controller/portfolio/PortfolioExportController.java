@@ -1,22 +1,35 @@
-package com.webgen.webgen_backend.controller;
+package com.webgen.webgen_backend.controller.portfolio;
 
 import com.webgen.webgen_backend.dto.portfolio.PortfolioExportRequestDTO;
+import com.webgen.webgen_backend.portfolio_service.crud.PortfolioCrudService;
 import com.webgen.webgen_backend.portfolio_service.export.PortfolioHtmlExportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
-@RequestMapping("/api/portfolio/export")
+@RequestMapping("/api/v1/portfolio/{portfolioId}/export")
 @RequiredArgsConstructor
 public class PortfolioExportController {
 
     private final PortfolioHtmlExportService htmlExportService;
+    private final PortfolioCrudService portfolioCrudService;
 
     @PostMapping(value = "/html", produces = MediaType.TEXT_HTML_VALUE)
-    public ResponseEntity<String> exportAsHtml(@RequestBody PortfolioExportRequestDTO request) {
+    public ResponseEntity<String> exportAsHtml(
+            @PathVariable UUID portfolioId,
+            @RequestBody PortfolioExportRequestDTO request
+    ) {
+        UUID userId = UUID.fromString(
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
+        );
+        portfolioCrudService.verifyOwnership(userId, portfolioId);
+
         if (request.getSections() == null || request.getSections().isEmpty()) {
             return ResponseEntity.badRequest()
                     .body("<!-- Error: No sections provided -->");

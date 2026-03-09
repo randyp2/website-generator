@@ -5,6 +5,7 @@ import { GeneratedSection } from "@/types/portfolio";
 import { enforceRateLimit } from "@/lib/rate-limit/enable-rate-limit";
 import { generateRateLimit } from "@/lib/rate-limit/ratelimit";
 import { acquireLock, releaseLock } from "@/lib/rate-limit/redis-lock";
+import { getBackendUrlOrNull } from "@/lib/server-env";
 
 export async function POST(
     req: Request,
@@ -49,7 +50,7 @@ export async function POST(
         return NextResponse.json({ error: "Session expired" }, { status: 401 });
     }
 
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+    const backendUrl = getBackendUrlOrNull();
     if (!backendUrl) {
         return NextResponse.json(
             { error: "BACKEND_URL not configured" },
@@ -93,7 +94,7 @@ export async function POST(
             );
         }
 
-        const res = await fetch(`${backendUrl}/api/portfolio/refine/build`, {
+        const res = await fetch(`${backendUrl}/api/v1/portfolio/refine/build`, {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${session.access_token}`,

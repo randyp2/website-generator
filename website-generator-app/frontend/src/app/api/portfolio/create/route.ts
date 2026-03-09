@@ -1,5 +1,6 @@
 import { enforceRateLimit } from "@/lib/rate-limit/enable-rate-limit";
 import { uploadRateLimit } from "@/lib/rate-limit/ratelimit";
+import { getBackendUrl } from "@/lib/server-env";
 import { AssetMeta } from "@/types/portfolio";
 import { adminSupabase } from "@/utils/supabase/admin";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
@@ -16,27 +17,21 @@ const parseMeta = (raw: FormDataEntryValue | null): AssetMeta[] => {
     }
 };
 
-type PortfolioRow = {
-    id: string;
-    user_id?: string;
-};
-
 export const POST = async (req: Request) => {
-    // --- Get user id ---
+    // --- Get session (needed for user.id + access_token) ---
     const supabase = await createServerSupabaseClient();
     const {
-        data: { user },
-        error: authError,
-    } = await supabase.auth.getUser();
+        data: { session },
+    } = await supabase.auth.getSession();
 
-    if (!user || authError)
+    if (!session)
         return NextResponse.json(
-            { error: "Failed to create portfolio." },
-            { status: 500 },
+            { error: "Unauthorized" },
+            { status: 401 },
         );
 
     // --- Enforce rate limiting ---
-    const rateLimitKey: string = `upload_portfolio:user:${user.id}`;
+    const rateLimitKey: string = `upload_portfolio:user:${session.user.id}`;
     const rateLimitResponse: NextResponse | null = await enforceRateLimit(
         uploadRateLimit,
         rateLimitKey,
@@ -49,13 +44,11 @@ export const POST = async (req: Request) => {
         const formData = await req.formData();
 
         const rawTemplateId = formData.get("templateId");
-        const rawExistingPortfolioId = formData.get("portfolioId");
+        const rawPortfolioId = formData.get("portfolioId");
 
         const templateId = typeof rawTemplateId === "string" ? rawTemplateId : "";
-        const existingPortfolioId =
-            typeof rawExistingPortfolioId === "string"
-                ? rawExistingPortfolioId
-                : null;
+        const portfolioId =
+            typeof rawPortfolioId === "string" ? rawPortfolioId : null;
 
         const resumeFile = formData.get("resumeFile");
         const mediaFiles = formData.getAll("mediaFiles");
@@ -63,73 +56,6 @@ export const POST = async (req: Request) => {
         const mediaMeta = parseMeta(formData.get("mediaMeta"));
         const videoMeta = parseMeta(formData.get("videoMeta"));
 
-        if (!user || !templateId) {
-            return NextResponse.json(
-                { error: "userId and templateId are required." },
-                { status: 400 },
-            );
-        }
-
-        const userId = user.id;
-
-        // ==============================================================
-        // UPLOAD PORTFOLIO
-        // ==============================================================
-
-        let portfolioRow: PortfolioRow | null = null;
-        let portfolioId = existingPortfolioId ?? null;
-
-        if (portfolioId) {
-            const { data: existing, error: existingError } = await adminSupabase
-                .from("portfolios")
-                .select("id, user_id")
-                .eq("id", portfolioId)
-                .single();
-
-            if (existingError || !existing) {
-                return NextResponse.json(
-                    { error: "Portfolio not found." },
-                    { status: 404 },
-                );
-            }
-
-            if ((existing as PortfolioRow).user_id !== userId) {
-                return NextResponse.json(
-                    { error: "Unauthorized" },
-                    { status: 403 },
-                );
-            }
-        } else {
-            const { data, error: portfolioError } = await adminSupabase
-                .from("portfolios")
-                .insert({
-                    title: "Untitled Portfolio",
-                    user_id: userId,
-                    template_id: templateId,
-                    status: "draft",
-                    last_step: "review",
-                })
-                .select()
-                .single();
-
-            if (portfolioError) {
-                console.error("Portfolio creation error:", portfolioError);
-                return NextResponse.json(
-                    { error: "Failed to create portfolio." },
-                    { status: 500 },
-                );
-            }
-
-            portfolioRow = data as PortfolioRow;
-            portfolioId = (data as PortfolioRow).id;
-        }
-
-        // ==============================================================
-        // UPLOAD RESUME
-        // ==============================================================
-
-        // --- Resume File ---
-        // Validate portfolio ID
         if (!portfolioId) {
             return NextResponse.json(
                 { error: "portfolioId is required." },
@@ -137,7 +63,17 @@ export const POST = async (req: Request) => {
             );
         }
 
-        // Validate file presence
+        if (!templateId) {
+            return NextResponse.json(
+                { error: "templateId is required." },
+                { status: 400 },
+            );
+        }
+
+        // ==============================================================
+        // UPLOAD RESUME
+        // ==============================================================
+
         if (!(resumeFile instanceof File)) {
             return NextResponse.json(
                 { error: "No file provided." },
@@ -170,7 +106,6 @@ export const POST = async (req: Request) => {
                     upsert: false,
                 });
 
-        // Validate upload success
         if (uploadError) {
             console.error("Upload error:", uploadError);
             return NextResponse.json(
@@ -179,37 +114,17 @@ export const POST = async (req: Request) => {
             );
         }
 
-        /* ======== UPLOAD TO RESUME TABLE ========  */
-
-        // Public URL for the uploaded resume
-        const { data: publicUrl } = adminSupabase.storage
+        const { data: publicResumeUrlData } = adminSupabase.storage
             .from("portfolio_uploads")
             .getPublicUrl(uploadData.path);
 
-        // Insert into Supabase "resumes" table
-        const { data: resumeRecord, error: insertError } = await adminSupabase
-            .from("resumes")
-            .insert({
-                portfolio_id: portfolioId,
-                raw_file_url: publicUrl.publicUrl,
-                extracted_text: null, // parsed later by Spring Boot
-                parsed_json: null, // parsed later by Spring Boot
-            })
-            .select()
-            .single();
-
-        // Validate DB insert success
-        if (insertError) {
-            console.error("DB insert error:", insertError);
-            return NextResponse.json(
-                { error: "Failed to save resume record." },
-                { status: 500 },
-            );
-        }
+        const publicResumeUrl = publicResumeUrlData.publicUrl;
 
         // ==============================================================
         // UPLOAD MEDIA FILES
         // ==============================================================
+        const mediaAssets = [];
+
         for (let index = 0; index < mediaFiles.length; index += 1) {
             const fileItem = mediaFiles[index];
             if (!(fileItem instanceof File)) continue;
@@ -219,28 +134,26 @@ export const POST = async (req: Request) => {
             const fallbackLabel = meta.title || meta.label || fallbackName;
             const fallbackAlt =
                 meta.alt || meta.description || meta.title || fallbackName;
-            const ext = fileItem.name.split(".").pop();
-            const buffer = Buffer.from(await fileItem.arrayBuffer());
+            const fileExt = fileItem.name.split(".").pop();
+            const fileBuffer = Buffer.from(await fileItem.arrayBuffer());
 
-            const mediaPath = `media/${portfolioId}/${randomUUID()}.${ext}`;
+            const mediaPath = `media/${portfolioId}/${randomUUID()}.${fileExt}`;
 
             const { data } = await adminSupabase.storage
                 .from("portfolio_uploads")
-                .upload(mediaPath, buffer);
+                .upload(mediaPath, fileBuffer);
 
             const { data: url } = adminSupabase.storage
                 .from("portfolio_uploads")
                 .getPublicUrl(data?.path ?? "");
 
-            // Insert into assets table
-            await adminSupabase.from("assets").insert({
-                portfolio_id: portfolioId,
-                file_type: "image",
-                file_url: url.publicUrl,
+            mediaAssets.push({
+                type: "image",
+                url: url.publicUrl,
                 title: meta.title ?? "",
                 description: meta.description ?? "",
                 label: fallbackLabel,
-                section_hint: meta.sectionHint ?? "",
+                sectionHint: meta.sectionHint ?? "",
                 alt: fallbackAlt,
             });
         }
@@ -248,6 +161,7 @@ export const POST = async (req: Request) => {
         // ==============================================================
         // UPLOAD VIDEO FILES (optional)
         // ==============================================================
+        const videoAssets = [];
 
         for (let index = 0; index < videoFiles.length; index += 1) {
             const fileItem = videoFiles[index];
@@ -258,14 +172,14 @@ export const POST = async (req: Request) => {
             const fallbackLabel = meta.title || meta.label || fallbackName;
             const fallbackAlt =
                 meta.alt || meta.description || meta.title || fallbackName;
-            const ext = fileItem.name.split(".").pop();
-            const buffer = Buffer.from(await fileItem.arrayBuffer());
+            const fileExt = fileItem.name.split(".").pop();
+            const fileBuffer = Buffer.from(await fileItem.arrayBuffer());
 
-            const videoPath = `videos/${portfolioId}/${randomUUID()}.${ext}`;
+            const videoPath = `videos/${portfolioId}/${randomUUID()}.${fileExt}`;
 
             const { data } = await adminSupabase.storage
                 .from("portfolio_uploads")
-                .upload(videoPath, buffer);
+                .upload(videoPath, fileBuffer);
 
             if (!data?.path) {
                 console.error("Video upload missing path");
@@ -276,38 +190,53 @@ export const POST = async (req: Request) => {
                 .from("portfolio_uploads")
                 .getPublicUrl(data.path);
 
-            // Insert into assets table
-            await adminSupabase.from("assets").insert({
-                portfolio_id: portfolioId,
-                file_type: "video",
-                file_url: url.publicUrl,
+            videoAssets.push({
+                type: "video",
+                url: url.publicUrl,
                 title: meta.title ?? "",
                 description: meta.description ?? "",
                 label: fallbackLabel,
-                section_hint: meta.sectionHint ?? "",
+                sectionHint: meta.sectionHint ?? "",
                 alt: fallbackAlt,
             });
         }
 
-        if (existingPortfolioId) {
-            await adminSupabase
-                .from("portfolios")
-                .update({
-                    template_id: templateId,
-                    last_step: "review",
-                    updated_at: new Date().toISOString(),
-                })
-                .eq("id", portfolioId);
+        // ==============================================================
+        // CALL SPRING BOOT — save DB records
+        // ==============================================================
+        const backendUrl = getBackendUrl();
+
+        const uploadPayload = {
+            resumeRawFileUrl: publicResumeUrl,
+            assets: [...mediaAssets, ...videoAssets],
+            templateId,
+            lastStep: "review",
+        };
+
+        const res = await fetch(
+            `${backendUrl}/api/v1/portfolio/${portfolioId}/uploads`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${session.access_token}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(uploadPayload),
+            },
+        );
+
+        if (!res.ok) {
+            const errorText = await res.text();
+            console.error("Backend saveUploads failed:", res.status, errorText);
+            return NextResponse.json(
+                { error: "Failed to save upload records." },
+                { status: res.status },
+            );
         }
 
-        // Return success
-        return NextResponse.json({
-            portfolio: portfolioRow ?? { id: portfolioId as string },
-            resume: resumeRecord,
-            assetsUploaded: mediaFiles.length + videoFiles.length,
-        });
+        const result = await res.json();
+        return NextResponse.json(result);
     } catch (err) {
-        // Handle unexpected errors
         console.error("Server error:", err);
         return NextResponse.json(
             { error: "Unexpected server error" },

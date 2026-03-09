@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16 # Version of postgres to use
+    container_name: portrn-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: portrn
+      POSTGRES_PASSWORD: portrn
+      POSTGRES_DB: portrn_dev
+    ports:
+      - "5433:5432" # listen on port
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # persist db data between restarts
+
+volumes:
+  postgres_data:
