@@ -42,10 +42,38 @@ public class GenerateJobService {
     }
 
     public void updateStatus(String jobId, JobStatusDTO.Status status) {
+        // Job check
         JobStatusDTO jobStatusDTO = getJob(jobId);
         if (jobStatusDTO == null) return;
 
+        // Update and save
         jobStatusDTO.setStatus(status);
+        saveToRedis(jobStatusDTO);
+    }
+
+    public void incrementCompleted(String jobId) {
+        JobStatusDTO jobStatusDTO = getJob(jobId);
+        if (jobStatusDTO == null) return;
+
+        int currCount = jobStatusDTO.getCompletedCount();
+        jobStatusDTO.setCompletedCount(++currCount);
+        saveToRedis(jobStatusDTO);
+    }
+
+    public void setTotalSections(String jobId, int total) {
+        JobStatusDTO jobStatusDTO = getJob(jobId);
+        if (jobStatusDTO == null) return;
+
+        jobStatusDTO.setTotalSections(total);
+        saveToRedis(jobStatusDTO);
+    }
+
+    public void failJob(String jobId, String error) {
+        JobStatusDTO jobStatusDTO = getJob(jobId);
+        if (jobStatusDTO == null) return;
+
+        jobStatusDTO.setError(error);
+        jobStatusDTO.setStatus(JobStatusDTO.Status.FAILED);
         saveToRedis(jobStatusDTO);
     }
 
