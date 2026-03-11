@@ -22,6 +22,7 @@ import java.util.UUID;
 public class PortfolioAiController {
 
     private final PortfolioAiService portfolioAiService;
+    
 
     @PostMapping("/{id}/generate")
     public ResponseEntity<?> generatePortfolio(
