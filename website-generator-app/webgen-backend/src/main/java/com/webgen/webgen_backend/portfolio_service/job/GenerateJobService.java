@@ -1,16 +1,16 @@
 package com.webgen.webgen_backend.portfolio_service.job;
 
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.dto.portfolio.JobStatusDTO;
+import com.webgen.webgen_backend.dto.portfolio.PortfolioGenerateRequestDTO;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.UUID;
-
 
 /**
  * CRUD SERVICE LAYER
@@ -23,9 +23,26 @@ public class GenerateJobService {
     // Key, value config
     private static final String KEY_PREFIX = "gen:job:";
     private static final Duration TTL = Duration.ofMinutes(15);
-
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
+
+    public String createJobAndQueue(
+            UUID portfolioId,
+            UUID userId,
+            PortfolioGenerateRequestDTO req) {
+        String jobId = createJob(portfolioId);
+
+        try {
+            String workItem = objectMapper.writeValueAsString(Map.of(
+                    "jobId", jobId,
+                    "portfolioId", portfolioId.toString(),
+                    "userId", userId.toString(),
+                    "request", req));
+        } catch (JsonProcessingException e) {
+            failJob(jobId, "Failed to seralize work");
+            throw new RuntimeException("Failed to queue generation job", e);
+        }
+    }
 
     public String createJob(UUID portfolioId) {
         String jobId = UUID.randomUUID().toString();
@@ -44,7 +61,8 @@ public class GenerateJobService {
     public void updateStatus(String jobId, JobStatusDTO.Status status) {
         // Job check
         JobStatusDTO jobStatusDTO = getJob(jobId);
-        if (jobStatusDTO == null) return;
+        if (jobStatusDTO == null)
+            return;
 
         // Update and save
         jobStatusDTO.setStatus(status);
@@ -53,7 +71,8 @@ public class GenerateJobService {
 
     public void incrementCompleted(String jobId) {
         JobStatusDTO jobStatusDTO = getJob(jobId);
-        if (jobStatusDTO == null) return;
+        if (jobStatusDTO == null)
+            return;
 
         int currCount = jobStatusDTO.getCompletedCount();
         jobStatusDTO.setCompletedCount(++currCount);
@@ -62,7 +81,8 @@ public class GenerateJobService {
 
     public void setTotalSections(String jobId, int total) {
         JobStatusDTO jobStatusDTO = getJob(jobId);
-        if (jobStatusDTO == null) return;
+        if (jobStatusDTO == null)
+            return;
 
         jobStatusDTO.setTotalSections(total);
         saveToRedis(jobStatusDTO);
@@ -70,7 +90,8 @@ public class GenerateJobService {
 
     public void failJob(String jobId, String error) {
         JobStatusDTO jobStatusDTO = getJob(jobId);
-        if (jobStatusDTO == null) return;
+        if (jobStatusDTO == null)
+            return;
 
         jobStatusDTO.setError(error);
         jobStatusDTO.setStatus(JobStatusDTO.Status.FAILED);
@@ -83,14 +104,14 @@ public class GenerateJobService {
         // Get value from redis
         String jsonValue = redisTemplate.opsForValue().get(key);
 
-        if (jsonValue == null) return null;
+        if (jsonValue == null)
+            return null;
         try {
             return objectMapper.readValue(jsonValue, JobStatusDTO.class);
         } catch (JsonProcessingException e) {
             return null;
         }
     }
-
 
     /**
      * Save a key, value pair to redis client where:
@@ -113,6 +134,4 @@ public class GenerateJobService {
         }
     }
 
-
 }
-
