@@ -10,6 +10,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -22,6 +23,7 @@ public class GenerateJobService {
 
     // Key, value config
     private static final String KEY_PREFIX = "gen:job:";
+    private static final String QUEUE_KEY = "gen:queue:portfolio";
     private static final Duration TTL = Duration.ofMinutes(15);
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
@@ -37,7 +39,9 @@ public class GenerateJobService {
                     "jobId", jobId,
                     "portfolioId", portfolioId.toString(),
                     "userId", userId.toString(),
-                    "request", req));
+                    "req", req));
+            redisTemplate.opsForList().leftPush(QUEUE_KEY, workItem);
+            return jobId;
         } catch (JsonProcessingException e) {
             failJob(jobId, "Failed to seralize work");
             throw new RuntimeException("Failed to queue generation job", e);
