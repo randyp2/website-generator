@@ -6,6 +6,7 @@ import { FloatingPromptBar } from "./components/FloatingPromptBar";
 import { ChatHistoryOverlay } from "./components/ChatHistoryOverlay";
 import { SidebarChatPanel } from "./components/SidebarChatPanel";
 import { useInitialPortfolioGeneration } from "./hooks/useInitialPortfolioGeneration";
+import { GenerationOverlay } from "./components/loaders/GenerationOverlay";
 import { useRefineChat } from "./hooks/useRefineChat";
 import { useRefinePortfolioHydration } from "./hooks/useRefinePortfolioHydration";
 import { useRefineUploads } from "./hooks/useRefineUploads";
@@ -45,7 +46,7 @@ const AIRefinementPage: React.FC = () => {
 
     const { isHydrating, hasResolvedInitialPortfolioLoad } =
         useRefinePortfolioHydration();
-    useInitialPortfolioGeneration({
+    const { generationPhase } = useInitialPortfolioGeneration({
         portfolioId,
         templateId,
         parsedResumeData,
@@ -144,23 +145,26 @@ const AIRefinementPage: React.FC = () => {
                 onLayoutModeChange={setChatLayoutMode}
                 sidebarContent={
                     chatLayoutMode === 'sidebar' ? (
-                        <SidebarChatPanel
-                            messages={normalizedMessages}
-                            isGenerating={isGenerating || isHydrating}
-                            uploadedFiles={uploadedFiles}
-                            onSendMessage={sendMessage}
-                            onFileSelect={handleFileSelect}
-                            onRemoveFile={removeFile}
-                            showPlanActions={Boolean(currentPlan) && !isPlanApproved}
-                            onApprovePlan={handleApprovePlan}
-                            onKeepChatting={handleKeepChatting}
-                            portfolioId={portfolioId}
-                            onVersionActivated={handleVersionActivated}
-                            onDownload={handleDownloadHtml}
-                            isDownloading={isDownloading}
-                            layoutMode={chatLayoutMode}
-                            onLayoutModeChange={setChatLayoutMode}
-                        />
+                        <div className="relative h-full">
+                            <SidebarChatPanel
+                                messages={normalizedMessages}
+                                isGenerating={isGenerating || isHydrating}
+                                uploadedFiles={uploadedFiles}
+                                onSendMessage={sendMessage}
+                                onFileSelect={handleFileSelect}
+                                onRemoveFile={removeFile}
+                                showPlanActions={Boolean(currentPlan) && !isPlanApproved}
+                                onApprovePlan={handleApprovePlan}
+                                onKeepChatting={handleKeepChatting}
+                                portfolioId={portfolioId}
+                                onVersionActivated={handleVersionActivated}
+                                onDownload={handleDownloadHtml}
+                                isDownloading={isDownloading}
+                                layoutMode={chatLayoutMode}
+                                onLayoutModeChange={setChatLayoutMode}
+                            />
+                            <GenerationOverlay phase={generationPhase} />
+                        </div>
                     ) : null
                 }
             />

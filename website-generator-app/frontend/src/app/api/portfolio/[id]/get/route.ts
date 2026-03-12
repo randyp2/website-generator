@@ -2,10 +2,7 @@ import { getBackendUrl } from "@/lib/server-env";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 
-export async function GET(
-    req: Request,
-    context: { params: Promise<{ id: string }> }
-) {
+export async function GET(context: { params: Promise<{ id: string }> }) {
     const { id: portfolioId } = await context.params;
 
     try {
@@ -16,23 +13,29 @@ export async function GET(
         } = await supabase.auth.getSession();
 
         if (!session) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            return NextResponse.json(
+                { error: "Unauthorized" },
+                { status: 401 },
+            );
         }
 
         const backendUrl = getBackendUrl();
 
-        const res = await fetch(`${backendUrl}/api/v1/portfolio/${portfolioId}`, {
-            method: "GET",
-            headers: {
-                Authorization: `Bearer ${session.access_token}`,
+        const res = await fetch(
+            `${backendUrl}/api/v1/portfolio/${portfolioId}`,
+            {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${session.access_token}`,
+                },
             },
-        });
+        );
 
         if (!res.ok) {
             console.error("Backend portfolio get failed:", res.status);
             return NextResponse.json(
                 { error: "Portfolio not found." },
-                { status: res.status }
+                { status: res.status },
             );
         }
 
@@ -57,7 +60,7 @@ export async function GET(
         console.error("Server error:", err);
         return NextResponse.json(
             { error: "Unexpected server error" },
-            { status: 500 }
+            { status: 500 },
         );
     }
 }

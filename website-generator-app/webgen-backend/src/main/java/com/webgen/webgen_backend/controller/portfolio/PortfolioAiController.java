@@ -42,6 +42,16 @@ public class PortfolioAiController {
         return ResponseEntity.accepted().body(Map.of("jobId", jobId));
     }
 
+    @GetMapping("/jobs/status/{jobId}")
+    public ResponseEntity<JobStatusDTO> getJobStatus(@PathVariable String jobId) {
+        JobStatusDTO jobStatusDTO = generateJobService.getJob(jobId);
+        if (jobStatusDTO == null)
+            return ResponseEntity.notFound().build();
+
+        return ResponseEntity.ok(jobStatusDTO);
+
+    }
+
     // @PostMapping("/{id}/generate")
     // public ResponseEntity<?> generatePortfolio(
     // @PathVariable UUID id,
@@ -93,13 +103,5 @@ public class PortfolioAiController {
     // }
     // }
 
-    @GetMapping("/jobs/status/{jobId}")
-    public ResponseEntity<JobStatusDTO> getJobStatus(@PathVariable String jobId) {
-        JobStatusDTO jobStatusDTO = generateJobService.getJob(jobId);
-        if (jobStatusDTO == null)
-            return ResponseEntity.notFound().build();
 
-        return ResponseEntity.ok(jobStatusDTO);
-
-    }
 }
