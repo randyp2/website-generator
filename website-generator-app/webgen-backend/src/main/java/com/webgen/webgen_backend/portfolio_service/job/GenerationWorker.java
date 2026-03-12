@@ -60,8 +60,8 @@ public class GenerationWorker {
                     PortfolioGenerateRequestDTO.class);
 
             // Update status and generate portfolio
-            jobService.updateStatus(jobId, JobStatusDTO.Status.GENERATING);
-            portfolioAiService.generatePortfolio(portfolioId, userId, req);
+            jobService.updateStatus(jobId, JobStatusDTO.Status.PROCESSING);
+            portfolioAiService.generatePortfolio(portfolioId, userId, req, jobId);
             jobService.updateStatus(jobId, JobStatusDTO.Status.COMPLETED);
 
         } catch (Exception e) {

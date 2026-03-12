@@ -8,6 +8,7 @@ public class JobStatusDTO {
     /* --- LIST OF POSSIBLE JOB STATUS --- */
     public enum Status {
         QUEUED, // queued but not handled yet
+        PROCESSING, // Polled by worker
         REFINING_PROMPT,
         GENERATING, // Generating react source code
         VALIDATING, // Validating w/ jsx compiler
