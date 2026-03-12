@@ -32,13 +32,17 @@ const isTimeoutError = (error: unknown): boolean => {
         error && typeof error === "object" && "code" in error
             ? (error as { code: unknown }).code
             : undefined;
-    return code === "UND_ERR_HEADERS_TIMEOUT" || code === "UND_ERR_BODY_TIMEOUT";
+    return (
+        code === "UND_ERR_HEADERS_TIMEOUT" || code === "UND_ERR_BODY_TIMEOUT"
+    );
 };
 
 const parseJsonObject = (raw: string): JsonShape | null => {
     try {
         const parsed = JSON.parse(raw);
-        return parsed && typeof parsed === "object" ? (parsed as JsonShape) : {};
+        return parsed && typeof parsed === "object"
+            ? (parsed as JsonShape)
+            : {};
     } catch {
         return null;
     }
@@ -50,10 +54,13 @@ const fetchPortfolioAssets = async (
     token: string,
 ): Promise<object[]> => {
     try {
-        const portfolioRes = await fetch(`${backendUrl}/api/v1/portfolio/${portfolioId}`, {
-            method: "GET",
-            headers: { Authorization: `Bearer ${token}` },
-        });
+        const portfolioRes = await fetch(
+            `${backendUrl}/api/v1/portfolio/${portfolioId}`,
+            {
+                method: "GET",
+                headers: { Authorization: `Bearer ${token}` },
+            },
+        );
 
         if (!portfolioRes.ok) return [];
 
@@ -97,11 +104,13 @@ export const POST = async (
     let lockAcquired = false;
 
     try {
-        // 1) Parse and validate inputs.
+        // --- Parse and validate inputs.
         const body = (await req.json()) as GenerateRequestBody;
         const { id: portfolioId } = await context.params;
         if (!body?.resume || !body?.templateId) {
-            console.warn("[generate] Validation failed: missing resume/templateId");
+            console.warn(
+                "[generate] Validation failed: missing resume/templateId",
+            );
             return jsonError(
                 400,
                 "Resume and templateId are required for portfolio generation",
@@ -109,9 +118,12 @@ export const POST = async (
             );
         }
 
-        // 2) Authenticate request.
+        // --- Authenticate request.
         const supabase = await createServerSupabaseClient();
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        const {
+            data: { user },
+            error: userError,
+        } = await supabase.auth.getUser();
         if (userError || !user) {
             console.warn("[generate] Auth failed while loading user", {
                 hasUser: Boolean(user),
@@ -120,17 +132,26 @@ export const POST = async (
             return jsonError(401, "Unauthorized", "auth_user");
         }
 
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+            data: { session },
+        } = await supabase.auth.getSession();
         if (!session) {
-            console.warn("[generate] Auth failed: missing session for user", { userId: user.id });
+            console.warn("[generate] Auth failed: missing session for user", {
+                userId: user.id,
+            });
             return jsonError(401, "Session expired", "auth_session");
         }
 
-        // 3) Enforce guardrails: rate limit and single-flight lock.
+        // --- Enforce guardrails: rate limit and single-flight lock.
         const rateLimitKey: string = `generate:user:${user.id}`;
-        const rateLimitResponse = await enforceRateLimit(generateRateLimit, rateLimitKey);
+        const rateLimitResponse = await enforceRateLimit(
+            generateRateLimit,
+            rateLimitKey,
+        );
         if (rateLimitResponse) {
-            console.warn("[generate] Rate limit rejected request", { userId: user.id });
+            console.warn("[generate] Rate limit rejected request", {
+                userId: user.id,
+            });
             return jsonError(
                 429,
                 "Too many requests",
@@ -143,7 +164,9 @@ export const POST = async (
         lockKey = `generate:lock:user:${user.id}`;
         lockAcquired = await acquireLock(lockKey, 600);
         if (!lockAcquired) {
-            console.warn("[generate] Lock acquisition failed", { userId: user.id });
+            console.warn("[generate] Lock acquisition failed", {
+                userId: user.id,
+            });
             return jsonError(
                 409,
                 "Portfolio generation already in progress, must wait",
@@ -151,23 +174,34 @@ export const POST = async (
             );
         }
 
-        // 4) Resolve backend target and build backend payload.
+        // --- Resolve backend target and build backend payload.
         const backendUrl = getBackendUrlOrNull();
         if (!backendUrl) {
             console.error("[generate] Missing backend config: BACKEND_URL");
-            return jsonError(500, "BACKEND_URL not configured", "backend_config");
+            return jsonError(
+                500,
+                "BACKEND_URL not configured",
+                "backend_config",
+            );
         }
 
-        const token = session.access_token;
-        const assets = await fetchPortfolioAssets(backendUrl, portfolioId, token);
-
-        console.log("[generate] Calling backend API for portfolio generation...", {
+        const token: string = session.access_token;
+        const assets = await fetchPortfolioAssets(
+            backendUrl,
             portfolioId,
-            userId: user.id,
-        });
+            token,
+        );
+
+        console.log(
+            "[generate] Calling backend API for portfolio generation...",
+            {
+                portfolioId,
+                userId: user.id,
+            },
+        );
         const requestBody = JSON.stringify({ ...body, assets });
 
-        // 5) Call Spring backend and map transport failures.
+        // --- Call Spring backend and map transport failures.
         let backendResponse: { statusCode: number; responseBody: string };
         try {
             backendResponse = await callBackendGenerate(
@@ -192,13 +226,23 @@ export const POST = async (
 
         const { statusCode, responseBody } = backendResponse;
         console.log("[generate] Backend responded with status:", statusCode);
-        console.log("[generate] Raw response body:", responseBody.slice(0, 500));
+        console.log(
+            "[generate] Raw response body:",
+            responseBody.slice(0, 500),
+        );
 
-        // 6) Parse backend response and relay structured errors.
+        // --- Parse backend response and relay structured errors.
         const data = parseJsonObject(responseBody);
         if (!data) {
-            console.error("[generate] Failed to parse response:", responseBody.slice(0, 500));
-            return jsonError(502, "Invalid response from backend", "backend_parse");
+            console.error(
+                "[generate] Failed to parse response:",
+                responseBody.slice(0, 500),
+            );
+            return jsonError(
+                502,
+                "Invalid response from backend",
+                "backend_parse",
+            );
         }
 
         if (statusCode < 200 || statusCode >= 300) {
@@ -207,11 +251,7 @@ export const POST = async (
                 typeof data.error === "string" && data.error.trim().length > 0
                     ? data.error
                     : "Portfolio generation failed";
-            return jsonError(
-                statusCode,
-                backendErrorMessage,
-                "backend_error",
-            );
+            return jsonError(statusCode, backendErrorMessage, "backend_error");
         }
 
         const sectionCount = Array.isArray(data.sections)
@@ -226,7 +266,7 @@ export const POST = async (
 
         return NextResponse.json(data);
     } catch (err) {
-        // 7) Last-resort catch for unexpected route failures.
+        // --- Last-resort catch for unexpected route failures.
         const errorMessage = err instanceof Error ? err.message : String(err);
         const errorName = err instanceof Error ? err.name : "Unknown";
         console.error("[generate] Portfolio generate request error:", {
@@ -240,7 +280,7 @@ export const POST = async (
             "unexpected",
         );
     } finally {
-        // 8) Cleanup must never throw.
+        // --- Cleanup must never throw.
         if (lockKey && lockAcquired) {
             try {
                 await releaseLock(lockKey);
