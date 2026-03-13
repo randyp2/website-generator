@@ -5,7 +5,18 @@ import { ComponentDragLoader } from "./ComponentDragLoader";
 import { CodeGenerationLoader } from "./CodeGenerationLoader";
 import { CodeValidationLoader } from "./CodeValidationLoader";
 
-const STATUS_LABELS: Record<string, string> = {
+type GenerationPhase =
+    | "QUEUED"
+    | "PROCESSING"
+    | "REFINING_PROMPT"
+    | "GENERATING"
+    | "VALIDATING"
+    | "RETRYING"
+    | "PERSISTING"
+    | "COMPLETED"
+    | "FAILED";
+
+const STATUS_LABELS: Record<GenerationPhase, string> = {
     QUEUED: "Queued...",
     PROCESSING: "Processing...",
     REFINING_PROMPT: "Refining your prompt...",
@@ -13,9 +24,11 @@ const STATUS_LABELS: Record<string, string> = {
     VALIDATING: "Validating code...",
     RETRYING: "Retrying...",
     PERSISTING: "Saving your portfolio...",
+    COMPLETED: "Completed",
+    FAILED: "Failed",
 };
 
-function getLoader(phase: string) {
+const getLoader = (phase: GenerationPhase): React.ReactNode => {
     switch (phase) {
         case "GENERATING":
             return <CodeGenerationLoader />;
@@ -30,13 +43,13 @@ function getLoader(phase: string) {
         default:
             return null;
     }
-}
+};
 
 interface GenerationOverlayProps {
-    phase: string | null;
+    phase: GenerationPhase | null;
 }
 
-export function GenerationOverlay({ phase }: GenerationOverlayProps) {
+export const GenerationOverlay = ({ phase }: GenerationOverlayProps) => {
     const isVisible = phase !== null && phase !== "COMPLETED" && phase !== "FAILED";
 
     return (
@@ -51,10 +64,10 @@ export function GenerationOverlay({ phase }: GenerationOverlayProps) {
                 >
                     {getLoader(phase)}
                     <p className="mt-6 text-sm text-zinc-400 font-mono animate-pulse">
-                        {STATUS_LABELS[phase] ?? phase}
+                        {STATUS_LABELS[phase]}
                     </p>
                 </motion.div>
             )}
         </AnimatePresence>
     );
-}
+};

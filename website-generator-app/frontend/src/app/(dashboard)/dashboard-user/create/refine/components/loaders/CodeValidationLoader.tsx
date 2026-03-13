@@ -1,18 +1,16 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Check, AlertCircle, Loader2 } from "lucide-react"
+import { useEffect, useState } from "react";
+import { AlertCircle, Check, Loader2 } from "lucide-react";
 
 interface CodeLine {
-  indent: number
-  segments: { width: string; color: string }[]
-  status: "pending" | "scanning" | "valid" | "error"
-  hasError?: boolean
+  indent: number;
+  segments: { width: string; color: string }[];
+  status: "pending" | "scanning" | "valid" | "error";
+  hasError?: boolean;
 }
 
-export function CodeValidationLoader() {
-  const [scanIndex, setScanIndex] = useState(0)
-  const [lines, setLines] = useState<CodeLine[]>([
+const initialLines: CodeLine[] = [
     { indent: 0, segments: [{ width: "w-16", color: "bg-violet-400/60" }, { width: "w-24", color: "bg-muted-foreground/30" }], status: "pending" },
     { indent: 0, segments: [{ width: "w-28", color: "bg-cyan-400/50" }], status: "pending" },
     { indent: 1, segments: [{ width: "w-20", color: "bg-emerald-400/50" }, { width: "w-32", color: "bg-muted-foreground/30" }], status: "pending" },
@@ -27,41 +25,45 @@ export function CodeValidationLoader() {
     { indent: 2, segments: [{ width: "w-24", color: "bg-amber-400/50" }, { width: "w-16", color: "bg-muted-foreground/30" }], status: "pending", hasError: true },
     { indent: 1, segments: [{ width: "w-16", color: "bg-violet-400/60" }], status: "pending" },
     { indent: 0, segments: [{ width: "w-8", color: "bg-violet-400/60" }], status: "pending" },
-  ])
+];
+
+export const CodeValidationLoader = (): React.JSX.Element => {
+  const [scanIndex, setScanIndex] = useState<number>(0);
+  const [lines, setLines] = useState<CodeLine[]>(initialLines);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setScanIndex((prev) => {
-        const next = prev + 1
+        const next = prev + 1;
         if (next > lines.length) {
           // Reset after completion
           setTimeout(() => {
-            setLines((l) => l.map((line) => ({ ...line, status: "pending" })))
-            setScanIndex(0)
-          }, 2000)
-          return prev
+            setLines(initialLines);
+            setScanIndex(0);
+          }, 2000);
+          return prev;
         }
-        return next
-      })
+        return next;
+      });
 
       setLines((prevLines) =>
         prevLines.map((line, index) => {
           if (index < scanIndex) {
-            return { ...line, status: line.hasError ? "error" : "valid" }
+            return { ...line, status: line.hasError ? "error" : "valid" };
           } else if (index === scanIndex) {
-            return { ...line, status: "scanning" }
+            return { ...line, status: "scanning" };
           }
-          return line
+          return line;
         })
-      )
-    }, 300)
+      );
+    }, 300);
 
-    return () => clearInterval(interval)
-  }, [scanIndex, lines.length])
+    return () => clearInterval(interval);
+  }, [scanIndex, lines.length]);
 
-  const errorCount = lines.filter((l) => l.status === "error").length
-  const validCount = lines.filter((l) => l.status === "valid").length
-  const isComplete = scanIndex >= lines.length
+  const errorCount = lines.filter((line) => line.status === "error").length;
+  const validCount = lines.filter((line) => line.status === "valid").length;
+  const isComplete = scanIndex >= lines.length;
 
   return (
     <div className="w-full max-w-2xl mx-auto">
@@ -84,7 +86,7 @@ export function CodeValidationLoader() {
         </div>
 
         {/* Code Editor with Validation */}
-        <div className="bg-zinc-950 p-4 min-h-[320px] relative">
+        <div className="bg-zinc-950 p-4 min-h-[380px] relative">
           <div className="space-y-2">
             {lines.map((line, index) => (
               <div
@@ -182,5 +184,5 @@ export function CodeValidationLoader() {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
