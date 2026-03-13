@@ -50,7 +50,7 @@ public class PortfolioAiController {
 
     }
 
-    @GetMapping("/jobs/sections/{jobId}")
+    @GetMapping("/jobs/{jobId}/sections")
     public ResponseEntity<CompletedSectionsResponseDTO> getCompletedSections(
             @PathVariable String jobId,
             @RequestParam(defaultValue = "0") long after

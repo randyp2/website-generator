@@ -51,7 +51,14 @@ export interface JobStatusResponse {
     jobId: string;
     portfolioId: string;
     status: string;
-    completedCont: number;
+    completedCount: number;
     totalSections: number;
     error: string | null;
+}
+
+export interface CompletedSectionsResponse {
+    sections: SectionDTO[];
+    status: string;
+    completedCount: number;
+    totalSections: number;
 }
