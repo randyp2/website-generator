@@ -1,119 +1,137 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { LayoutGrid, Type, Menu, User, FolderKanban, Briefcase } from "lucide-react"
+import { useEffect, useState } from "react";
+import {
+  Briefcase,
+  FolderKanban,
+  LayoutGrid,
+  Menu,
+  Type,
+  User,
+} from "lucide-react";
 
 interface DraggingComponent {
-  id: string
-  name: string
-  icon: React.ReactNode
-  x: number
-  y: number
-  targetX: number
-  targetY: number
-  placed: boolean
-  placedPosition?: { x: number; y: number; width: string; height: string }
+  id: string;
+  name: string;
+  icon: React.ReactNode;
+  x: number;
+  y: number;
+  targetX: number;
+  targetY: number;
+  placed: boolean;
+  placedPosition?: { x: number; y: number; width: string; height: string };
 }
 
-const componentsList = [
+interface ComponentDefinition {
+  id: string;
+  name: string;
+  icon: React.ReactNode;
+}
+
+interface PlacedPosition {
+  x: number;
+  y: number;
+  width: string;
+  height: string;
+}
+
+const componentsList: ComponentDefinition[] = [
   { id: "navbar", name: "Navbar", icon: <Menu className="w-4 h-4" /> },
   { id: "hero", name: "Hero", icon: <Type className="w-4 h-4" /> },
   { id: "about", name: "About", icon: <User className="w-4 h-4" /> },
   { id: "projects", name: "Projects", icon: <FolderKanban className="w-4 h-4" /> },
   { id: "experience", name: "Experience", icon: <Briefcase className="w-4 h-4" /> },
-]
+];
 
-const placedPositions = [
+const placedPositions: PlacedPosition[] = [
   { x: 10, y: 10, width: "calc(100% - 20px)", height: "35px" },
   { x: 10, y: 55, width: "calc(100% - 20px)", height: "70px" },
   { x: 10, y: 135, width: "calc(100% - 20px)", height: "55px" },
   { x: 10, y: 200, width: "calc(100% - 20px)", height: "55px" },
   { x: 10, y: 265, width: "calc(100% - 20px)", height: "45px" },
-]
+];
 
-export function ComponentDragLoader() {
-  const [activeIndex, setActiveIndex] = useState(0)
+const createInitialComponents = (): DraggingComponent[] =>
+  componentsList.map((component, index) => ({
+    ...component,
+    x: -100,
+    y: 80 + index * 45,
+    targetX: 50,
+    targetY: 150,
+    placed: false,
+  }));
+
+export const ComponentDragLoader = (): React.JSX.Element => {
+  const [activeIndex, setActiveIndex] = useState<number>(0);
   const [components, setComponents] = useState<DraggingComponent[]>(
-    componentsList.map((c, i) => ({
-      ...c,
-      x: -100,
-      y: 80 + i * 45,
-      targetX: 50,
-      targetY: 150,
-      placed: false,
-    }))
-  )
-  const [isDragging, setIsDragging] = useState(false)
-  const [dragProgress, setDragProgress] = useState(0)
+    createInitialComponents
+  );
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [dragProgress, setDragProgress] = useState<number>(0);
 
   useEffect(() => {
     const sequence = async () => {
       if (activeIndex >= components.length) {
         // Reset after all components placed
         setTimeout(() => {
-          setComponents(
-            componentsList.map((c, i) => ({
-              ...c,
-              x: -100,
-              y: 80 + i * 45,
-              targetX: 50,
-              targetY: 150,
-              placed: false,
-            }))
-          )
-          setActiveIndex(0)
-        }, 2000)
-        return
+          setComponents(createInitialComponents());
+          setActiveIndex(0);
+        }, 2000);
+        return;
       }
 
       // Start drag animation
-      setIsDragging(true)
-      setDragProgress(0)
+      setIsDragging(true);
+      setDragProgress(0);
 
       // Animate drag progress
       const dragInterval = setInterval(() => {
         setDragProgress((prev) => {
           if (prev >= 100) {
-            clearInterval(dragInterval)
-            return 100
+            clearInterval(dragInterval);
+            return 100;
           }
-          return prev + 2
-        })
-      }, 20)
+          return prev + 2;
+        });
+      }, 20);
 
       // Wait for drag to complete
-      await new Promise((resolve) => setTimeout(resolve, 1200))
+      await new Promise((resolve) => setTimeout(resolve, 1200));
 
       // Place component
       setComponents((prev) =>
-        prev.map((c, i) =>
-          i === activeIndex
-            ? { ...c, placed: true, placedPosition: placedPositions[i] }
-            : c
+        prev.map((component, index) =>
+          index === activeIndex
+            ? {
+                ...component,
+                placed: true,
+                placedPosition: placedPositions[index],
+              }
+            : component
         )
-      )
+      );
 
-      setIsDragging(false)
-      setDragProgress(0)
+      setIsDragging(false);
+      setDragProgress(0);
 
       // Move to next component
-      await new Promise((resolve) => setTimeout(resolve, 500))
-      setActiveIndex((prev) => prev + 1)
-    }
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      setActiveIndex((prev) => prev + 1);
+    };
 
-    sequence()
-  }, [activeIndex, components.length])
+    void sequence();
+  }, [activeIndex, components.length]);
 
-  const activeComponent = components[activeIndex]
+  const activeComponent = components[activeIndex];
 
   // Calculate current drag position
-  const startX = -60
-  const startY = 80 + activeIndex * 45
-  const endX = 200
-  const endY = placedPositions[activeIndex]?.y ?? 150
+  const startX = -60;
+  const startY = 80 + activeIndex * 45;
+  const endX = 200;
+  const endY = placedPositions[activeIndex]?.y ?? 150;
 
-  const currentX = startX + (endX - startX) * (dragProgress / 100)
-  const currentY = startY + (endY - startY) * (dragProgress / 100)
+  const currentX = startX + (endX - startX) * (dragProgress / 100);
+  const currentY = startY + (endY - startY) * (dragProgress / 100);
 
   return (
     <div className="w-full max-w-2xl mx-auto">
@@ -136,7 +154,7 @@ export function ComponentDragLoader() {
         </div>
 
         {/* Main Content Area */}
-        <div className="flex min-h-[330px]">
+        <div className="flex min-h-[400px]">
           {/* Component Sidebar */}
           <div className="w-32 bg-zinc-900 border-r border-zinc-800 p-3 relative">
             <div className="text-xs text-zinc-500 font-medium mb-3">Components</div>
@@ -271,5 +289,5 @@ export function ComponentDragLoader() {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};

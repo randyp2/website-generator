@@ -1,12 +1,14 @@
-"use client"
+"use client";
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useRef, useState } from "react";
 
-export function CodeGenerationLoader() {
-  const [scrollPosition, setScrollPosition] = useState(0)
-  const maxScroll = useRef(0)
+interface CodeLine {
+  indent: number;
+  width: string;
+  color: string;
+}
 
-  const codeLines = [
+const codeLines: CodeLine[] = [
     { indent: 0, width: "w-16", color: "bg-violet-400/60" },
     { indent: 0, width: "w-32", color: "bg-muted-foreground/20" },
     { indent: 1, width: "w-24", color: "bg-cyan-400/50" },
@@ -23,29 +25,33 @@ export function CodeGenerationLoader() {
     { indent: 1, width: "w-24", color: "bg-muted-foreground/20" },
     { indent: 2, width: "w-16", color: "bg-amber-400/50" },
     { indent: 2, width: "w-40", color: "bg-muted-foreground/20" },
-  ]
+];
+
+export const CodeGenerationLoader = (): React.JSX.Element => {
+  const [scrollPosition, setScrollPosition] = useState<number>(0);
+  const maxScroll = useRef<number>(0);
 
   // Triple the lines for seamless looping
-  const allLines = [...codeLines, ...codeLines, ...codeLines]
-  const lineHeight = 20 // height of each line in pixels
-  const singleSetHeight = codeLines.length * lineHeight
+  const allLines: CodeLine[] = [...codeLines, ...codeLines, ...codeLines];
+  const lineHeight = 20;
+  const singleSetHeight = codeLines.length * lineHeight;
 
   useEffect(() => {
-    maxScroll.current = singleSetHeight
+    maxScroll.current = singleSetHeight;
 
     const interval = setInterval(() => {
       setScrollPosition((prev) => {
-        const next = prev + 1
+        const next = prev + 1;
         // Reset seamlessly when we've scrolled one full set
         if (next >= singleSetHeight) {
-          return 0
+          return 0;
         }
-        return next
-      })
-    }, 40)
+        return next;
+      });
+    }, 40);
 
-    return () => clearInterval(interval)
-  }, [singleSetHeight])
+    return () => clearInterval(interval);
+  }, [singleSetHeight]);
 
   return (
     <div className="w-full max-w-2xl mx-auto">
@@ -68,7 +74,7 @@ export function CodeGenerationLoader() {
         </div>
 
         {/* Code Editor Area */}
-        <div className="bg-zinc-950 px-4 py-3 h-[180px] relative overflow-hidden">
+        <div className="bg-zinc-950 px-4 py-4 h-[260px] relative overflow-hidden">
           {/* Code Lines Only (No Line Numbers) */}
           <div
             className="space-y-1"
@@ -113,5 +119,5 @@ export function CodeGenerationLoader() {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
