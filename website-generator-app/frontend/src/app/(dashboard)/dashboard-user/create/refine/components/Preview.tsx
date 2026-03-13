@@ -10,6 +10,8 @@ import type { SectionDTO, GlobalTheme } from "@/types/portfolio";
 interface PreviewProps {
     sections: SectionDTO[] | null;
     globalTheme?: GlobalTheme | null;
+    generationPhase?: string | null;
+    totalSections?: number;
     layoutMode?: "sidebar" | "floating" | "preview";
     sidebarContent?: React.ReactNode;
     onLayoutModeChange?: (mode: "sidebar" | "floating" | "preview") => void;
@@ -51,6 +53,7 @@ const normalizeTheme = (globalTheme?: GlobalTheme | null): GlobalTheme => {
 const buildSandpackFiles = (
     sections: SectionDTO[],
     globalTheme?: GlobalTheme | null,
+    skeletonCount: number = 0,
 ) => {
     // --- Sort from 0 - n indexing
     const sorted = [...sections].sort(
@@ -82,6 +85,20 @@ const buildSandpackFiles = (
         )
         .join("\n");
 
+    // Skeleton placeholders for sections not yet received
+    const skeletonRenders = Array.from({ length: skeletonCount }, (_, i) => {
+        const heights = [320, 400, 280, 360];
+        const height = heights[i % heights.length];
+        return `<div key="skeleton-${i}" style={{ height: ${height}, margin: "0 auto", padding: "48px 24px" }}>
+                    <div style={{ maxWidth: 900, margin: "0 auto" }}>
+                        <div style={{ height: 28, width: "35%", background: "rgba(148,163,184,0.15)", borderRadius: 8, marginBottom: 24, animation: "pulse 2s ease-in-out infinite" }} />
+                        <div style={{ height: 16, width: "90%", background: "rgba(148,163,184,0.10)", borderRadius: 6, marginBottom: 12, animation: "pulse 2s ease-in-out infinite", animationDelay: "0.2s" }} />
+                        <div style={{ height: 16, width: "75%", background: "rgba(148,163,184,0.10)", borderRadius: 6, marginBottom: 12, animation: "pulse 2s ease-in-out infinite", animationDelay: "0.4s" }} />
+                        <div style={{ height: 16, width: "60%", background: "rgba(148,163,184,0.10)", borderRadius: 6, animation: "pulse 2s ease-in-out infinite", animationDelay: "0.6s" }} />
+                    </div>
+                </div>`;
+    }).join("\n");
+
     const bodyFont = theme.fonts?.body || "Inter";
     const headingFont = theme.fonts?.heading || bodyFont;
 
@@ -97,6 +114,10 @@ const buildSandpackFiles = (
                     <style dangerouslySetInnerHTML={{ __html: \`
                         body { font-family: '${bodyFont}', sans-serif; }
                         h1, h2, h3, h4, h5, h6 { font-family: '${headingFont}', sans-serif; }
+                        @keyframes pulse {
+                            0%, 100% { opacity: 1; }
+                            50% { opacity: 0.4; }
+                        }
                     \`}} />
                     <div className={\`\${theme.textPrimary}\`}>
                         {children}
@@ -110,6 +131,7 @@ const buildSandpackFiles = (
                 <ThemeWrapper>
                     <main>
                     ${renders}
+                    ${skeletonRenders}
                     </main>
                 </ThemeWrapper>
             );
@@ -181,6 +203,8 @@ const buildSandpackFiles = (
 export const Preview: React.FC<PreviewProps> = ({
     sections,
     globalTheme,
+    generationPhase,
+    totalSections = 0,
     layoutMode = "sidebar",
     sidebarContent,
     onLayoutModeChange,
@@ -210,15 +234,26 @@ export const Preview: React.FC<PreviewProps> = ({
         };
     }, [isDragging]);
 
+    // How many skeleton placeholders to show
+    const isGenerating = generationPhase != null;
+    const sectionCount = sections?.length ?? 0;
+    const skeletonCount = isGenerating
+        ? totalSections > 0
+            ? Math.max(0, totalSections - sectionCount)
+            : sectionCount === 0
+              ? 6
+              : 0
+        : 0;
+
     // Generate a key based on section content and theme to force Sandpack re-mount on changes
     const sandpackKey = useMemo(() => {
-        if (!sections || sections.length === 0) return "empty";
+        if (!sections || sections.length === 0) return `empty-${skeletonCount}`;
         const sectionKey = sections
             .map((s) => `${s.sectionKey}-${(s.reactSource || "").length}`)
             .join("|");
         const themeKey = globalTheme ? JSON.stringify(globalTheme) : "default";
-        return `${sectionKey}-${themeKey}`;
-    }, [sections, globalTheme]);
+        return `${sectionKey}-${themeKey}-${skeletonCount}`;
+    }, [sections, globalTheme, skeletonCount]);
 
     if (!isMounted) {
         return (
@@ -234,30 +269,68 @@ export const Preview: React.FC<PreviewProps> = ({
         ...(fontUrl ? [fontUrl] : []),
     ];
 
+    const buildSkeletonOnlyFiles = (count: number) => {
+        const theme = normalizeTheme(globalTheme);
+        const skeletons = Array.from({ length: count }, (_, i) => {
+            const heights = [320, 400, 280, 360];
+            const height = heights[i % heights.length];
+            return `<div key="skeleton-${i}" style={{ height: ${height}, margin: "0 auto", padding: "48px 24px" }}>
+                        <div style={{ maxWidth: 900, margin: "0 auto" }}>
+                            <div style={{ height: 28, width: "35%", background: "rgba(148,163,184,0.15)", borderRadius: 8, marginBottom: 24, animation: "pulse 2s ease-in-out infinite" }} />
+                            <div style={{ height: 16, width: "90%", background: "rgba(148,163,184,0.10)", borderRadius: 6, marginBottom: 12, animation: "pulse 2s ease-in-out infinite", animationDelay: "0.2s" }} />
+                            <div style={{ height: 16, width: "75%", background: "rgba(148,163,184,0.10)", borderRadius: 6, marginBottom: 12, animation: "pulse 2s ease-in-out infinite", animationDelay: "0.4s" }} />
+                            <div style={{ height: 16, width: "60%", background: "rgba(148,163,184,0.10)", borderRadius: 6, animation: "pulse 2s ease-in-out infinite", animationDelay: "0.6s" }} />
+                        </div>
+                    </div>`;
+        }).join("\n");
+
+        return {
+            "/App.js": `
+            export default function App() {
+                return (
+                    <div className={\`min-h-screen ${theme.background}\`}>
+                        <style dangerouslySetInnerHTML={{ __html: \`
+                            @keyframes pulse {
+                                0%, 100% { opacity: 1; }
+                                50% { opacity: 0.4; }
+                            }
+                        \`}} />
+                        <main>
+                            ${skeletons}
+                        </main>
+                    </div>
+                );
+            }
+            `,
+        };
+    };
+
     const files =
         sections && sections.length > 0
-            ? buildSandpackFiles(sections, globalTheme)
-            : {
-                  "/App.js": `
-                import { motion } from "framer-motion";
+            ? buildSandpackFiles(sections, globalTheme, skeletonCount)
+            : skeletonCount > 0
+              ? buildSkeletonOnlyFiles(skeletonCount)
+              : {
+                    "/App.js": `
+                  import { motion } from "framer-motion";
 
-                export default function App() {
-                    return (
-                        <div className="min-h-screen bg-slate-900">
-                            <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.6 }}
-                            style={{ padding: 40 }}
-                            className="text-purple-600"
-                            >
-                            <h1>Hello with animation</h1>
-                            </motion.div>
-                        </div>
-                    );
-                }
-                `,
-              };
+                  export default function App() {
+                      return (
+                          <div className="min-h-screen bg-slate-900">
+                              <motion.div
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.6 }}
+                              style={{ padding: 40 }}
+                              className="text-purple-600"
+                              >
+                              <h1>Hello with animation</h1>
+                              </motion.div>
+                          </div>
+                      );
+                  }
+                  `,
+                };
 
     // Sidebar mode: resizable sidebar + preview
     if (layoutMode === "sidebar" && sidebarContent) {

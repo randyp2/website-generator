@@ -27,6 +27,7 @@ const AIRefinementPage: React.FC = () => {
         aiPrompt,
         sections,
         setSections,
+        appendSections,
         globalTheme,
         setGlobalTheme,
         messages,
@@ -46,7 +47,7 @@ const AIRefinementPage: React.FC = () => {
 
     const { isHydrating, hasResolvedInitialPortfolioLoad } =
         useRefinePortfolioHydration();
-    const { generationPhase } = useInitialPortfolioGeneration({
+    const { generationPhase, totalSections } = useInitialPortfolioGeneration({
         portfolioId,
         templateId,
         parsedResumeData,
@@ -56,6 +57,7 @@ const AIRefinementPage: React.FC = () => {
         isHydrating,
         hasResolvedInitialPortfolioLoad,
         setSections,
+        appendSections,
         setGlobalTheme,
         setMessages,
     });
@@ -141,6 +143,8 @@ const AIRefinementPage: React.FC = () => {
             <Preview
                 sections={sections}
                 globalTheme={globalTheme}
+                generationPhase={generationPhase}
+                totalSections={totalSections}
                 layoutMode={chatLayoutMode}
                 onLayoutModeChange={setChatLayoutMode}
                 sidebarContent={
