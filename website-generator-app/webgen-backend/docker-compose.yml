@@ -4,15 +4,24 @@ services:
   postgres:
     image: postgres:16 # Version of postgres to use
     container_name: portrn-postgres
-    restart: always
+    restart: always # Restart if container crashes
     environment:
       POSTGRES_USER: portrn
       POSTGRES_PASSWORD: portrn
       POSTGRES_DB: portrn_dev
     ports:
-      - "5433:5432" # listen on port
+      - "5433:5432" # Expose port 5433 and reroute it to 5432
     volumes:
       - postgres_data:/var/lib/postgresql/data # persist db data between restarts
 
+  redis:
+    image: redis:7 # Version of redis
+    container_name: portrn-redis
+    restart: always # Restart if container crashes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data # persist db
 volumes:
   postgres_data:
+  redis_data:

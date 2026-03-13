@@ -16,7 +16,12 @@ public interface PortfolioAiService {
      * @param req - Contains user prompt and context for the portfolio
      * @return PortfolioGenerateResponseDTO -  dto consisting of model response
      */
-    PortfolioGenerateResponseDTO generatePortfolio(UUID portfolioId, UUID userId, PortfolioGenerateRequestDTO req);
+    PortfolioGenerateResponseDTO generatePortfolio(
+            UUID portfolioId,
+            UUID userId,
+            PortfolioGenerateRequestDTO req,
+            String jobId
+    );
 
     /**
      *  Given request generate/refine a section
