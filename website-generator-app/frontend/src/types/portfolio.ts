@@ -46,3 +46,12 @@ export interface GeneratedSection {
     reactSource?: string | null;
     contentJson?: Record<string, unknown> | null;
 }
+
+export interface JobStatusResponse {
+    jobId: string;
+    portfolioId: string;
+    status: string;
+    completedCont: number;
+    totalSections: number;
+    error: string | null;
+}

@@ -3,12 +3,19 @@
 import * as React from "react";
 import { motion } from "framer-motion";
 
-export const GenerationStatus = () => {
+interface GenerationStatusProps {
+    statusText?: string | null;
+}
+
+export const GenerationStatus = ({ statusText }: GenerationStatusProps = {}) => {
     const [loadingState, setLoadingState] = React.useState<
         "analyzing" | "refining" | "creating"
     >("analyzing");
 
     React.useEffect(() => {
+        // If statusText is provided externally, skip timer-based progression
+        if (statusText) return;
+
         // Progress through states: Analyzing (5s) -> Refining (10s) -> Creating (stays)
         let timeoutId: NodeJS.Timeout;
 
@@ -24,9 +31,10 @@ export const GenerationStatus = () => {
         // If state is "creating", stay on it indefinitely
 
         return () => clearTimeout(timeoutId);
-    }, [loadingState]);
+    }, [loadingState, statusText]);
 
     const getStatusText = () => {
+        if (statusText) return statusText;
         switch (loadingState) {
             case "analyzing":
                 return "Analyzing prompt...";
