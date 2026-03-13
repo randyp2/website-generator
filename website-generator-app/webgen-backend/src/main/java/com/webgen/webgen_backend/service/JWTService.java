@@ -36,15 +36,13 @@ public class JWTService {
     private final RemoteJWKSet<SecurityContext> jwkSet;
 
     public JWTService(
-            @Value("${supabase.project.url}") String projectUrl
-    ) {
+            @Value("${supabase.project.url}") String projectUrl) {
 
         try {
             // Construct JWKS url
             this.jwksUrl = projectUrl + "/auth/v1/.well-known/jwks.json";
             URI uri = URI.create(jwksUrl);
             URL url = uri.toURL();
-
 
             /**
              * Used to store cachsed set of JWKs fetched form the URL
@@ -58,8 +56,8 @@ public class JWTService {
     /* ============== VALIDATION LOGIC ============== */
     /**
      * Validates:
-     *  - JWT signature using Supabase's RSA public key
-     *  - JWT expiration time
+     * - JWT signature using Supabase's RSA public key
+     * - JWT expiration time
      */
     public boolean isValid(String token) {
         try {
@@ -70,15 +68,11 @@ public class JWTService {
 
             // Check verification with EC public key
             boolean verified = jwt.verify(
-                    new ECDSAVerifier(publicKey)
-            );
-
+                    new ECDSAVerifier(publicKey));
 
             if (!verified) {
                 System.out.println("Invalid JWT signature");
                 return false;
-            } else {
-                System.out.println("Valid JWT Signature");
             }
 
             // Check expiration
@@ -90,7 +84,6 @@ public class JWTService {
 
             return true;
 
-
         } catch (Exception e) {
             System.out.println("JWT validation failed: " + e.getMessage());
 
@@ -98,9 +91,7 @@ public class JWTService {
         }
     }
 
-
-
-    public String extractUserId(String token) throws Exception{
+    public String extractUserId(String token) throws Exception {
         SignedJWT signedJWT = SignedJWT.parse(token);
         return signedJWT.getJWTClaimsSet().getSubject();
     }
@@ -113,8 +104,7 @@ public class JWTService {
 
         // Query JWKS for this specific key ID
         JWKSelector selector = new JWKSelector(
-                new JWKMatcher.Builder().keyID(keyId).build()
-        );
+                new JWKMatcher.Builder().keyID(keyId).build());
 
         // List of matching keys from JWKS
         var keys = jwkSet.get(selector, null);
