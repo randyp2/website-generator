@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import type {
+    CompletedSectionsResponse,
+    GlobalTheme,
     JobStatusResponse,
     SectionDTO,
-    GlobalTheme,
 } from "@/types/portfolio";
 import type { Message } from "@/types/preview";
 import {
@@ -12,6 +13,7 @@ import {
     createGeneratingMessage,
     createUserMessage,
 } from "../lib/message-helpers";
+import type { GenerationPhase } from "../components/loaders/GenerationOverlay";
 
 interface LoadPortfolioResponse {
     sections?: SectionDTO[] | null;
@@ -28,10 +30,16 @@ interface UseInitialPortfolioGenerationParams {
     isHydrating: boolean;
     hasResolvedInitialPortfolioLoad: boolean;
     setSections: (sections: SectionDTO[] | null) => void;
+    appendSections: (newSections: SectionDTO[]) => void;
     setGlobalTheme: (theme: GlobalTheme | null) => void;
     setMessages: (
         updater: Message[] | ((prev: Message[]) => Message[]),
     ) => void;
+}
+
+interface UseInitialPortfolioGenerationReturn {
+    generationPhase: GenerationPhase | null;
+    totalSections: number;
 }
 
 const DEFAULT_GENERATION_PROMPT: string =
@@ -59,19 +67,21 @@ export const useInitialPortfolioGeneration = ({
     isHydrating,
     hasResolvedInitialPortfolioLoad,
     setSections,
+    appendSections,
     setGlobalTheme,
     setMessages,
-}: UseInitialPortfolioGenerationParams): { generationPhase: string | null } => {
+}: UseInitialPortfolioGenerationParams): UseInitialPortfolioGenerationReturn => {
     const hasGeneratedRef = useRef<boolean>(false);
-    const [generationPhase, setGenerationPhase] = useState<string | null>(null);
+    const sectionsRef = useRef(sections);
+    sectionsRef.current = sections;
+    const [generationPhase, setGenerationPhase] = useState<GenerationPhase | null>(null);
+    const [totalSections, setTotalSections] = useState<number>(0);
 
     useEffect(() => {
         let pollTimer: ReturnType<typeof setInterval> | null = null;
         let cancelled: boolean = false;
 
-        // Used more so as a fall back in the case that one-shot generation fails
-        // - If frontend end fetch fails fall back to this
-        // - Server side might've succeeded
+        // Fallback: load the full portfolio from DB (catches missed sections + global theme)
         const loadSavedPortfolio = async (): Promise<boolean> => {
             if (!portfolioId) return false;
 
@@ -94,7 +104,7 @@ export const useInitialPortfolioGeneration = ({
                         "sections",
                     );
 
-                    // Persist to zustand
+                    // Overwrite with the full set to catch any missed sections + correct ordering
                     setSections(loadedData.sections ?? []);
                     if (loadedData.globalTheme) {
                         setGlobalTheme(loadedData.globalTheme);
@@ -110,6 +120,8 @@ export const useInitialPortfolioGeneration = ({
         };
 
         const pollJobStatus = (jobId: string, tempMessageId: string): void => {
+            let sectionOffset = 0;
+
             pollTimer = setInterval(async () => {
                 if (cancelled) {
                     if (pollTimer) clearInterval(pollTimer);
@@ -117,62 +129,147 @@ export const useInitialPortfolioGeneration = ({
                 }
 
                 try {
-                    // Fetch the current jobs status
-                    const res: Response = await fetch(
-                        `/api/portfolio/jobs/status/${jobId}`,
-                    );
-                    if (!res.ok) return;
-
-                    const job_status = (await res.json()) as JobStatusResponse;
-                    const label: string =
-                        STATUS_LABELS[job_status.status] ?? job_status.status;
-
-                    // Update overlay phase
-                    setGenerationPhase(job_status.status);
-
-                    // Update throbber message
-                    setMessages((prev) =>
-                        prev.map((m) =>
-                            m.id === tempMessageId
-                                ? { ...m, content: label }
-                                : m,
-                        ),
+                    // Fetch completed sections since our last offset
+                    const sectionsRes: Response = await fetch(
+                        `/api/portfolio/jobs/${jobId}/sections?after=${sectionOffset}`,
                     );
 
-                    if (job_status.status === "COMPLETED") {
-                        // Clear the time interval
-                        if (pollTimer) clearInterval(pollTimer);
-                        setGenerationPhase(null);
+                    if (sectionsRes.ok) {
+                        const sectionsData =
+                            (await sectionsRes.json()) as CompletedSectionsResponse;
 
-                        // Load from DB
-                        await loadSavedPortfolio();
+                        // Append any new sections incrementally
+                        if (sectionsData.sections.length > 0) {
+                            appendSections(sectionsData.sections);
+                            sectionOffset += sectionsData.sections.length;
+                        }
 
-                        const done_message: Message = createAiMessage(
-                            "Portfolio generated successfully!",
-                            { id: `ai-${Date.now()}`, isGenerating: false },
+                        // Update total sections count
+                        if (sectionsData.totalSections > 0) {
+                            setTotalSections(sectionsData.totalSections);
+                        }
+
+                        // Build progress label
+                        const completedCount = sectionsData.completedCount;
+                        const total = sectionsData.totalSections;
+                        const statusLabel =
+                            STATUS_LABELS[sectionsData.status] ??
+                            sectionsData.status;
+                        const progressLabel =
+                            total > 0
+                                ? `${statusLabel.replace("...", "")} (${completedCount}/${total})...`
+                                : statusLabel;
+
+                        // Update overlay phase
+                        setGenerationPhase(sectionsData.status as GenerationPhase);
+
+                        // Update throbber message
+                        setMessages((prev) =>
+                            prev.map((m) =>
+                                m.id === tempMessageId
+                                    ? { ...m, content: progressLabel }
+                                    : m,
+                            ),
                         );
+
+                        if (sectionsData.status === "COMPLETED") {
+                            if (pollTimer) clearInterval(pollTimer);
+                            setGenerationPhase(null);
+
+                            // Final load to sync global theme + catch any missed sections
+                            await loadSavedPortfolio();
+
+                            const done_message: Message = createAiMessage(
+                                "Portfolio generated successfully!",
+                                {
+                                    id: `ai-${Date.now()}`,
+                                    isGenerating: false,
+                                },
+                            );
+
+                            setMessages((prev) =>
+                                prev
+                                    .filter((m) => m.id !== tempMessageId)
+                                    .concat(done_message),
+                            );
+                        }
+
+                        if (sectionsData.status === "FAILED") {
+                            if (pollTimer) clearInterval(pollTimer);
+                            setGenerationPhase(null);
+
+                            const error_message: Message = createAiMessage(
+                                "Generation failed. Please try again.",
+                                {
+                                    id: `ai-${Date.now()}`,
+                                    isGenerating: false,
+                                },
+                            );
+
+                            setMessages((prev) =>
+                                prev
+                                    .filter((m) => m.id !== tempMessageId)
+                                    .concat(error_message),
+                            );
+                        }
+                    } else {
+                        // Fallback: fetch job status only
+                        const statusRes: Response = await fetch(
+                            `/api/portfolio/jobs/status/${jobId}`,
+                        );
+                        if (!statusRes.ok) return;
+
+                        const jobStatus =
+                            (await statusRes.json()) as JobStatusResponse;
+                        const label: string =
+                            STATUS_LABELS[jobStatus.status] ?? jobStatus.status;
+
+                        setGenerationPhase(jobStatus.status as GenerationPhase);
 
                         setMessages((prev) =>
-                            prev
-                                .filter((m) => m.id !== tempMessageId)
-                                .concat(done_message),
-                        );
-                    }
-
-                    if (job_status.status === "FAILED") {
-                        if (pollTimer) clearInterval(pollTimer);
-                        setGenerationPhase(null);
-
-                        const error_message: Message = createAiMessage(
-                            "Generation failed. Please try again.",
-                            { id: `ai-${Date.now()}`, isGenerating: false },
+                            prev.map((m) =>
+                                m.id === tempMessageId
+                                    ? { ...m, content: label }
+                                    : m,
+                            ),
                         );
 
-                        setMessages((prev) =>
-                            prev
-                                .filter((m) => m.id !== tempMessageId)
-                                .concat(error_message),
-                        );
+                        if (jobStatus.status === "COMPLETED") {
+                            if (pollTimer) clearInterval(pollTimer);
+                            setGenerationPhase(null);
+                            await loadSavedPortfolio();
+
+                            const done_message: Message = createAiMessage(
+                                "Portfolio generated successfully!",
+                                {
+                                    id: `ai-${Date.now()}`,
+                                    isGenerating: false,
+                                },
+                            );
+                            setMessages((prev) =>
+                                prev
+                                    .filter((m) => m.id !== tempMessageId)
+                                    .concat(done_message),
+                            );
+                        }
+
+                        if (jobStatus.status === "FAILED") {
+                            if (pollTimer) clearInterval(pollTimer);
+                            setGenerationPhase(null);
+
+                            const error_message: Message = createAiMessage(
+                                "Generation failed. Please try again.",
+                                {
+                                    id: `ai-${Date.now()}`,
+                                    isGenerating: false,
+                                },
+                            );
+                            setMessages((prev) =>
+                                prev
+                                    .filter((m) => m.id !== tempMessageId)
+                                    .concat(error_message),
+                            );
+                        }
                     }
                 } catch (err) {
                     console.error("[poll] Status check failed: ", err);
@@ -183,7 +280,7 @@ export const useInitialPortfolioGeneration = ({
         const generate = async (): Promise<void> => {
             if (hasGeneratedRef.current) return;
             if (isHydrating || !hasResolvedInitialPortfolioLoad) return;
-            if (sections && sections.length > 0) {
+            if (sectionsRef.current && sectionsRef.current.length > 0) {
                 hasGeneratedRef.current = true;
                 return;
             }
@@ -242,7 +339,7 @@ export const useInitialPortfolioGeneration = ({
                     return;
                 }
 
-                // Start polling for status
+                // Start polling for status + sections
                 const { jobId } = (await response.json()) as { jobId: string };
                 pollJobStatus(jobId, tempAiMessage.id);
             } catch (err: unknown) {
@@ -271,13 +368,13 @@ export const useInitialPortfolioGeneration = ({
         parsedResumeData,
         aiPrompt,
         stylePreferences,
-        sections,
         isHydrating,
         hasResolvedInitialPortfolioLoad,
         setSections,
+        appendSections,
         setGlobalTheme,
         setMessages,
     ]);
 
-    return { generationPhase };
+    return { generationPhase, totalSections };
 };
