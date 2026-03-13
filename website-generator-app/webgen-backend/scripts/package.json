@@ -4,6 +4,7 @@
   "description": "JSX validation script for webgen-backend",
   "private": true,
   "dependencies": {
-    "@babel/parser": "^7.23.0"
+    "@babel/parser": "^7.23.0",
+    "@babel/traverse": "^7.23.0"
   }
 }

@@ -98,6 +98,7 @@ public class PortfolioPromptBuilder {
                         - Subcomponents MAY accept any props they need.
                         - Subcomponents MUST NOT be exported or reused outside the section.
                         - The section’s public props contract MUST remain unchanged.
+                        - CRITICAL: The main exported function MUST still destructure { data } in its parameter list and explicitly pass data to sub-components. Never reference `data` from a function that does not have it in its own parameter list.
 
                         7. Creativity (ONE-SHOT ONLY)
                         - You MUST make intentional visual and structural design decisions.
@@ -699,7 +700,7 @@ public class PortfolioPromptBuilder {
                 2. Section must be fully self-contained and independently renderable.
                 3. The section MUST render a top-level element with id equal to its sectionKey.
                 4. React contract: single `data` prop, always present, no optional chaining.
-                5. Component format: export default function <PascalCaseSectionKey>Section({ data }) { ... }
+                5. Component format: export default function <PascalCaseSectionKey>Section({ data }) { ... }. The default export MUST always have { data } in its parameter list, even if it delegates to sub-components.
                 6. Plain JSX only — no TypeScript, no imports, no arrow function exports.
                 7. All dynamic content from contentJson via the `data` prop.
                 8. Tailwind CSS only for styling.
