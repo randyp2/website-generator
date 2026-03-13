@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.webgen.webgen_backend.dto.portfolio.*;
 import com.webgen.webgen_backend.dto.portfolio.builder.ValidationResult;
+import com.webgen.webgen_backend.dto.portfolio.crud.PortfolioLoadResponseDTO;
 import com.webgen.webgen_backend.dto.resume.ParsedResumeDTO;
 import com.webgen.webgen_backend.entity.GeneratedVersion;
 import com.webgen.webgen_backend.entity.Portfolio;
@@ -27,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -87,7 +89,7 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
         if (resume.getSummary() == null)
             resume.setSummary("");
 
-        // --- Refine & Build prompt
+        // --- Step 1) Refine & Build prompt
         String rawPrompt = req.getUserPrompt();
         System.out.println(">>> [SERVICE] Raw prompt: " + rawPrompt);
         System.out.println(">>> [SERVICE] Calling promptRefinerService.refineUserPrompt()...");
@@ -99,80 +101,129 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
         System.out.println(">>> [SERVICE] Prompt refined in " + (System.currentTimeMillis() - refineStart) + "ms");
         System.out.println(">>> [SERVICE] Refined prompt: " + refinedPrompt);
 
-        PortfolioGenerateResponseDTO parsedResponse = null;
+        // --- Step 2) Generate a blueprint
+        System.out.println(">>> [SERVICE] Buiilding blueprint prompt...");
+        Prompt blueprintPrompt = portfolioPromptBuilder.buildBlueprintPrompt(req, refinedPrompt);
+
+        // Update, call, parse
+        jobService.updateStatus(jobId, JobStatusDTO.Status.GENERATING);
+        ChatResponse blueprintResponse = openAiChatModel.call(blueprintPrompt);
+
+        String blueprintJson = blueprintResponse.getResult().getOutput().getText();
+        BlueprintDTO blueprint = portfolioResponseParser.parseBlueprintResponse(blueprintJson);
+        List<BlueprintSectionPlanDTO> sectionPlan = blueprint.getSectionPlan();
+
+        jobService.setTotalSections(jobId, sectionPlan.size());
+
+        System.out.println(">>> [SERVICE] Blueprint parsed: " + sectionPlan.size() + " sections planned");
+
+        // --- Step 3) Generate each section individually
+        List<SectionDTO> completedSections = new ArrayList<>();
+        List<String> priorSignatures = new ArrayList<>();
+
+        for (BlueprintSectionPlanDTO planItem : sectionPlan) {
+            System.out.println(">>> [SERVICE] Generating section: " + planItem.getSectionKey());
+
+            SectionDTO validSection = generateSingleSection(
+                    req, refinedPrompt, blueprint, planItem, priorSignatures, jobId);
+
+            completedSections.add(validSection);
+            priorSignatures.add(buildSignature(planItem, validSection));
+
+            // Push to redis complete list section
+            jobService.pushCompletedSection(jobId, validSection);
+            jobService.incrementCompleted(jobId);
+
+            System.out.println(">>> [SERVICE] Section completed: " + planItem.getSectionKey() + " ("
+                    + completedSections.size() + "/" + sectionPlan.size() + ")");
+
+        }
+
+        // --- Step 4) Assemble final response and persist to DB
+        jobService.updateStatus(jobId, JobStatusDTO.Status.PERSISTING);
+
+        PortfolioGenerateResponseDTO response = new PortfolioGenerateResponseDTO();
+
+        response.setSections(completedSections);
+        response.setGlobalTheme(blueprint.getGlobalThemeDTO());
+        response.setAssistantMessage(blueprint.getAssistantMessage());
+
+        persistGenerationResults(portfolioId, portfolio, req, response);
+
+        return response;
+    }
+
+
+    /**
+     * Call LLM and generate the react source code for a single section
+     * Update the job status accordingly in redis DB
+     * Validate react source code
+     * @param req Generation request
+     * @param refinedPrompt Refined user prompt
+     * @param blueprint Blueprint of overall portfolio goals
+     * @param planItem Specific section plan blueprint
+     * @param priorSignatures Prior completed sections
+     * @param jobId current job
+     * @return section dto w/ react source code
+     */
+    private SectionDTO generateSingleSection(
+            PortfolioGenerateRequestDTO req,
+            String refinedPrompt,
+            BlueprintDTO blueprint,
+            BlueprintSectionPlanDTO planItem,
+            List<String> priorSignatures,
+            String jobId
+    ) {
+        SectionDTO parsedSection = null;
         ValidationResult validation = null;
-        String rawJson = null;
         int attempt = 0;
 
-        // --- Keep retrying
         while (attempt < maxRetries) {
             attempt++;
 
-            // --- Build prompt (with errors if retry)
-            Prompt prompt;
-            if (validation == null || validation.isValid()) {
-                System.out.println(">>> [SERVICE] Building one-shot prompt...");
-                prompt = portfolioPromptBuilder.buildOneShotPrompt(req, refinedPrompt);
-            } else {
-                System.out.println(">>> [SERVICE] Building retry prompt (attempt " + attempt + ")...");
-                prompt = portfolioPromptBuilder.buildOneShotRetryPrompt(req, refinedPrompt, rawJson,
-                        validation.getErrors());
-            }
-            System.out.println(">>> [SERVICE] Prompt built successfully");
+            // --- Build prompt
+            Prompt sectionPrompt = portfolioPromptBuilder
+                    .buildSectionPrompt(req, refinedPrompt, blueprint, planItem, priorSignatures);
 
-            // --- Call AI chat model
-            System.out.println(">>> [SERVICE] Calling OpenAI chat model...");
-            System.out.println(">>> [SERVICE] WARNING: This may take 30-120 seconds for large portfolios");
-            long aiStart = System.currentTimeMillis();
-
+            // --- Call LLM
             jobService.updateStatus(jobId, JobStatusDTO.Status.GENERATING);
-            ChatResponse response = openAiChatModel.call(prompt);
+            ChatResponse response = openAiChatModel.call(sectionPrompt);
+            String rawJson = response.getResult().getOutput().getText();
 
-            System.out
-                    .println(">>> [SERVICE] OpenAI call completed in " + (System.currentTimeMillis() - aiStart) + "ms");
+            // --- Parse
+            parsedSection = portfolioResponseParser.parseSingleSectionResponse(rawJson);
 
-            rawJson = response.getResult().getOutput().getText();
-            System.out.println(
-                    ">>> [SERVICE] Raw JSON response length: " + (rawJson != null ? rawJson.length() : 0) + " chars");
-
-            // --- Parse json and validate structure
-            System.out.println(">>> [SERVICE] Parsing response JSON...");
-            parsedResponse = portfolioResponseParser.parseGenerateResponse(rawJson);
-            System.out.println(">>> [SERVICE] Response parsed, sections: "
-                    + (parsedResponse.getSections() != null ? parsedResponse.getSections().size() : 0));
-
-            System.out.println(">>> [SERVICE] Validating response structure...");
-            portfolioResponseParser.validateGenerateResponse(parsedResponse);
-            System.out.println(">>> [SERVICE] Structure validation passed");
-
-            // --- Validate JSX
-            System.out.println(">>> [SERVICE] Validating JSX...");
+            // --- Validate react source code
             jobService.updateStatus(jobId, JobStatusDTO.Status.VALIDATING);
-            validation = jsxValidatorService.validateGeneratedSections(parsedResponse.getSections());
+            validation = jsxValidatorService.validateGeneratedSections(List.of(parsedSection));
 
             if (validation.isValid()) {
-                System.out.println(">>> [SERVICE] JSX validation passed on attempt " + attempt);
-                break; // Success
+                System.out.println(">>> [SERVICE] Section  '" + planItem.getSectionKey()
+                        + "' validated on attempt " + attempt);
+                break;
             }
 
             jobService.updateStatus(jobId, JobStatusDTO.Status.RETRYING);
-            System.out.println(
-                    ">>> [SERVICE] JSX validation failed (attempt " + attempt + "): " + validation.getErrors());
+            System.out.println(">>> [SERVICE] Section '" + planItem.getSectionKey()
+                    + "' validation failed (attempt " + attempt + "): " + validation.getErrors());
         }
 
-        if (!validation.isValid()) {
-            String failReason = "Failed to generate valid JSX after " + maxRetries + " attempts. Errors: "
-                    + validation.getErrors();
+        if (validation == null || !validation.isValid()) {
+            String failReason = "Failed to generate valid JSX for section '"
+                    + planItem.getSectionKey() + "' after " + maxRetries + " attempts";
             jobService.failJob(jobId, failReason);
             throw new IllegalStateException(failReason);
         }
 
-        System.out.println(">>> [SERVICE] Validation passed, persisting to database...");
-        jobService.updateStatus(jobId, JobStatusDTO.Status.PERSISTING);
-        persistGenerationResults(portfolioId, portfolio, req, parsedResponse);
-
-        return parsedResponse;
+        return parsedSection;
     }
+
+    private String buildSignature(BlueprintSectionPlanDTO planItem, SectionDTO validSection) {
+        return planItem.getSectionKey() + ": " + planItem.getLayoutHint()
+                + " | title: " + validSection.getTitle();
+    }
+
+
 
     private void persistGenerationResults(
             UUID portfolioId,
