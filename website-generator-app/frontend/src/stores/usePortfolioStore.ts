@@ -121,6 +121,7 @@ export interface PortfolioCreateState {
     setIsSendingStyle: (isSending: boolean) => void;
 
     setSections: (sections: SectionDTO[] | null) => void;
+    appendSections: (newSections: SectionDTO[]) => void;
     setGlobalTheme: (theme: GlobalTheme | null) => void;
 
     setMessages: (
@@ -503,6 +504,10 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                 set({ isSendingStyle: isSending }),
 
             setSections: (sections: SectionDTO[] | null) => set({ sections }),
+            appendSections: (newSections: SectionDTO[]) => {
+                const current = get().sections ?? [];
+                set({ sections: [...current, ...newSections] });
+            },
             setGlobalTheme: (theme: GlobalTheme | null) => set({ globalTheme: theme }),
 
             setMessages: (

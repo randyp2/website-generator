@@ -5,7 +5,7 @@ import { ComponentDragLoader } from "./ComponentDragLoader";
 import { CodeGenerationLoader } from "./CodeGenerationLoader";
 import { CodeValidationLoader } from "./CodeValidationLoader";
 
-type GenerationPhase =
+export type GenerationPhase =
     | "QUEUED"
     | "PROCESSING"
     | "REFINING_PROMPT"

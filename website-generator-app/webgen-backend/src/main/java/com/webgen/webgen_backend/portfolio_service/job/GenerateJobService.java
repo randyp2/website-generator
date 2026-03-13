@@ -4,11 +4,15 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.dto.portfolio.JobStatusDTO;
 import com.webgen.webgen_backend.dto.portfolio.PortfolioGenerateRequestDTO;
+import com.webgen.webgen_backend.dto.portfolio.SectionDTO;
 
 import lombok.RequiredArgsConstructor;
+
+
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
@@ -28,6 +32,7 @@ public class GenerateJobService {
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
 
+    // Create and queue a generation job for a worker to pick up
     public String createJobAndQueue(
             UUID portfolioId,
             UUID userId,
@@ -48,7 +53,35 @@ public class GenerateJobService {
         }
     }
 
-    public String createJob(UUID portfolioId) {
+    // Push a completed section job to a list
+    public void pushCompletedSection(String jobId, SectionDTO sectionDTO) {
+        try {
+            String sectionJson = objectMapper.writeValueAsString(sectionDTO);
+            String key = KEY_PREFIX + jobId + ":sections";
+
+            // Push to a redis list
+            redisTemplate.opsForList().rightPush(key, sectionJson);
+            redisTemplate.expire(key, TTL);
+        } catch (JsonProcessingException e) {
+
+            System.err.println(">>> [JOB] Failed to push completed section job");
+        }
+    }
+
+    // Get the list of compeleted sections
+    public List<String> getCompletedSections(String jobId, long offset) {
+        String key = KEY_PREFIX + jobId + ":sections";
+        Long size = redisTemplate.opsForList().size(key);
+        if (size == null || size <= offset) {
+            return List.of();
+        }
+
+        // Query the list
+        List<String> resultSections = redisTemplate.opsForList().range(key, offset, -1);
+        return resultSections != null ? resultSections : List.of();
+    }
+
+    private String createJob(UUID portfolioId) {
         String jobId = UUID.randomUUID().toString();
 
         JobStatusDTO status = new JobStatusDTO();
