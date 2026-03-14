@@ -44,7 +44,7 @@ export const PresetPaletteCard = ({
                     {Object.entries(paletteColors).map(([key, color]) => (
                         <div
                             key={key}
-                            className="h-6 w-6 rounded-md first:rounded-l-lg last:rounded-r-lg"
+                            className="h-6 w-6 rounded-md border border-black/15 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.1)] first:rounded-l-lg last:rounded-r-lg"
                             style={{ backgroundColor: color }}
                         />
                     ))}

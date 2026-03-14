@@ -8,7 +8,7 @@ interface PalettePreviewCardProps {
 
 export const PalettePreviewCard = ({ colors }: PalettePreviewCardProps) => {
     return (
-        <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-5 shadow-[0_22px_50px_rgba(0,0,0,0.22)] backdrop-blur-xl">
+        <div>
             <div className="mb-4">
                 <h3 className="text-base font-semibold text-white">
                     Live Preview
@@ -71,31 +71,52 @@ export const PalettePreviewCard = ({ colors }: PalettePreviewCardProps) => {
                 </div>
 
                 <div className="flex gap-2 px-4 pb-4">
+                    {/* need help here */}
                     <div
-                        className="flex-1 rounded p-2"
+                        className="flex-1 rounded p-3"
                         style={{ backgroundColor: `${colors.secondary}20` }}
                     >
                         <div
-                            className="mb-1 h-2 w-full rounded"
+                            className="mb-2 h-2.5 w-full rounded"
                             style={{ backgroundColor: colors.text }}
                         />
-                        <div
-                            className="h-1.5 w-2/3 rounded"
-                            style={{ backgroundColor: colors.muted }}
-                        />
+                        <div className="space-y-1.5">
+                            <div
+                                className="h-1.5 w-2/3 rounded"
+                                style={{ backgroundColor: colors.muted }}
+                            />
+                            <div
+                                className="h-1.5 w-1/2 rounded"
+                                style={{ backgroundColor: colors.muted }}
+                            />
+                            <div
+                                className="h-6 w-14 rounded-md"
+                                style={{ backgroundColor: colors.primary }}
+                            />
+                        </div>
                     </div>
                     <div
-                        className="flex-1 rounded p-2"
+                        className="flex-1 rounded p-3"
                         style={{ backgroundColor: `${colors.accent}20` }}
                     >
                         <div
-                            className="mb-1 h-2 w-full rounded"
+                            className="mb-2 h-2.5 w-full rounded"
                             style={{ backgroundColor: colors.text }}
                         />
-                        <div
-                            className="h-1.5 w-2/3 rounded"
-                            style={{ backgroundColor: colors.muted }}
-                        />
+                        <div className="space-y-1.5">
+                            <div
+                                className="h-1.5 w-2/3 rounded"
+                                style={{ backgroundColor: colors.muted }}
+                            />
+                            <div
+                                className="h-1.5 w-1/2 rounded"
+                                style={{ backgroundColor: colors.muted }}
+                            />
+                            <div
+                                className="h-6 w-14 rounded-md"
+                                style={{ backgroundColor: colors.accent }}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>

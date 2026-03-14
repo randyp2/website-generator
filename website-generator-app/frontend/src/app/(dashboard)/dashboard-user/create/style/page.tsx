@@ -63,7 +63,7 @@ const StyleDiscussionPage: React.FC = () => {
     };
 
     return (
-        <main className="min-h-screen px-5 py-8 md:px-10 md:py-10">
+        <main className="min-h-screen px-5 pb-8 pt-0 md:px-10 md:pb-10 md:pt-0">
             <PortfolioStyleChat
                 messages={normalizedStyleMessages}
                 isSending={isSending}
@@ -76,7 +76,7 @@ const StyleDiscussionPage: React.FC = () => {
                 onTypographySubmit={handleFontSubmit}
                 recommendedHeadingFont={recommendedHeadingFont}
                 recommendedBodyFont={recommendedBodyFont}
-                className="max-w-7xl h-[calc(100vh-11rem)] md:h-[calc(100vh-12rem)]"
+                className="max-w-7xl h-[calc(100vh-7rem)] md:h-[calc(100vh-8rem)]"
             />
         </main>
     );

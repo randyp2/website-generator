@@ -67,6 +67,7 @@ public class StyleChatPromptBuilder {
                 - Do NOT be a quiz. Be a conversation.
                 - If you recommend something, explain why briefly.
                 - Keep messages concise but substantive (2-3 sentences, max 70 words).
+                - In assistantMessage, you may use **bold** for emphasis and bullet lists (- item) when presenting options. Keep markdown light and conversational.
 
                 ========================
                 TYPOGRAPHY PICKER
@@ -84,20 +85,35 @@ public class StyleChatPromptBuilder {
                 first topic you bring up, otherwise set it to false.
 
                 ========================
+                RICH RESPONSE ELEMENTS
+
+                You have optional structured fields to enhance the conversation:
+
+                - "suggestions": An array of 2-4 short string options the user can click to respond quickly.
+                  Use when presenting clear choices, e.g. ["Spacious layout", "Balanced layout", "Compact layout"].
+                  Set to null when asking open-ended questions.
+
+                - "designTip": A single sentence design insight relevant to the current topic.
+                  Example: "Generous whitespace draws attention to your work and signals confidence."
+                  Use sparingly — not every message needs a tip. Set to null when not applicable.
+
+                ========================
                 OUTPUT FORMAT (STRICT)
 
                 Return a single JSON object:
                 {
-                    "assistantMessage": "<your conversational message>",
+                    "assistantMessage": "<your conversational message, may use **bold** and - bullet lists>",
                     "isAnswerValid": true,
                     "nextQuestionNumber": 2,
                     "showTypographyPicker": false,
                     "recommendedHeadingFont": null,
                     "recommendedBodyFont": null,
+                    "suggestions": null,
+                    "designTip": null,
                     "compiledStylePreferences": null
                 }
 
-                Return JSON ONLY. No markdown, no extra text.
+                Return JSON ONLY. No text outside the JSON object.
                 """.formatted(safe(context.getDesignGoal())));
 
         UserMessage user = new UserMessage("""
@@ -205,6 +221,7 @@ public class StyleChatPromptBuilder {
                 - Do NOT number questions or reference turn numbers
                 - Do NOT be a quiz. Be a design conversation.
                 - Keep messages concise but substantive (2-3 sentences, max 70 words)
+                - In assistantMessage, you may use **bold** for emphasis and bullet lists (- item) when presenting options. Keep markdown light and conversational.
                 - On the final message, explicitly include a completion sentence such as
                   "I have everything I need and I am done asking style questions."
                 - If you recommend something, explain why briefly
@@ -212,16 +229,31 @@ public class StyleChatPromptBuilder {
                 - When compiling preferences, use the EXACT field names shown below
 
                 ========================
+                RICH RESPONSE ELEMENTS
+
+                You have optional structured fields to enhance the conversation:
+
+                - "suggestions": An array of 2-4 short string options the user can click to respond quickly.
+                  Use when presenting clear choices, e.g. ["Spacious layout", "Balanced layout", "Compact layout"].
+                  Set to null when asking open-ended questions.
+
+                - "designTip": A single sentence design insight relevant to the current topic.
+                  Example: "Generous whitespace draws attention to your work and signals confidence."
+                  Use sparingly — not every message needs a tip. Set to null when not applicable.
+
+                ========================
                 OUTPUT FORMAT (STRICT)
 
                 Return a single JSON object:
                 {
-                    "assistantMessage": "<your conversational message>",
+                    "assistantMessage": "<your conversational message, may use **bold** and - bullet lists>",
                     "isAnswerValid": <true if user expressed a preference, false if they asked a question or need guidance>,
                     "nextQuestionNumber": <current+1 if valid, current if invalid, %d if completing>,
                     "showTypographyPicker": <true to show the font picker UI, false otherwise>,
                     "recommendedHeadingFont": <a font name from the approved whitelist or null>,
                     "recommendedBodyFont": <a font name from the approved whitelist or null>,
+                    "suggestions": <array of 2-4 clickable option strings, or null>,
+                    "designTip": <single sentence design insight, or null>,
                     "compiledStylePreferences": <null unless final turn answer is valid, then object below>
                 }
 
@@ -240,7 +272,7 @@ public class StyleChatPromptBuilder {
                     "customNotes": "<any additional style notes or specific requests from the conversation>"
                 }
 
-                Return JSON ONLY. No markdown, no extra text.
+                Return JSON ONLY. No text outside the JSON object.
                 """.formatted(
                 context.getCurrentQuestionNumber(),
                 context.getTotalQuestions(),

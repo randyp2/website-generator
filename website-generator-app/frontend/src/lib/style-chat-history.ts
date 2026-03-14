@@ -28,6 +28,8 @@ export const toPersistedStyleChatHistory = (
             message.timestamp instanceof Date
                 ? message.timestamp.toISOString()
                 : new Date(message.timestamp).toISOString(),
+        ...(message.suggestions && { suggestions: message.suggestions }),
+        ...(message.designTip && { designTip: message.designTip }),
     }));
 
 export const toUiStyleMessages = (
@@ -36,5 +38,7 @@ export const toUiStyleMessages = (
     messages.map((message) => ({
         ...message,
         timestamp: new Date(message.timestamp),
+        ...(message.suggestions && { suggestions: message.suggestions }),
+        ...(message.designTip && { designTip: message.designTip }),
     }));
 

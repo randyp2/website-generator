@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import ReactMarkdown from "react-markdown";
 import { ColorPickerPanel } from "./ColorPickerPanel";
 import { TypographyPickerPanel } from "./TypographyPickerPanel";
 
@@ -47,6 +48,66 @@ const formatTimestamp = (date: Date) => {
         minute: "2-digit",
     });
 };
+
+interface SuggestionChipProps {
+    label: string;
+    onClick: () => void;
+}
+
+const SuggestionChip = ({ label, onClick }: SuggestionChipProps) => (
+    <button
+        type="button"
+        onClick={onClick}
+        className="rounded-full border border-white/15 bg-white/[0.06] px-3 py-1.5 text-sm text-white/80 transition hover:bg-white/[0.12] hover:text-white"
+    >
+        {label}
+    </button>
+);
+
+interface AiMessageContentProps {
+    message: Message;
+    onSuggestionClick?: (suggestion: string) => void;
+}
+
+const AiMessageContent = ({ message, onSuggestionClick }: AiMessageContentProps) => (
+    <div className="space-y-3">
+        <ReactMarkdown
+            components={{
+                p: ({ children }) => <p className="my-1">{children}</p>,
+                strong: ({ children }) => (
+                    <strong className="font-semibold text-white">{children}</strong>
+                ),
+                ul: ({ children }) => (
+                    <ul className="my-1.5 list-disc space-y-0.5 pl-4">{children}</ul>
+                ),
+                li: ({ children }) => (
+                    <li className="text-white/80">{children}</li>
+                ),
+            }}
+        >
+            {message.content}
+        </ReactMarkdown>
+
+        {message.designTip && (
+            <div className="flex items-start gap-2 rounded-lg border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-sm text-blue-200/90">
+                <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-400" />
+                <span>{message.designTip}</span>
+            </div>
+        )}
+
+        {message.suggestions && message.suggestions.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+                {message.suggestions.map((suggestion) => (
+                    <SuggestionChip
+                        key={suggestion}
+                        label={suggestion}
+                        onClick={() => onSuggestionClick?.(suggestion)}
+                    />
+                ))}
+            </div>
+        )}
+    </div>
+);
 
 const composerFrameClass = "w-full max-w-[980px]";
 
@@ -164,29 +225,23 @@ export function PortfolioStyleChat({
         }
     };
 
-    const renderComposer = (compact: boolean) => (
+    const renderComposer = () => (
         <div
             className={cn(
                 "overflow-hidden rounded-[2rem] border border-white/10 bg-[#1c1d22]/92 text-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur-2xl",
-                compact ? "px-4 py-2" : "px-6 py-2.5 md:px-7 md:py-3",
+                "px-6 py-2.5 md:px-7 md:py-3",
             )}
         >
-            <div className="flex items-center gap-3">
+            <div className="flex items-start gap-3">
                 <Textarea
                     ref={textareaRef}
                     value={prompt}
                     onChange={(event) => setPrompt(event.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder={
-                        compact
-                            ? "Refine the style direction..."
-                            : "Describe the general idea for your portfolio..."
-                    }
+                    placeholder="Describe the general idea for your portfolio..."
                     className={cn(
                         "resize-none border-0 bg-transparent px-0 text-white placeholder:text-white/55 shadow-none focus-visible:ring-0",
-                        compact
-                            ? "min-h-[22px] max-h-16 py-0.5 text-sm leading-5"
-                            : "min-h-[26px] max-h-20 py-1 text-base leading-6 md:text-lg",
+                        "min-h-[32px] max-h-20 py-1.5 text-base leading-6 md:text-lg",
                     )}
                 />
                 <Button
@@ -194,25 +249,22 @@ export function PortfolioStyleChat({
                     onClick={handleSend}
                     disabled={isSending || !prompt.trim()}
                     className={cn(
-                        "mt-0.5 shrink-0 rounded-2xl bg-transparent text-white transition hover:bg-white/5 disabled:bg-transparent disabled:text-white/30",
-                        compact ? "h-10 w-10" : "h-12 w-12",
+                        "-mt-0.5 shrink-0 rounded-2xl bg-transparent text-white transition hover:bg-white/5 disabled:bg-transparent disabled:text-white/30",
+                        "h-12 w-12",
                     )}
                     aria-label="Send message"
                 >
-                    <Send
-                        strokeWidth={2.4}
-                        className={compact ? "h-6 w-6" : "h-7 w-7"}
-                    />
+                    <Send strokeWidth={2.4} className="h-7 w-7" />
                 </Button>
             </div>
 
-            <div className="mt-1 flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-1.5 text-white/70">
+            <div className="mt-0.5 flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-2 text-white/70">
                 <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-2 rounded-full bg-white/[0.06] px-3 py-1">
+                    <div className="flex items-center gap-2 rounded-full bg-white/[0.06] px-3 py-1.5">
                         <Plus className="h-3.5 w-3.5" />
                         <span className="text-xs">Add references</span>
                     </div>
-                    <div className="flex items-center gap-2 rounded-full bg-white/[0.06] px-3 py-1">
+                    <div className="flex items-center gap-2 rounded-full bg-white/[0.06] px-3 py-1.5">
                         <MessageSquareText className="h-3.5 w-3.5" />
                         <span className="text-xs">General idea</span>
                     </div>
@@ -222,7 +274,7 @@ export function PortfolioStyleChat({
                         type="button"
                         onClick={onContinue}
                         disabled={isContinueDisabled}
-                        className="inline-flex items-center gap-2 rounded-full bg-linear-to-br from-[#0b1733] via-[#123a82] to-[#1a56c7] px-3 py-1 text-xs font-semibold text-white shadow-md shadow-blue-900/30 transition hover:shadow-blue-700/35 disabled:opacity-50"
+                        className="inline-flex items-center gap-2 rounded-full bg-linear-to-br from-[#0b1733] via-[#123a82] to-[#1a56c7] px-3 py-1.5 text-xs font-semibold text-white shadow-md shadow-blue-900/30 transition hover:shadow-blue-700/35 disabled:opacity-50"
                     >
                         <span>{continueLabel}</span>
                         <ArrowRight className="h-3.5 w-3.5" />
@@ -272,7 +324,7 @@ export function PortfolioStyleChat({
                                 }}
                                 className={composerFrameClass}
                             >
-                                {renderComposer(false)}
+                                {renderComposer()}
                             </motion.div>
 
                             {showColorPicker && onColorSubmit && (
@@ -321,13 +373,22 @@ export function PortfolioStyleChat({
                                     >
                                         <div
                                             className={cn(
-                                                "max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-relaxed md:max-w-[80%]",
+                                                "max-w-[88%] py-3 text-[15px] leading-relaxed md:max-w-[80%]",
                                                 message.role === "user"
-                                                    ? "bg-linear-to-r from-blue-600 to-blue-500 text-white"
-                                                    : "border border-white/10 bg-white/5 text-white/90",
+                                                    ? "rounded-2xl bg-linear-to-r from-blue-600 to-blue-500 px-4 text-white"
+                                                    : "text-white/90",
                                             )}
                                         >
-                                            {message.content}
+                                            {message.role === "ai" ? (
+                                                <AiMessageContent
+                                                    message={message}
+                                                    onSuggestionClick={(suggestion) => {
+                                                        setPrompt(suggestion);
+                                                    }}
+                                                />
+                                            ) : (
+                                                message.content
+                                            )}
                                         </div>
                                         <span className="mt-1 text-xs text-white/40">
                                             {formatTimestamp(message.timestamp)}
@@ -376,7 +437,7 @@ export function PortfolioStyleChat({
                                     }}
                                     className="pointer-events-auto"
                                 >
-                                    {renderComposer(true)}
+                                    {renderComposer()}
                                 </motion.div>
                             </div>
                         </div>

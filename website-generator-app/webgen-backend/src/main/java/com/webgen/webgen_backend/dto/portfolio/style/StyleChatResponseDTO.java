@@ -2,6 +2,7 @@ package com.webgen.webgen_backend.dto.portfolio.style;
 
 import lombok.Data;
 
+import java.util.List;
 import java.util.Map;
 
 @Data
@@ -15,4 +16,6 @@ public class StyleChatResponseDTO {
     private boolean showTypographyPicker;          // signals frontend to render typography picker
     private String recommendedHeadingFont;         // AI's heading font suggestion (nullable)
     private String recommendedBodyFont;            // AI's body font suggestion (nullable)
+    private List<String> suggestions;              // clickable option chips (nullable)
+    private String designTip;                      // styled design tip callout (nullable)
 }
