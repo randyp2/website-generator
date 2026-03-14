@@ -66,8 +66,10 @@ public class StyleChatPromptBuilder {
                 - Do NOT number questions or say "Question 2"
                 - Do NOT be a quiz. Be a conversation.
                 - If you recommend something, explain why briefly.
-                - Keep messages concise but substantive (2-3 sentences, max 70 words).
-                - In assistantMessage, you may use **bold** for emphasis and bullet lists (- item) when presenting options. Keep markdown light and conversational.
+                - Keep messages concise but substantive (2-3 sentences, max 80 words).
+                - ALWAYS use **bold** markdown when mentioning font names, style terms, or recommendations (e.g. "I'd suggest **Space Grotesk**").
+                - When presenting 2+ options, ALWAYS format them as a markdown bullet list (- item), never as a run-on sentence.
+                - Do NOT use markdown headers (#, ##). This is a chat, not a document.
 
                 ========================
                 TYPOGRAPHY PICKER
@@ -102,7 +104,7 @@ public class StyleChatPromptBuilder {
 
                 Return a single JSON object:
                 {
-                    "assistantMessage": "<your conversational message, may use **bold** and - bullet lists>",
+                    "assistantMessage": "<markdown string: use **bold** for key terms, - bullet lists for options>",
                     "isAnswerValid": true,
                     "nextQuestionNumber": 2,
                     "showTypographyPicker": false,
@@ -246,7 +248,7 @@ public class StyleChatPromptBuilder {
 
                 Return a single JSON object:
                 {
-                    "assistantMessage": "<your conversational message, may use **bold** and - bullet lists>",
+                    "assistantMessage": "<markdown string: use **bold** for key terms, - bullet lists for options>",
                     "isAnswerValid": <true if user expressed a preference, false if they asked a question or need guidance>,
                     "nextQuestionNumber": <current+1 if valid, current if invalid, %d if completing>,
                     "showTypographyPicker": <true to show the font picker UI, false otherwise>,
