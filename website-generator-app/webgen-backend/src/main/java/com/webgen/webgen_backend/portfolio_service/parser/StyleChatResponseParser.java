@@ -7,6 +7,9 @@ import com.webgen.webgen_backend.model.portfolio.style.CompiledStylePreferences;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class StyleChatResponseParser {
@@ -29,6 +32,21 @@ public class StyleChatResponseParser {
             dto.setRecommendedHeadingFont(recHeading);
             String recBody = root.path("recommendedBodyFont").asText(null);
             dto.setRecommendedBodyFont(recBody);
+
+            // Parse suggestions array
+            JsonNode suggestionsNode = root.path("suggestions");
+            if (suggestionsNode.isArray()) {
+                List<String> suggestions = new ArrayList<>();
+                for (JsonNode item : suggestionsNode) {
+                    String text = item.asText("");
+                    if (!text.isEmpty()) suggestions.add(text);
+                }
+                dto.setSuggestions(suggestions.isEmpty() ? null : suggestions);
+            }
+
+            // Parse designTip
+            String designTip = root.path("designTip").asText(null);
+            dto.setDesignTip(designTip);
 
             boolean answerValid = root.path("isAnswerValid").asBoolean(true);
 

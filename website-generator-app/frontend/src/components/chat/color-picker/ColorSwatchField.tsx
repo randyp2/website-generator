@@ -41,28 +41,49 @@ export const ColorSwatchField = ({
         setCopied(true);
     };
 
+    const handleCardSelect = () => {
+        onSelect?.();
+    };
+
     return (
-        <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+        <div
+            role={onSelect ? "button" : undefined}
+            tabIndex={onSelect ? 0 : undefined}
+            onClick={handleCardSelect}
+            onKeyDown={(event) => {
+                if (!onSelect) return;
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    handleCardSelect();
+                }
+            }}
+            className={cn(
+                "flex flex-col gap-2 rounded-2xl border bg-white/[0.03] p-3 transition-all",
+                isSelected
+                    ? "border-blue-400 ring-4 ring-blue-500/15"
+                    : "border-white/10",
+                onSelect ? "cursor-pointer hover:border-white/20" : undefined,
+            )}
+        >
             <span className="text-xs font-medium uppercase tracking-[0.18em] text-white/45">
                 {label}
             </span>
             <div className="flex items-center gap-3">
-                <button
-                    type="button"
-                    onClick={onSelect}
+                <div
                     className={cn(
                         "h-11 w-11 shrink-0 rounded-xl border-2 transition-all",
                         isSelected
-                            ? "border-blue-400 ring-4 ring-blue-500/20"
-                            : "border-white/15 hover:scale-[1.03]",
+                            ? "border-blue-400"
+                            : "border-white/15",
                     )}
                     style={{ backgroundColor: color }}
-                    aria-label={`Select ${label} color`}
                 />
                 {isEditable ? (
                     <input
                         type="text"
                         value={color}
+                        onClick={(event) => event.stopPropagation()}
+                        onKeyDown={(event) => event.stopPropagation()}
                         onChange={(event) =>
                             onColorChange?.(event.target.value)
                         }
@@ -78,7 +99,8 @@ export const ColorSwatchField = ({
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 rounded-lg text-white/70 hover:bg-white/10 hover:text-white"
-                            onClick={() => {
+                            onClick={(event) => {
+                                event.stopPropagation();
                                 void handleCopy();
                             }}
                             aria-label={`Copy ${label} color`}

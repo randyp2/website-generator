@@ -291,6 +291,8 @@ export function useStyleChat(params: {
                         role: "ai",
                         content: data.assistantMessage,
                         timestamp: new Date(),
+                        ...(data.suggestions && { suggestions: data.suggestions }),
+                        ...(data.designTip && { designTip: data.designTip }),
                     },
                 ]);
 
@@ -385,6 +387,8 @@ export function useStyleChat(params: {
                         role: "ai",
                         content: data.assistantMessage,
                         timestamp: new Date(),
+                        ...(data.suggestions && { suggestions: data.suggestions }),
+                        ...(data.designTip && { designTip: data.designTip }),
                     },
                 ]);
 
@@ -470,6 +474,8 @@ export function useStyleChat(params: {
                         role: "ai",
                         content: data.assistantMessage,
                         timestamp: new Date(),
+                        ...(data.suggestions && { suggestions: data.suggestions }),
+                        ...(data.designTip && { designTip: data.designTip }),
                     },
                 ]);
 
