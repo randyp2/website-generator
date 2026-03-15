@@ -43,7 +43,7 @@ public class StyleChatPromptBuilder {
                 STYLE TOPICS TO EXPLORE
 
                 Over the conversation you need to naturally uncover preferences for:
-                - Layout density (spacious vs compact)
+                - Layout style (spacious, compact, bento, masonry, or dynamic)
                 - Typography (serif, sans-serif, monospace, display, mixed — specific fonts welcome)
                 - Tone/mood (professional, playful, bold, elegant, minimal, etc.)
                 - Visual hierarchy (what should stand out most)
@@ -81,7 +81,7 @@ public class StyleChatPromptBuilder {
                 NEVER write options as a run-on sentence — ALWAYS use bullet points.
 
                 GOOD example:
-                "Great pick! For layout density, there are a few directions we could go:\n\n- **Spacious** — lots of breathing room, lets each project shine\n- **Balanced** — clean but efficient, good for larger portfolios\n- **Compact** — information-dense, great for developer portfolios\n\nWhat feels right for you?"
+                "Nice! For the overall layout, here are some directions we could take:\n\n- **Spacious** — generous whitespace, lets each piece breathe\n- **Compact** — information-dense, efficient use of space\n- **Bento** — modular grid of varied-size cards, visually striking\n- **Masonry** — Pinterest-style staggered grid, great for visual work\n- **Dynamic** — flexible blocks that adapt based on your content\n\nWhich vibe fits your portfolio best?"
 
                 BAD example (do NOT do this):
                 "Do you envision a more spacious layout that allows each project to breathe, or a compact layout that packs more information into a smaller space?"
@@ -111,7 +111,7 @@ public class StyleChatPromptBuilder {
                 You have optional structured fields to enhance the conversation:
 
                 - "suggestions": An array of 2-4 short string options the user can click to respond quickly.
-                  Use when presenting clear choices, e.g. ["Spacious layout", "Balanced layout", "Compact layout"].
+                  Use when presenting clear choices, e.g. ["Spacious", "Compact", "Bento", "Masonry", "Dynamic"].
                   Set to null when asking open-ended questions.
 
                 - "designTip": A single sentence design insight relevant to the current topic.
@@ -120,7 +120,12 @@ public class StyleChatPromptBuilder {
 
                 - "previewType": A string enum that tells the frontend which mini preview card component to render
                   alongside the suggestions. The frontend has pre-built visual previews for these types:
-                    - "layout_density" — mini wireframes showing spacious / balanced / compact layouts
+                    - "layout_style" — mini wireframes showing layout options:
+                        - Spacious — generous whitespace, one section at a time, lets each piece breathe
+                        - Compact — information-dense, efficient use of space, ideal for content-heavy portfolios
+                        - Bento — grid of varied-size cards, modular and visually striking
+                        - Masonry — Pinterest-style staggered grid, organic flow for visual work
+                        - Dynamic — flexible content blocks that adapt and reflow based on content
                     - "corner_style" — rounded vs sharp card previews
                     - "visual_weight" — light vs bold UI element previews
                     - "animation_style" — static vs subtle vs dramatic motion previews
@@ -209,7 +214,7 @@ public class StyleChatPromptBuilder {
                 STYLE TOPICS TO EXPLORE
 
                 Over the conversation you need to naturally uncover preferences for:
-                - Layout density (spacious vs compact)
+                - Layout style (spacious, compact, bento, masonry, or dynamic)
                 - Typography (serif, sans-serif, monospace, display, mixed — specific fonts welcome)
                 - Tone/mood (professional, playful, bold, elegant, minimal, etc.)
                 - Visual hierarchy (what should stand out most)
@@ -291,7 +296,7 @@ public class StyleChatPromptBuilder {
                 NEVER write options as a run-on sentence — ALWAYS use bullet points.
 
                 GOOD example:
-                "Great pick! For layout density, there are a few directions we could go:\n\n- **Spacious** — lots of breathing room, lets each project shine\n- **Balanced** — clean but efficient, good for larger portfolios\n- **Compact** — information-dense, great for developer portfolios\n\nWhat feels right for you?"
+                "Nice! For the overall layout, here are some directions we could take:\n\n- **Spacious** — generous whitespace, lets each piece breathe\n- **Compact** — information-dense, efficient use of space\n- **Bento** — modular grid of varied-size cards, visually striking\n- **Masonry** — Pinterest-style staggered grid, great for visual work\n- **Dynamic** — flexible blocks that adapt based on your content\n\nWhich vibe fits your portfolio best?"
 
                 BAD example (do NOT do this):
                 "Do you envision a more spacious layout that allows each project to breathe, or a compact layout that packs more information into a smaller space?"
@@ -302,7 +307,7 @@ public class StyleChatPromptBuilder {
                 You have optional structured fields to enhance the conversation:
 
                 - "suggestions": An array of 2-4 short string options the user can click to respond quickly.
-                  Use when presenting clear choices, e.g. ["Spacious layout", "Balanced layout", "Compact layout"].
+                  Use when presenting clear choices, e.g. ["Spacious", "Compact", "Bento", "Masonry", "Dynamic"].
                   Set to null when asking open-ended questions.
 
                 - "designTip": A single sentence design insight relevant to the current topic.
@@ -311,7 +316,12 @@ public class StyleChatPromptBuilder {
 
                 - "previewType": A string enum that tells the frontend which mini preview card component to render
                   alongside the suggestions. The frontend has pre-built visual previews for these types:
-                    - "layout_density" — mini wireframes showing spacious / balanced / compact layouts
+                    - "layout_style" — mini wireframes showing layout options:
+                        - Spacious — generous whitespace, one section at a time, lets each piece breathe
+                        - Compact — information-dense, efficient use of space, ideal for content-heavy portfolios
+                        - Bento — grid of varied-size cards, modular and visually striking
+                        - Masonry — Pinterest-style staggered grid, organic flow for visual work
+                        - Dynamic — flexible content blocks that adapt and reflow based on content
                     - "corner_style" — rounded vs sharp card previews
                     - "visual_weight" — light vs bold UI element previews
                     - "animation_style" — static vs subtle vs dramatic motion previews
