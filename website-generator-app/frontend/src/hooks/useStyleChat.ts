@@ -293,6 +293,8 @@ export function useStyleChat(params: {
                         timestamp: new Date(),
                         ...(data.suggestions && { suggestions: data.suggestions }),
                         ...(data.designTip && { designTip: data.designTip }),
+                        ...(data.isComplete && { isStyleComplete: true }),
+                        ...(data.isComplete && data.stylePreferences && { stylePreferences: data.stylePreferences }),
                     },
                 ]);
 
@@ -389,6 +391,8 @@ export function useStyleChat(params: {
                         timestamp: new Date(),
                         ...(data.suggestions && { suggestions: data.suggestions }),
                         ...(data.designTip && { designTip: data.designTip }),
+                        ...(data.isComplete && { isStyleComplete: true }),
+                        ...(data.isComplete && data.stylePreferences && { stylePreferences: data.stylePreferences }),
                     },
                 ]);
 
@@ -476,6 +480,8 @@ export function useStyleChat(params: {
                         timestamp: new Date(),
                         ...(data.suggestions && { suggestions: data.suggestions }),
                         ...(data.designTip && { designTip: data.designTip }),
+                        ...(data.isComplete && { isStyleComplete: true }),
+                        ...(data.isComplete && data.stylePreferences && { stylePreferences: data.stylePreferences }),
                     },
                 ]);
 

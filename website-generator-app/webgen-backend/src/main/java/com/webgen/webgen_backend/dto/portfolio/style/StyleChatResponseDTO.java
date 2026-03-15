@@ -18,4 +18,5 @@ public class StyleChatResponseDTO {
     private String recommendedBodyFont;            // AI's body font suggestion (nullable)
     private List<String> suggestions;              // clickable option chips (nullable)
     private String designTip;                      // styled design tip callout (nullable)
+    private String previewType;                    // signals frontend to render mini preview cards (nullable)
 }

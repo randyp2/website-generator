@@ -48,6 +48,10 @@ public class StyleChatResponseParser {
             String designTip = root.path("designTip").asText(null);
             dto.setDesignTip(designTip);
 
+            // Parse previewType
+            String previewType = root.path("previewType").asText(null);
+            dto.setPreviewType(previewType);
+
             boolean answerValid = root.path("isAnswerValid").asBoolean(true);
 
             // Parse compiledStylePreferences if present

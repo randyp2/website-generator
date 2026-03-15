@@ -7,11 +7,13 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import {
     ArrowRight,
+    Check,
     MessageSquareText,
     Plus,
     Send,
     Sparkles,
 } from "lucide-react";
+import type { StylePreferences } from "@/types/style";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import ReactMarkdown from "react-markdown";
@@ -108,6 +110,65 @@ const AiMessageContent = ({ message, onSuggestionClick }: AiMessageContentProps)
         )}
     </div>
 );
+
+const STYLE_PREF_LABELS: Record<string, string> = {
+    layoutDensity: "Layout",
+    tone: "Tone",
+    visualStyle: "Visual Style",
+    typography: "Typography",
+    animationStyle: "Animations",
+    whitespace: "Whitespace",
+    imageryStyle: "Imagery",
+    interactiveElements: "Interactions",
+    sectionEmphasis: "Emphasis",
+};
+
+interface StyleSummaryCardProps {
+    content: string;
+    stylePreferences?: Partial<StylePreferences>;
+}
+
+const StyleSummaryCard = ({ content, stylePreferences }: StyleSummaryCardProps) => {
+    const entries = stylePreferences
+        ? Object.entries(stylePreferences).filter(
+              ([key, value]) =>
+                  value && key in STYLE_PREF_LABELS && typeof value === "string" && value.trim(),
+          )
+        : [];
+
+    return (
+        <div className="space-y-4">
+            <div className="flex items-center gap-2 text-emerald-400">
+                <Check className="h-4 w-4" />
+                <span className="text-sm font-medium">Style profile complete</span>
+            </div>
+
+            <ReactMarkdown
+                components={{
+                    p: ({ children }) => <p className="my-1">{children}</p>,
+                    strong: ({ children }) => (
+                        <strong className="font-semibold text-white">{children}</strong>
+                    ),
+                }}
+            >
+                {content}
+            </ReactMarkdown>
+
+            {entries.length > 0 && (
+                <div className="grid grid-cols-2 gap-x-6 gap-y-2 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3">
+                    {entries.map(([key, value]) => (
+                        <div key={key} className="min-w-0">
+                            <span className="text-xs text-white/40">
+                                {STYLE_PREF_LABELS[key]}
+                            </span>
+                            <p className="truncate text-sm text-white/80">{value}</p>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
 
 const composerFrameClass = "w-full max-w-[980px]";
 
@@ -380,12 +441,19 @@ export function PortfolioStyleChat({
                                             )}
                                         >
                                             {message.role === "ai" ? (
-                                                <AiMessageContent
-                                                    message={message}
-                                                    onSuggestionClick={(suggestion) => {
-                                                        setPrompt(suggestion);
-                                                    }}
-                                                />
+                                                message.isStyleComplete ? (
+                                                    <StyleSummaryCard
+                                                        content={message.content}
+                                                        stylePreferences={message.stylePreferences}
+                                                    />
+                                                ) : (
+                                                    <AiMessageContent
+                                                        message={message}
+                                                        onSuggestionClick={(suggestion) => {
+                                                            setPrompt(suggestion);
+                                                        }}
+                                                    />
+                                                )
                                             ) : (
                                                 message.content
                                             )}
