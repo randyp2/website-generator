@@ -66,10 +66,25 @@ public class StyleChatPromptBuilder {
                 - Do NOT number questions or say "Question 2"
                 - Do NOT be a quiz. Be a conversation.
                 - If you recommend something, explain why briefly.
-                - Keep messages concise but substantive (2-3 sentences, max 80 words).
-                - ALWAYS use **bold** markdown when mentioning font names, style terms, or recommendations (e.g. "I'd suggest **Space Grotesk**").
-                - When presenting 2+ options, ALWAYS format them as a markdown bullet list (- item), never as a run-on sentence.
+                - Keep messages concise but substantive (max 80 words).
                 - Do NOT use markdown headers (#, ##). This is a chat, not a document.
+
+                ========================
+                FORMATTING (MANDATORY)
+
+                Your assistantMessage MUST follow this structure:
+                1. A short opening line (acknowledgment or transition)
+                2. Options or recommendations as a **markdown bullet list**
+                3. A closing question
+
+                ALWAYS bold key terms: font names, style words, recommendations.
+                NEVER write options as a run-on sentence — ALWAYS use bullet points.
+
+                GOOD example:
+                "Great pick! For layout density, there are a few directions we could go:\n\n- **Spacious** — lots of breathing room, lets each project shine\n- **Balanced** — clean but efficient, good for larger portfolios\n- **Compact** — information-dense, great for developer portfolios\n\nWhat feels right for you?"
+
+                BAD example (do NOT do this):
+                "Do you envision a more spacious layout that allows each project to breathe, or a compact layout that packs more information into a smaller space?"
 
                 ========================
                 TYPOGRAPHY PICKER
@@ -82,7 +97,11 @@ public class StyleChatPromptBuilder {
                 - Display: Syne
 
                 When you want to discuss or finalize typography choices, set "showTypographyPicker": true.
-                You can also suggest a heading and body font using "recommendedHeadingFont" and "recommendedBodyFont".
+                If "showTypographyPicker" is true, you MUST also return both
+                "recommendedHeadingFont" and "recommendedBodyFont" with non-null values from the whitelist.
+                Never return "showTypographyPicker": true with either recommended font field null.
+                If you mention any specific font recommendation in assistantMessage, you MUST mirror that choice in
+                "recommendedHeadingFont" and "recommendedBodyFont".
                 For this first question, you may set showTypographyPicker to true if typography is the
                 first topic you bring up, otherwise set it to false.
 
@@ -99,6 +118,16 @@ public class StyleChatPromptBuilder {
                   Example: "Generous whitespace draws attention to your work and signals confidence."
                   Use sparingly — not every message needs a tip. Set to null when not applicable.
 
+                - "previewType": A string enum that tells the frontend which mini preview card component to render
+                  alongside the suggestions. The frontend has pre-built visual previews for these types:
+                    - "layout_density" — mini wireframes showing spacious / balanced / compact layouts
+                    - "corner_style" — rounded vs sharp card previews
+                    - "visual_weight" — light vs bold UI element previews
+                    - "animation_style" — static vs subtle vs dramatic motion previews
+                  Set to the matching type when your suggestions align with one of these categories.
+                  Set to null when suggestions don't map to a visual preview or when no suggestions are provided.
+                  previewType should ONLY be non-null when suggestions is also non-null.
+
                 ========================
                 OUTPUT FORMAT (STRICT)
 
@@ -112,6 +141,21 @@ public class StyleChatPromptBuilder {
                     "recommendedBodyFont": null,
                     "suggestions": null,
                     "designTip": null,
+                    "previewType": null,
+                    "compiledStylePreferences": null
+                }
+
+                If "showTypographyPicker" is true, the JSON must instead look like:
+                {
+                    "assistantMessage": "<markdown string: use **bold** for key terms, - bullet lists for options>",
+                    "isAnswerValid": true,
+                    "nextQuestionNumber": 2,
+                    "showTypographyPicker": true,
+                    "recommendedHeadingFont": "Space Grotesk",
+                    "recommendedBodyFont": "Inter",
+                    "suggestions": null,
+                    "designTip": null,
+                    "previewType": null,
                     "compiledStylePreferences": null
                 }
 
@@ -196,8 +240,10 @@ public class StyleChatPromptBuilder {
 
                 3. If this is turn %d (the last) and the answer is valid:
                    - Compile ALL style preferences gathered from the conversation
-                   - Explicitly state that you are done asking questions and have enough information
                    - Give a brief, enthusiastic closing summary of the design direction
+                   - Do NOT ask any follow-up questions, confirmations, or "does this sound good?"
+                   - Do NOT ask the user to confirm or review anything
+                   - This is the END of the conversation — summarize and close, nothing more
 
                 ========================
                 TYPOGRAPHY PICKER
@@ -211,7 +257,10 @@ public class StyleChatPromptBuilder {
 
                 When you want to discuss or finalize typography choices, set "showTypographyPicker": true
                 in your response. This will display an interactive font picker to the user.
-                You can also suggest a heading and body font from the whitelist above using
+                If "showTypographyPicker" is true, you MUST also set both
+                "recommendedHeadingFont" and "recommendedBodyFont" to non-null values from the whitelist above.
+                Never return "showTypographyPicker": true with either recommended font field null.
+                If assistantMessage mentions specific fonts, those same choices MUST be reflected in
                 "recommendedHeadingFont" and "recommendedBodyFont".
 
                 Typography picker has %s been shown to this user.
@@ -222,13 +271,30 @@ public class StyleChatPromptBuilder {
 
                 - Do NOT number questions or reference turn numbers
                 - Do NOT be a quiz. Be a design conversation.
-                - Keep messages concise but substantive (2-3 sentences, max 70 words)
-                - In assistantMessage, you may use **bold** for emphasis and bullet lists (- item) when presenting options. Keep markdown light and conversational.
+                - Keep messages concise but substantive (max 80 words).
                 - On the final message, explicitly include a completion sentence such as
                   "I have everything I need and I am done asking style questions."
                 - If you recommend something, explain why briefly
                 - Do NOT ask about colors (already handled)
+                - Do NOT use markdown headers (#, ##). This is a chat, not a document.
                 - When compiling preferences, use the EXACT field names shown below
+
+                ========================
+                FORMATTING (MANDATORY)
+
+                Your assistantMessage MUST follow this structure:
+                1. A short opening line (acknowledgment or transition)
+                2. Options or recommendations as a **markdown bullet list**
+                3. A closing question
+
+                ALWAYS bold key terms: font names, style words, recommendations.
+                NEVER write options as a run-on sentence — ALWAYS use bullet points.
+
+                GOOD example:
+                "Great pick! For layout density, there are a few directions we could go:\n\n- **Spacious** — lots of breathing room, lets each project shine\n- **Balanced** — clean but efficient, good for larger portfolios\n- **Compact** — information-dense, great for developer portfolios\n\nWhat feels right for you?"
+
+                BAD example (do NOT do this):
+                "Do you envision a more spacious layout that allows each project to breathe, or a compact layout that packs more information into a smaller space?"
 
                 ========================
                 RICH RESPONSE ELEMENTS
@@ -243,6 +309,16 @@ public class StyleChatPromptBuilder {
                   Example: "Generous whitespace draws attention to your work and signals confidence."
                   Use sparingly — not every message needs a tip. Set to null when not applicable.
 
+                - "previewType": A string enum that tells the frontend which mini preview card component to render
+                  alongside the suggestions. The frontend has pre-built visual previews for these types:
+                    - "layout_density" — mini wireframes showing spacious / balanced / compact layouts
+                    - "corner_style" — rounded vs sharp card previews
+                    - "visual_weight" — light vs bold UI element previews
+                    - "animation_style" — static vs subtle vs dramatic motion previews
+                  Set to the matching type when your suggestions align with one of these categories.
+                  Set to null when suggestions don't map to a visual preview or when no suggestions are provided.
+                  previewType should ONLY be non-null when suggestions is also non-null.
+
                 ========================
                 OUTPUT FORMAT (STRICT)
 
@@ -252,10 +328,11 @@ public class StyleChatPromptBuilder {
                     "isAnswerValid": <true if user expressed a preference, false if they asked a question or need guidance>,
                     "nextQuestionNumber": <current+1 if valid, current if invalid, %d if completing>,
                     "showTypographyPicker": <true to show the font picker UI, false otherwise>,
-                    "recommendedHeadingFont": <a font name from the approved whitelist or null>,
-                    "recommendedBodyFont": <a font name from the approved whitelist or null>,
+                    "recommendedHeadingFont": <required non-null font name from the approved whitelist when showTypographyPicker is true; otherwise null>,
+                    "recommendedBodyFont": <required non-null font name from the approved whitelist when showTypographyPicker is true; otherwise null>,
                     "suggestions": <array of 2-4 clickable option strings, or null>,
                     "designTip": <single sentence design insight, or null>,
+                    "previewType": <matching preview type string, or null>,
                     "compiledStylePreferences": <null unless final turn answer is valid, then object below>
                 }
 

@@ -61,6 +61,8 @@ export interface Message {
     // Style chat rich response fields
     suggestions?: string[];
     designTip?: string;
+    isStyleComplete?: boolean;
+    stylePreferences?: Partial<import("./style").StylePreferences>;
 }
 
 export type DeviceMode = "desktop" | "tablet" | "mobile";

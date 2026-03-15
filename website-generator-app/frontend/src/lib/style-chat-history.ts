@@ -30,6 +30,8 @@ export const toPersistedStyleChatHistory = (
                 : new Date(message.timestamp).toISOString(),
         ...(message.suggestions && { suggestions: message.suggestions }),
         ...(message.designTip && { designTip: message.designTip }),
+        ...(message.isStyleComplete && { isStyleComplete: message.isStyleComplete }),
+        ...(message.stylePreferences && { stylePreferences: message.stylePreferences }),
     }));
 
 export const toUiStyleMessages = (
@@ -40,5 +42,7 @@ export const toUiStyleMessages = (
         timestamp: new Date(message.timestamp),
         ...(message.suggestions && { suggestions: message.suggestions }),
         ...(message.designTip && { designTip: message.designTip }),
+        ...(message.isStyleComplete && { isStyleComplete: message.isStyleComplete }),
+        ...(message.stylePreferences && { stylePreferences: message.stylePreferences }),
     }));
 
