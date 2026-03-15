@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import ReactMarkdown from "react-markdown";
 import { ColorPickerPanel } from "./ColorPickerPanel";
 import { TypographyPickerPanel } from "./TypographyPickerPanel";
+import { LayoutPreviewGrid } from "./layout-preview/LayoutPreviewGrid";
 
 interface PortfolioStyleChatProps {
     messages: Message[];
@@ -98,15 +99,22 @@ const AiMessageContent = ({ message, onSuggestionClick }: AiMessageContentProps)
         )}
 
         {message.suggestions && message.suggestions.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-                {message.suggestions.map((suggestion) => (
-                    <SuggestionChip
-                        key={suggestion}
-                        label={suggestion}
-                        onClick={() => onSuggestionClick?.(suggestion)}
-                    />
-                ))}
-            </div>
+            message.previewType === "layout_style" ? (
+                <LayoutPreviewGrid
+                    suggestions={message.suggestions}
+                    onSelect={(layoutName) => onSuggestionClick?.(layoutName)}
+                />
+            ) : (
+                <div className="flex flex-wrap gap-2">
+                    {message.suggestions.map((suggestion) => (
+                        <SuggestionChip
+                            key={suggestion}
+                            label={suggestion}
+                            onClick={() => onSuggestionClick?.(suggestion)}
+                        />
+                    ))}
+                </div>
+            )
         )}
     </div>
 );
@@ -434,10 +442,15 @@ export function PortfolioStyleChat({
                                     >
                                         <div
                                             className={cn(
-                                                "max-w-[88%] py-3 text-[15px] leading-relaxed md:max-w-[80%]",
+                                                "py-3 text-[15px] leading-relaxed",
                                                 message.role === "user"
-                                                    ? "rounded-2xl bg-linear-to-r from-blue-600 to-blue-500 px-4 text-white"
+                                                    ? "max-w-[88%] rounded-2xl bg-linear-to-r from-blue-600 to-blue-500 px-4 text-white md:max-w-[80%]"
                                                     : "text-white/90",
+                                                message.role === "ai" && message.previewType
+                                                    ? "max-w-full"
+                                                    : message.role === "ai"
+                                                      ? "max-w-[88%] md:max-w-[80%]"
+                                                      : "",
                                             )}
                                         >
                                             {message.role === "ai" ? (

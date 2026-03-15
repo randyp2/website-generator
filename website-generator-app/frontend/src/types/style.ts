@@ -31,4 +31,5 @@ export interface StyleChatResponse {
   recommendedBodyFont?: string;
   suggestions?: string[];
   designTip?: string;
+  previewType?: string | null;
 }
