@@ -110,9 +110,11 @@ public class StyleChatPromptBuilder {
 
                 You have optional structured fields to enhance the conversation:
 
-                - "suggestions": An array of 2-4 short string options the user can click to respond quickly.
-                  Use when presenting clear choices, e.g. ["Spacious", "Compact", "Bento", "Masonry", "Dynamic"].
-                  Set to null when asking open-ended questions.
+                - "suggestions": An array of 2-5 short string options the user can click to respond quickly.
+                  You MUST use this whenever you present distinct named choices in your message.
+                  Each string should be a single word or short label — NOT a full description.
+                  Example: ["Spacious", "Compact", "Bento", "Masonry", "Dynamic"]
+                  Set to null ONLY when asking open-ended questions with no distinct options.
 
                 - "designTip": A single sentence design insight relevant to the current topic.
                   Example: "Generous whitespace draws attention to your work and signals confidence."
@@ -133,10 +135,15 @@ public class StyleChatPromptBuilder {
                   Set to null when suggestions don't map to a visual preview or when no suggestions are provided.
                   previewType should ONLY be non-null when suggestions is also non-null.
 
+                IMPORTANT: When you ask about layout style, you MUST set:
+                  "suggestions": ["Spacious", "Compact", "Bento", "Masonry", "Dynamic"]
+                  "previewType": "layout_style"
+                The frontend renders interactive visual preview cards for these — without suggestions and previewType the user only sees plain text.
+
                 ========================
                 OUTPUT FORMAT (STRICT)
 
-                Return a single JSON object:
+                Return a single JSON object. Here is the base template:
                 {
                     "assistantMessage": "<markdown string: use **bold** for key terms, - bullet lists for options>",
                     "isAnswerValid": true,
@@ -147,6 +154,20 @@ public class StyleChatPromptBuilder {
                     "suggestions": null,
                     "designTip": null,
                     "previewType": null,
+                    "compiledStylePreferences": null
+                }
+
+                When asking about layout style, the JSON MUST include suggestions and previewType:
+                {
+                    "assistantMessage": "Nice! For the overall layout...\n\n- **Spacious** — generous whitespace...\n- **Compact** — ...\n\nWhich vibe fits?",
+                    "isAnswerValid": true,
+                    "nextQuestionNumber": 2,
+                    "showTypographyPicker": false,
+                    "recommendedHeadingFont": null,
+                    "recommendedBodyFont": null,
+                    "suggestions": ["Spacious", "Compact", "Bento", "Masonry", "Dynamic"],
+                    "designTip": "Generous whitespace draws attention to your work and signals confidence.",
+                    "previewType": "layout_style",
                     "compiledStylePreferences": null
                 }
 
@@ -306,9 +327,11 @@ public class StyleChatPromptBuilder {
 
                 You have optional structured fields to enhance the conversation:
 
-                - "suggestions": An array of 2-4 short string options the user can click to respond quickly.
-                  Use when presenting clear choices, e.g. ["Spacious", "Compact", "Bento", "Masonry", "Dynamic"].
-                  Set to null when asking open-ended questions.
+                - "suggestions": An array of 2-5 short string options the user can click to respond quickly.
+                  You MUST use this whenever you present distinct named choices in your message.
+                  Each string should be a single word or short label — NOT a full description.
+                  Example: ["Spacious", "Compact", "Bento", "Masonry", "Dynamic"]
+                  Set to null ONLY when asking open-ended questions with no distinct options.
 
                 - "designTip": A single sentence design insight relevant to the current topic.
                   Example: "Generous whitespace draws attention to your work and signals confidence."
@@ -329,10 +352,15 @@ public class StyleChatPromptBuilder {
                   Set to null when suggestions don't map to a visual preview or when no suggestions are provided.
                   previewType should ONLY be non-null when suggestions is also non-null.
 
+                IMPORTANT: When you ask about layout style, you MUST set:
+                  "suggestions": ["Spacious", "Compact", "Bento", "Masonry", "Dynamic"]
+                  "previewType": "layout_style"
+                The frontend renders interactive visual preview cards for these — without suggestions and previewType the user only sees plain text.
+
                 ========================
                 OUTPUT FORMAT (STRICT)
 
-                Return a single JSON object:
+                Return a single JSON object. Here is the base template:
                 {
                     "assistantMessage": "<markdown string: use **bold** for key terms, - bullet lists for options>",
                     "isAnswerValid": <true if user expressed a preference, false if they asked a question or need guidance>,
@@ -340,10 +368,24 @@ public class StyleChatPromptBuilder {
                     "showTypographyPicker": <true to show the font picker UI, false otherwise>,
                     "recommendedHeadingFont": <required non-null font name from the approved whitelist when showTypographyPicker is true; otherwise null>,
                     "recommendedBodyFont": <required non-null font name from the approved whitelist when showTypographyPicker is true; otherwise null>,
-                    "suggestions": <array of 2-4 clickable option strings, or null>,
+                    "suggestions": <array of 2-5 clickable option strings, or null>,
                     "designTip": <single sentence design insight, or null>,
                     "previewType": <matching preview type string, or null>,
                     "compiledStylePreferences": <null unless final turn answer is valid, then object below>
+                }
+
+                When asking about layout style, the JSON MUST look like:
+                {
+                    "assistantMessage": "...",
+                    "isAnswerValid": true,
+                    "nextQuestionNumber": <next>,
+                    "showTypographyPicker": false,
+                    "recommendedHeadingFont": null,
+                    "recommendedBodyFont": null,
+                    "suggestions": ["Spacious", "Compact", "Bento", "Masonry", "Dynamic"],
+                    "designTip": "...",
+                    "previewType": "layout_style",
+                    "compiledStylePreferences": null
                 }
 
                 compiledStylePreferences object (only when completing):

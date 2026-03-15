@@ -61,6 +61,7 @@ export interface Message {
     // Style chat rich response fields
     suggestions?: string[];
     designTip?: string;
+    previewType?: string | null;
     isStyleComplete?: boolean;
     stylePreferences?: Partial<import("./style").StylePreferences>;
 }

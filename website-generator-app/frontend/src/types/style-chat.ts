@@ -7,6 +7,7 @@ export interface PersistedStyleChatMessage {
     timestamp: string;
     suggestions?: string[];
     designTip?: string;
+    previewType?: string | null;
     isStyleComplete?: boolean;
     stylePreferences?: Record<string, string | null>;
 }
