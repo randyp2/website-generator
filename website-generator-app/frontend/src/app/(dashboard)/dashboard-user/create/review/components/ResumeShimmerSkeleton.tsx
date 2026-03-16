@@ -3,30 +3,34 @@
 import React from "react";
 import { motion } from "framer-motion";
 
+const shimmerAnimation = {
+    backgroundPosition: ["-200% 0", "200% 0"],
+};
+
+const shimmerTransition = {
+    repeat: Infinity,
+    duration: 1.5,
+    ease: "linear" as const,
+};
+
+const ShimmerBar: React.FC<{
+    className?: string;
+    style?: React.CSSProperties;
+}> = ({ className, style }) => (
+    <motion.div
+        className={`bg-[linear-gradient(110deg,rgba(255,255,255,0.05),35%,rgba(255,255,255,0.15),50%,rgba(255,255,255,0.05))] bg-[length:200%_100%] rounded ${className}`}
+        style={style}
+        animate={shimmerAnimation}
+        transition={shimmerTransition}
+    />
+);
+
 /**
  * Shimmer skeleton component for the review page
  * Displays while resume is being parsed in the background
  */
 export const ResumeShimmerSkeleton: React.FC = () => {
-    // Shared shimmer animation for skeleton elements
-    const shimmerAnimation = {
-        backgroundPosition: ["-200% 0", "200% 0"],
-    };
-
-    const shimmerTransition = {
-        repeat: Infinity,
-        duration: 1.5,
-        ease: "linear" as const,
-    };
-
-    const ShimmerBar = ({ className, style }: { className?: string; style?: React.CSSProperties }) => (
-        <motion.div
-            className={`bg-[linear-gradient(110deg,rgba(255,255,255,0.05),35%,rgba(255,255,255,0.15),50%,rgba(255,255,255,0.05))] bg-[length:200%_100%] rounded ${className}`}
-            style={style}
-            animate={shimmerAnimation}
-            transition={shimmerTransition}
-        />
-    );
+    const skillPillWidths = [64, 88, 76, 96, 72, 84, 68, 92];
 
     return (
         <div className="space-y-6">
@@ -81,11 +85,11 @@ export const ResumeShimmerSkeleton: React.FC = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-3">
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                    {skillPillWidths.map((width, i) => (
                         <ShimmerBar
                             key={i}
                             className="h-8 rounded-full"
-                            style={{ width: `${60 + Math.random() * 40}px` } as React.CSSProperties}
+                            style={{ width } as React.CSSProperties}
                         />
                     ))}
                 </div>
