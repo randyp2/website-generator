@@ -287,6 +287,13 @@ export function PortfolioStyleChat({
         setPrompt("");
     };
 
+    const handleSuggestionSend = (suggestion: string) => {
+        const value = suggestion.trim();
+        if (!value || isSending) return;
+        onSendMessage(value);
+        setPrompt("");
+    };
+
     const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (event.key === "Enter" && !event.shiftKey) {
             event.preventDefault();
@@ -462,9 +469,7 @@ export function PortfolioStyleChat({
                                                 ) : (
                                                     <AiMessageContent
                                                         message={message}
-                                                        onSuggestionClick={(suggestion) => {
-                                                            setPrompt(suggestion);
-                                                        }}
+                                                        onSuggestionClick={handleSuggestionSend}
                                                     />
                                                 )
                                             ) : (
