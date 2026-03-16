@@ -284,6 +284,12 @@ export function useStyleChat(params: {
 
                 const data: StyleChatResponse = await res.json();
 
+                console.log("[style-chat] API response:", {
+                    suggestions: data.suggestions,
+                    previewType: data.previewType,
+                    designTip: data.designTip,
+                });
+
                 setStyleMessages((prev) => [
                     ...prev,
                     {
@@ -291,6 +297,11 @@ export function useStyleChat(params: {
                         role: "ai",
                         content: data.assistantMessage,
                         timestamp: new Date(),
+                        ...(data.suggestions && { suggestions: data.suggestions }),
+                        ...(data.designTip && { designTip: data.designTip }),
+                        ...(data.previewType && { previewType: data.previewType }),
+                        ...(data.isComplete && { isStyleComplete: true }),
+                        ...(data.isComplete && data.stylePreferences && { stylePreferences: data.stylePreferences }),
                     },
                 ]);
 
@@ -385,6 +396,11 @@ export function useStyleChat(params: {
                         role: "ai",
                         content: data.assistantMessage,
                         timestamp: new Date(),
+                        ...(data.suggestions && { suggestions: data.suggestions }),
+                        ...(data.designTip && { designTip: data.designTip }),
+                        ...(data.previewType && { previewType: data.previewType }),
+                        ...(data.isComplete && { isStyleComplete: true }),
+                        ...(data.isComplete && data.stylePreferences && { stylePreferences: data.stylePreferences }),
                     },
                 ]);
 
@@ -470,6 +486,11 @@ export function useStyleChat(params: {
                         role: "ai",
                         content: data.assistantMessage,
                         timestamp: new Date(),
+                        ...(data.suggestions && { suggestions: data.suggestions }),
+                        ...(data.designTip && { designTip: data.designTip }),
+                        ...(data.previewType && { previewType: data.previewType }),
+                        ...(data.isComplete && { isStyleComplete: true }),
+                        ...(data.isComplete && data.stylePreferences && { stylePreferences: data.stylePreferences }),
                     },
                 ]);
 

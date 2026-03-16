@@ -58,6 +58,12 @@ export interface Message {
     readyForPlanning?: boolean;
     sectionPlans?: SectionPlan[];
     planSummary?: string;
+    // Style chat rich response fields
+    suggestions?: string[];
+    designTip?: string;
+    previewType?: string | null;
+    isStyleComplete?: boolean;
+    stylePreferences?: Partial<import("./style").StylePreferences>;
 }
 
 export type DeviceMode = "desktop" | "tablet" | "mobile";
