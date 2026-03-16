@@ -133,6 +133,7 @@ public class StyleChatServiceImpl implements StyleChatService {
                 response.getResult().getOutput().getText()
         );
         StyleChatResponseDTO parsed = parseResult.response();
+        logTypographyRecommendationState("first-question", parsed);
 
         // Advance to question 2
         context.setCurrentQuestionNumber(2);
@@ -155,6 +156,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         parsed.setShowColorPicker(false);
 
         debugContext("COLOR SELECTION COMPLETE", context);
+        logResponseDto("color-selection-return", parsed);
 
         return parsed;
     }
@@ -179,6 +181,7 @@ public class StyleChatServiceImpl implements StyleChatService {
                 response.getResult().getOutput().getText()
         );
         StyleChatResponseDTO parsed = parseResult.response();
+        logTypographyRecommendationState("font-selection-followup", parsed);
 
         // Advance to next question
         int nextQuestion = context.getCurrentQuestionNumber() + 1;
@@ -194,6 +197,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         parsed.setShowTypographyPicker(false);
 
         debugContext("FONT SELECTION COMPLETE", context);
+        logResponseDto("font-selection-return", parsed);
 
         return parsed;
     }
@@ -208,6 +212,7 @@ public class StyleChatServiceImpl implements StyleChatService {
                 response.getResult().getOutput().getText()
         );
         StyleChatResponseDTO parsed = parseResult.response();
+        logTypographyRecommendationState("conversation", parsed);
 
         // Track typography picker state: if AI wants to show it and it hasn't been shown yet, mark it
         if (parsed.isShowTypographyPicker() && !context.isTypographyPickerShown()) {
@@ -249,6 +254,7 @@ public class StyleChatServiceImpl implements StyleChatService {
                 parsed.setStylePreferences(buildProgressStylePreferences(context));
 
                 debugContext("INVALID ANSWER at Q" + context.getCurrentQuestionNumber(), context);
+                logResponseDto("invalid-answer-return", parsed);
 
                 return parsed;
             }
@@ -283,6 +289,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         parsed.setStylePreferences(buildProgressStylePreferences(context));
 
         debugContext("Q" + (nextQuestion - 1) + " ANSWERED → moving to Q" + nextQuestion, context);
+        logResponseDto("conversation-return", parsed);
 
         return parsed;
     }
@@ -321,11 +328,12 @@ public class StyleChatServiceImpl implements StyleChatService {
         parsed.setTotalQuestions(TOTAL_QUESTIONS);
         parsed.setComplete(true);
         parsed.setAssistantMessage(
-                "I have everything I need and I am done asking style questions. " + safe(parsed.getAssistantMessage())
+                safe(parsed.getAssistantMessage())
         );
         parsed.setStylePreferences(stylePrefsMap);
 
         debugContext("STYLE DISCOVERY COMPLETE", context);
+        logResponseDto("completion-return", parsed);
 
         return parsed;
     }
@@ -337,6 +345,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         dto.setTotalQuestions(TOTAL_QUESTIONS);
         dto.setComplete(true);
         dto.setStylePreferences(compiledToMap(context.getCompiledStylePreferences()));
+        logResponseDto("already-complete-return", dto);
         return dto;
     }
 
@@ -432,6 +441,29 @@ public class StyleChatServiceImpl implements StyleChatService {
 
     private String safe(String value) {
         return value == null ? "" : value;
+    }
+
+    private void logTypographyRecommendationState(String phase, StyleChatResponseDTO parsed) {
+        log.info(
+                "[style-chat:{}] showTypographyPicker={}, recommendedHeadingFont={}, recommendedBodyFont={}",
+                phase,
+                parsed.isShowTypographyPicker(),
+                parsed.getRecommendedHeadingFont(),
+                parsed.getRecommendedBodyFont()
+        );
+    }
+
+    private void logResponseDto(String phase, StyleChatResponseDTO dto) {
+        log.info(
+                "[style-chat:{}] dto assistantMessage={}, showTypographyPicker={}, recommendedHeadingFont={}, recommendedBodyFont={}, questionNumber={}, isComplete={}",
+                phase,
+                dto.getAssistantMessage(),
+                dto.isShowTypographyPicker(),
+                dto.getRecommendedHeadingFont(),
+                dto.getRecommendedBodyFont(),
+                dto.getQuestionNumber(),
+                dto.isComplete()
+        );
     }
 
     private void debugContext(String label, StyleContext context) {

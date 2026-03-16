@@ -29,4 +29,7 @@ export interface StyleChatResponse {
   showTypographyPicker?: boolean;
   recommendedHeadingFont?: string;
   recommendedBodyFont?: string;
+  suggestions?: string[];
+  designTip?: string;
+  previewType?: string | null;
 }

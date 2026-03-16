@@ -63,16 +63,7 @@ const StyleDiscussionPage: React.FC = () => {
     };
 
     return (
-        <main className="min-h-screen px-5 py-8 md:px-10 md:py-10">
-            <div className="mx-auto mb-8 w-full max-w-7xl">
-                <h1 className="text-3xl font-semibold text-white md:text-4xl">
-                    Customize Your Style
-                </h1>
-                <p className="mt-3 max-w-3xl text-sm text-white/65 md:text-base">
-                    Use chat to guide the look and feel of your portfolio.
-                </p>
-            </div>
-
+        <main className="min-h-screen px-5 pb-8 pt-0 md:px-10 md:pb-10 md:pt-0">
             <PortfolioStyleChat
                 messages={normalizedStyleMessages}
                 isSending={isSending}
@@ -85,7 +76,7 @@ const StyleDiscussionPage: React.FC = () => {
                 onTypographySubmit={handleFontSubmit}
                 recommendedHeadingFont={recommendedHeadingFont}
                 recommendedBodyFont={recommendedBodyFont}
-                className="max-w-7xl h-[calc(100vh-11rem)] md:h-[calc(100vh-12rem)]"
+                className="max-w-7xl h-[calc(100vh-7rem)] md:h-[calc(100vh-8rem)]"
             />
         </main>
     );
