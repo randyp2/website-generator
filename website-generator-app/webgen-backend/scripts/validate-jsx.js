@@ -78,6 +78,26 @@ process.stdin.on('end', () => {
         }
     }
 
+    // --- Flag data.contentJson access (data IS contentJson, no nesting) ---
+    if (ast) {
+        traverse(ast, {
+            MemberExpression(path) {
+                const { object, property } = path.node;
+                if (
+                    object.type === 'Identifier' &&
+                    object.name === 'data' &&
+                    property.name === 'contentJson'
+                ) {
+                    errors.push({
+                        message: 'Do not use data.contentJson — the data prop IS the contentJson object. Access fields directly (e.g., data.brand, data.navItems).',
+                        line: path.node.loc?.start?.line ?? null,
+                        column: path.node.loc?.start?.column ?? null
+                    });
+                }
+            }
+        });
+    }
+
     if (errors.length > 0) {
         process.stdout.write(JSON.stringify({ valid: false, errors }));
     } else {
