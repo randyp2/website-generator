@@ -72,7 +72,8 @@ const ReviewPage: React.FC = () => {
     });
 
     return (
-        <div className="relative min-h-screen p-10 pb-32">
+        <div className="relative min-h-screen px-4 py-10 text-white sm:px-6 lg:px-8">
+            <div className="relative">
             <ReviewPageHeader
                 isEditing={isEditing}
                 onToggleEditing={() => setIsEditing((value) => !value)}
@@ -100,6 +101,11 @@ const ReviewPage: React.FC = () => {
                             updateLocation={updateLocation}
                             updateSummary={updateSummary}
                         />
+                        <EducationSection
+                            educations={parsedResumeData.educations || []}
+                            isEditing={isEditing}
+                            updateEducation={updateEducation}
+                        />
                         <SkillsSection
                             isEditing={isEditing}
                             skills={parsedResumeData.skills || []}
@@ -115,11 +121,6 @@ const ReviewPage: React.FC = () => {
                             addExperienceBullet={addExperienceBullet}
                             removeExperienceBullet={removeExperienceBullet}
                         />
-                        <EducationSection
-                            educations={parsedResumeData.educations || []}
-                            isEditing={isEditing}
-                            updateEducation={updateEducation}
-                        />
                     </>
                 )}
             </div>
@@ -130,6 +131,7 @@ const ReviewPage: React.FC = () => {
                     void handleContinue();
                 }}
             />
+            </div>
         </div>
     );
 };

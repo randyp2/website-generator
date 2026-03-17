@@ -2,7 +2,8 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { FiCode, FiPlus, FiTrash2 } from "react-icons/fi";
+import { Code2, Plus, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { ReviewSectionCard } from "./ReviewSectionCard";
 
 interface SkillsSectionProps {
@@ -22,20 +23,15 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({
 }) => (
     <ReviewSectionCard className="mb-6" delay={0.2}>
         <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-                <div className="p-2 bg-sky-100 rounded-lg">
-                    <FiCode className="w-5 h-5 text-sky-400" />
-                </div>
-                <h3 className="text-2xl font-bold text-white">Skills</h3>
-            </div>
+            <SectionHeading icon={Code2} title="Technical Skills" />
             {isEditing && (
                 <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={addSkill}
-                    className="px-4 py-2 bg-sky-500 text-white rounded-lg text-sm font-semibold flex items-center gap-2 shadow-md hover:shadow-lg transition-all"
+                    className="inline-flex items-center gap-2 rounded-xl border border-blue-400/20 bg-blue-500/10 px-4 py-2 text-sm font-semibold text-blue-100 transition-all hover:bg-blue-500/20"
                 >
-                    <FiPlus className="w-4 h-4" />
+                    <Plus className="w-4 h-4" />
                     Add Skill
                 </motion.button>
             )}
@@ -47,35 +43,47 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({
                     key={`${skill}-${index}`}
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full ${
-                        isEditing
-                            ? "bg-white/5 border-2 border-white/10"
-                            : "bg-linear-to-r from-sky-50 to-cyan-50 border border-sky-200"
-                    }`}
+                    className="flex items-center gap-2"
                 >
                     {isEditing ? (
-                        <>
+                        <div className="flex items-center gap-2 rounded-full border border-blue-400/15 bg-blue-500/[0.06] px-4 py-2">
                             <input
                                 type="text"
                                 value={skill}
                                 onChange={(e) => updateSkill(index, e.target.value)}
-                                className="bg-transparent border-none focus:outline-none text-sm text-white w-32"
+                                className="w-32 bg-transparent text-sm text-white placeholder:text-slate-500 focus:outline-none"
                                 placeholder="Skill name"
                             />
                             <motion.button
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.9 }}
                                 onClick={() => removeSkill(index)}
-                                className="p-1 hover:bg-red-100 rounded-full transition-colors"
+                                className="rounded-full p-1 transition-colors hover:bg-red-500/10"
                             >
-                                <FiTrash2 className="w-3 h-3 text-slate-500 hover:text-red-600" />
+                                <Trash2 className="w-3 h-3 text-slate-400 hover:text-red-300" />
                             </motion.button>
-                        </>
+                        </div>
                     ) : (
-                        <span className="text-sm font-medium text-sky-900">{skill}</span>
+                        <Badge
+                            variant="secondary"
+                            className="border border-blue-400/15 bg-blue-500/[0.08] px-3 py-1.5 text-sm text-blue-100 hover:bg-blue-500/[0.14]"
+                        >
+                            {skill}
+                        </Badge>
                     )}
                 </motion.div>
             ))}
         </div>
     </ReviewSectionCard>
+);
+
+const SectionHeading: React.FC<{
+    icon: React.ElementType;
+    title: string;
+}> = ({ icon, title }) => (
+    <div className="flex items-center gap-3">
+        <div className="h-8 w-1 rounded-full bg-blue-500" />
+        {React.createElement(icon, { className: "h-6 w-6 text-blue-300" })}
+        <h3 className="text-xl font-bold text-white">{title}</h3>
+    </div>
 );

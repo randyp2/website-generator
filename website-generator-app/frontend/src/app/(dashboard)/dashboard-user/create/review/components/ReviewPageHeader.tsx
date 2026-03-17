@@ -3,6 +3,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { FiEdit3, FiSave } from "react-icons/fi";
+import { Button } from "@/components/ui/button";
 
 interface ReviewPageHeaderProps {
     isEditing: boolean;
@@ -12,44 +13,43 @@ interface ReviewPageHeaderProps {
 export const ReviewPageHeader: React.FC<ReviewPageHeaderProps> = ({
     isEditing,
     onToggleEditing,
-}) => (
-    <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-5xl mx-auto mb-8"
-    >
-        <div className="flex items-center justify-between mb-6">
-            <div>
-                <h1 className="text-4xl font-bold text-white mb-2">
-                    Review Your Information
-                </h1>
-                <p className="text-slate-300 text-lg">
-                    Review and edit the information extracted from your resume
-                </p>
-            </div>
+}) => {
+    const MotionButton = motion.create(Button);
 
-            <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={onToggleEditing}
-                className={`px-6 py-3 rounded-xl font-semibold flex items-center gap-2 shadow-lg transition-all ${
-                    isEditing
-                        ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white"
-                        : "bg-white/10 backdrop-blur-xl border-2 border-white/20 text-white hover:bg-white/20"
-                }`}
-            >
-                {isEditing ? (
-                    <>
-                        <FiSave className="w-5 h-5" />
-                        Save & Done
-                    </>
-                ) : (
-                    <>
-                        <FiEdit3 className="w-5 h-5" />
-                        Edit
-                    </>
-                )}
-            </motion.button>
-        </div>
-    </motion.div>
-);
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-5xl mx-auto mb-8"
+        >
+            <div className="flex items-center justify-between mb-4">
+                <div>
+                    <h1 className="text-4xl font-bold text-white mb-2">
+                        Review Your Information
+                    </h1>
+                    <p className="text-slate-400 text-lg max-w-2xl">
+                        Review and edit the information extracted from your resume
+                    </p>
+                </div>
+
+                <MotionButton
+                    variant="outline"
+                    onClick={onToggleEditing}
+                    className="h-10 cursor-pointer rounded-md border border-white/10 bg-black/30 px-4 text-sm font-medium text-slate-200 shadow-none hover:bg-black/30 hover:text-slate-200"
+                >
+                    {isEditing ? (
+                        <>
+                            <FiSave className="h-4 w-4" />
+                            Save
+                        </>
+                    ) : (
+                        <>
+                            <FiEdit3 className="h-4 w-4" />
+                            Edit
+                        </>
+                    )}
+                </MotionButton>
+            </div>
+        </motion.div>
+    );
+};
