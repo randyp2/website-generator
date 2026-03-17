@@ -2,6 +2,10 @@
 
 import { useEffect } from "react";
 import type { ParsedResumeData } from "@/types/resume";
+import {
+    createManualResumeTemplate,
+    MANUAL_RESUME_SOURCE_KEY,
+} from "@/utils/resume/manualResumeTemplate";
 
 interface UseReviewPortfolioSyncParams {
     portfolioId: string | null;
@@ -58,7 +62,13 @@ export const useReviewPortfolioSync = ({
                     if (data?.parsedJson) {
                         setParsedResumeData(data.parsedJson);
                         setParsedResumeSourceKey(null);
+                    } else {
+                        setParsedResumeData(createManualResumeTemplate());
+                        setParsedResumeSourceKey(MANUAL_RESUME_SOURCE_KEY);
                     }
+                } else {
+                    setParsedResumeData(createManualResumeTemplate());
+                    setParsedResumeSourceKey(MANUAL_RESUME_SOURCE_KEY);
                 }
 
                 if (!templateId) {
@@ -72,7 +82,9 @@ export const useReviewPortfolioSync = ({
                 }
             } catch (error) {
                 console.error("Failed to load resume data:", error);
-                setParsingError("Failed to load resume data.");
+                setParsedResumeData(createManualResumeTemplate());
+                setParsedResumeSourceKey(MANUAL_RESUME_SOURCE_KEY);
+                setParsingError("We couldn't load a resume, so we opened a manual starter template instead.");
             } finally {
                 setIsParsingResume(false);
             }

@@ -35,7 +35,11 @@ export const ReviewPageHeader: React.FC<ReviewPageHeaderProps> = ({
                 <MotionButton
                     variant="outline"
                     onClick={onToggleEditing}
-                    className="h-10 cursor-pointer rounded-md border border-white/10 bg-black/30 px-4 text-sm font-medium text-slate-200 shadow-none hover:bg-black/30 hover:text-slate-200"
+                    className={
+                        isEditing
+                            ? "h-10 cursor-pointer rounded-md border border-emerald-900/70 bg-linear-to-br from-emerald-950 via-emerald-900 to-emerald-800 px-4 text-sm font-semibold text-emerald-50 shadow-[0_10px_30px_rgba(6,78,59,0.38)] transition hover:from-emerald-900 hover:via-emerald-800 hover:to-emerald-700 hover:text-white"
+                            : "h-10 cursor-pointer rounded-md border border-white/10 bg-black/30 px-4 text-sm font-medium text-slate-200 shadow-none hover:bg-black/30 hover:text-slate-200"
+                    }
                 >
                     {isEditing ? (
                         <>

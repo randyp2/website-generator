@@ -9,6 +9,8 @@ import { ReviewSectionCard } from "./ReviewSectionCard";
 interface ExperienceSectionProps {
     experiences: ParsedExperience[];
     isEditing: boolean;
+    addExperience: () => void;
+    removeExperience: (index: number) => void;
     updateExperience: (
         index: number,
         field: keyof ParsedExperience,
@@ -26,16 +28,31 @@ interface ExperienceSectionProps {
 export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
     experiences,
     isEditing,
+    addExperience,
+    removeExperience,
     updateExperience,
     updateExperienceBullet,
     addExperienceBullet,
     removeExperienceBullet,
 }) => (
     <ReviewSectionCard className="mb-6" delay={0.3}>
-        <div className="mb-6 flex items-center gap-3">
-            <div className="h-8 w-1 rounded-full bg-blue-500" />
-            <Briefcase className="h-6 w-6 text-blue-300" />
-            <h3 className="text-xl font-bold text-white">Work Experience</h3>
+        <div className="mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+                <div className="h-8 w-1 rounded-full bg-blue-500" />
+                <Briefcase className="h-6 w-6 text-blue-300" />
+                <h3 className="text-xl font-bold text-white">Work Experience</h3>
+            </div>
+            {isEditing && (
+                <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={addExperience}
+                    className="flex items-center gap-1 text-xs font-semibold text-blue-300 hover:text-blue-200"
+                >
+                    <Plus className="w-3 h-3" />
+                    Add Work Experience
+                </motion.button>
+            )}
         </div>
 
         <div className="space-y-6">
@@ -50,6 +67,17 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
 
                     {isEditing ? (
                         <div className="space-y-3">
+                            <div className="flex justify-end">
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => removeExperience(expIndex)}
+                                    className="flex items-center gap-1 text-xs font-semibold text-red-300 hover:text-red-200"
+                                >
+                                    <Trash2 className="w-3 h-3" />
+                                    Delete Experience
+                                </motion.button>
+                            </div>
                             <input
                                 type="text"
                                 value={exp.title}

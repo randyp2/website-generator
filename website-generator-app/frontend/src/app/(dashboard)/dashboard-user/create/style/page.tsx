@@ -3,12 +3,18 @@
 import { PortfolioStyleChat } from "@/components/chat/PortfolioStyleChat";
 import { useStyleChat } from "@/hooks/useStyleChat";
 import { useRouter, useSearchParams } from "next/navigation";
+import {
+    createManualResumeTemplate,
+    MANUAL_RESUME_SOURCE_KEY,
+} from "@/utils/resume/manualResumeTemplate";
+import { usePortfolioStore } from "@/stores/usePortfolioStore";
 
 const StyleDiscussionPage: React.FC = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const templateId = searchParams.get("templateId");
     const portfolioId = searchParams.get("portfolioId");
+    const { setParsedResumeData, setParsedResumeSourceKey } = usePortfolioStore();
 
     const {
         normalizedStyleMessages,
@@ -39,26 +45,30 @@ const StyleDiscussionPage: React.FC = () => {
             const resumeData = resumeRes.ok ? await resumeRes.json() : null;
             const hasParsedResume = Boolean(resumeData?.parsedJson);
 
-            const nextStep = hasParsedResume ? "review" : "upload";
+            const nextStep = "review";
             await fetch(`/api/portfolio/${portfolioId}/update`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ last_step: nextStep }),
             }).catch(() => null);
 
-            if (hasParsedResume) {
-                router.push(`/dashboard-user/create/review?portfolioId=${portfolioId}`);
-                return;
+            if (!hasParsedResume) {
+                setParsedResumeData(createManualResumeTemplate());
+                setParsedResumeSourceKey(MANUAL_RESUME_SOURCE_KEY);
             }
 
-            router.push(`/dashboard-user/create/upload?portfolioId=${portfolioId}`);
+            router.push(`/dashboard-user/create/review?portfolioId=${portfolioId}`);
         } catch {
-            await fetch(`/api/portfolio/${portfolioId}/update`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ last_step: "upload" }),
-            }).catch(() => null);
-            router.push(`/dashboard-user/create/upload?portfolioId=${portfolioId}`);
+            if (portfolioId) {
+                await fetch(`/api/portfolio/${portfolioId}/update`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ last_step: "review" }),
+                }).catch(() => null);
+            }
+            setParsedResumeData(createManualResumeTemplate());
+            setParsedResumeSourceKey(MANUAL_RESUME_SOURCE_KEY);
+            router.push(`/dashboard-user/create/review?portfolioId=${portfolioId}`);
         }
     };
 
@@ -69,7 +79,7 @@ const StyleDiscussionPage: React.FC = () => {
                 isSending={isSending}
                 onSendMessage={handleSend}
                 onContinue={handleContinueToResume}
-                continueLabel="Continue to Resume Parser"
+                continueLabel="Continue to Review & Edit"
                 showColorPicker={showColorPicker}
                 onColorSubmit={handleColorSubmit}
                 showTypographyPicker={showTypographyPicker}

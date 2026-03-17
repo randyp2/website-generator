@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { EducationSection } from "./components/EducationSection";
 import { ExperienceSection } from "./components/ExperienceSection";
@@ -14,6 +14,7 @@ import { useReviewContinue } from "./hooks/useReviewContinue";
 import { useReviewPortfolioSync } from "./hooks/useReviewPortfolioSync";
 import { useReviewToasts } from "./hooks/useReviewToasts";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
+import { MANUAL_RESUME_SOURCE_KEY } from "@/utils/resume/manualResumeTemplate";
 
 const ReviewPage: React.FC = () => {
     const searchParams = useSearchParams();
@@ -23,6 +24,7 @@ const ReviewPage: React.FC = () => {
         templateId,
         portfolioId,
         parsedResumeData,
+        parsedResumeSourceKey,
         isParsingResume,
         parsingError,
         setTemplateId,
@@ -39,6 +41,8 @@ const ReviewPage: React.FC = () => {
         addSkill,
         updateSkill,
         removeSkill,
+        addExperience,
+        removeExperience,
         updateExperience,
         updateExperienceBullet,
         addExperienceBullet,
@@ -70,6 +74,15 @@ const ReviewPage: React.FC = () => {
         parsedResumeData,
         portfolioId,
     });
+    const isManualTemplate =
+        parsedResumeSourceKey === MANUAL_RESUME_SOURCE_KEY ||
+        parsedResumeData?.parsingMethod === "manual_template";
+
+    useEffect(() => {
+        if (isManualTemplate) {
+            setIsEditing(true);
+        }
+    }, [isManualTemplate]);
 
     return (
         <div className="relative min-h-screen px-4 py-10 text-white sm:px-6 lg:px-8">
@@ -89,7 +102,7 @@ const ReviewPage: React.FC = () => {
                         accentClassName="text-amber-400"
                     />
                 ) : !parsedResumeData ? (
-                    <ReviewStatePanel message="No resume data available. Please go back and upload a resume." />
+                    <ResumeShimmerSkeleton />
                 ) : (
                     <>
                         <PersonalInfoSection
@@ -116,6 +129,8 @@ const ReviewPage: React.FC = () => {
                         <ExperienceSection
                             experiences={parsedResumeData.experiences || []}
                             isEditing={isEditing}
+                            addExperience={addExperience}
+                            removeExperience={removeExperience}
                             updateExperience={updateExperience}
                             updateExperienceBullet={updateExperienceBullet}
                             addExperienceBullet={addExperienceBullet}
