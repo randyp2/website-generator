@@ -2,6 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 interface ReviewSectionCardProps {
     children: React.ReactNode;
@@ -18,7 +19,10 @@ export const ReviewSectionCard: React.FC<ReviewSectionCardProps> = ({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay }}
-        className={`bg-gradient-to-br from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-white/10 ${className}`}
+        className={cn(
+            "rounded-[28px] border border-white/10 bg-black/85 p-8 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_18px_50px_rgba(255,255,255,0.06)] backdrop-blur-xl",
+            className,
+        )}
     >
         {children}
     </motion.div>

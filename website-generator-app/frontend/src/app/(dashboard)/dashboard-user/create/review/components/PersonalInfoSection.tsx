@@ -1,8 +1,17 @@
 "use client";
 
-import React from "react";
-import { FiMail, FiMapPin, FiPhone } from "react-icons/fi";
+import React, { useState } from "react";
+import {
+    Github,
+    Globe,
+    Instagram,
+    Linkedin,
+    Mail,
+    MapPin,
+    Phone,
+} from "lucide-react";
 import type { ParsedResumeData } from "@/types/resume";
+import { cn } from "@/lib/utils";
 import { ReviewSectionCard } from "./ReviewSectionCard";
 
 interface PersonalInfoSectionProps {
@@ -23,83 +32,146 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
     updatePhone,
     updateLocation,
     updateSummary,
-}) => (
-    <ReviewSectionCard className="mb-6" delay={0.1}>
-        <div className="text-center border-b border-white/10 pb-6 mb-6">
-            {isEditing ? (
-                <input
-                    type="text"
-                    value={parsedResumeData.fullName || ""}
-                    onChange={(e) => updateFullName(e.target.value)}
-                    className="text-4xl font-bold text-white text-center w-full bg-white/5 px-4 py-2 rounded-lg border-2 border-sky-400 focus:outline-none focus:ring-4 focus:ring-sky-400/20"
-                    placeholder="Your Name"
-                />
-            ) : (
-                <h2 className="text-4xl font-bold text-white">
-                    {parsedResumeData.fullName || "Your Name"}
-                </h2>
-            )}
-        </div>
+}) => {
+    const [socialLinks, setSocialLinks] = useState([
+        { platform: "GitHub", value: "github.com/username", icon: Github },
+        { platform: "LinkedIn", value: "linkedin.com/in/username", icon: Linkedin },
+        { platform: "Instagram", value: "instagram.com/username", icon: Instagram },
+        { platform: "Website", value: "yourwebsite.com", icon: Globe },
+    ]);
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <ContactField
-                icon={<FiMail className="w-4 h-4 text-sky-400" />}
-                label="Email"
-                isEditing={isEditing}
-                value={parsedResumeData.email || ""}
-                placeholder="email@example.com"
-                inputType="email"
-                onChange={updateEmail}
-                fallback="Not provided"
-            />
-            <ContactField
-                icon={<FiPhone className="w-4 h-4 text-sky-400" />}
-                label="Phone"
-                isEditing={isEditing}
-                value={parsedResumeData.phone || ""}
-                placeholder="(123) 456-7890"
-                inputType="tel"
-                onChange={updatePhone}
-                fallback="Not provided"
-            />
-            <ContactField
-                icon={<FiMapPin className="w-4 h-4 text-sky-400" />}
-                label="Location"
-                isEditing={isEditing}
-                value={parsedResumeData.location || ""}
-                placeholder="City, State"
-                inputType="text"
-                onChange={updateLocation}
-                fallback="Not provided"
-            />
-        </div>
+    const initials = (parsedResumeData.fullName || "YN")
+        .split(" ")
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((value) => value[0]?.toUpperCase())
+        .join("");
 
-        {(parsedResumeData.summary || isEditing) && (
-            <div className="mt-6 pt-6 border-t border-white/10">
-                <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3">
-                    Summary
-                </h3>
-                {isEditing ? (
-                    <textarea
-                        value={parsedResumeData.summary || ""}
-                        onChange={(e) => updateSummary(e.target.value)}
-                        rows={3}
-                        className="w-full text-slate-700 bg-white/5 px-4 py-3 rounded-lg border border-white/10 focus:outline-none focus:border-sky-400 resize-none"
-                        placeholder="Professional summary..."
-                    />
-                ) : (
-                    <p className="text-slate-700 leading-relaxed">
-                        {parsedResumeData.summary || "No summary provided"}
+    return (
+        <ReviewSectionCard className="mb-6 overflow-hidden" delay={0.1}>
+            <div className="relative flex flex-col md:flex-row items-center md:items-start gap-6">
+                <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-4 border-white/10 bg-black/80 text-3xl font-bold text-slate-100 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_12px_32px_rgba(255,255,255,0.05)]">
+                    {initials || "YN"}
+                </div>
+
+                <div className="flex-1 text-center md:text-left">
+                    {isEditing ? (
+                        <input
+                            type="text"
+                            value={parsedResumeData.fullName || ""}
+                            onChange={(e) => updateFullName(e.target.value)}
+                            className={fieldClassName(
+                                "mb-3 text-center md:text-left text-3xl font-bold",
+                            )}
+                            placeholder="Your Name"
+                        />
+                    ) : (
+                        <h2 className="mb-2 text-3xl font-bold text-white">
+                            {parsedResumeData.fullName || "Your Name"}
+                        </h2>
+                    )}
+
+                    <p className="mb-4 text-sm font-medium text-blue-300/80">
+                        Professional Title
                     </p>
-                )}
-            </div>
-        )}
-    </ReviewSectionCard>
-);
 
-interface ContactFieldProps {
+                    <div className="flex flex-wrap gap-x-5 gap-y-3 justify-center md:justify-start text-sm text-slate-300">
+                        <ContactPill
+                            icon={Mail}
+                            label="Email"
+                            isEditing={isEditing}
+                            value={parsedResumeData.email || ""}
+                            placeholder="email@example.com"
+                            inputType="email"
+                            onChange={updateEmail}
+                            fallback="Not provided"
+                        />
+                        <ContactPill
+                            icon={Phone}
+                            label="Phone"
+                            isEditing={isEditing}
+                            value={parsedResumeData.phone || ""}
+                            placeholder="(123) 456-7890"
+                            inputType="tel"
+                            onChange={updatePhone}
+                            fallback="Not provided"
+                        />
+                        <ContactPill
+                            icon={MapPin}
+                            label="Location"
+                            isEditing={isEditing}
+                            value={parsedResumeData.location || ""}
+                            placeholder="City, State"
+                            inputType="text"
+                            onChange={updateLocation}
+                            fallback="Not provided"
+                        />
+                    </div>
+
+                    <div className="mt-5 flex flex-wrap items-center gap-3 justify-center md:justify-start">
+                        {socialLinks.map((link, index) => (
+                            <div
+                                key={link.platform}
+                                className="flex items-center gap-2"
+                            >
+                                <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/70 text-slate-200 shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+                                    <link.icon className="h-4 w-4 text-blue-300" />
+                                </div>
+                                {isEditing ? (
+                                    <input
+                                        type="text"
+                                        value={link.value}
+                                        onChange={(e) =>
+                                            setSocialLinks((current) =>
+                                                current.map((item, itemIndex) =>
+                                                    itemIndex === index
+                                                        ? {
+                                                              ...item,
+                                                              value: e.target.value,
+                                                          }
+                                                        : item,
+                                                ),
+                                            )
+                                        }
+                                        className="min-w-40 border-b border-white/10 bg-transparent pb-1 text-sm text-white placeholder:text-slate-500 focus:border-blue-400/50 focus:outline-none"
+                                        aria-label={link.platform}
+                                    />
+                                ) : (
+                                    <span className="text-sm text-slate-300">
+                                        {link.value}
+                                    </span>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {(parsedResumeData.summary || isEditing) && (
+                <div className="relative mt-8 border-t border-white/10 pt-8">
+                    <SectionTitle title="Professional Summary" />
+                    {isEditing ? (
+                        <textarea
+                            value={parsedResumeData.summary || ""}
+                            onChange={(e) => updateSummary(e.target.value)}
+                            rows={5}
+                            className={fieldClassName("min-h-32 resize-none leading-relaxed")}
+                            placeholder="Professional summary..."
+                        />
+                    ) : (
+                        <p className="text-slate-300 leading-8 text-[15px]">
+                            {parsedResumeData.summary || "No summary provided"}
+                        </p>
+                    )}
+                </div>
+            )}
+        </ReviewSectionCard>
+    );
+};
+
+interface ContactPillProps {
     fallback: string;
-    icon: React.ReactNode;
+    icon: React.ElementType;
     inputType: string;
     isEditing: boolean;
     label: string;
@@ -108,7 +180,7 @@ interface ContactFieldProps {
     value: string;
 }
 
-const ContactField: React.FC<ContactFieldProps> = ({
+const ContactPill: React.FC<ContactPillProps> = ({
     fallback,
     icon,
     inputType,
@@ -118,23 +190,34 @@ const ContactField: React.FC<ContactFieldProps> = ({
     placeholder,
     value,
 }) => (
-    <div className="flex flex-col items-center p-4 bg-white/5 rounded-xl border border-white/10">
-        <div className="flex items-center gap-2 mb-2">
-            {icon}
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
-                {label}
-            </span>
-        </div>
+    <div className="flex items-center gap-2 text-slate-300">
+        {React.createElement(icon, {
+            className: "h-4 w-4 shrink-0 text-slate-400",
+        })}
         {isEditing ? (
             <input
                 type={inputType}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
-                className="text-sm text-white text-center w-full bg-white/5 px-3 py-2 rounded-lg border border-white/10 focus:outline-none focus:border-sky-400"
+                className="min-w-36 border-b border-white/10 bg-transparent pb-1 text-sm text-white placeholder:text-slate-500 focus:border-blue-400/50 focus:outline-none"
                 placeholder={placeholder}
+                aria-label={label}
             />
         ) : (
-            <p className="text-sm text-white font-medium">{value || fallback}</p>
+            <p className="text-sm">{value || fallback}</p>
         )}
     </div>
 );
+
+const SectionTitle: React.FC<{ title: string }> = ({ title }) => (
+    <div className="mb-4 flex items-center gap-3">
+        <div className="h-8 w-1 rounded-full bg-blue-500" />
+        <h3 className="text-xl font-bold text-white">{title}</h3>
+    </div>
+);
+
+const fieldClassName = (className?: string) =>
+    cn(
+        "w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white placeholder:text-slate-500 focus:border-blue-400/50 focus:outline-none focus:ring-2 focus:ring-blue-400/10",
+        className,
+    );
