@@ -88,6 +88,8 @@ export interface PortfolioCreateState {
     removeSkill: (index: number) => void;
 
     // Experience management
+    addExperience: () => void;
+    removeExperience: (index: number) => void;
     updateExperience: (
         index: number,
         field: keyof ParsedExperience,
@@ -358,6 +360,43 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             },
 
             // Experience management
+            addExperience: () => {
+                const current = get().parsedResumeData;
+                if (current) {
+                    set({
+                        parsedResumeData: {
+                            ...current,
+                            experiences: [
+                                ...current.experiences,
+                                {
+                                    rawBlock: "",
+                                    title: "",
+                                    company: "",
+                                    startDate: "",
+                                    endDate: "",
+                                    location: "",
+                                    bullets: [""],
+                                },
+                            ],
+                        },
+                    });
+                }
+            },
+
+            removeExperience: (index: number) => {
+                const current = get().parsedResumeData;
+                if (current) {
+                    set({
+                        parsedResumeData: {
+                            ...current,
+                            experiences: current.experiences.filter(
+                                (_, experienceIndex) => experienceIndex !== index,
+                            ),
+                        },
+                    });
+                }
+            },
+
             updateExperience: (
                 index: number,
                 field: keyof ParsedExperience,
