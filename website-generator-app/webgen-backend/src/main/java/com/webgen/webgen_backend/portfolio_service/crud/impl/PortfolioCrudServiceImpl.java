@@ -184,8 +184,12 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         if (!portfolio.getUserId().equals(userId))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
 
-        Resume resume = resumeRepository.findByPortfolioId(portfolioId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resume not found"));
+        Resume resume = resumeRepository.findByPortfolioId(portfolioId).orElse(new Resume());
+        if (resume.getId() == null) {
+            resume.setId(UUID.randomUUID());
+            resume.setPortfolio(portfolio);
+            resume.setCreatedAt(OffsetDateTime.now());
+        }
         resume.setParsedJson(req.getParsedJson());
         resume.setExtractedText(req.getExtractedText());
 

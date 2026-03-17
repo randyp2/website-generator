@@ -29,9 +29,9 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={addSkill}
-                    className="inline-flex items-center gap-2 rounded-xl border border-blue-400/20 bg-blue-500/10 px-4 py-2 text-sm font-semibold text-blue-100 transition-all hover:bg-blue-500/20"
+                    className="flex items-center gap-1 text-xs font-semibold text-blue-300 hover:text-blue-200"
                 >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-3 h-3" />
                     Add Skill
                 </motion.button>
             )}

@@ -11,6 +11,10 @@ import { formatFileSize } from "@/utils/fileHelpers";
 import { MediaUpload } from "./components/MediaUpload";
 import { VideoUpload } from "./components/VideoUpload";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
+import {
+    createManualResumeTemplate,
+    MANUAL_RESUME_SOURCE_KEY,
+} from "@/utils/resume/manualResumeTemplate";
 
 const UploadPage: React.FC = () => {
     const router = useRouter();
@@ -518,19 +522,17 @@ const UploadPage: React.FC = () => {
             const { templateId, portfolioId, resumeFile, mediaFiles, videoFiles, parsedResumeData, parsedResumeSourceKey } =
                 usePortfolioStore.getState();
 
-            if (!templateId || !resumeFile) {
-                alert(
-                    "Please select a template and upload a resume before continuing.",
-                );
+            if (!templateId || !portfolioId) {
+                alert("Missing template or portfolio. Please go back and try again.");
                 return;
             }
 
             // -- Construct form data to send to API route
             const formData = new FormData();
             formData.append("templateId", templateId);
-            formData.append("resumeFile", resumeFile.file);
-            if (portfolioId) {
-                formData.append("portfolioId", portfolioId);
+            formData.append("portfolioId", portfolioId);
+            if (resumeFile) {
+                formData.append("resumeFile", resumeFile.file);
             }
 
             mediaFiles.forEach((mediaFile) => {
@@ -584,12 +586,18 @@ const UploadPage: React.FC = () => {
 
             // -- Fire-and-forget resume parsing (don't await)
             // Start parsing in background if not already parsed
-            const resumeSourceKey = getResumeSourceKey(resumeFile.file);
-            if (!parsedResumeData || parsedResumeSourceKey !== resumeSourceKey) {
-                setIsParsingResume(true);
+            if (resumeFile) {
+                const resumeSourceKey = getResumeSourceKey(resumeFile.file);
+                if (!parsedResumeData || parsedResumeSourceKey !== resumeSourceKey) {
+                    setIsParsingResume(true);
+                    setParsingError(null);
+                    // Fire and forget - don't await
+                    parseResumeInBackground(resumeFile.file, resumeSourceKey);
+                }
+            } else {
+                setParsedResumeData(createManualResumeTemplate());
+                setParsedResumeSourceKey(MANUAL_RESUME_SOURCE_KEY);
                 setParsingError(null);
-                // Fire and forget - don't await
-                parseResumeInBackground(resumeFile.file, resumeSourceKey);
             }
 
             // -- Navigate IMMEDIATELY - don't wait for parsing

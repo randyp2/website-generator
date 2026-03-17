@@ -71,54 +71,45 @@ export const POST = async (req: Request) => {
         }
 
         // ==============================================================
-        // UPLOAD RESUME
+        // UPLOAD RESUME (optional)
         // ==============================================================
+        let publicResumeUrl: string | null = null;
 
-        if (!(resumeFile instanceof File)) {
-            return NextResponse.json(
-                { error: "No file provided." },
-                { status: 400 },
-            );
-        }
+        if (resumeFile instanceof File) {
+            const ext = resumeFile.name.split(".").pop()?.toLowerCase();
+            if (!["pdf", "docx"].includes(ext || "")) {
+                return NextResponse.json(
+                    { error: "Invalid file type. Only PDF and DOCX allowed." },
+                    { status: 400 },
+                );
+            }
 
-        // Validate file type
-        const ext = resumeFile.name.split(".").pop()?.toLowerCase();
-        if (!["pdf", "docx"].includes(ext || "")) {
-            return NextResponse.json(
-                { error: "Invalid file type. Only PDF and DOCX allowed." },
-                { status: 400 },
-            );
-        }
+            const bytes = await resumeFile.arrayBuffer();
+            const buffer = Buffer.from(bytes);
+            const storagePath = `resumes/${portfolioId}/${randomUUID()}.${ext}`;
 
-        // Convert file to buffer
-        const bytes = await resumeFile.arrayBuffer();
-        const buffer = Buffer.from(bytes);
+            const { data: uploadData, error: uploadError } =
+                await adminSupabase.storage
+                    .from("portfolio_uploads")
+                    .upload(storagePath, buffer, {
+                        contentType: resumeFile.type,
+                        upsert: false,
+                    });
 
-        // Create unique file path within storage bucket
-        const storagePath = `resumes/${portfolioId}/${randomUUID()}.${ext}`;
+            if (uploadError) {
+                console.error("Upload error:", uploadError);
+                return NextResponse.json(
+                    { error: "Failed to upload file to storage." },
+                    { status: 500 },
+                );
+            }
 
-        // Upload to Supabase Storage
-        const { data: uploadData, error: uploadError } =
-            await adminSupabase.storage
+            const { data: publicResumeUrlData } = adminSupabase.storage
                 .from("portfolio_uploads")
-                .upload(storagePath, buffer, {
-                    contentType: resumeFile.type,
-                    upsert: false,
-                });
+                .getPublicUrl(uploadData.path);
 
-        if (uploadError) {
-            console.error("Upload error:", uploadError);
-            return NextResponse.json(
-                { error: "Failed to upload file to storage." },
-                { status: 500 },
-            );
+            publicResumeUrl = publicResumeUrlData.publicUrl;
         }
-
-        const { data: publicResumeUrlData } = adminSupabase.storage
-            .from("portfolio_uploads")
-            .getPublicUrl(uploadData.path);
-
-        const publicResumeUrl = publicResumeUrlData.publicUrl;
 
         // ==============================================================
         // UPLOAD MEDIA FILES
