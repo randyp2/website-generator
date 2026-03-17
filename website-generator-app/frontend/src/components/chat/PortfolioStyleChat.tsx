@@ -350,10 +350,11 @@ export function PortfolioStyleChat({
                         type="button"
                         onClick={onContinue}
                         disabled={isContinueDisabled}
-                        className="inline-flex items-center gap-2 rounded-full bg-linear-to-br from-[#0b1733] via-[#123a82] to-[#1a56c7] px-3 py-1.5 text-xs font-semibold text-white shadow-md shadow-blue-900/30 transition hover:shadow-blue-700/35 disabled:opacity-50"
+                        className="group relative inline-flex cursor-pointer items-center gap-2 overflow-hidden rounded-full bg-linear-to-br from-[#0b1733] via-[#123a82] to-[#1a56c7] px-3 py-1.5 text-xs font-semibold text-white shadow-md shadow-blue-900/30 transition hover:shadow-blue-700/35 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                        <span>{continueLabel}</span>
-                        <ArrowRight className="h-3.5 w-3.5" />
+                        <span className="pointer-events-none absolute inset-y-0 left-0 w-1/2 -translate-x-[170%] -skew-x-12 bg-linear-to-r from-transparent via-white/45 to-transparent opacity-0 transition duration-700 ease-out group-hover:translate-x-[320%] group-hover:opacity-100" />
+                        <span className="relative">{continueLabel}</span>
+                        <ArrowRight className="relative h-3.5 w-3.5" />
                     </button>
                 )}
             </div>
