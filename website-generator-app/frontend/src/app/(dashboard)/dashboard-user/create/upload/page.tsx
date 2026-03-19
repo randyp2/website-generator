@@ -42,13 +42,9 @@ const UploadPage: React.FC = () => {
         setParsingError,
         addMediaFiles,
         removeMediaFile,
-        updateMediaFileTitle,
-        updateMediaFileDescription,
         updateMediaFileSectionHint,
         addVideoFiles,
         removeVideoFile,
-        updateVideoFileTitle,
-        updateVideoFileDescription,
         updateVideoFileSectionHint,
     } = usePortfolioStore();
 
@@ -98,11 +94,6 @@ const UploadPage: React.FC = () => {
         });
         return () => unsub(); // cleanup on unmount
     }, []);
-
-    // Get parsed resume data from store for checking if already parsed
-    const parsedResumeSourceKey = usePortfolioStore(
-        (s) => s.parsedResumeSourceKey,
-    );
 
     const getResumeSourceKey = (file: File) =>
         `${file.name}::${file.size}::${file.type}::${file.lastModified}`;
@@ -182,13 +173,10 @@ const UploadPage: React.FC = () => {
             // Resume: directly set the first file (single file upload)
             // Parsing is deferred to handleContinue for immediate navigation
             const resumeUpload = fileArray[0];
-            const sourceKey = getResumeSourceKey(resumeUpload.file);
-
-            if (parsedResumeSourceKey !== sourceKey) {
-                setParsedResumeData(null);
-                setParsedResumeSourceKey(null);
-                setParsingError(null);
-            }
+            setParsedResumeData(null);
+            setParsedResumeSourceKey(null);
+            setParsingError(null);
+            setIsParsingResume(false);
 
             setResumeFile(resumeUpload);
         } else if (type === "media") {
@@ -234,36 +222,6 @@ const UploadPage: React.FC = () => {
         } else if (type === "video" && index !== undefined) {
             // Video: filter out the file at the specified index
             removeVideoFile(index);
-        }
-    };
-
-    /**
-     * HANDLER: Update title of a confirmed file
-     *
-     * Updates the title property of a specific file in the confirmed files list.
-     * This function is called when the user edits the title of an already-confirmed
-     * media or video file in the list view.
-     *
-     * Uses the map method to create a new array with the updated file object,
-     * preserving all other properties using the spread operator (...file).
-     * Only the file at the specified index is modified; all others remain unchanged.
-     *
-     * @param type - File category: "media" or "video"
-     * @param index - Array index of the file to update
-     * @param title - New title string to set for the file
-     * @returns void
-     */
-    const updateFileTitle = (
-        type: "media" | "video",
-        index: number,
-        title: string,
-    ) => {
-        if (type === "media") {
-            // Update title for media file at specified index
-            updateMediaFileTitle(index, title);
-        } else if (type === "video") {
-            // Update title for video file at specified index
-            updateVideoFileTitle(index, title);
         }
     };
 
@@ -362,36 +320,6 @@ const UploadPage: React.FC = () => {
                     i === index ? { ...file, description } : file,
                 ),
             );
-        }
-    };
-
-    /**
-     * HANDLER: Update description of a confirmed file
-     *
-     * Updates the description property of a file in the confirmed files list.
-     * This function is called when the user edits the description of an already-confirmed
-     * media or video file in the list view edit mode.
-     *
-     * Works with the confirmed mediaFiles or videoFiles state (not pending files).
-     * Uses map to immutably update the file object at the specified index while
-     * preserving all other files in the array.
-     *
-     * @param type - File category: "media" or "video"
-     * @param index - Array index of the confirmed file to update
-     * @param description - New description text to set for the file
-     * @returns void
-     */
-    const updateFileDescription = (
-        type: "media" | "video",
-        index: number,
-        description: string,
-    ) => {
-        if (type === "media") {
-            // Update description for confirmed media file at specified index
-            updateMediaFileDescription(index, description);
-        } else if (type === "video") {
-            // Update description for confirmed video file at specified index
-            updateVideoFileDescription(index, description);
         }
     };
 
@@ -519,7 +447,7 @@ const UploadPage: React.FC = () => {
         //  --- Call API Route to update Supbase Database
         // Extract current state values
         try {
-            const { templateId, portfolioId, resumeFile, mediaFiles, videoFiles, parsedResumeData, parsedResumeSourceKey } =
+            const { templateId, portfolioId, resumeFile, mediaFiles, videoFiles } =
                 usePortfolioStore.getState();
 
             if (!templateId || !portfolioId) {
@@ -588,12 +516,10 @@ const UploadPage: React.FC = () => {
             // Start parsing in background if not already parsed
             if (resumeFile) {
                 const resumeSourceKey = getResumeSourceKey(resumeFile.file);
-                if (!parsedResumeData || parsedResumeSourceKey !== resumeSourceKey) {
-                    setIsParsingResume(true);
-                    setParsingError(null);
-                    // Fire and forget - don't await
-                    parseResumeInBackground(resumeFile.file, resumeSourceKey);
-                }
+                setIsParsingResume(true);
+                setParsingError(null);
+                // Fire and forget - don't await
+                parseResumeInBackground(resumeFile.file, resumeSourceKey);
             } else {
                 setParsedResumeData(createManualResumeTemplate());
                 setParsedResumeSourceKey(MANUAL_RESUME_SOURCE_KEY);

@@ -8,6 +8,7 @@ import {
 } from "@/utils/resume/manualResumeTemplate";
 
 interface UseReviewPortfolioSyncParams {
+    isParsingResume: boolean;
     portfolioId: string | null;
     parsedResumeData: ParsedResumeData | null;
     searchPortfolioId: string | null;
@@ -21,6 +22,7 @@ interface UseReviewPortfolioSyncParams {
 }
 
 export const useReviewPortfolioSync = ({
+    isParsingResume,
     portfolioId,
     parsedResumeData,
     searchPortfolioId,
@@ -34,9 +36,19 @@ export const useReviewPortfolioSync = ({
 }: UseReviewPortfolioSyncParams) => {
     useEffect(() => {
         if (searchPortfolioId && searchPortfolioId !== portfolioId) {
+            setParsedResumeData(null);
+            setParsedResumeSourceKey(null);
+            setParsingError(null);
             setPortfolioId(searchPortfolioId);
         }
-    }, [portfolioId, searchPortfolioId, setPortfolioId]);
+    }, [
+        portfolioId,
+        searchPortfolioId,
+        setParsedResumeData,
+        setParsedResumeSourceKey,
+        setParsingError,
+        setPortfolioId,
+    ]);
 
     useEffect(() => {
         if (!portfolioId) return;
@@ -49,7 +61,7 @@ export const useReviewPortfolioSync = ({
     }, [portfolioId]);
 
     useEffect(() => {
-        if (!portfolioId || parsedResumeData) return;
+        if (!portfolioId || parsedResumeData || isParsingResume) return;
 
         const loadResume = async () => {
             setIsParsingResume(true);
@@ -92,6 +104,7 @@ export const useReviewPortfolioSync = ({
 
         void loadResume();
     }, [
+        isParsingResume,
         parsedResumeData,
         portfolioId,
         setIsParsingResume,
