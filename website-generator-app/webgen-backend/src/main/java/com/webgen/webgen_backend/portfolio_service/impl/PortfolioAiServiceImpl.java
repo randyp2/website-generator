@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.portfolio_service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.webgen.webgen_backend.dto.portfolio.*;
@@ -11,6 +12,7 @@ import com.webgen.webgen_backend.entity.Portfolio;
 import com.webgen.webgen_backend.entity.PortfolioSection;
 import com.webgen.webgen_backend.portfolio_service.PortfolioAiService;
 import com.webgen.webgen_backend.portfolio_service.job.GenerateJobService;
+import com.webgen.webgen_backend.portfolio_service.job.SectionGenerationMessage;
 import com.webgen.webgen_backend.portfolio_service.parser.PortfolioResponseParser;
 import com.webgen.webgen_backend.portfolio_service.prompt.PortfolioPromptBuilder;
 import com.webgen.webgen_backend.portfolio_service.prompt.PromptRefinerService;
@@ -57,7 +59,7 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
     private int maxRetries;
 
     @Override
-    public PortfolioGenerateResponseDTO generatePortfolio(
+    public void generatePortfolio(
             UUID portfolioId,
             UUID userId,
             PortfolioGenerateRequestDTO req,
@@ -118,19 +120,12 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
                 jobId, portfolioId.toString(), userId.toString(),
                 req, refinedPrompt, blueprint
         );
-
-        return null;
+        
     }
 
 
     @Override
-    public void generateSingleSectionFromQueue(
-            PortfolioGenerateRequestDTO req,
-            String refinedPrompt,
-            BlueprintDTO blueprint,
-            BlueprintSectionPlanDTO planItem,
-            String jobId
-    ) {
+    public void generateSingleSectionFromQueue(SectionGenerationMessage msg) {
         SectionDTO parsedSection = null;
         ValidationResult validation = null;
         int attempt = 0;
@@ -140,10 +135,10 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
 
             // --- Build prompt
             Prompt sectionPrompt = portfolioPromptBuilder
-                    .buildSectionPrompt(req, refinedPrompt, blueprint, planItem);
+                    .buildSectionPrompt(msg.getReq(), msg.getRefinedPrompt(), msg.getBlueprint(), msg.getPlanItem());
 
             // --- Call and parse LLM
-            jobService.updateStatus(jobId, JobStatusDTO.Status.GENERATING);
+            jobService.updateStatus(msg.getJobId(), JobStatusDTO.Status.GENERATING);
             ChatResponse response = openAiChatModel.call(sectionPrompt);
             String rawJson = response.getResult().getOutput().getText();
             parsedSection = portfolioResponseParser.parseSingleSectionResponse(rawJson);
@@ -156,15 +151,59 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
 
         if (validation == null || !validation.isValid()) {
             String failReason = "Failed to generate valid JSX for section '"
-                    + planItem.getSectionKey() + "' after " + maxRetries + " attempts";
-            jobService.failJob(jobId, failReason);
+                    + msg.getPlanItem().getSectionKey() + "' after " + maxRetries + " attempts";
+            jobService.failJob(msg.getJobId(), failReason);
             throw new IllegalStateException(failReason);
         }
 
         // Push completed section to Redist list
-        jobService.pushCompletedSection(jobId, parsedSection);
-        jobService.incrementCompleted(jobId);
+        jobService.pushCompletedSection(msg.getJobId(), parsedSection);
+        int completedCount = jobService.incrementCompleted(msg.getJobId());
+
+        // Check if last section was generated
+        if (completedCount == msg.getTotalSections())
+            persistFromRedis(msg.getJobId(), msg.getPortfolioId(), msg.getBlueprint(), msg.getReq());
+
     }
+
+    private void persistFromRedis(
+            String jobId,
+            String portfolioId,
+            BlueprintDTO blueprint,
+            PortfolioGenerateRequestDTO req
+    ) {
+        jobService.updateStatus(jobId, JobStatusDTO.Status.PERSISTING);
+
+        // Get all completed sections from the Redist list
+        List<String> sectionsRawJson = jobService.getCompletedSections(jobId, 0);
+        List<SectionDTO> sections = sectionsRawJson.stream()
+                .map(json -> {
+                    try {
+                        return objectMapper.readValue(json, SectionDTO.class);
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException("Failed to deserialize section", e);
+                    }
+                })
+                .toList();
+
+        // Build PortfolioGenerateResponseDTO and persist
+        PortfolioGenerateResponseDTO response = new PortfolioGenerateResponseDTO(
+                "",
+                sections,
+                blueprint.getAssistantMessage(),
+                blueprint.getGlobalThemeDTO()
+        );
+
+        persistGenerationResults(
+                UUID.fromString(portfolioId),
+                portfolioRepository.findById(UUID.fromString(portfolioId)).orElseThrow(),
+                 req,
+                response
+        );
+
+        jobService.updateStatus(jobId, JobStatusDTO.Status.COMPLETED);
+    }
+
 
 //    /**
 //     * Call LLM and generate the react source code for a single section

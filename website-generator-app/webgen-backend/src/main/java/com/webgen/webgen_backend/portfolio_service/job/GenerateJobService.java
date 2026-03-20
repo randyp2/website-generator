@@ -86,7 +86,8 @@ public class GenerateJobService {
 
             rabbitTemplate.convertAndSend(
                     RabbitMQConfig.EXCHANGE,
-                    RabbitMQConfig.SECTION_ROUTING_KEY
+                    RabbitMQConfig.SECTION_ROUTING_KEY,
+                    msg
             );
         }
     }
@@ -144,14 +145,16 @@ public class GenerateJobService {
         saveToRedis(jobStatusDTO);
     }
 
-    public void incrementCompleted(String jobId) {
+    public int incrementCompleted(String jobId) {
         JobStatusDTO jobStatusDTO = getJob(jobId);
         if (jobStatusDTO == null)
-            return;
+            return -1;
 
-        int currCount = jobStatusDTO.getCompletedCount();
-        jobStatusDTO.setCompletedCount(++currCount);
+        int newCount = jobStatusDTO.getCompletedCount() + 1;
+        jobStatusDTO.setCompletedCount(newCount);
         saveToRedis(jobStatusDTO);
+
+        return  newCount;
     }
 
     public void setTotalSections(String jobId, int total) {
