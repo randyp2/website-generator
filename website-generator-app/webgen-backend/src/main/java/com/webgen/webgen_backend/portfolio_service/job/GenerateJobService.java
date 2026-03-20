@@ -2,6 +2,7 @@ package com.webgen.webgen_backend.portfolio_service.job;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.webgen.webgen_backend.config.RabbitMQConfig;
 import com.webgen.webgen_backend.dto.portfolio.JobStatusDTO;
 import com.webgen.webgen_backend.dto.portfolio.PortfolioGenerateRequestDTO;
 import com.webgen.webgen_backend.dto.portfolio.SectionDTO;
@@ -9,6 +10,7 @@ import com.webgen.webgen_backend.dto.portfolio.SectionDTO;
 import lombok.RequiredArgsConstructor;
 
 
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -27,10 +29,10 @@ public class GenerateJobService {
 
     // Key, value config
     private static final String KEY_PREFIX = "gen:job:";
-    private static final String QUEUE_KEY = "gen:queue:portfolio";
     private static final Duration TTL = Duration.ofMinutes(15);
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
+    private final RabbitTemplate rabbitTemplate;
 
     // Create and queue a generation job for a worker to pick up
     public String createJobAndQueue(
@@ -39,18 +41,23 @@ public class GenerateJobService {
             PortfolioGenerateRequestDTO req) {
         String jobId = createJob(portfolioId);
 
-        try {
-            String workItem = objectMapper.writeValueAsString(Map.of(
-                    "jobId", jobId,
-                    "portfolioId", portfolioId.toString(),
-                    "userId", userId.toString(),
-                    "req", req));
-            redisTemplate.opsForList().leftPush(QUEUE_KEY, workItem);
-            return jobId;
-        } catch (JsonProcessingException e) {
-            failJob(jobId, "Failed to seralize work");
-            throw new RuntimeException("Failed to queue generation job", e);
-        }
+        PortfolioGenerationMessage msg = new PortfolioGenerationMessage(
+                jobId,
+                portfolioId.toString(),
+                userId.toString(),
+                req
+        );
+
+        // Publish message to exchange
+        // RabbitMQ sends to queue
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.EXCHANGE,
+                RabbitMQConfig.ROUTING_KEY,
+                msg
+        );
+
+        return jobId;
+
     }
 
     // Push a completed section job to a list
