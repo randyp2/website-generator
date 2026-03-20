@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   postgres:
@@ -22,6 +22,22 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data # persist db
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: portrn-rabbitmq
+    restart: always
+    ports:
+      - "5672:5672" # app connection
+      - "15672:15672" # dashboard UI
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
 volumes:
   postgres_data:
   redis_data:
+  rabbitmq_data:
+
