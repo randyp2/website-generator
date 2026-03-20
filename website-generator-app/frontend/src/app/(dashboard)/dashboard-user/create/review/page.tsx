@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { EducationSection } from "./components/EducationSection";
 import { ExperienceSection } from "./components/ExperienceSection";
@@ -51,6 +51,7 @@ const ReviewPage: React.FC = () => {
     } = usePortfolioStore();
 
     useReviewPortfolioSync({
+        isParsingResume,
         portfolioId,
         parsedResumeData,
         searchPortfolioId: searchParams.get("portfolioId"),
@@ -78,17 +79,13 @@ const ReviewPage: React.FC = () => {
         parsedResumeSourceKey === MANUAL_RESUME_SOURCE_KEY ||
         parsedResumeData?.parsingMethod === "manual_template";
 
-    useEffect(() => {
-        if (isManualTemplate) {
-            setIsEditing(true);
-        }
-    }, [isManualTemplate]);
+    const effectiveIsEditing = isManualTemplate || isEditing;
 
     return (
         <div className="relative min-h-screen px-4 py-10 text-white sm:px-6 lg:px-8">
             <div className="relative">
             <ReviewPageHeader
-                isEditing={isEditing}
+                isEditing={effectiveIsEditing}
                 onToggleEditing={() => setIsEditing((value) => !value)}
             />
 
@@ -106,7 +103,7 @@ const ReviewPage: React.FC = () => {
                 ) : (
                     <>
                         <PersonalInfoSection
-                            isEditing={isEditing}
+                            isEditing={effectiveIsEditing}
                             parsedResumeData={parsedResumeData}
                             updateFullName={updateFullName}
                             updateEmail={updateEmail}
@@ -116,11 +113,11 @@ const ReviewPage: React.FC = () => {
                         />
                         <EducationSection
                             educations={parsedResumeData.educations || []}
-                            isEditing={isEditing}
+                            isEditing={effectiveIsEditing}
                             updateEducation={updateEducation}
                         />
                         <SkillsSection
-                            isEditing={isEditing}
+                            isEditing={effectiveIsEditing}
                             skills={parsedResumeData.skills || []}
                             addSkill={addSkill}
                             updateSkill={updateSkill}
@@ -128,7 +125,7 @@ const ReviewPage: React.FC = () => {
                         />
                         <ExperienceSection
                             experiences={parsedResumeData.experiences || []}
-                            isEditing={isEditing}
+                            isEditing={effectiveIsEditing}
                             addExperience={addExperience}
                             removeExperience={removeExperience}
                             updateExperience={updateExperience}

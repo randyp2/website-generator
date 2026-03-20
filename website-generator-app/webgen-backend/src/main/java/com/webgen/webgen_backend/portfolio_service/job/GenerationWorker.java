@@ -1,7 +1,13 @@
 package com.webgen.webgen_backend.portfolio_service.job;
 
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Channel;
+import com.webgen.webgen_backend.config.RabbitMQConfig;
 import lombok.RequiredArgsConstructor;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -11,6 +17,7 @@ import com.webgen.webgen_backend.dto.portfolio.JobStatusDTO;
 import com.webgen.webgen_backend.dto.portfolio.PortfolioGenerateRequestDTO;
 import com.webgen.webgen_backend.portfolio_service.PortfolioAiService;
 
+import java.io.IOException;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -18,58 +25,56 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class GenerationWorker {
 
-    private static final String QUEUE_KEY = "gen:queue:portfolio";
-
-    private final RedisTemplate<String, String> redisTemplate;
-    private final ObjectMapper objectMapper;
     private final GenerateJobService jobService;
     private final PortfolioAiService portfolioAiService;
 
-    /**
-     * Check queue for existing job
-     * - Run generatePortfolio on an existing job
-     */
-    @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.SECONDS)
-    public void pollQueue() {
 
-        // Get raw json job description from queue
-        String workItem = redisTemplate.opsForList().rightPop(QUEUE_KEY);
-        if (workItem == null)
-            return;
+    // Worker that is subscribed to the portfolio.generate.queue
+    // Establish persistent tcp connection to determine if messages have arrived
+    @RabbitListener(queues = RabbitMQConfig.QUEUE, ackMode = "MANUAL")
+    public void handleGeneration(
+            PortfolioGenerationMessage msg,
+            Channel channel,
+            @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag
+    ) throws IOException {
 
-        String jobId = null;
+        String jobId = msg.getJobId();
 
         try {
-            JsonNode root = objectMapper.readTree(workItem);
 
-            // Check for bad work payload
-            if (root.path("jobId").isMissingNode()
-                    || root.path("portfolioId").isMissingNode()
-                    || root.path("userId").isMissingNode()) {
+            UUID portfolioId = UUID.fromString(msg.getPortfolioId());
+            UUID userId = UUID.fromString(msg.getUserId());
 
-                System.err.println(">>> [WORKER] Bad work payload in redis queue");
-                return; // Skip job
-            }
-
-            // Parse work payload
-            jobId = root.path("jobId").asText();
-            UUID portfolioId = UUID.fromString(root.path("portfolioId").asText());
-            UUID userId = UUID.fromString(root.path("userId").asText());
-            PortfolioGenerateRequestDTO req = objectMapper.treeToValue(
-                    root.path("req"),
-                    PortfolioGenerateRequestDTO.class);
-
-            // Update status and generate portfolio
             jobService.updateStatus(jobId, JobStatusDTO.Status.PROCESSING);
-            portfolioAiService.generatePortfolio(portfolioId, userId, req, jobId);
+            portfolioAiService.generatePortfolio(portfolioId, userId, msg.getReq(), jobId);
             jobService.updateStatus(jobId, JobStatusDTO.Status.COMPLETED);
 
+            // Send ack and take off queue
+            channel.basicAck(deliveryTag, false);
         } catch (Exception e) {
+
             System.err.println(">>> [WORKER] Job failed: " + e.getMessage());
 
             if (jobId != null)
                 jobService.failJob(jobId, e.getMessage());
+
+            // Reject message and send to dead letter queue
+            channel.basicNack(deliveryTag, false, false);
         }
     }
+
+    // Worker subscribed the dlq
+    @RabbitListener(queues = RabbitMQConfig.DLQ, ackMode = "MANUAL")
+    public void handleDeadLetter(
+            PortfolioGenerationMessage msg,
+            Channel channel,
+            @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag
+    ) throws IOException {
+        System.err.println(">>> [DLQ] Failed job: " + msg.getJobId()
+                + " | portfolio: " + msg.getPortfolioId());
+
+        channel.basicAck(deliveryTag, false);
+    }
+
 
 }
