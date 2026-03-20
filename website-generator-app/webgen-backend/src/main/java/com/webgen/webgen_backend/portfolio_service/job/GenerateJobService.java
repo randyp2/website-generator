@@ -145,16 +145,28 @@ public class GenerateJobService {
         saveToRedis(jobStatusDTO);
     }
 
+    /**
+     * Atomically increment the completed section count using Redis INCR.
+     * Uses a dedicated key for thread safety across parallel workers.
+     * Also best-effort updates the JobStatusDTO completedCount for client polling.
+     *
+     * @param jobId Active job ID
+     * @return the new completed count (atomic, safe for barrier checks)
+     */
     public int incrementCompleted(String jobId) {
+        // Atomic increment via Redis INCR — safe across concurrent workers
+        String atomicKey = KEY_PREFIX + jobId + ":completedCount";
+        Long newCount = redisTemplate.opsForValue().increment(atomicKey);
+        redisTemplate.expire(atomicKey, TTL);
+
+        // Best-effort update of JobStatusDTO for client polling display
         JobStatusDTO jobStatusDTO = getJob(jobId);
-        if (jobStatusDTO == null)
-            return -1;
+        if (jobStatusDTO != null) {
+            jobStatusDTO.setCompletedCount(newCount != null ? newCount.intValue() : 0);
+            saveToRedis(jobStatusDTO);
+        }
 
-        int newCount = jobStatusDTO.getCompletedCount() + 1;
-        jobStatusDTO.setCompletedCount(newCount);
-        saveToRedis(jobStatusDTO);
-
-        return  newCount;
+        return newCount != null ? newCount.intValue() : -1;
     }
 
     public void setTotalSections(String jobId, int total) {
