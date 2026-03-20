@@ -63,6 +63,37 @@ public class GenerationWorker {
         }
     }
 
+    // Worker subscribed to section generation queue
+    // Create 4-8 rabbitmq consumers for parallel generation 
+    @RabbitListener(queues = RabbitMQConfig.SECTION_QUEUE, concurrency = "4-8", ackMode = "MANUAL")
+    public void handleSection(
+            SectionGenerationMessage msg,
+            Channel channel,
+            @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag
+    ) throws IOException {
+        String jobId = msg.getJobId();
+
+        try {
+            portfolioAiService.generateSingleSectionFromQueue(
+                    msg.getReq(),
+                    msg.getRefinedPrompt(),
+                    msg.getBlueprint(),
+                    msg.getPlanItem(),
+                    jobId
+            );
+
+            channel.basicAck(deliveryTag, false);
+        } catch (Exception e) {
+            System.err.println(">>> [SECTION-WORKER] Section failed: "
+                    + msg.getPlanItem().getSectionKey() + " | " + e.getMessage());
+
+            if (jobId != null)
+                jobService.failJob(jobId, e.getMessage());
+
+            channel.basicNack(deliveryTag, false, false);
+        }
+    }
+
     // Worker subscribed the dlq
     @RabbitListener(queues = RabbitMQConfig.DLQ, ackMode = "MANUAL")
     public void handleDeadLetter(
