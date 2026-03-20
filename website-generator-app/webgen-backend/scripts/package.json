@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "JSX validation script for webgen-backend",
   "private": true,
+  "scripts": {
+    "test": "node validate-jsx.test.js"
+  },
   "dependencies": {
     "@babel/parser": "^7.23.0",
     "@babel/traverse": "^7.23.0"
