@@ -1,6 +1,7 @@
 package com.webgen.webgen_backend.portfolio_service;
 
 import com.webgen.webgen_backend.dto.portfolio.*;
+import com.webgen.webgen_backend.portfolio_service.job.SectionGenerationMessage;
 
 import java.util.UUID;
 
@@ -11,9 +12,8 @@ public interface PortfolioAiService {
      * @param portfolioId - ID of the portfolio to generate for
      * @param userId - ID of the authenticated user (for ownership check)
      * @param req - Contains user prompt and context for the portfolio
-     * @return PortfolioGenerateResponseDTO -  dto consisting of model response
      */
-    PortfolioGenerateResponseDTO generatePortfolio(
+    void generatePortfolio(
             UUID portfolioId,
             UUID userId,
             PortfolioGenerateRequestDTO req,
@@ -22,19 +22,9 @@ public interface PortfolioAiService {
 
     /**
      * Generate a single section pertaining to a single portfolio
-     * @param req - Contains prompt and context for whole portfolio
-     * @param refinedPrompt - User refined prompt by LLM
-     * @param blueprint - Blueprint plan and style direction of entire portfolio
-     * @param planItem - Specific blueprint per section
-     * @param jobId - id of job in redis
+     * @param msg - Single sectiongenerationmsg model
      */
-    void generateSingleSectionFromQueue(
-            PortfolioGenerateRequestDTO req,
-            String refinedPrompt,
-            BlueprintDTO blueprint,
-            BlueprintSectionPlanDTO planItem,
-            String jobId
-    );
+    void generateSingleSectionFromQueue(SectionGenerationMessage msg);
 
     /**
      *  Given request generate/refine a section

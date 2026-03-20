@@ -47,7 +47,7 @@ public class GenerationWorker {
 
             jobService.updateStatus(jobId, JobStatusDTO.Status.PROCESSING);
             portfolioAiService.generatePortfolio(portfolioId, userId, msg.getReq(), jobId);
-            jobService.updateStatus(jobId, JobStatusDTO.Status.COMPLETED);
+
 
             // Send ack and take off queue
             channel.basicAck(deliveryTag, false);
@@ -64,7 +64,7 @@ public class GenerationWorker {
     }
 
     // Worker subscribed to section generation queue
-    // Create 4-8 rabbitmq consumers for parallel generation 
+    // Create 4-8 rabbitmq consumers for parallel generation
     @RabbitListener(queues = RabbitMQConfig.SECTION_QUEUE, concurrency = "4-8", ackMode = "MANUAL")
     public void handleSection(
             SectionGenerationMessage msg,
@@ -74,13 +74,7 @@ public class GenerationWorker {
         String jobId = msg.getJobId();
 
         try {
-            portfolioAiService.generateSingleSectionFromQueue(
-                    msg.getReq(),
-                    msg.getRefinedPrompt(),
-                    msg.getBlueprint(),
-                    msg.getPlanItem(),
-                    jobId
-            );
+            portfolioAiService.generateSingleSectionFromQueue(msg);
 
             channel.basicAck(deliveryTag, false);
         } catch (Exception e) {
