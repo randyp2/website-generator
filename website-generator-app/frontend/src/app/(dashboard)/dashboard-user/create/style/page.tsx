@@ -4,17 +4,14 @@ import { PortfolioStyleChat } from "@/components/chat/PortfolioStyleChat";
 import { useStyleChat } from "@/hooks/useStyleChat";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-    createManualResumeTemplate,
-    MANUAL_RESUME_SOURCE_KEY,
+    isPristineManualResumeTemplate,
 } from "@/utils/resume/manualResumeTemplate";
-import { usePortfolioStore } from "@/stores/usePortfolioStore";
 
 const StyleDiscussionPage: React.FC = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const templateId = searchParams.get("templateId");
     const portfolioId = searchParams.get("portfolioId");
-    const { setParsedResumeData, setParsedResumeSourceKey } = usePortfolioStore();
 
     const {
         normalizedStyleMessages,
@@ -43,18 +40,21 @@ const StyleDiscussionPage: React.FC = () => {
             await flushStyleHistorySync();
             const resumeRes = await fetch(`/api/portfolio/${portfolioId}/resume`);
             const resumeData = resumeRes.ok ? await resumeRes.json() : null;
-            const hasParsedResume = Boolean(resumeData?.parsedJson);
+            const hasReviewableResume =
+                Boolean(resumeData?.parsedJson) &&
+                !isPristineManualResumeTemplate(resumeData?.parsedJson);
 
-            const nextStep = "review";
+            const nextStep = hasReviewableResume ? "review" : "upload";
+
             await fetch(`/api/portfolio/${portfolioId}/update`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ last_step: nextStep }),
             }).catch(() => null);
 
-            if (!hasParsedResume) {
-                setParsedResumeData(createManualResumeTemplate());
-                setParsedResumeSourceKey(MANUAL_RESUME_SOURCE_KEY);
+            if (!hasReviewableResume) {
+                router.push(`/dashboard-user/create/upload?portfolioId=${portfolioId}`);
+                return;
             }
 
             router.push(`/dashboard-user/create/review?portfolioId=${portfolioId}`);
@@ -63,12 +63,10 @@ const StyleDiscussionPage: React.FC = () => {
                 await fetch(`/api/portfolio/${portfolioId}/update`, {
                     method: "PATCH",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ last_step: "review" }),
+                    body: JSON.stringify({ last_step: "upload" }),
                 }).catch(() => null);
             }
-            setParsedResumeData(createManualResumeTemplate());
-            setParsedResumeSourceKey(MANUAL_RESUME_SOURCE_KEY);
-            router.push(`/dashboard-user/create/review?portfolioId=${portfolioId}`);
+            router.push(`/dashboard-user/create/upload?portfolioId=${portfolioId}`);
         }
     };
 

@@ -26,12 +26,19 @@ process.stdin.on('end', () => {
 
     // --- Find the default export and validate { data } param ---
     let defaultExportFuncNode = null;
+    let hasDefaultExport = false;
 
     traverse(ast, {
         // Pattern 1: export default function Foo({ data }) { ... }
         ExportDefaultDeclaration(path) {
+            hasDefaultExport = true;
             const decl = path.node.declaration;
-            if (decl.type === 'FunctionDeclaration') {
+
+            if (
+                decl.type === 'FunctionDeclaration' ||
+                decl.type === 'FunctionExpression' ||
+                decl.type === 'ArrowFunctionExpression'
+            ) {
                 defaultExportFuncNode = decl;
             } else if (decl.type === 'Identifier') {
                 // Pattern 2 & 3: export default Foo (where Foo is declared elsewhere)
@@ -52,7 +59,19 @@ process.stdin.on('end', () => {
         }
     });
 
-    if (defaultExportFuncNode) {
+    if (!hasDefaultExport) {
+        errors.push({
+            message: 'Missing default export. Each section must export a default React component.',
+            line: null,
+            column: null
+        });
+    } else if (!defaultExportFuncNode) {
+        errors.push({
+            message: 'Default export must be a function component (function declaration, function expression, or arrow function).',
+            line: null,
+            column: null
+        });
+    } else {
         const params = defaultExportFuncNode.params;
         if (!params || params.length === 0) {
             errors.push({
