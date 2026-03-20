@@ -28,6 +28,9 @@ public class GenerationWorker {
     private final GenerateJobService jobService;
     private final PortfolioAiService portfolioAiService;
 
+
+    // Worker that is subscribed to the portfolio.generate.queue
+    // Establish persistent tcp connection to determine if messages have arrived
     @RabbitListener(queues = RabbitMQConfig.QUEUE, ackMode = "MANUAL")
     public void handleGeneration(
             PortfolioGenerationMessage msg,
@@ -58,6 +61,19 @@ public class GenerationWorker {
             // Reject message and send to dead letter queue
             channel.basicNack(deliveryTag, false, false);
         }
+    }
+
+    // Worker subscribed the dlq
+    @RabbitListener(queues = RabbitMQConfig.DLQ, ackMode = "MANUAL")
+    public void handleDeadLetter(
+            PortfolioGenerationMessage msg,
+            Channel channel,
+            @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag
+    ) throws IOException {
+        System.err.println(">>> [DLQ] Failed job: " + msg.getJobId()
+                + " | portfolio: " + msg.getPortfolioId());
+
+        channel.basicAck(deliveryTag, false);
     }
 
 

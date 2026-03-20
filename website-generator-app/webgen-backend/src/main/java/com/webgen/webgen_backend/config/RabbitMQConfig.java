@@ -50,7 +50,9 @@ public class RabbitMQConfig {
     // Configure dead letter queue
     @Bean
     public Queue deadLetterQueue() {
-        return QueueBuilder.durable(DLQ).build();
+        return QueueBuilder.durable(DLQ)
+                .withArgument("x-message-ttl", 86400000) // 24 hours
+                .build();
     }
 
     @Bean
