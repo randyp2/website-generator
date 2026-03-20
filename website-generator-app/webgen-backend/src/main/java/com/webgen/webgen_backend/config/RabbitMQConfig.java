@@ -62,7 +62,7 @@ public class RabbitMQConfig {
     /* ======== PER SECTION GENERATION QUEUE ======== */
     @Bean
     public Queue sectionQueue() {
-        return QueueBuilder.durable(QUEUE)
+        return QueueBuilder.durable(SECTION_QUEUE)
                 .withArgument("x-dead-letter-exchange", DLX)
                 .withArgument("x-dead-letter-routing-key", DLQ_ROUTING_KEY)
                 .build();
