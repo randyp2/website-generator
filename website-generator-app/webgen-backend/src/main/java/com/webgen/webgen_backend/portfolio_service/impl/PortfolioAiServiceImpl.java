@@ -126,43 +126,63 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
 
     @Override
     public void generateSingleSectionFromQueue(SectionGenerationMessage msg) {
+        String sectionKey = msg.getPlanItem().getSectionKey();
+        String jobId = msg.getJobId();
+        long sectionStart = System.currentTimeMillis();
+
+        System.out.println(">>> [SECTION-WORKER] Starting section: " + sectionKey + " | job: " + jobId);
+
         SectionDTO parsedSection = null;
         ValidationResult validation = null;
         int attempt = 0;
 
         while (attempt < maxRetries)  {
             ++attempt;
+            System.out.println(">>> [SECTION-WORKER] Section '" + sectionKey + "' attempt " + attempt + "/" + maxRetries);
 
             // --- Build prompt
             Prompt sectionPrompt = portfolioPromptBuilder
                     .buildSectionPrompt(msg.getReq(), msg.getRefinedPrompt(), msg.getBlueprint(), msg.getPlanItem());
 
             // --- Call and parse LLM
-            jobService.updateStatus(msg.getJobId(), JobStatusDTO.Status.GENERATING);
+            long llmStart = System.currentTimeMillis();
+            jobService.updateStatus(jobId, JobStatusDTO.Status.GENERATING);
             ChatResponse response = openAiChatModel.call(sectionPrompt);
             String rawJson = response.getResult().getOutput().getText();
             parsedSection = portfolioResponseParser.parseSingleSectionResponse(rawJson);
+            System.out.println(">>> [SECTION-WORKER] Section '" + sectionKey + "' LLM call completed in "
+                    + (System.currentTimeMillis() - llmStart) + "ms");
 
             // --- Validate
             validation = jsxValidatorService.validateGeneratedSection(parsedSection);
 
-            if (validation.isValid()) break;
+            if (validation.isValid()) {
+                System.out.println(">>> [SECTION-WORKER] Section '" + sectionKey + "' validated on attempt " + attempt);
+                break;
+            }
+
+            System.out.println(">>> [SECTION-WORKER] Section '" + sectionKey + "' validation failed (attempt " + attempt + ")");
         }
 
         if (validation == null || !validation.isValid()) {
             String failReason = "Failed to generate valid JSX for section '"
-                    + msg.getPlanItem().getSectionKey() + "' after " + maxRetries + " attempts";
-            jobService.failJob(msg.getJobId(), failReason);
+                    + sectionKey + "' after " + maxRetries + " attempts";
+            jobService.failJob(jobId, failReason);
             throw new IllegalStateException(failReason);
         }
 
-        // Push completed section to Redist list
-        jobService.pushCompletedSection(msg.getJobId(), parsedSection);
-        int completedCount = jobService.incrementCompleted(msg.getJobId());
+        // Push completed section to Redis list
+        jobService.pushCompletedSection(jobId, parsedSection);
+        int completedCount = jobService.incrementCompleted(jobId);
+
+        System.out.println(">>> [SECTION-WORKER] Section '" + sectionKey + "' completed in "
+                + (System.currentTimeMillis() - sectionStart) + "ms (" + completedCount + "/" + msg.getTotalSections() + ")");
 
         // Check if last section was generated
-        if (completedCount == msg.getTotalSections())
-            persistFromRedis(msg.getJobId(), msg.getPortfolioId(), msg.getBlueprint(), msg.getReq());
+        if (completedCount == msg.getTotalSections()) {
+            System.out.println(">>> [SECTION-WORKER] All sections complete — triggering persistence | job: " + jobId);
+            persistFromRedis(jobId, msg.getPortfolioId(), msg.getBlueprint(), msg.getReq());
+        }
 
     }
 
@@ -172,9 +192,11 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
             BlueprintDTO blueprint,
             PortfolioGenerateRequestDTO req
     ) {
+        System.out.println(">>> [PERSIST] Starting DB persistence | job: " + jobId);
+        long persistStart = System.currentTimeMillis();
         jobService.updateStatus(jobId, JobStatusDTO.Status.PERSISTING);
 
-        // Get all completed sections from the Redist list
+        // Get all completed sections from the Redis list
         List<String> sectionsRawJson = jobService.getCompletedSections(jobId, 0);
         List<SectionDTO> sections = sectionsRawJson.stream()
                 .map(json -> {
@@ -202,6 +224,8 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
         );
 
         jobService.updateStatus(jobId, JobStatusDTO.Status.COMPLETED);
+        System.out.println(">>> [PERSIST] DB persistence completed in "
+                + (System.currentTimeMillis() - persistStart) + "ms | job: " + jobId);
     }
 
 
