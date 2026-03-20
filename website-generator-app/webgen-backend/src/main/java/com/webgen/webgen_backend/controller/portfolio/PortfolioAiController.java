@@ -6,7 +6,6 @@ import com.webgen.webgen_backend.portfolio_service.PortfolioAiService;
 import com.webgen.webgen_backend.portfolio_service.job.GenerateJobService;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -22,10 +21,7 @@ public class PortfolioAiController {
 
     private final GenerateJobService generateJobService;
     private final PortfolioAiService portfolioAiService;
-    private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
-
-    private static final String QUEUE_KEY = "gen:queue:portfolio";
 
     @PostMapping("/{id}/generate")
     public ResponseEntity<Map<String, String>> generatePortfolio(
@@ -53,8 +49,7 @@ public class PortfolioAiController {
     @GetMapping("/jobs/{jobId}/sections")
     public ResponseEntity<CompletedSectionsResponseDTO> getCompletedSections(
             @PathVariable String jobId,
-            @RequestParam(defaultValue = "0") long after
-    ) {
+            @RequestParam(defaultValue = "0") long after) {
         JobStatusDTO job = generateJobService.getJob(jobId);
         if (job == null)
             return ResponseEntity.notFound().build();
@@ -83,58 +78,4 @@ public class PortfolioAiController {
         return ResponseEntity.ok(response);
 
     }
-
-
-    // @PostMapping("/{id}/generate")
-    // public ResponseEntity<?> generatePortfolio(
-    // @PathVariable UUID id,
-    // @RequestBody PortfolioGenerateRequestDTO req) {
-    // System.out.println(">>> [CONTROLLER] /{id}/generate endpoint hit,
-    // portfolioId=" + id);
-    // System.out.println(">>> [CONTROLLER] Request templateId: " +
-    // req.getTemplateId());
-    // System.out.println(">>> [CONTROLLER] Request has resume: " + (req.getResume()
-    // != null));
-    // System.out.println(">>> [CONTROLLER] Request userPrompt: " +
-    // req.getUserPrompt());
-    //
-    // UUID userId = UUID.fromString(
-    // (String)
-    // SecurityContextHolder.getContext().getAuthentication().getPrincipal());
-    //
-    // try {
-    // System.out.println(">>> [CONTROLLER] Calling
-    // portfolioAiService.generatePortfolio()...");
-    // long startTime = System.currentTimeMillis();
-    //
-    // PortfolioGenerateResponseDTO response =
-    // portfolioAiService.generatePortfolio(id, userId, req);
-    //
-    // long duration = System.currentTimeMillis() - startTime;
-    // System.out.println(">>> [CONTROLLER] generatePortfolio() completed in " +
-    // duration + "ms");
-    // System.out.println(">>> [CONTROLLER] Response sections count: "
-    // + (response.getSections() != null ? response.getSections().size() : 0));
-    //
-    // return ResponseEntity.ok(response);
-    // } catch (ResponseStatusException e) {
-    // throw e;
-    // } catch (IllegalArgumentException e) {
-    // System.err.println(">>> [CONTROLLER] Generate error (bad request): " +
-    // e.getMessage());
-    // e.printStackTrace();
-    // String msg = e.getMessage() != null ? e.getMessage() :
-    // e.getClass().getSimpleName();
-    // return ResponseEntity.badRequest().body(Map.of("error", msg));
-    // } catch (Exception e) {
-    // System.err.println(">>> [CONTROLLER] Generate error (internal): " +
-    // e.getMessage());
-    // e.printStackTrace();
-    // String msg = e.getMessage() != null ? e.getMessage() :
-    // e.getClass().getSimpleName();
-    // return ResponseEntity.internalServerError().body(Map.of("error", msg));
-    // }
-    // }
-
-
 }
