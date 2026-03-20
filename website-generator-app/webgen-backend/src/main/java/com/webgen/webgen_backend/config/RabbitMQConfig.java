@@ -1,13 +1,23 @@
 package com.webgen.webgen_backend.config;
 
 
+import jakarta.annotation.PostConstruct;
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class RabbitMQConfig {
+
+    @Value("${spring.rabbitmq.uri:NOT_SET}")
+    private String rabbitUri;
+
+    @PostConstruct
+    public void logRabbitUri() {
+        System.out.println("RABBIT URI = " + rabbitUri);
+    }
 
     // Exchange (interfaces with work queue)
     public static final String EXCHANGE = "portfolio.exchange";
