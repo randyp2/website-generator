@@ -123,6 +123,7 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
     }
 
 
+    @Override
     public void generateSingleSectionFromQueue(
             PortfolioGenerateRequestDTO req,
             String refinedPrompt,
