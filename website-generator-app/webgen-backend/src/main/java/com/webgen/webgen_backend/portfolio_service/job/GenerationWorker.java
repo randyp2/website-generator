@@ -65,7 +65,7 @@ public class GenerationWorker {
 
     // Worker subscribed to section generation queue
     // Create 4-8 rabbitmq consumers for parallel generation
-    @RabbitListener(queues = RabbitMQConfig.SECTION_QUEUE, concurrency = "4-8", ackMode = "MANUAL")
+    @RabbitListener(queues = RabbitMQConfig.SECTION_QUEUE, concurrency = "10", ackMode = "MANUAL")
     public void handleSection(
             SectionGenerationMessage msg,
             Channel channel,
