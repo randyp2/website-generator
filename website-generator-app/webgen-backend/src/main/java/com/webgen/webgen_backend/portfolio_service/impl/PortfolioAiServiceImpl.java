@@ -116,11 +116,26 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
         jobService.setTotalSections(jobId, blueprint.getSectionPlan().size());
 
         // --- Step 3) Fan out sections
-        jobService.fanOutSections(
-                jobId, portfolioId.toString(), userId.toString(),
-                req, refinedPrompt, blueprint
-        );
-        
+        List<SectionGenerationMessage> messages = blueprint.getSectionPlan().stream()
+                        .map(planItem -> {
+                            SectionGenerationMessage msg = new SectionGenerationMessage();
+
+                            // Set property fields for one shot generation flow
+                            msg.setJobId(jobId);
+                            msg.setPortfolioId(portfolioId.toString());
+                            msg.setUserId(userId.toString());
+                            msg.setTotalSections(blueprint.getSectionPlan().size());
+                            msg.setMode(SectionGenerationMessage.Mode.GENERATE);
+                            msg.setReq(req);
+                            msg.setRefinedPrompt(refinedPrompt);
+                            msg.setBlueprint(blueprint);
+                            msg.setPlanItem(planItem);
+
+                            return msg;
+                        })
+                        .toList();
+
+        jobService.fanOutSections(messages);
     }
 
 

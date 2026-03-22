@@ -58,32 +58,36 @@ public class GenerateJobService {
 
     }
 
-     /**
-     * Fan out section generation messages to the section queue.
-     * Called by the orchestrator after blueprint generation is complete.
-     * Publishes one message per section in the blueprint's section plan,
-     * allowing multiple workers to generate sections in parallel.
+    /**
+     * Generate a job and save to redis in order to keep track of status
      *
-     * @param jobId         Active job ID (already exists in Redis)
-     * @param portfolioId   Portfolio being generated
-     * @param userId        Owner of the portfolio
-     * @param req           Original generation request (resume, style prefs, prompt)
-     * @param refinedPrompt Refined prompt providing global design direction
-     * @param blueprint     Blueprint containing section plan and design directive
+     * @param portfolioId - portfolio that this job is related to
+     * @return the jobId of the job that was saved
      */
-    public void fanOutSections(
-            String jobId, String portfolioId, String userId,
-            PortfolioGenerateRequestDTO req, String refinedPrompt, BlueprintDTO blueprint
-    ) {
-        List<BlueprintSectionPlanDTO> plan = blueprint.getSectionPlan();
+    private String createJob(UUID portfolioId) {
+        String jobId = UUID.randomUUID().toString();
 
-        for (BlueprintSectionPlanDTO p : plan) {
-            SectionGenerationMessage msg = new SectionGenerationMessage(
-                    jobId, portfolioId, userId,
-                    req, refinedPrompt, blueprint,
-                    p, plan.size()
-            );
+        JobStatusDTO status = new JobStatusDTO();
+        status.setJobId(jobId);
+        status.setPortfolioId(portfolioId.toString());
+        status.setStatus(JobStatusDTO.Status.QUEUED);
+        status.setCompletedCount(0);
+        status.setTotalSections(0);
 
+        saveToRedis(status);
+        return jobId;
+    }
+
+
+
+    /**
+     * Fan out section generation messages to the section queue.
+     * Called by the orchestrator
+     *
+     * @param messages List of messages to publish to the portfolio.section.queue
+     */
+    public void fanOutSections(List<SectionGenerationMessage> messages) {
+        for (SectionGenerationMessage msg : messages) {
             rabbitTemplate.convertAndSend(
                     RabbitMQConfig.EXCHANGE,
                     RabbitMQConfig.SECTION_ROUTING_KEY,
@@ -91,6 +95,40 @@ public class GenerateJobService {
             );
         }
     }
+
+//     /**
+//     * Fan out section generation messages to the section queue.
+//     * Called by the orchestrator after blueprint generation is complete.
+//     * Publishes one message per section in the blueprint's section plan,
+//     * allowing multiple workers to generate sections in parallel.
+//     *
+//     * @param jobId         Active job ID (already exists in Redis)
+//     * @param portfolioId   Portfolio being generated
+//     * @param userId        Owner of the portfolio
+//     * @param req           Original generation request (resume, style prefs, prompt)
+//     * @param refinedPrompt Refined prompt providing global design direction
+//     * @param blueprint     Blueprint containing section plan and design directive
+//     */
+//    public void fanOutSections(
+//            String jobId, String portfolioId, String userId,
+//            PortfolioGenerateRequestDTO req, String refinedPrompt, BlueprintDTO blueprint
+//    ) {
+//        List<BlueprintSectionPlanDTO> plan = blueprint.getSectionPlan();
+//
+//        for (BlueprintSectionPlanDTO p : plan) {
+//            SectionGenerationMessage msg = new SectionGenerationMessage(
+//                    jobId, portfolioId, userId,
+//                    req, refinedPrompt, blueprint,
+//                    p, plan.size()
+//            );
+//
+//            rabbitTemplate.convertAndSend(
+//                    RabbitMQConfig.EXCHANGE,
+//                    RabbitMQConfig.SECTION_ROUTING_KEY,
+//                    msg
+//            );
+//        }
+//    }
 
     // Push a completed section job to a list
     public void pushCompletedSection(String jobId, SectionDTO sectionDTO) {
@@ -118,20 +156,6 @@ public class GenerateJobService {
         // Query the list
         List<String> resultSections = redisTemplate.opsForList().range(key, offset, -1);
         return resultSections != null ? resultSections : List.of();
-    }
-
-    private String createJob(UUID portfolioId) {
-        String jobId = UUID.randomUUID().toString();
-
-        JobStatusDTO status = new JobStatusDTO();
-        status.setJobId(jobId);
-        status.setPortfolioId(portfolioId.toString());
-        status.setStatus(JobStatusDTO.Status.QUEUED);
-        status.setCompletedCount(0);
-        status.setTotalSections(0);
-
-        saveToRedis(status);
-        return jobId;
     }
 
     public void updateStatus(String jobId, JobStatusDTO.Status status) {
