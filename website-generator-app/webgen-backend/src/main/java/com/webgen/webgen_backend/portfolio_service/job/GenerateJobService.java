@@ -64,7 +64,7 @@ public class GenerateJobService {
      * @param portfolioId - portfolio that this job is related to
      * @return the jobId of the job that was saved
      */
-    private String createJob(UUID portfolioId) {
+    public String createJob(UUID portfolioId) {
         String jobId = UUID.randomUUID().toString();
 
         JobStatusDTO status = new JobStatusDTO();
