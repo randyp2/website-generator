@@ -47,7 +47,7 @@ public class GenerationWorker {
 
             jobService.updateStatus(jobId, JobStatusDTO.Status.PROCESSING);
             portfolioAiService.generatePortfolio(portfolioId, userId, msg.getReq(), jobId);
-            jobService.updateStatus(jobId, JobStatusDTO.Status.COMPLETED);
+
 
             // Send ack and take off queue
             channel.basicAck(deliveryTag, false);
@@ -59,6 +59,31 @@ public class GenerationWorker {
                 jobService.failJob(jobId, e.getMessage());
 
             // Reject message and send to dead letter queue
+            channel.basicNack(deliveryTag, false, false);
+        }
+    }
+
+    // Worker subscribed to section generation queue
+    // Create 4-8 rabbitmq consumers for parallel generation
+    @RabbitListener(queues = RabbitMQConfig.SECTION_QUEUE, concurrency = "10", ackMode = "MANUAL")
+    public void handleSection(
+            SectionGenerationMessage msg,
+            Channel channel,
+            @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag
+    ) throws IOException {
+        String jobId = msg.getJobId();
+
+        try {
+            portfolioAiService.generateSingleSectionFromQueue(msg);
+
+            channel.basicAck(deliveryTag, false);
+        } catch (Exception e) {
+            System.err.println(">>> [SECTION-WORKER] Section failed: "
+                    + msg.getPlanItem().getSectionKey() + " | " + e.getMessage());
+
+            if (jobId != null)
+                jobService.failJob(jobId, e.getMessage());
+
             channel.basicNack(deliveryTag, false, false);
         }
     }

@@ -29,25 +29,22 @@ public class JsxValidatorService {
     @Value("${jsx.validator.node.path:node}")
     private String nodePath;
 
-    public ValidationResult validateGeneratedSections(List<SectionDTO> sections) {
+    public ValidationResult validateGeneratedSection(SectionDTO section) {
         ValidationResult result = new ValidationResult();
         result.setValid(true);
         result.setErrors(new ArrayList<>());
 
-        for (SectionDTO section : sections) {
-            if (section.getReactSource() == null || section.getReactSource().isBlank()) {
-                continue;
-            }
+        if (section.getReactSource() == null || section.getReactSource().isBlank())
+            return createErrorResult(section.getSectionKey(), "React source is null or blank");
 
-            ValidationResult sectionResult = validateSingleSection(
-                    section.getSectionKey(),
-                    section.getReactSource()
-            );
+        ValidationResult sectionResult = validateSingleSection(
+                section.getSectionKey(),
+                section.getReactSource()
+        );
 
-            if (!sectionResult.isValid()) {
-                result.setValid(false);
-                result.getErrors().addAll(sectionResult.getErrors());
-            }
+        if (!sectionResult.isValid()) {
+            result.setValid(false);
+            result.getErrors().addAll(sectionResult.getErrors());
         }
 
         return result;
