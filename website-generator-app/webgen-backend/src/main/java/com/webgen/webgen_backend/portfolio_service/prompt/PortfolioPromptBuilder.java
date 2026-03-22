@@ -632,16 +632,14 @@ public class PortfolioPromptBuilder {
      * @param refinedPrompt   refined user prompt passed through LLM
      * @param blueprint       bluePrint have overall portfolio
      * @param targetSection   which section to generate
-     * @param priorSignatures list of descriptions for what has already been
-     *                        generated
      * @return Prompt w/ system and user prompt
      */
     public Prompt buildSectionPrompt(
             PortfolioGenerateRequestDTO req,
             String refinedPrompt,
             BlueprintDTO blueprint,
-            BlueprintSectionPlanDTO targetSection,
-            List<String> priorSignatures) {
+            BlueprintSectionPlanDTO targetSection
+    ) {
 
         ParsedResumeDTO resume = req.getResume();
         String customNotes = extractCustomNotes(req.getStylePrefs());
@@ -655,10 +653,6 @@ public class PortfolioPromptBuilder {
         } catch (JsonProcessingException e) {
             themeJson = "{}";
         }
-
-        String signaturesBlock = priorSignatures.isEmpty()
-                ? "None yet -- This is the first section."
-                : String.join("\n", priorSignatures);
 
         SystemMessage system = new SystemMessage("""
                 You are an AI software engineer working inside the PortfolioAI system.
@@ -681,16 +675,6 @@ public class PortfolioPromptBuilder {
 
                 Sections MUST use transparent/semi-transparent backgrounds only.
                 The globalTheme controls the page background.
-
-                ========================
-                PREVIOUSLY GENERATED SECTIONS
-                ========================
-
-                These sections have already been generated. Complement their layouts
-                — do NOT repeat the same visual pattern. Vary layout structure while
-                staying within the design directive.
-
-                %s
 
                 ========================
                 ARCHITECTURAL RULES
@@ -725,8 +709,8 @@ public class PortfolioPromptBuilder {
                 Output JSON ONLY. No markdown, no backticks, no extra text.
                 """.formatted(
                 blueprint.getDesignDirective(),
-                themeJson,
-                signaturesBlock));
+                themeJson
+                ));
 
         UserMessage user = new UserMessage("""
                         Generate the "%s" section (orderIndex: %d).

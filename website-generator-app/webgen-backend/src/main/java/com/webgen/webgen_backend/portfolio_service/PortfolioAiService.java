@@ -1,9 +1,7 @@
 package com.webgen.webgen_backend.portfolio_service;
 
-import com.webgen.webgen_backend.dto.portfolio.PortfolioGenerateRequestDTO;
-import com.webgen.webgen_backend.dto.portfolio.PortfolioGenerateResponseDTO;
-import com.webgen.webgen_backend.dto.portfolio.SectionRefineRequestDTO;
-import com.webgen.webgen_backend.dto.portfolio.SectionRefineResponseDTO;
+import com.webgen.webgen_backend.dto.portfolio.*;
+import com.webgen.webgen_backend.portfolio_service.job.SectionGenerationMessage;
 
 import java.util.UUID;
 
@@ -14,14 +12,19 @@ public interface PortfolioAiService {
      * @param portfolioId - ID of the portfolio to generate for
      * @param userId - ID of the authenticated user (for ownership check)
      * @param req - Contains user prompt and context for the portfolio
-     * @return PortfolioGenerateResponseDTO -  dto consisting of model response
      */
-    PortfolioGenerateResponseDTO generatePortfolio(
+    void generatePortfolio(
             UUID portfolioId,
             UUID userId,
             PortfolioGenerateRequestDTO req,
             String jobId
     );
+
+    /**
+     * Generate a single section pertaining to a single portfolio
+     * @param msg - Single sectiongenerationmsg model
+     */
+    void generateSingleSectionFromQueue(SectionGenerationMessage msg);
 
     /**
      *  Given request generate/refine a section

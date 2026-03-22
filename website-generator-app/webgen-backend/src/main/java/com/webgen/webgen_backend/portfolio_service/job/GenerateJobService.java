@@ -3,9 +3,7 @@ package com.webgen.webgen_backend.portfolio_service.job;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.config.RabbitMQConfig;
-import com.webgen.webgen_backend.dto.portfolio.JobStatusDTO;
-import com.webgen.webgen_backend.dto.portfolio.PortfolioGenerateRequestDTO;
-import com.webgen.webgen_backend.dto.portfolio.SectionDTO;
+import com.webgen.webgen_backend.dto.portfolio.*;
 
 import lombok.RequiredArgsConstructor;
 
@@ -58,6 +56,40 @@ public class GenerateJobService {
 
         return jobId;
 
+    }
+
+     /**
+     * Fan out section generation messages to the section queue.
+     * Called by the orchestrator after blueprint generation is complete.
+     * Publishes one message per section in the blueprint's section plan,
+     * allowing multiple workers to generate sections in parallel.
+     *
+     * @param jobId         Active job ID (already exists in Redis)
+     * @param portfolioId   Portfolio being generated
+     * @param userId        Owner of the portfolio
+     * @param req           Original generation request (resume, style prefs, prompt)
+     * @param refinedPrompt Refined prompt providing global design direction
+     * @param blueprint     Blueprint containing section plan and design directive
+     */
+    public void fanOutSections(
+            String jobId, String portfolioId, String userId,
+            PortfolioGenerateRequestDTO req, String refinedPrompt, BlueprintDTO blueprint
+    ) {
+        List<BlueprintSectionPlanDTO> plan = blueprint.getSectionPlan();
+
+        for (BlueprintSectionPlanDTO p : plan) {
+            SectionGenerationMessage msg = new SectionGenerationMessage(
+                    jobId, portfolioId, userId,
+                    req, refinedPrompt, blueprint,
+                    p, plan.size()
+            );
+
+            rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.EXCHANGE,
+                    RabbitMQConfig.SECTION_ROUTING_KEY,
+                    msg
+            );
+        }
     }
 
     // Push a completed section job to a list
@@ -113,14 +145,28 @@ public class GenerateJobService {
         saveToRedis(jobStatusDTO);
     }
 
-    public void incrementCompleted(String jobId) {
-        JobStatusDTO jobStatusDTO = getJob(jobId);
-        if (jobStatusDTO == null)
-            return;
+    /**
+     * Atomically increment the completed section count using Redis INCR.
+     * Uses a dedicated key for thread safety across parallel workers.
+     * Also best-effort updates the JobStatusDTO completedCount for client polling.
+     *
+     * @param jobId Active job ID
+     * @return the new completed count (atomic, safe for barrier checks)
+     */
+    public int incrementCompleted(String jobId) {
+        // Atomic increment via Redis INCR — safe across concurrent workers
+        String atomicKey = KEY_PREFIX + jobId + ":completedCount";
+        Long newCount = redisTemplate.opsForValue().increment(atomicKey);
+        redisTemplate.expire(atomicKey, TTL);
 
-        int currCount = jobStatusDTO.getCompletedCount();
-        jobStatusDTO.setCompletedCount(++currCount);
-        saveToRedis(jobStatusDTO);
+        // Best-effort update of JobStatusDTO for client polling display
+        JobStatusDTO jobStatusDTO = getJob(jobId);
+        if (jobStatusDTO != null) {
+            jobStatusDTO.setCompletedCount(newCount != null ? newCount.intValue() : 0);
+            saveToRedis(jobStatusDTO);
+        }
+
+        return newCount != null ? newCount.intValue() : -1;
     }
 
     public void setTotalSections(String jobId, int total) {
