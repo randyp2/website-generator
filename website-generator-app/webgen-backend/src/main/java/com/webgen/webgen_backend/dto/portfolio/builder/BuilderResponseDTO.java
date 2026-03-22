@@ -6,6 +6,7 @@ import java.util.List;
 
 @Data
 public class BuilderResponseDTO {
+    private String jobId; // For polling
     private List<ModifiedSectionDTO> modifiedSections;
     private List<String> deletedSectionKeys;
     private String buildSummary;
