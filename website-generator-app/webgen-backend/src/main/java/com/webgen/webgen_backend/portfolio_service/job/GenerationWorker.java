@@ -74,12 +74,22 @@ public class GenerationWorker {
         String jobId = msg.getJobId();
 
         try {
-            portfolioAiService.generateSingleSectionFromQueue(msg);
+            // Route msg to service based on mode
+            if (msg.getMode() == SectionGenerationMessage.Mode.GENERATE)
+                portfolioAiService.generateSingleSectionFromQueue(msg);
+            else
+                portfolioAiService.refineSingleSectionFromQueue(msg);
 
             channel.basicAck(deliveryTag, false);
         } catch (Exception e) {
+
+            // Get section key based on mode
+            String sectionKey = msg.getMode() == SectionGenerationMessage.Mode.GENERATE
+                    ? msg.getPlanItem().getSectionKey()
+                    : msg.getRefinePlan().getSectionKey();
+
             System.err.println(">>> [SECTION-WORKER] Section failed: "
-                    + msg.getPlanItem().getSectionKey() + " | " + e.getMessage());
+                    + sectionKey + " | " + e.getMessage());
 
             if (jobId != null)
                 jobService.failJob(jobId, e.getMessage());
