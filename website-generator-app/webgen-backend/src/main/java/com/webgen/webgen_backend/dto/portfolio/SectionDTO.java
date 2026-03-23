@@ -12,4 +12,5 @@ public class SectionDTO {
     Integer orderIndex; // ordering of sections in layout
     JsonNode contentJson;
     String reactSource; // React source code for the section
+    String changeDescription; // Null for one shot, set by refinement flow
 }

@@ -826,20 +826,32 @@ public class PortfolioPromptBuilder {
         }
     }
 
-    public Prompt buildOneShotRetryPrompt(
+    /**
+     * Error-aware retry prompt for per-section generation.
+     * Includes validation errors from the previous attempt so the LLM
+     * can fix specific issues instead of generating blindly.
+     */
+    public Prompt buildSectionRetryPrompt(
             PortfolioGenerateRequestDTO req,
             String refinedPrompt,
-            String previousResponse,
-            List<ValidationResult.ValidationError> errors) {
+            BlueprintDTO blueprint,
+            BlueprintSectionPlanDTO targetSection,
+            List<ValidationResult.ValidationError> errors
+    ) {
         ParsedResumeDTO resume = req.getResume();
-        String stylePrefs = formatStylePrefs(req.getStylePrefs());
         String customNotes = extractCustomNotes(req.getStylePrefs());
         String effectivePrompt = applyCustomNotes(refinedPrompt, customNotes);
         String assetsJson = serializeAssets(req.getAssets());
 
+        String themeJson = "";
+        try {
+            themeJson = objectMapper.writeValueAsString(blueprint.getGlobalThemeDTO());
+        } catch (JsonProcessingException e) {
+            themeJson = "{}";
+        }
+
         String errorSummary = errors.stream()
-                .map(e -> String.format("- Section '%s': %s (line %s, col %s)",
-                        e.getSectionKey(),
+                .map(e -> String.format("- %s (line %s, col %s)",
                         e.getMessage(),
                         e.getLine() != null ? e.getLine() : "?",
                         e.getColumn() != null ? e.getColumn() : "?"))
@@ -848,15 +860,11 @@ public class PortfolioPromptBuilder {
         SystemMessage system = new SystemMessage("""
                 You are an AI software engineer working inside the PortfolioAI system.
 
-                Your previous attempt to generate a portfolio had JSX validation errors.
-                You MUST fix these errors while preserving the overall design intent.
+                IMPORTANT: Your previous attempt to generate this section had JSX validation errors.
+                You MUST fix these errors and return valid React/JSX code.
 
-                Focus ONLY on fixing the specific errors listed below.
-                Do NOT make unnecessary changes to working sections.
-
-                You must output JSON ONLY, following the exact schema below.
-                Do NOT include markdown, explanations, comments, backticks, or extra text
-                outside of the defined JSON fields.
+                You are generating a SINGLE portfolio section as part of a larger portfolio.
+                A planning step has already decided the theme, section list, and design direction.
 
                 ========================
                 VALIDATION ERRORS TO FIX
@@ -868,96 +876,69 @@ public class PortfolioPromptBuilder {
                 COMMON JSX ERRORS TO AVOID
                 ========================
 
-                1. Syntax errors:
-                   - Missing closing tags
-                   - Unclosed JSX expressions
-                   - Invalid attribute names (use camelCase: className, onClick)
+                1. Syntax: Missing closing tags, unclosed JSX expressions, use camelCase attributes
+                2. Expressions: Unclosed curly braces, invalid JS inside JSX
+                3. Component: Missing default export, invalid function declaration, no TypeScript
+                4. Data access: No optional chaining (data?.field), access data directly (not data.contentJson)
 
-                2. Expression errors:
-                   - Unclosed curly braces in JSX
-                   - Invalid JavaScript inside JSX expressions
+                ========================
+                DESIGN DIRECTIVE (FOLLOW THIS)
+                ========================
 
-                3. Component errors:
-                   - Missing default export
-                   - Invalid function declaration
-                   - Using TypeScript syntax (remove type annotations)
+                %s
 
-                4. Data access errors:
-                   - Using data?.field (don't use optional chaining)
-                   - Using data.contentJson (access data directly)
+                ========================
+                GLOBAL THEME (USE THIS)
+                ========================
+
+                %s
+
+                Sections MUST use transparent/semi-transparent backgrounds only.
 
                 ========================
                 ARCHITECTURAL RULES
                 ========================
 
-                All previous rules still apply:
-                - Section-level artifacts only
-                - Self-contained sections
-                - React contract: data prop always present, no optional chaining
-                - Plain JSX, no TypeScript
-                - Tailwind CSS only
-                - Framer Motion for animations
-                - Lucide icons in scope (Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight)
-                - Custom style notes are mandatory if provided
-
-                ========================
-                TYPOGRAPHY (CRITICAL)
-                ========================
-
-                You MUST select fonts from the approved Google Fonts whitelist below.
-                Do NOT use system fonts, do NOT invent font names.
-
-                APPROVED FONTS:
-                - Sans-serif: Inter, Outfit, Space Grotesk, DM Sans, Plus Jakarta Sans
-                - Serif: Playfair Display, Lora, Source Serif 4, Merriweather
-                - Monospace: JetBrains Mono, Fira Code, IBM Plex Mono
-                - Display: Syne
-
-                You MUST include a "fonts" field in the globalTheme object.
-                In reactSource, apply fonts using inline style or Tailwind arbitrary values.
+                1. Generate exactly ONE section.
+                2. Section must be fully self-contained and independently renderable.
+                3. The section MUST render a top-level element with id equal to its sectionKey.
+                4. React contract: single `data` prop, always present, no optional chaining.
+                5. Component format: export default function <PascalCaseSectionKey>Section({ data }) { ... }
+                6. Plain JSX only — no TypeScript, no imports, no arrow function exports.
+                7. All dynamic content from contentJson via the `data` prop.
+                8. Tailwind CSS only for styling.
+                9. Framer Motion required for animations (motion is in scope, no imports).
+                10. Lucide icons in scope: Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight.
 
                 ========================
                 OUTPUT FORMAT (EXACT)
                 ========================
 
                 {
-                  "globalTheme": {
-                    "background": "<Tailwind classes>",
-                    "textPrimary": "<Tailwind text class>",
-                    "textSecondary": "<Tailwind text class>",
-                    "accentColor": "<color name>",
-                    "fonts": {
-                      "heading": "<font name from approved whitelist>",
-                      "body": "<font name from approved whitelist>"
-                    }
-                  },
-                  "sections": [
-                    {
-                      "sectionKey": "<string>",
-                      "title": "<string>",
-                      "orderIndex": <number>,
-                      "contentJson": { },
-                      "reactSource": "<escaped JSX React component source>"
-                    }
-                  ],
-                  "assistantMessage": {
-                     "summary": "<string>",
-                     "suggestions": ["<string>"]
-                  }
+                  "sectionKey": "<string>",
+                  "title": "<string>",
+                  "orderIndex": <number>,
+                  "contentJson": { ... },
+                  "reactSource": "<escaped JSX source>"
                 }
-                """.formatted(errorSummary));
+
+                Fix ALL errors and ensure the code compiles correctly.
+                Output JSON ONLY. No markdown, no backticks, no extra text.
+                """.formatted(
+                errorSummary,
+                blueprint.getDesignDirective(),
+                themeJson
+        ));
 
         UserMessage user = new UserMessage("""
-                        Fix the JSX validation errors in your previous response.
+                        Fix the JSX errors and regenerate the "%s" section (orderIndex: %d).
 
-                        PREVIOUS RESPONSE (with errors):
-                        %s
+                        Section plan:
+                        - Layout hint: %s
+                        - Content strategy: %s
 
-                        ORIGINAL REQUEST:
                         User prompt: %s
-                        Template ID: %s
-                        Style preferences: %s
-                        Custom style notes (MUST implement): %s
+                        Custom style notes: %s
 
                         Resume data:
                         Name: %s
@@ -970,13 +951,12 @@ public class PortfolioPromptBuilder {
 
                         Uploaded media assets:
                         %s
-
-                        Generate a corrected response with valid JSX for all sections.
                 """.formatted(
-                previousResponse,
+                targetSection.getSectionKey(),
+                targetSection.getOrderIndex(),
+                targetSection.getLayoutHint(),
+                targetSection.getContentStrategy(),
                 effectivePrompt,
-                req.getTemplateId(),
-                stylePrefs,
                 customNotes.isBlank() ? "none" : customNotes,
                 safe(resume.getFullName()),
                 safe(resume.getSummary()),
