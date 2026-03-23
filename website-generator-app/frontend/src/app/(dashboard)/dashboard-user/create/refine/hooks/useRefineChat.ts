@@ -1,7 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import type { GlobalTheme, SectionDTO } from "@/types/portfolio";
+import { useRef, useState } from "react";
+import type {
+    CompletedSectionsResponse,
+    GlobalTheme,
+    SectionDTO,
+} from "@/types/portfolio";
 import type { Message, SectionPlan } from "@/types/preview";
 import {
     buildPlannerSections,
@@ -34,15 +38,19 @@ interface PlannerResponse {
 }
 
 interface BuilderResponse {
-    buildSummary: string;
-    modifiedSections: SectionDTO[];
-    globalTheme?: GlobalTheme | null;
+    jobId: string;
 }
 
 interface ClarifyResponse {
     assistantMessage?: string;
+    sessionId?: string;
     readyForPlanning?: boolean;
     error?: string;
+}
+
+interface LoadPortfolioResponse {
+    sections?: SectionDTO[] | null;
+    globalTheme?: GlobalTheme | null;
 }
 
 interface UseRefineChatResult {
@@ -53,6 +61,15 @@ interface UseRefineChatResult {
     handleApprovePlan: () => Promise<void>;
     handleKeepChatting: () => void;
 }
+
+const POLL_INTERVAL_MS = 3000;
+
+const STATUS_LABELS: Record<string, string> = {
+    QUEUED: "Queued...",
+    PROCESSING: "Processing...",
+    GENERATING: "Generating sections...",
+    PERSISTING: "Saving changes...",
+};
 
 export const useRefineChat = ({
     portfolioId,
@@ -68,6 +85,8 @@ export const useRefineChat = ({
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
     const [currentPlan, setCurrentPlan] = useState<SectionPlan[] | null>(null);
     const [isPlanApproved, setIsPlanApproved] = useState<boolean>(false);
+    const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const sessionIdRef = useRef<string | null>(null);
 
     const callPlanner = async (): Promise<PlannerResponse | null> => {
         if (!portfolioId) return null;
@@ -76,6 +95,7 @@ export const useRefineChat = ({
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
+                sessionId: sessionIdRef.current,
                 sections: buildPlannerSections(sections),
             }),
         });
@@ -88,16 +108,33 @@ export const useRefineChat = ({
         return (await response.json()) as PlannerResponse;
     };
 
+    /**
+     * Kick off the build — returns a jobId for polling.
+     * The backend fans out section generation to RabbitMQ workers
+     * and persists results asynchronously.
+     */
     const callBuilder = async (
         sectionPlans: SectionPlan[],
     ): Promise<BuilderResponse | null> => {
         if (!portfolioId) return null;
 
+        // Only send sections that have a "modify" plan — "add" sections have no existing
+        // content, "delete" sections don't need LLM work
+        const modifyKeys = new Set(
+            sectionPlans
+                .filter((p) => p.action === "modify")
+                .map((p) => p.sectionKey),
+        );
+        const sectionsToSend = (sections ?? []).filter((s) =>
+            modifyKeys.has(s.sectionKey),
+        );
+
         const response = await fetch(`/api/portfolio/${portfolioId}/refine/build`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                sections: buildSectionContent(sections),
+                sessionId: sessionIdRef.current,
+                sections: buildSectionContent(sectionsToSend),
                 sectionPlans,
             }),
         });
@@ -108,6 +145,124 @@ export const useRefineChat = ({
         }
 
         return (await response.json()) as BuilderResponse;
+    };
+
+    /**
+     * Load the full portfolio from DB after generation completes.
+     * Catches any sections missed during incremental polling and syncs globalTheme.
+     */
+    const loadSavedPortfolio = async (): Promise<void> => {
+        if (!portfolioId) return;
+
+        try {
+            const res = await fetch(`/api/portfolio/${portfolioId}/load`);
+            if (!res.ok) return;
+
+            const data = (await res.json()) as LoadPortfolioResponse;
+
+            if ((data.sections ?? []).length > 0) {
+                setSections(data.sections ?? []);
+            }
+            if (data.globalTheme) {
+                setGlobalTheme(data.globalTheme);
+            }
+        } catch {
+            // Best-effort — sections were already set incrementally
+        }
+    };
+
+    /**
+     * Poll the job's section endpoint for incremental progress.
+     * Same pattern used by useInitialPortfolioGeneration.
+     */
+    const pollBuildJob = (jobId: string, buildingMessageId: string): void => {
+        let sectionOffset = 0;
+
+        pollTimerRef.current = setInterval(async () => {
+            try {
+                const res = await fetch(
+                    `/api/portfolio/jobs/${jobId}/sections?after=${sectionOffset}`,
+                );
+
+                if (!res.ok) return;
+
+                const data = (await res.json()) as CompletedSectionsResponse;
+
+                // Append any new sections incrementally
+                if (data.sections.length > 0) {
+                    sectionOffset += data.sections.length;
+
+                    // Merge new/modified sections into existing sections
+                    setSections(mergeSections(sections, data.sections));
+                }
+
+                // Update progress message
+                const statusLabel =
+                    STATUS_LABELS[data.status] ?? data.status;
+                const progressLabel =
+                    data.totalSections > 0
+                        ? `${statusLabel.replace("...", "")} (${data.completedCount}/${data.totalSections})...`
+                        : statusLabel;
+
+                setMessages((prev) =>
+                    prev.map((m) =>
+                        m.id === buildingMessageId
+                            ? { ...m, content: progressLabel }
+                            : m,
+                    ),
+                );
+
+                if (data.status === "COMPLETED") {
+                    if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+
+                    // Final load to get the fully merged portfolio from DB
+                    await loadSavedPortfolio();
+
+                    const completeMessage: Message = createAiMessage(
+                        "Portfolio updated successfully!",
+                        {
+                            id: `ai-complete-${Date.now()}`,
+                            messageType: "build",
+                        },
+                    );
+
+                    setMessages((prev) =>
+                        prev
+                            .filter((m) => m.id !== buildingMessageId)
+                            .concat(completeMessage),
+                    );
+
+                    setCurrentPlan(null);
+                    setIsGenerating(false);
+                    setIsPlanApproved(false);
+                    // Clear session so next refinement starts fresh
+                    sessionIdRef.current = null;
+                }
+
+                if (data.status === "FAILED") {
+                    if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+
+                    const errorMessage: Message = createAiMessage(
+                        "Sorry, there was an error building your changes. Please try again.",
+                        {
+                            id: `ai-error-${Date.now()}`,
+                            messageType: "error",
+                        },
+                    );
+
+                    setMessages((prev) =>
+                        prev
+                            .filter((m) => m.id !== buildingMessageId)
+                            .concat(errorMessage),
+                    );
+
+                    setIsGenerating(false);
+                    setIsPlanApproved(false);
+                }
+            } catch (err) {
+                console.error("[refine-poll] Status check failed:", err);
+            }
+        }, POLL_INTERVAL_MS);
     };
 
     const approvePlanAndBuild = async (): Promise<void> => {
@@ -124,44 +279,12 @@ export const useRefineChat = ({
         try {
             const buildResult = await callBuilder(currentPlan);
 
-            if (buildResult?.modifiedSections) {
-                const updatedSections: SectionDTO[] = buildResult.modifiedSections.map(
-                    (modified) => ({
-                        sectionKey: modified.sectionKey,
-                        title: modified.title,
-                        reactSource: modified.reactSource,
-                        contentJson: modified.contentJson,
-                        orderIndex:
-                            modified.orderIndex ??
-                            sections?.find(
-                                (section) => section.sectionKey === modified.sectionKey,
-                            )?.orderIndex ??
-                            0,
-                    }),
-                );
-
-                setSections(updatedSections);
+            if (!buildResult?.jobId) {
+                throw new Error("No jobId returned from build endpoint");
             }
 
-            if (buildResult?.globalTheme) {
-                setGlobalTheme(buildResult.globalTheme);
-            }
-
-            const completeMessage: Message = createAiMessage(
-                buildResult?.buildSummary ?? "Portfolio updated successfully!",
-                {
-                    id: `ai-complete-${Date.now()}`,
-                    messageType: "build",
-                },
-            );
-
-            setMessages((prev) =>
-                prev
-                    .filter((message) => message.id !== buildingMessage.id)
-                    .concat(completeMessage),
-            );
-
-            setCurrentPlan(null);
+            // Start polling for incremental section updates
+            pollBuildJob(buildResult.jobId, buildingMessage.id);
         } catch (error: unknown) {
             console.error("Build error:", error);
             setIsPlanApproved(false);
@@ -177,7 +300,6 @@ export const useRefineChat = ({
                     .filter((message) => message.id !== buildingMessage.id)
                     .concat(errorMessage),
             );
-        } finally {
             setIsGenerating(false);
             setIsPlanApproved(false);
         }
@@ -229,11 +351,17 @@ export const useRefineChat = ({
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     userPrompt: prompt,
+                    sessionId: sessionIdRef.current,
                     sections: buildSectionSummaries(sections),
                 }),
             });
 
             const data = (await response.json()) as ClarifyResponse;
+
+            // Store the sessionId returned by the backend (minted on first call)
+            if (data.sessionId) {
+                sessionIdRef.current = data.sessionId;
+            }
 
             if (!response.ok) {
                 throw new Error(data.error ?? "Clarification request failed.");
@@ -352,4 +480,29 @@ export const useRefineChat = ({
         handleApprovePlan,
         handleKeepChatting,
     };
+};
+
+/**
+ * Merge newly completed sections into the existing sections array.
+ * Modified sections overwrite by sectionKey, new sections are appended.
+ */
+const mergeSections = (
+    existing: SectionDTO[] | null,
+    incoming: SectionDTO[],
+): SectionDTO[] => {
+    const base = existing ? [...existing] : [];
+    const baseByKey = new Map(base.map((s) => [s.sectionKey, s]));
+
+    for (const section of incoming) {
+        if (baseByKey.has(section.sectionKey)) {
+            // Overwrite existing section
+            const idx = base.findIndex((s) => s.sectionKey === section.sectionKey);
+            if (idx !== -1) base[idx] = section;
+        } else {
+            // Append new section
+            base.push(section);
+        }
+    }
+
+    return base;
 };

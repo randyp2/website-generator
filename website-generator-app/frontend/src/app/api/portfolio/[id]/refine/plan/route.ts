@@ -10,7 +10,7 @@ export async function POST(
     context: { params: Promise<{ id: string }> },
 ) {
     const body = await req.json();
-    const { sections } = body ?? {};
+    const { sections, sessionId } = body ?? {};
     const { id: portfolioId } = await context.params;
 
     if (!portfolioId) {
@@ -82,6 +82,7 @@ export async function POST(
             },
             body: JSON.stringify({
                 portfolioId,
+                sessionId,
                 sections: Array.isArray(sections) ? sections : [],
                 assets: (assets ?? []).map((asset) => ({
                     id: asset.id,

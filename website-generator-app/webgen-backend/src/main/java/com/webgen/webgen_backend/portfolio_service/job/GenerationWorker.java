@@ -3,6 +3,7 @@ package com.webgen.webgen_backend.portfolio_service.job;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.webgen.webgen_backend.config.RabbitMQConfig;
+import com.webgen.webgen_backend.portfolio_service.builder.BuilderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
@@ -27,6 +28,7 @@ public class GenerationWorker {
 
     private final GenerateJobService jobService;
     private final PortfolioAiService portfolioAiService;
+    private final BuilderService builderService;
 
 
     // Worker that is subscribed to the portfolio.generate.queue
@@ -74,12 +76,22 @@ public class GenerationWorker {
         String jobId = msg.getJobId();
 
         try {
-            portfolioAiService.generateSingleSectionFromQueue(msg);
+            // Route msg to service based on mode
+            if (msg.getMode() == SectionGenerationMessage.Mode.GENERATE)
+                portfolioAiService.generateSingleSectionFromQueue(msg);
+            else
+                builderService.refineSingleSectionFromQueue(msg);
 
             channel.basicAck(deliveryTag, false);
         } catch (Exception e) {
+
+            // Get section key based on mode
+            String sectionKey = msg.getMode() == SectionGenerationMessage.Mode.GENERATE
+                    ? msg.getPlanItem().getSectionKey()
+                    : msg.getRefinePlan().getSectionKey();
+
             System.err.println(">>> [SECTION-WORKER] Section failed: "
-                    + msg.getPlanItem().getSectionKey() + " | " + e.getMessage());
+                    + sectionKey + " | " + e.getMessage());
 
             if (jobId != null)
                 jobService.failJob(jobId, e.getMessage());

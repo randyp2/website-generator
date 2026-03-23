@@ -116,11 +116,26 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
         jobService.setTotalSections(jobId, blueprint.getSectionPlan().size());
 
         // --- Step 3) Fan out sections
-        jobService.fanOutSections(
-                jobId, portfolioId.toString(), userId.toString(),
-                req, refinedPrompt, blueprint
-        );
-        
+        List<SectionGenerationMessage> messages = blueprint.getSectionPlan().stream()
+                        .map(planItem -> {
+                            SectionGenerationMessage msg = new SectionGenerationMessage();
+
+                            // Set property fields for one shot generation flow
+                            msg.setJobId(jobId);
+                            msg.setPortfolioId(portfolioId.toString());
+                            msg.setUserId(userId.toString());
+                            msg.setTotalSections(blueprint.getSectionPlan().size());
+                            msg.setMode(SectionGenerationMessage.Mode.GENERATE);
+                            msg.setReq(req);
+                            msg.setRefinedPrompt(refinedPrompt);
+                            msg.setBlueprint(blueprint);
+                            msg.setPlanItem(planItem);
+
+                            return msg;
+                        })
+                        .toList();
+
+        jobService.fanOutSections(messages);
     }
 
 
@@ -140,9 +155,16 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
             ++attempt;
             System.out.println(">>> [SECTION-WORKER] Section '" + sectionKey + "' attempt " + attempt + "/" + maxRetries);
 
-            // --- Build prompt
-            Prompt sectionPrompt = portfolioPromptBuilder
-                    .buildSectionPrompt(msg.getReq(), msg.getRefinedPrompt(), msg.getBlueprint(), msg.getPlanItem());
+            // --- Build prompt (use retry prompt with errors if previous attempt failed validation)
+            Prompt sectionPrompt;
+            if (validation == null || validation.isValid()) {
+                sectionPrompt = portfolioPromptBuilder
+                        .buildSectionPrompt(msg.getReq(), msg.getRefinedPrompt(), msg.getBlueprint(), msg.getPlanItem());
+            } else {
+                System.out.println(">>> [SECTION-WORKER] Retrying with validation errors (attempt " + attempt + ")");
+                sectionPrompt = portfolioPromptBuilder
+                        .buildSectionRetryPrompt(msg.getReq(), msg.getRefinedPrompt(), msg.getBlueprint(), msg.getPlanItem(), validation.getErrors());
+            }
 
             // --- Call and parse LLM
             long llmStart = System.currentTimeMillis();
