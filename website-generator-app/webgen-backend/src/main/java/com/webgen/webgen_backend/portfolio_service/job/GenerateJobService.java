@@ -202,6 +202,30 @@ public class GenerateJobService {
         saveToRedis(jobStatusDTO);
     }
 
+    /**
+     * Store section keys marked for deletion at fan-out time.
+     * The barrier worker reads these at persistence time to delete sections.
+     */
+    public void storeDeleteKeys(String jobId, List<String> deleteKeys) {
+        if (deleteKeys == null || deleteKeys.isEmpty()) return;
+
+        String key = KEY_PREFIX + jobId + ":deleteKeys";
+        for (String sectionKey : deleteKeys) {
+            redisTemplate.opsForList().rightPush(key, sectionKey);
+        }
+        redisTemplate.expire(key, TTL);
+    }
+
+    /**
+     * Retrieve section keys marked for deletion.
+     * Called by the barrier worker during persistence.
+     */
+    public List<String> getDeleteKeys(String jobId) {
+        String key = KEY_PREFIX + jobId + ":deleteKeys";
+        List<String> keys = redisTemplate.opsForList().range(key, 0, -1);
+        return keys != null ? keys : List.of();
+    }
+
     public void failJob(String jobId, String error) {
         JobStatusDTO jobStatusDTO = getJob(jobId);
         if (jobStatusDTO == null)
