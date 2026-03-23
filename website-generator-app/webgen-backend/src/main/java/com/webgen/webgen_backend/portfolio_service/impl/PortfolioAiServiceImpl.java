@@ -20,10 +20,10 @@ import com.webgen.webgen_backend.portfolio_service.validator.JsxValidatorService
 import com.webgen.webgen_backend.repository.GeneratedVersionRepository;
 import com.webgen.webgen_backend.repository.PortfolioRepository;
 import com.webgen.webgen_backend.repository.PortfolioSectionRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -35,20 +35,19 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 public class PortfolioAiServiceImpl implements PortfolioAiService {
 
-    private final OpenAiChatModel openAiChatModel; // Create ai chat model (generate response)
+    private final OpenAiChatModel blueprintModel;  // High creativity for design planning
+    private final OpenAiChatModel sectionModel;    // Low creativity for JSX code generation
 
     private final GenerateJobService jobService;
 
-    private final PromptRefinerService promptRefinerService; // Refine prompts
-    private final PortfolioPromptBuilder portfolioPromptBuilder; // Build user prompt
-    private final PortfolioResponseParser portfolioResponseParser; // Parse AI output
+    private final PromptRefinerService promptRefinerService;
+    private final PortfolioPromptBuilder portfolioPromptBuilder;
+    private final PortfolioResponseParser portfolioResponseParser;
 
     private final JsxValidatorService jsxValidatorService;
 
-    // DB Persistence
     private final PortfolioRepository portfolioRepository;
     private final GeneratedVersionRepository generatedVersionRepository;
     private final PortfolioSectionRepository sectionRepository;
@@ -57,6 +56,31 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
 
     @Value("${jsx.validator.max-retries:3}")
     private int maxRetries;
+
+    public PortfolioAiServiceImpl(
+            @Qualifier("blueprintModel") OpenAiChatModel blueprintModel,
+            @Qualifier("sectionModel") OpenAiChatModel sectionModel,
+            GenerateJobService jobService,
+            PromptRefinerService promptRefinerService,
+            PortfolioPromptBuilder portfolioPromptBuilder,
+            PortfolioResponseParser portfolioResponseParser,
+            JsxValidatorService jsxValidatorService,
+            PortfolioRepository portfolioRepository,
+            GeneratedVersionRepository generatedVersionRepository,
+            PortfolioSectionRepository sectionRepository,
+            ObjectMapper objectMapper) {
+        this.blueprintModel = blueprintModel;
+        this.sectionModel = sectionModel;
+        this.jobService = jobService;
+        this.promptRefinerService = promptRefinerService;
+        this.portfolioPromptBuilder = portfolioPromptBuilder;
+        this.portfolioResponseParser = portfolioResponseParser;
+        this.jsxValidatorService = jsxValidatorService;
+        this.portfolioRepository = portfolioRepository;
+        this.generatedVersionRepository = generatedVersionRepository;
+        this.sectionRepository = sectionRepository;
+        this.objectMapper = objectMapper;
+    }
 
     @Override
     public void generatePortfolio(
@@ -109,7 +133,7 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
 
         // Update, call, parse
         jobService.updateStatus(jobId, JobStatusDTO.Status.GENERATING);
-        ChatResponse blueprintResponse = openAiChatModel.call(blueprintPrompt);
+        ChatResponse blueprintResponse = blueprintModel.call(blueprintPrompt);
 
         String blueprintJson = blueprintResponse.getResult().getOutput().getText();
         BlueprintDTO blueprint = portfolioResponseParser.parseBlueprintResponse(blueprintJson);
@@ -169,7 +193,7 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
             // --- Call and parse LLM
             long llmStart = System.currentTimeMillis();
             jobService.updateStatus(jobId, JobStatusDTO.Status.GENERATING);
-            ChatResponse response = openAiChatModel.call(sectionPrompt);
+            ChatResponse response = sectionModel.call(sectionPrompt);
             String rawJson = response.getResult().getOutput().getText();
             parsedSection = portfolioResponseParser.parseSingleSectionResponse(rawJson);
             System.out.println(">>> [SECTION-WORKER] Section '" + sectionKey + "' LLM call completed in "
@@ -284,7 +308,7 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
 //
 //            // --- Call LLM
 //            jobService.updateStatus(jobId, JobStatusDTO.Status.GENERATING);
-//            ChatResponse response = openAiChatModel.call(sectionPrompt);
+//            ChatResponse response = sectionModel.call(sectionPrompt);
 //            String rawJson = response.getResult().getOutput().getText();
 //
 //            // --- Parse

@@ -118,4 +118,44 @@ public class OpenAiConfig {
                 .defaultOptions(options)
                 .build();
     }
+
+    @Bean("blueprintModel")
+    public OpenAiChatModel blueprintChatModel(
+            OpenAiApi openAiApi,
+            @Value("${spring.ai.openai.blueprint.model}") String model,
+            @Value("${spring.ai.openai.blueprint.max-completion-tokens}") int maxCompletionTokens,
+            @Value("${spring.ai.openai.blueprint.temperature}") double temperature) {
+
+        OpenAiChatOptions options = OpenAiChatOptions.builder()
+                .model(model)
+                .maxCompletionTokens(maxCompletionTokens)
+                .temperature(temperature)
+                .responseFormat(ResponseFormat.builder().type(ResponseFormat.Type.JSON_OBJECT).build())
+                .build();
+
+        return OpenAiChatModel.builder()
+                .openAiApi(openAiApi)
+                .defaultOptions(options)
+                .build();
+    }
+
+    @Bean("sectionModel")
+    public OpenAiChatModel sectionChatModel(
+            OpenAiApi openAiApi,
+            @Value("${spring.ai.openai.section.model}") String model,
+            @Value("${spring.ai.openai.section.max-completion-tokens}") int maxCompletionTokens,
+            @Value("${spring.ai.openai.section.temperature}") double temperature) {
+
+        OpenAiChatOptions options = OpenAiChatOptions.builder()
+                .model(model)
+                .maxCompletionTokens(maxCompletionTokens)
+                .temperature(temperature)
+                .responseFormat(ResponseFormat.builder().type(ResponseFormat.Type.JSON_OBJECT).build())
+                .build();
+
+        return OpenAiChatModel.builder()
+                .openAiApi(openAiApi)
+                .defaultOptions(options)
+                .build();
+    }
 }
