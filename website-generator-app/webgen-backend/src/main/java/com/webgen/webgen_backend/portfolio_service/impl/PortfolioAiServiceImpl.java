@@ -155,9 +155,16 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
             ++attempt;
             System.out.println(">>> [SECTION-WORKER] Section '" + sectionKey + "' attempt " + attempt + "/" + maxRetries);
 
-            // --- Build prompt
-            Prompt sectionPrompt = portfolioPromptBuilder
-                    .buildSectionPrompt(msg.getReq(), msg.getRefinedPrompt(), msg.getBlueprint(), msg.getPlanItem());
+            // --- Build prompt (use retry prompt with errors if previous attempt failed validation)
+            Prompt sectionPrompt;
+            if (validation == null || validation.isValid()) {
+                sectionPrompt = portfolioPromptBuilder
+                        .buildSectionPrompt(msg.getReq(), msg.getRefinedPrompt(), msg.getBlueprint(), msg.getPlanItem());
+            } else {
+                System.out.println(">>> [SECTION-WORKER] Retrying with validation errors (attempt " + attempt + ")");
+                sectionPrompt = portfolioPromptBuilder
+                        .buildSectionRetryPrompt(msg.getReq(), msg.getRefinedPrompt(), msg.getBlueprint(), msg.getPlanItem(), validation.getErrors());
+            }
 
             // --- Call and parse LLM
             long llmStart = System.currentTimeMillis();

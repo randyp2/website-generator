@@ -3,6 +3,7 @@ package com.webgen.webgen_backend.portfolio_service.job;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.webgen.webgen_backend.config.RabbitMQConfig;
+import com.webgen.webgen_backend.portfolio_service.builder.BuilderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
@@ -27,6 +28,7 @@ public class GenerationWorker {
 
     private final GenerateJobService jobService;
     private final PortfolioAiService portfolioAiService;
+    private final BuilderService builderService;
 
 
     // Worker that is subscribed to the portfolio.generate.queue
@@ -78,7 +80,7 @@ public class GenerationWorker {
             if (msg.getMode() == SectionGenerationMessage.Mode.GENERATE)
                 portfolioAiService.generateSingleSectionFromQueue(msg);
             else
-                portfolioAiService.refineSingleSectionFromQueue(msg);
+                builderService.refineSingleSectionFromQueue(msg);
 
             channel.basicAck(deliveryTag, false);
         } catch (Exception e) {
