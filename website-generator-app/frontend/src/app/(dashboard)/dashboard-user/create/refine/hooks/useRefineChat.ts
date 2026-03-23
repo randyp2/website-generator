@@ -43,6 +43,7 @@ interface BuilderResponse {
 
 interface ClarifyResponse {
     assistantMessage?: string;
+    sessionId?: string;
     readyForPlanning?: boolean;
     error?: string;
 }
@@ -85,6 +86,7 @@ export const useRefineChat = ({
     const [currentPlan, setCurrentPlan] = useState<SectionPlan[] | null>(null);
     const [isPlanApproved, setIsPlanApproved] = useState<boolean>(false);
     const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const sessionIdRef = useRef<string | null>(null);
 
     const callPlanner = async (): Promise<PlannerResponse | null> => {
         if (!portfolioId) return null;
@@ -93,6 +95,7 @@ export const useRefineChat = ({
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
+                sessionId: sessionIdRef.current,
                 sections: buildPlannerSections(sections),
             }),
         });
@@ -130,6 +133,7 @@ export const useRefineChat = ({
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
+                sessionId: sessionIdRef.current,
                 sections: buildSectionContent(sectionsToSend),
                 sectionPlans,
             }),
@@ -231,6 +235,8 @@ export const useRefineChat = ({
                     setCurrentPlan(null);
                     setIsGenerating(false);
                     setIsPlanApproved(false);
+                    // Clear session so next refinement starts fresh
+                    sessionIdRef.current = null;
                 }
 
                 if (data.status === "FAILED") {
@@ -345,11 +351,17 @@ export const useRefineChat = ({
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     userPrompt: prompt,
+                    sessionId: sessionIdRef.current,
                     sections: buildSectionSummaries(sections),
                 }),
             });
 
             const data = (await response.json()) as ClarifyResponse;
+
+            // Store the sessionId returned by the backend (minted on first call)
+            if (data.sessionId) {
+                sessionIdRef.current = data.sessionId;
+            }
 
             if (!response.ok) {
                 throw new Error(data.error ?? "Clarification request failed.");
