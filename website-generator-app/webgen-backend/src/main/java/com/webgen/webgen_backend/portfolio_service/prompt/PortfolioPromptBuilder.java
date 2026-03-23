@@ -158,6 +158,13 @@ public class PortfolioPromptBuilder {
                         - If custom style notes are provided, you MUST implement them.
                         - Treat them as hard requirements for the visual design.
 
+                        11. Responsive design (REQUIRED)
+                        - All sections MUST be responsive and render correctly across screen sizes.
+                        - Use Tailwind responsive prefixes (sm:, md:, lg:) for layout shifts.
+                        - Grids and multi-column layouts MUST stack on mobile.
+                        - Typography and spacing should scale appropriately.
+                        - Design mobile-first, then adapt for larger screens.
+
                         ========================
                         MEDIA USAGE RULES
                         ========================
@@ -515,23 +522,53 @@ public class PortfolioPromptBuilder {
                 - sectionKey: lowercase identifier
                 - title: display title
                 - orderIndex: integer render order
-                - layoutHint: brief description of intended layout
-                  (e.g. "bento grid", "full-bleed with centered text", "two-column cards")
+                - layoutHint: brief description of intended layout.
+                  Be specific and varied — do NOT default to the same layout for
+                  every section. Examples of diverse layouts:
+                  "asymmetric two-column with oversized left heading",
+                  "staggered masonry grid", "full-bleed hero with viewport split",
+                  "horizontal scroll cards on desktop, stacked on mobile",
+                  "timeline with alternating sides", "bento grid with one featured item"
+                  Layout hints MUST be mobile-friendly — avoid layouts that cannot
+                  gracefully stack or reflow on small screens.
                 - contentStrategy: what resume data to include and what to emphasize
 
                 ========================
-                DESIGN DIRECTIVE
+                DESIGN DIRECTIVE (CRITICAL)
                 ========================
 
-                The designDirective is a paragraph that captures:
+                The designDirective is a detailed paragraph that captures:
                 - The chosen visual theme (minimal, bold, editorial, etc.)
-                - Animation style and intensity
+                - Animation style and intensity — specify WHICH sections get bold
+                  animation vs. subtle or none
                 - Spacing and density preferences
                 - How sections should relate to each other visually
-                - Any recurring visual motifs
+                - Responsive strategy (how layouts adapt from mobile to desktop)
+                - Recurring visual motifs or signature design elements
+                - At least ONE unconventional design choice that makes this
+                  portfolio feel distinct (e.g. asymmetric grids, oversized
+                  typography, layered depth effects, editorial whitespace,
+                  accent-colored dividers, mixed layout rhythms)
+
+                The designDirective MUST be specific and opinionated, NOT generic.
+
+                BAD example (too vague):
+                "A clean, modern portfolio with smooth animations and good spacing."
+
+                GOOD example (specific, bold):
+                "Editorial magazine aesthetic — dramatic scale contrast between
+                section headings (8xl+) and body text, generous vertical whitespace
+                between sections, accent-colored thin rules as dividers. Hero uses
+                a full-viewport split layout with name on the left and a bold
+                gradient shape on the right. Projects section uses an asymmetric
+                masonry grid. Animations are cinematic: slow slide-ups (0.8s) for
+                headings, staggered fade-ins for cards. Footer is minimal, single
+                line. Mobile collapses grids to single column with preserved
+                typographic hierarchy."
 
                 This directive will be passed verbatim to each per-section prompt,
-                so it must be specific enough to produce a coherent portfolio.
+                so it must be specific enough to produce a coherent and visually
+                distinctive portfolio. Generic directives produce generic results.
 
                 ========================
                 TYPOGRAPHY (CRITICAL)
@@ -731,6 +768,16 @@ public class PortfolioPromptBuilder {
                 10. Apply fonts from globalTheme using inline style or Tailwind arbitrary values.
                 11. Custom style notes are mandatory if provided.
                 12. Media URLs must come from contentJson only — never invent URLs.
+
+                ========================
+                RESPONSIVE DESIGN (REQUIRED)
+                ========================
+
+                All sections MUST be responsive and render correctly across screen sizes.
+                - Use Tailwind responsive prefixes (sm:, md:, lg:) for layout shifts
+                - Grids and multi-column layouts MUST stack on mobile
+                - Typography and spacing should scale appropriately
+                - Design mobile-first, then adapt for larger screens
 
                 ========================
                 OUTPUT FORMAT (EXACT)
