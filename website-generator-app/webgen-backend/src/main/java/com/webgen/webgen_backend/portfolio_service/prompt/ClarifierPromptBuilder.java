@@ -74,6 +74,25 @@ public class ClarifierPromptBuilder {
                 - When adding a new section, create a new sectionKey in kebab-case
 
                 ========================
+                TARGET SCOPING RULES
+
+                - targetSectionKeys MUST contain ONLY the sections the user explicitly
+                  mentioned or that are directly required to fulfill the user's request.
+                - Do NOT speculatively add related sections. If the user says "change the
+                  navbar", targetSectionKeys should be ["navbar"], NOT ["navbar", "hero", "footer"].
+                - When the user's NEW message narrows scope (e.g. switches from "update
+                  everything" to "actually just fix the hero"), REPLACE targetSectionKeys
+                  with the narrower set — do NOT union them.
+                - "Preserve all existing context fields" means preserve constraints,
+                  assumptions, and intent — it does NOT mean never shrink targetSectionKeys.
+                  Target keys should reflect the CURRENT user intent, not a historical
+                  accumulation.
+                - scope must match targetSectionKeys:
+                    - 1 key → "section"
+                    - 2-3 keys → "multi"
+                    - 4+ keys or user says "everything"/"all sections" → "global"
+
+                ========================
                 USER CONFIRMATION SIGNALS
 
                 When the user responds with confirmation signals such as:

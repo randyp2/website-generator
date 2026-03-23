@@ -78,6 +78,31 @@ public class BuilderServiceImpl implements BuilderService {
                 + ", confidence=" + context.getConfidenceScore()
                 + ", scope=" + context.getScope());
 
+        // Guard: drop modify plans for sections outside the clarifier's target scope.
+        // When scope is "section" or "multi", only sections explicitly targeted should
+        // be modified. This prevents over-scoped planner output from reaching workers.
+        List<String> targetKeys = (context.getTargetSectionKeys() != null)
+                ? context.getTargetSectionKeys()
+                : List.of();
+        java.util.Set<String> targetKeySet = new java.util.HashSet<>(targetKeys);
+        String scope = context.getScope() != null ? context.getScope() : "unknown";
+
+        if ("section".equals(scope) || "multi".equals(scope)) {
+            List<SectionPlanDTO> originalPlans = req.getSectionPlans();
+            List<SectionPlanDTO> filteredPlans = originalPlans.stream()
+                    .filter(p -> {
+                        if ("modify".equals(p.getAction()) && !targetKeySet.contains(p.getSectionKey())) {
+                            System.out.println(">>> [BUILDER] DROPPED out-of-scope modify plan: "
+                                    + p.getSectionKey() + " (scope=" + scope
+                                    + ", targets=" + targetKeys + ")");
+                            return false;
+                        }
+                        return true;
+                    })
+                    .toList();
+            req.setSectionPlans(filteredPlans);
+        }
+
         // Index existing sections
         Map<String, SectionContentDTO> sectionsByKey  = (req.getSections() != null)
                 ? req.getSections().stream()
@@ -123,6 +148,9 @@ public class BuilderServiceImpl implements BuilderService {
                 .toList();
 
         generateJobService.fanOutSections(messages);
+
+        // Reset clarifier context so the next refine conversation starts fresh
+        clarifierService.resetContext(req.getPortfolioId());
 
         // Return jobId for status polling
         BuilderResponseDTO response = new BuilderResponseDTO();
@@ -241,15 +269,14 @@ public class BuilderServiceImpl implements BuilderService {
 
         System.out.println(">>> [REFINE-PERSIST] Modified sections from Redis: " + modifiedSections.size());
         modifiedSections.forEach(s ->
-                System.out.println(">>> [REFINE-PERSIST]   - " + s.getSectionKey()
-                        + ": " + (s.getChangeDescription() != null ? s.getChangeDescription() : "no description"))
+                System.out.println(">>> [REFINE-PERSIST]   [MODIFIED] " + s.getSectionKey()
+                        + " | title: " + s.getTitle()
+                        + " | change: " + (s.getChangeDescription() != null ? s.getChangeDescription() : "no description"))
         );
 
         // 2. Get delete keys stored at fan-out time
         List<String> deleteKeys = generateJobService.getDeleteKeys(jobId);
-        if (!deleteKeys.isEmpty()) {
-            System.out.println(">>> [REFINE-PERSIST] Sections to delete: " + deleteKeys);
-        }
+        System.out.println(">>> [REFINE-PERSIST] Sections to delete: " + (deleteKeys.isEmpty() ? "none" : deleteKeys));
 
         // 3. Load portfolio and existing sections from DB
         UUID portfolioId = UUID.fromString(msg.getPortfolioId());
@@ -257,25 +284,44 @@ public class BuilderServiceImpl implements BuilderService {
                 .orElseThrow(() -> new IllegalStateException("Portfolio not found: " + portfolioId));
 
         List<PortfolioSection> existingDbSections = sectionRepository.findAllByPortfolioIdOrderByOrderIndexAsc(portfolioId);
+        System.out.println(">>> [REFINE-PERSIST] Existing DB sections: " + existingDbSections.size());
+        existingDbSections.forEach(s ->
+                System.out.println(">>> [REFINE-PERSIST]   [DB] " + s.getSectionKey() + " | title: " + s.getTitle())
+        );
+
+        // 4. Carry forward globalTheme from the previous active version
+        com.fasterxml.jackson.databind.JsonNode previousGlobalTheme = null;
+        if (portfolio.getActiveVersionId() != null) {
+            GeneratedVersion previousVersion = generatedVersionRepository.findById(portfolio.getActiveVersionId())
+                    .orElse(null);
+            if (previousVersion != null) {
+                previousGlobalTheme = previousVersion.getGlobalTheme();
+                System.out.println(">>> [REFINE-PERSIST] Carrying forward globalTheme from previous version: "
+                        + portfolio.getActiveVersionId()
+                        + " | theme: " + (previousGlobalTheme != null ? "present" : "null"));
+            }
+        }
 
         // Index for lookups
         Map<String, SectionDTO> modifiedByKey = modifiedSections.stream()
                 .collect(Collectors.toMap(SectionDTO::getSectionKey, s -> s));
         java.util.Set<String> deleteKeySet = new java.util.HashSet<>(deleteKeys);
 
-        // 4. Build merged sections list for the version snapshot
+        // 5. Build merged sections list for the version snapshot
         List<SectionDTO> mergedSections = new ArrayList<>();
 
         for (PortfolioSection existing : existingDbSections) {
-            // Skip deleted sections
-            if (deleteKeySet.contains(existing.getSectionKey())) continue;
+            if (deleteKeySet.contains(existing.getSectionKey())) {
+                System.out.println(">>> [REFINE-PERSIST]   [SKIP-DELETE] " + existing.getSectionKey());
+                continue;
+            }
 
             SectionDTO modified = modifiedByKey.get(existing.getSectionKey());
             if (modified != null) {
-                // Use worker-generated version
+                System.out.println(">>> [REFINE-PERSIST]   [MERGE-MODIFIED] " + existing.getSectionKey());
                 mergedSections.add(modified);
             } else {
-                // Keep existing version unchanged
+                System.out.println(">>> [REFINE-PERSIST]   [MERGE-KEPT] " + existing.getSectionKey());
                 SectionDTO kept = new SectionDTO();
                 kept.setSectionKey(existing.getSectionKey());
                 kept.setTitle(existing.getTitle());
@@ -291,13 +337,22 @@ public class BuilderServiceImpl implements BuilderService {
                 .collect(Collectors.toMap(PortfolioSection::getSectionKey, s -> s));
         for (SectionDTO modified : modifiedSections) {
             if (!existingByKey.containsKey(modified.getSectionKey())) {
+                System.out.println(">>> [REFINE-PERSIST]   [MERGE-NEW] " + modified.getSectionKey());
                 mergedSections.add(modified);
             }
         }
 
-        // 5. Create GeneratedVersion with merged snapshot
+        System.out.println(">>> [REFINE-PERSIST] Final merged sections: " + mergedSections.size());
+        mergedSections.forEach(s ->
+                System.out.println(">>> [REFINE-PERSIST]   [FINAL] " + s.getSectionKey() + " | title: " + s.getTitle())
+        );
+
+        // 6. Create GeneratedVersion with merged snapshot
         ObjectNode snapshot = objectMapper.createObjectNode();
         snapshot.set("sections", objectMapper.valueToTree(mergedSections));
+        if (previousGlobalTheme != null) {
+            snapshot.set("globalTheme", previousGlobalTheme);
+        }
 
         GeneratedVersion version = new GeneratedVersion();
         version.setId(UUID.randomUUID());
@@ -305,34 +360,36 @@ public class BuilderServiceImpl implements BuilderService {
         version.setHtml("");
         version.setPromptUsed(null);
         version.setSectionsSnapshot(snapshot);
-        version.setGlobalTheme(null);
+        version.setGlobalTheme(previousGlobalTheme);
         version.setAssistantMessage(null);
         version.setCreatedAt(OffsetDateTime.now());
         generatedVersionRepository.save(version);
-        System.out.println(">>> [REFINE-PERSIST] GeneratedVersion saved: " + version.getId());
+        System.out.println(">>> [REFINE-PERSIST] GeneratedVersion saved: " + version.getId()
+                + " | globalTheme: " + (previousGlobalTheme != null ? "preserved" : "null"));
 
-        // 6. Update portfolio active version
+        // 7. Update portfolio active version
         portfolio.setActiveVersionId(version.getId());
         portfolioRepository.save(portfolio);
-        System.out.println(">>> [REFINE-PERSIST] Portfolio active version updated");
+        System.out.println(">>> [REFINE-PERSIST] Portfolio active version updated to: " + version.getId());
 
-        // 7. Delete sections marked for removal
+        // 8. Delete sections marked for removal
         OffsetDateTime now = OffsetDateTime.now();
         for (String deleteKey : deleteKeys) {
             sectionRepository.findByPortfolioIdAndSectionKey(portfolioId, deleteKey)
                     .ifPresent(section -> {
                         sectionRepository.delete(section);
-                        System.out.println(">>> [REFINE-PERSIST] Deleted section: " + deleteKey);
+                        System.out.println(">>> [REFINE-PERSIST] Deleted section from DB: " + deleteKey);
                     });
         }
 
-        // 8. Upsert modified/added sections
+        // 9. Upsert modified/added sections
         for (SectionDTO sectionDto : modifiedSections) {
             PortfolioSection section = sectionRepository
                     .findByPortfolioIdAndSectionKey(portfolioId, sectionDto.getSectionKey())
                     .orElse(new PortfolioSection());
 
-            if (section.getId() == null) {
+            boolean isNew = section.getId() == null;
+            if (isNew) {
                 section.setId(UUID.randomUUID());
                 section.setPortfolio(portfolio);
                 section.setSectionKey(sectionDto.getSectionKey());
@@ -345,6 +402,8 @@ public class BuilderServiceImpl implements BuilderService {
             section.setOrderIndex(sectionDto.getOrderIndex() != null ? sectionDto.getOrderIndex() : 0);
             section.setUpdatedAt(now);
             sectionRepository.save(section);
+            System.out.println(">>> [REFINE-PERSIST]   [UPSERT] " + sectionDto.getSectionKey()
+                    + " | " + (isNew ? "INSERT" : "UPDATE"));
         }
         System.out.println(">>> [REFINE-PERSIST] Sections upserted: " + modifiedSections.size());
 

@@ -143,6 +143,12 @@ public class ClarifierServiceImpl implements ClarifierService {
         return contextStore.get(portfolioId);
     }
 
+    @Override
+    public void resetContext(UUID portfolioId) {
+        contextStore.remove(portfolioId);
+        System.out.println(">>> [CLARIFIER] Context reset for portfolio: " + portfolioId);
+    }
+
     // Return a default initialized clarifierContext
     private ClarifierContext newContext() {
         ClarifierContext context = new ClarifierContext();

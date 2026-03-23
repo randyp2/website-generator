@@ -9,4 +9,5 @@ import java.util.UUID;
 public interface ClarifierService {
     ClarifierResponseDTO clarify(ClarifierRequestDTO req);
     ClarifierContext getContext(UUID portfolioId);
+    void resetContext(UUID portfolioId);
 }
