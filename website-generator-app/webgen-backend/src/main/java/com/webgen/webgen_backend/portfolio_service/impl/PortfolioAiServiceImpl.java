@@ -163,7 +163,7 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
             } else {
                 System.out.println(">>> [SECTION-WORKER] Retrying with validation errors (attempt " + attempt + ")");
                 sectionPrompt = portfolioPromptBuilder
-                        .buildSectionRetryPrompt(msg.getReq(), msg.getRefinedPrompt(), msg.getBlueprint(), msg.getPlanItem(), validation.getErrors());
+                        .buildSectionRetryPrompt(msg.getReq(), msg.getRefinedPrompt(), msg.getBlueprint(), msg.getPlanItem(), validation.getErrors(), parsedSection.getReactSource());
             }
 
             // --- Call and parse LLM

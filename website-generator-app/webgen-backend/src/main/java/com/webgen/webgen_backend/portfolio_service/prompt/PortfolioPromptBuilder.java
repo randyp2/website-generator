@@ -474,9 +474,9 @@ public class PortfolioPromptBuilder {
      * No react code being generated
      * Locks in shared design idea so sections remain coherent
      * 
-     * @param req
-     * @param refinedPrompt
-     * @return
+     * @param req - request holding metadata of user for more context
+     * @param refinedPrompt - refined user prompt
+     * @return return structured raw json for overall theme and plan of portfolio
      */
     public Prompt buildBlueprintPrompt(PortfolioGenerateRequestDTO req, String refinedPrompt) {
         ParsedResumeDTO resume = req.getResume();
@@ -506,9 +506,10 @@ public class PortfolioPromptBuilder {
                 - If contact info exists, include a "contact" section near the end
                 - You MUST include ALL resume sections — either as dedicated sections
                   or clearly combined into narrative sections
-                - At least TWO sections must reframe or combine resume content
+                - At least ONE section MUST reframe or combine resume content
                   (e.g. "Journey", "Selected Work", "Focus")
-                - Avoid generic names like "Skills", "Experience", "Education"
+                - Additional sections SHOULD prefer expressive, intent-driven titles
+                  but MAY use conventional titles when the content warrants it
 
                 Each section plan item must include:
                 - sectionKey: lowercase identifier
@@ -673,11 +674,49 @@ public class PortfolioPromptBuilder {
 
                 %s
 
-                Sections MUST use transparent/semi-transparent backgrounds only.
                 The globalTheme controls the page background.
+                Sections SHOULD use transparent or semi-transparent backgrounds
+                (e.g. bg-transparent, bg-black/10, bg-white/5, bg-slate-900/50).
+                Subtle high-opacity backgrounds (e.g. bg-black/90, bg-slate-800/80) are
+                ALLOWED when the design calls for contrast between sections.
+                Fully opaque backgrounds that clash with the globalTheme are NOT allowed.
 
                 ========================
-                ARCHITECTURAL RULES
+                CREATIVITY GUIDANCE
+                ========================
+
+                The blueprint's layoutHint and designDirective define the creative
+                direction. Interpret them boldly — push beyond the first obvious
+                implementation.
+
+                - Vary visual density: not every section needs the same rhythm
+                - Use whitespace, scale contrast, and typography weight as design tools
+                - Layouts should feel intentional — avoid defaulting to centered-stack
+                  or uniform card-grid unless the blueprint specifically calls for it
+                - Each section should have a distinct visual identity while staying
+                  coherent with the globalTheme
+                - Default or generic layouts are NOT acceptable
+                - Each section should feel designed, not templated
+
+                ========================
+                ANIMATION GUIDANCE
+                ========================
+
+                Framer Motion is available in scope (no imports needed).
+
+                - Hero/intro and content-heavy sections SHOULD use Framer Motion for
+                  entrance animations and hover interactions
+                - Supporting sections (footer, contact, navbar) MAY use simpler CSS
+                  transitions or minimal animation — forced animation on every section
+                  reduces impact
+                - Vary animation intensity by section importance: bold for hero,
+                  understated for supporting sections
+                - Prefer staggered entrance and emphasis animations over uniform fade-ins
+                - Animations should serve the design (hierarchy, attention, reading order),
+                  not be applied uniformly
+
+                ========================
+                ARCHITECTURAL RULES (STRICT)
                 ========================
 
                 1. Generate exactly ONE section.
@@ -688,11 +727,10 @@ public class PortfolioPromptBuilder {
                 6. Plain JSX only — no TypeScript, no imports, no arrow function exports.
                 7. All dynamic content from contentJson via the `data` prop.
                 8. Tailwind CSS only for styling.
-                9. Framer Motion required for animations (motion is in scope, no imports).
-                10. Lucide icons in scope: Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight.
-                11. Apply fonts from globalTheme using inline style or Tailwind arbitrary values.
-                12. Custom style notes are mandatory if provided.
-                13. Media URLs must come from contentJson only — never invent URLs.
+                9. Lucide icons in scope: Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight.
+                10. Apply fonts from globalTheme using inline style or Tailwind arbitrary values.
+                11. Custom style notes are mandatory if provided.
+                12. Media URLs must come from contentJson only — never invent URLs.
 
                 ========================
                 OUTPUT FORMAT (EXACT)
@@ -827,16 +865,18 @@ public class PortfolioPromptBuilder {
     }
 
     /**
-     * Error-aware retry prompt for per-section generation.
-     * Includes validation errors from the previous attempt so the LLM
-     * can fix specific issues instead of generating blindly.
+     * Repair-only retry prompt for per-section generation.
+     * Includes the failed JSX and validation errors so the LLM can
+     * surgically fix syntax/contract issues while preserving the
+     * original design, layout, and creative choices.
      */
     public Prompt buildSectionRetryPrompt(
             PortfolioGenerateRequestDTO req,
             String refinedPrompt,
             BlueprintDTO blueprint,
             BlueprintSectionPlanDTO targetSection,
-            List<ValidationResult.ValidationError> errors
+            List<ValidationResult.ValidationError> errors,
+            String failedReactSource
     ) {
         ParsedResumeDTO resume = req.getResume();
         String customNotes = extractCustomNotes(req.getStylePrefs());
@@ -860,11 +900,31 @@ public class PortfolioPromptBuilder {
         SystemMessage system = new SystemMessage("""
                 You are an AI software engineer working inside the PortfolioAI system.
 
-                IMPORTANT: Your previous attempt to generate this section had JSX validation errors.
-                You MUST fix these errors and return valid React/JSX code.
+                ========================
+                REPAIR MODE (CRITICAL)
+                ========================
 
-                You are generating a SINGLE portfolio section as part of a larger portfolio.
-                A planning step has already decided the theme, section list, and design direction.
+                Your previous attempt to generate this section produced GOOD DESIGN
+                but had JSX validation errors.
+
+                This is a REPAIR task, NOT a regeneration task.
+
+                You MUST:
+                - Preserve the existing layout, visual structure, and Tailwind classes
+                - Preserve all animation choices (Framer Motion variants, transitions)
+                - Preserve the theme application and typography decisions
+                - Preserve the contentJson structure exactly as-is
+                - ONLY fix the specific syntax/contract errors listed below
+
+                You MUST NOT:
+                - Simplify, flatten, or "play it safe" with the design
+                - Remove animations, hover effects, or visual complexity
+                - Replace creative layouts with generic ones
+                - Change the contentJson unless an error specifically requires it
+                - Rewrite code that is not related to the reported errors
+
+                Think of yourself as a compiler fixing syntax errors, not a designer
+                starting over.
 
                 ========================
                 VALIDATION ERRORS TO FIX
@@ -882,13 +942,13 @@ public class PortfolioPromptBuilder {
                 4. Data access: No optional chaining (data?.field), access data directly (not data.contentJson)
 
                 ========================
-                DESIGN DIRECTIVE (FOLLOW THIS)
+                DESIGN DIRECTIVE (PRESERVE THIS)
                 ========================
 
                 %s
 
                 ========================
-                GLOBAL THEME (USE THIS)
+                GLOBAL THEME (PRESERVE THIS)
                 ========================
 
                 %s
@@ -907,7 +967,7 @@ public class PortfolioPromptBuilder {
                 6. Plain JSX only — no TypeScript, no imports, no arrow function exports.
                 7. All dynamic content from contentJson via the `data` prop.
                 8. Tailwind CSS only for styling.
-                9. Framer Motion required for animations (motion is in scope, no imports).
+                9. Framer Motion for animations (motion is in scope, no imports).
                 10. Lucide icons in scope: Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight.
 
                 ========================
@@ -922,7 +982,7 @@ public class PortfolioPromptBuilder {
                   "reactSource": "<escaped JSX source>"
                 }
 
-                Fix ALL errors and ensure the code compiles correctly.
+                Fix ONLY the reported errors. Preserve everything else.
                 Output JSON ONLY. No markdown, no backticks, no extra text.
                 """.formatted(
                 errorSummary,
@@ -931,7 +991,17 @@ public class PortfolioPromptBuilder {
         ));
 
         UserMessage user = new UserMessage("""
-                        Fix the JSX errors and regenerate the "%s" section (orderIndex: %d).
+                        REPAIR the "%s" section (orderIndex: %d).
+
+                        ========================
+                        FAILED JSX CODE (fix errors in this code)
+                        ========================
+
+                        %s
+
+                        ========================
+                        SECTION CONTEXT
+                        ========================
 
                         Section plan:
                         - Layout hint: %s
@@ -954,6 +1024,7 @@ public class PortfolioPromptBuilder {
                 """.formatted(
                 targetSection.getSectionKey(),
                 targetSection.getOrderIndex(),
+                failedReactSource != null ? failedReactSource : "(no previous code available)",
                 targetSection.getLayoutHint(),
                 targetSection.getContentStrategy(),
                 effectivePrompt,
