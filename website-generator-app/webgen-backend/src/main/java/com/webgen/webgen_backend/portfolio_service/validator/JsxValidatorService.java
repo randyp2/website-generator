@@ -2,6 +2,7 @@ package com.webgen.webgen_backend.portfolio_service.validator;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.webgen.webgen_backend.dto.portfolio.SectionDTO;
 import com.webgen.webgen_backend.dto.portfolio.builder.ModifiedSectionDTO;
 import com.webgen.webgen_backend.dto.portfolio.builder.ValidationResult;
@@ -39,7 +40,8 @@ public class JsxValidatorService {
 
         ValidationResult sectionResult = validateSingleSection(
                 section.getSectionKey(),
-                section.getReactSource()
+                section.getReactSource(),
+                section.getContentJson()
         );
 
         if (!sectionResult.isValid()) {
@@ -60,9 +62,14 @@ public class JsxValidatorService {
                 continue;
             }
 
+            JsonNode contentJsonNode = section.getContentJson() != null
+                    ? objectMapper.valueToTree(section.getContentJson())
+                    : null;
+
             ValidationResult sectionResult = validateSingleSection(
                     section.getSectionKey(),
-                    section.getReactSource()
+                    section.getReactSource(),
+                    contentJsonNode
             );
 
             if (!sectionResult.isValid()) {
@@ -74,16 +81,21 @@ public class JsxValidatorService {
         return result;
     }
 
-    private ValidationResult validateSingleSection(String sectionKey, String reactSource) {
+    private ValidationResult validateSingleSection(String sectionKey, String reactSource, JsonNode contentJson) {
         try {
             ProcessBuilder pb = new ProcessBuilder(nodePath, scriptPath);
             pb.redirectErrorStream(true);
 
             Process process = pb.start();
 
-            // Write reactSource to stdin
+            // Write JSON payload with reactSource and contentJson to stdin
             try (OutputStream os = process.getOutputStream()) {
-                os.write(reactSource.getBytes(StandardCharsets.UTF_8));
+                ObjectNode payload = objectMapper.createObjectNode();
+                payload.put("reactSource", reactSource);
+                if (contentJson != null) {
+                    payload.set("contentJson", contentJson);
+                }
+                os.write(objectMapper.writeValueAsBytes(payload));
                 os.flush();
             }
 

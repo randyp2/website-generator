@@ -11,4 +11,5 @@ public class StyleChatRequestDTO {
     private String userMessage;
     private Map<String, String> colorSelections; // only for Q1
     private Map<String, String> fontSelections;  // e.g. { "heading": "Playfair Display", "body": "Inter" }
+    private String layoutSelection;              // e.g. "Bento", "Spacious", etc.
 }
