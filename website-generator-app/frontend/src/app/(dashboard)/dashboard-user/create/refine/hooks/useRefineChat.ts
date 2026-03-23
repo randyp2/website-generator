@@ -115,11 +115,22 @@ export const useRefineChat = ({
     ): Promise<BuilderResponse | null> => {
         if (!portfolioId) return null;
 
+        // Only send sections that have a "modify" plan — "add" sections have no existing
+        // content, "delete" sections don't need LLM work
+        const modifyKeys = new Set(
+            sectionPlans
+                .filter((p) => p.action === "modify")
+                .map((p) => p.sectionKey),
+        );
+        const sectionsToSend = (sections ?? []).filter((s) =>
+            modifyKeys.has(s.sectionKey),
+        );
+
         const response = await fetch(`/api/portfolio/${portfolioId}/refine/build`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                sections: buildSectionContent(sections),
+                sections: buildSectionContent(sectionsToSend),
                 sectionPlans,
             }),
         });
