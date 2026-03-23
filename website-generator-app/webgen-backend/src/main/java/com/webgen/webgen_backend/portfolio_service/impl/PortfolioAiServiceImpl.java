@@ -33,6 +33,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class PortfolioAiServiceImpl implements PortfolioAiService {
@@ -139,6 +140,20 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
         BlueprintDTO blueprint = portfolioResponseParser.parseBlueprintResponse(blueprintJson);
         jobService.setTotalSections(jobId, blueprint.getSectionPlan().size());
 
+        // --- Blueprint quality log ---
+        System.out.println(">>> [BLUEPRINT] ===== BLUEPRINT OUTPUT =====");
+        System.out.println(">>> [BLUEPRINT] Raw JSON: " + blueprintJson);
+        System.out.println(">>> [BLUEPRINT] Design Directive: " + blueprint.getDesignDirective());
+        System.out.println(">>> [BLUEPRINT] Global Theme: " + blueprint.getGlobalThemeDTO());
+        System.out.println(">>> [BLUEPRINT] Section count: " + blueprint.getSectionPlan().size());
+        for (BlueprintSectionPlanDTO plan : blueprint.getSectionPlan()) {
+            System.out.println(">>> [BLUEPRINT]   [" + plan.getOrderIndex() + "] "
+                    + plan.getSectionKey() + " — \"" + plan.getTitle() + "\""
+                    + " | layout: " + plan.getLayoutHint()
+                    + " | strategy: " + plan.getContentStrategy());
+        }
+        System.out.println(">>> [BLUEPRINT] =============================");
+
         // --- Step 3) Fan out sections
         List<SectionGenerationMessage> messages = blueprint.getSectionPlan().stream()
                         .map(planItem -> {
@@ -198,6 +213,12 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
             parsedSection = portfolioResponseParser.parseSingleSectionResponse(rawJson);
             System.out.println(">>> [SECTION-WORKER] Section '" + sectionKey + "' LLM call completed in "
                     + (System.currentTimeMillis() - llmStart) + "ms");
+            System.out.println(">>> [SECTION-WORKER] Section '" + sectionKey + "' parse summary: "
+                    + "parsedSectionKey=" + parsedSection.getSectionKey()
+                    + " | title=" + parsedSection.getTitle()
+                    + " | orderIndex=" + parsedSection.getOrderIndex()
+                    + " | reactSourceChars="
+                    + (parsedSection.getReactSource() == null ? 0 : parsedSection.getReactSource().length()));
 
             // --- Validate
             validation = jsxValidatorService.validateGeneratedSection(parsedSection);
@@ -208,9 +229,13 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
             }
 
             System.out.println(">>> [SECTION-WORKER] Section '" + sectionKey + "' validation failed (attempt " + attempt + ")");
+            System.err.println(">>> [SECTION-WORKER] Section '" + sectionKey + "' validation errors (attempt " + attempt + "):\n"
+                    + formatValidationErrors(validation, parsedSection.getReactSource()));
         }
 
         if (validation == null || !validation.isValid()) {
+            System.err.println(">>> [SECTION-WORKER] Final validation errors for section '" + sectionKey + "':\n"
+                    + formatValidationErrors(validation, parsedSection == null ? null : parsedSection.getReactSource()));
             String failReason = "Failed to generate valid JSX for section '"
                     + sectionKey + "' after " + maxRetries + " attempts";
             jobService.failJob(jobId, failReason);
@@ -342,6 +367,35 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
     private String buildSignature(BlueprintSectionPlanDTO planItem, SectionDTO validSection) {
         return planItem.getSectionKey() + ": " + planItem.getLayoutHint()
                 + " | title: " + validSection.getTitle();
+    }
+
+    private String formatValidationErrors(ValidationResult validation, String reactSource) {
+        if (validation == null || validation.getErrors() == null || validation.getErrors().isEmpty())
+            return "none";
+
+        String[] sourceLines = reactSource == null ? new String[0] : reactSource.split("\\R", -1);
+
+        return validation.getErrors().stream()
+                .map(error -> {
+                    StringBuilder line = new StringBuilder();
+                    line.append("- ")
+                            .append(error.getMessage() == null ? "Unknown validation error" : error.getMessage())
+                            .append(" [line=")
+                            .append(error.getLine() == null ? "?" : error.getLine())
+                            .append(", col=")
+                            .append(error.getColumn() == null ? "?" : error.getColumn())
+                            .append("]");
+
+                    if (error.getLine() != null && error.getLine() > 0 && error.getLine() <= sourceLines.length) {
+                        String sourceLine = sourceLines[error.getLine() - 1].trim();
+                        if (sourceLine.length() > 220)
+                            sourceLine = sourceLine.substring(0, 220) + "...";
+                        line.append("\n  source: ").append(sourceLine);
+                    }
+
+                    return line.toString();
+                })
+                .collect(Collectors.joining("\n"));
     }
 
 

@@ -2,12 +2,14 @@ package com.webgen.webgen_backend.portfolio_service.parser;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.webgen.webgen_backend.dto.portfolio.style.StyleColorPresetDTO;
 import com.webgen.webgen_backend.dto.portfolio.style.StyleChatResponseDTO;
 import com.webgen.webgen_backend.model.portfolio.style.CompiledStylePreferences;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 @Service
@@ -52,6 +54,9 @@ public class StyleChatResponseParser {
             String previewType = root.path("previewType").asText(null);
             dto.setPreviewType(previewType);
 
+            // Parse recommended custom color presets (optional, primarily used in Q1 color picker step)
+            dto.setRecommendedColorPresets(parseColorPresets(root.path("recommendedColorPresets")));
+
             boolean answerValid = root.path("isAnswerValid").asBoolean(true);
 
             // Parse compiledStylePreferences if present
@@ -65,6 +70,55 @@ public class StyleChatResponseParser {
         } catch (Exception e) {
             throw new IllegalArgumentException("Failed to parse AI Style Chat response JSON", e);
         }
+    }
+
+    public record FontRecommendation(String headingFont, String bodyFont) {}
+
+    public FontRecommendation parseFontRecommendation(String rawJson) {
+        try {
+            JsonNode root = objectMapper.readTree(rawJson);
+            String heading = root.path("recommendedHeadingFont").asText(null);
+            String body = root.path("recommendedBodyFont").asText(null);
+            if (heading != null && !heading.isBlank() && body != null && !body.isBlank()) {
+                return new FontRecommendation(heading.trim(), body.trim());
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    public List<StyleColorPresetDTO> parseRecommendedColorPresets(String rawJson) {
+        try {
+            JsonNode root = objectMapper.readTree(rawJson);
+            return parseColorPresets(root.path("recommendedColorPresets"));
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
+    private List<StyleColorPresetDTO> parseColorPresets(JsonNode node) {
+        if (!node.isArray()) return null;
+
+        List<StyleColorPresetDTO> presets = new ArrayList<>();
+        for (JsonNode item : node) {
+            if (!item.isObject()) continue;
+
+            String name = item.path("name").asText("").trim();
+            String description = item.path("description").asText("").trim();
+            JsonNode colorsNode = item.path("colors");
+            if (!colorsNode.isObject()) continue;
+
+            LinkedHashMap<String, String> colors = new LinkedHashMap<>();
+            for (String key : List.of("primary", "secondary", "accent", "background", "text", "muted")) {
+                String color = colorsNode.path(key).asText("").trim();
+                if (!color.isEmpty()) colors.put(key, color);
+            }
+
+            if (colors.size() < 6) continue;
+            presets.add(new StyleColorPresetDTO(name, description, colors));
+            if (presets.size() >= 3) break;
+        }
+
+        return presets.isEmpty() ? null : presets;
     }
 
     private CompiledStylePreferences parseCompiledPreferences(JsonNode node) {

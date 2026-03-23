@@ -40,8 +40,9 @@ public class PortfolioPromptBuilder {
                         multiple independent sections.
 
                         You must output JSON ONLY, following the exact schema below.
-                        Do NOT include markdown, explanations, comments, backticks, or extra text
+                        Do NOT include markdown, explanations, backticks, or extra text
                         outside of the defined JSON fields.
+                        reactSource MUST NOT contain any code comments (no // or /* */ comments).
 
                         ========================
                         ARCHITECTURAL RULES
@@ -198,8 +199,10 @@ public class PortfolioPromptBuilder {
 
                         - Framer Motion is AVAILABLE and REQUIRED
                         - You MUST use Framer Motion for animations and transitions
-                        - Assume `motion` is available in scope
+                        - `motion` is already declared in scope — use it directly (e.g. <motion.div>)
                         - Do NOT import framer-motion explicitly
+                        - Do NOT re-declare, re-assign, or create fallbacks for `motion`
+                          (no `var motion = ...`, no `const motion = ...`, no `typeof motion` checks)
                         - Animations MUST remain scoped to the section
                         - Animations MUST serve a purpose such as:
                           - Establishing visual hierarchy
@@ -740,6 +743,9 @@ public class PortfolioPromptBuilder {
                 ========================
 
                 Framer Motion is available in scope (no imports needed).
+                `motion` is already declared — use it directly (e.g. <motion.div>).
+                Do NOT re-declare, re-assign, or create fallbacks for `motion`
+                (no `var motion = ...`, no `const motion = ...`, no `typeof motion` checks).
 
                 - Hero/intro and content-heavy sections SHOULD use Framer Motion for
                   entrance animations and hover interactions
@@ -768,6 +774,7 @@ public class PortfolioPromptBuilder {
                 10. Apply fonts from globalTheme using inline style or Tailwind arbitrary values.
                 11. Custom style notes are mandatory if provided.
                 12. Media URLs must come from contentJson only — never invent URLs.
+                13. No code comments — do NOT include // or /* */ comments in reactSource.
 
                 ========================
                 RESPONSIVE DESIGN (REQUIRED)
@@ -912,10 +919,8 @@ public class PortfolioPromptBuilder {
     }
 
     /**
-     * Repair-only retry prompt for per-section generation.
-     * Includes the failed JSX and validation errors so the LLM can
-     * surgically fix syntax/contract issues while preserving the
-     * original design, layout, and creative choices.
+     * Minimal repair prompt — only sends the failed code and errors.
+     * No resume, assets, or blueprint context (saves tokens).
      */
     public Prompt buildSectionRetryPrompt(
             PortfolioGenerateRequestDTO req,
@@ -925,18 +930,6 @@ public class PortfolioPromptBuilder {
             List<ValidationResult.ValidationError> errors,
             String failedReactSource
     ) {
-        ParsedResumeDTO resume = req.getResume();
-        String customNotes = extractCustomNotes(req.getStylePrefs());
-        String effectivePrompt = applyCustomNotes(refinedPrompt, customNotes);
-        String assetsJson = serializeAssets(req.getAssets());
-
-        String themeJson = "";
-        try {
-            themeJson = objectMapper.writeValueAsString(blueprint.getGlobalThemeDTO());
-        } catch (JsonProcessingException e) {
-            themeJson = "{}";
-        }
-
         String errorSummary = errors.stream()
                 .map(e -> String.format("- %s (line %s, col %s)",
                         e.getMessage(),
@@ -945,82 +938,26 @@ public class PortfolioPromptBuilder {
                 .collect(Collectors.joining("\n"));
 
         SystemMessage system = new SystemMessage("""
-                You are an AI software engineer working inside the PortfolioAI system.
+                You are fixing JSX validation errors in a React portfolio section.
 
-                ========================
-                REPAIR MODE (CRITICAL)
-                ========================
+                This is a REPAIR task. Fix ONLY the listed errors. Do NOT redesign,
+                simplify, or remove any working code.
 
-                Your previous attempt to generate this section produced GOOD DESIGN
-                but had JSX validation errors.
-
-                This is a REPAIR task, NOT a regeneration task.
-
-                You MUST:
-                - Preserve the existing layout, visual structure, and Tailwind classes
-                - Preserve all animation choices (Framer Motion variants, transitions)
-                - Preserve the theme application and typography decisions
-                - Preserve the contentJson structure exactly as-is
-                - ONLY fix the specific syntax/contract errors listed below
-
-                You MUST NOT:
-                - Simplify, flatten, or "play it safe" with the design
-                - Remove animations, hover effects, or visual complexity
-                - Replace creative layouts with generic ones
-                - Change the contentJson unless an error specifically requires it
-                - Rewrite code that is not related to the reported errors
-
-                Think of yourself as a compiler fixing syntax errors, not a designer
-                starting over.
-
-                ========================
-                VALIDATION ERRORS TO FIX
-                ========================
-
+                ERRORS TO FIX:
                 %s
 
-                ========================
-                COMMON JSX ERRORS TO AVOID
-                ========================
+                RULES:
+                - Preserve all layout, styling, animations, and contentJson as-is
+                - Plain JSX only — no TypeScript, no import statements
+                - Component format: export default function <Name>Section({ data }) { ... }
+                - `data` prop is always present — no optional chaining
+                - `motion` is already in scope — do NOT re-declare it
+                  (no `var motion = ...`, no `typeof motion` checks)
+                - Lucide icons in scope: Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight
+                - No code comments (no // or /* */)
+                - Tailwind CSS only, transparent/semi-transparent backgrounds only
 
-                1. Syntax: Missing closing tags, unclosed JSX expressions, use camelCase attributes
-                2. Expressions: Unclosed curly braces, invalid JS inside JSX
-                3. Component: Missing default export, invalid function declaration, no TypeScript
-                4. Data access: No optional chaining (data?.field), access data directly (not data.contentJson)
-
-                ========================
-                DESIGN DIRECTIVE (PRESERVE THIS)
-                ========================
-
-                %s
-
-                ========================
-                GLOBAL THEME (PRESERVE THIS)
-                ========================
-
-                %s
-
-                Sections MUST use transparent/semi-transparent backgrounds only.
-
-                ========================
-                ARCHITECTURAL RULES
-                ========================
-
-                1. Generate exactly ONE section.
-                2. Section must be fully self-contained and independently renderable.
-                3. The section MUST render a top-level element with id equal to its sectionKey.
-                4. React contract: single `data` prop, always present, no optional chaining.
-                5. Component format: export default function <PascalCaseSectionKey>Section({ data }) { ... }
-                6. Plain JSX only — no TypeScript, no imports, no arrow function exports.
-                7. All dynamic content from contentJson via the `data` prop.
-                8. Tailwind CSS only for styling.
-                9. Framer Motion for animations (motion is in scope, no imports).
-                10. Lucide icons in scope: Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight.
-
-                ========================
-                OUTPUT FORMAT (EXACT)
-                ========================
-
+                OUTPUT FORMAT:
                 {
                   "sectionKey": "<string>",
                   "title": "<string>",
@@ -1029,61 +966,17 @@ public class PortfolioPromptBuilder {
                   "reactSource": "<escaped JSX source>"
                 }
 
-                Fix ONLY the reported errors. Preserve everything else.
-                Output JSON ONLY. No markdown, no backticks, no extra text.
-                """.formatted(
-                errorSummary,
-                blueprint.getDesignDirective(),
-                themeJson
-        ));
+                Return JSON ONLY.
+                """.formatted(errorSummary));
 
         UserMessage user = new UserMessage("""
-                        REPAIR the "%s" section (orderIndex: %d).
+                Fix the errors in this code and return the corrected JSON.
 
-                        ========================
-                        FAILED JSX CODE (fix errors in this code)
-                        ========================
-
-                        %s
-
-                        ========================
-                        SECTION CONTEXT
-                        ========================
-
-                        Section plan:
-                        - Layout hint: %s
-                        - Content strategy: %s
-
-                        User prompt: %s
-                        Custom style notes: %s
-
-                        Resume data:
-                        Name: %s
-                        Summary: %s
-                        Contact info: %s
-                        Skills: %s
-                        Experience: %s
-                        Projects: %s
-                        Education: %s
-
-                        Uploaded media assets:
-                        %s
+                FAILED CODE:
+                %s
                 """.formatted(
-                targetSection.getSectionKey(),
-                targetSection.getOrderIndex(),
-                failedReactSource != null ? failedReactSource : "(no previous code available)",
-                targetSection.getLayoutHint(),
-                targetSection.getContentStrategy(),
-                effectivePrompt,
-                customNotes.isBlank() ? "none" : customNotes,
-                safe(resume.getFullName()),
-                safe(resume.getSummary()),
-                formatContactInfo(resume),
-                formatList(resume.getSkills()),
-                resume.getExperiences() == null ? "none" : resume.getExperiences().toString(),
-                resume.getProjects() == null ? "none" : resume.getProjects().toString(),
-                resume.getEducations() == null ? "none" : resume.getEducations().toString(),
-                assetsJson));
+                failedReactSource != null ? failedReactSource : "(no previous code available)"
+        ));
 
         return new Prompt(List.of(system, user));
     }

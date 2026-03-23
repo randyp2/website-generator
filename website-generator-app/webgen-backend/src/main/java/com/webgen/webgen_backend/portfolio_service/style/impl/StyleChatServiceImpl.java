@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.portfolio_service.style.impl;
 
+import com.webgen.webgen_backend.dto.portfolio.style.StyleColorPresetDTO;
 import com.webgen.webgen_backend.dto.portfolio.style.StyleChatRequestDTO;
 import com.webgen.webgen_backend.dto.portfolio.style.StyleChatResponseDTO;
 import com.webgen.webgen_backend.model.portfolio.style.CompiledStylePreferences;
@@ -37,6 +38,18 @@ public class StyleChatServiceImpl implements StyleChatService {
             "\\b(i\\s*don'?t\\s*know|idk|not\\s*sure|you\\s*decide|either\\s*is\\s*fine|whatever\\s*you\\s*think)\\b",
             Pattern.CASE_INSENSITIVE
     );
+    private static final List<String> REQUIRED_COLOR_KEYS = List.of(
+            "primary",
+            "secondary",
+            "accent",
+            "background",
+            "text",
+            "muted"
+    );
+    private static final Pattern HEX_COLOR_PATTERN = Pattern.compile("^#?[0-9a-fA-F]{6}$");
+
+    private static final String DEFAULT_HEADING_FONT = "Space Grotesk";
+    private static final String DEFAULT_BODY_FONT = "Inter";
 
     // In memory context store (swap for DB/Redis later)
     private final Map<UUID, StyleContext> contextStore = new ConcurrentHashMap<>();
@@ -67,12 +80,17 @@ public class StyleChatServiceImpl implements StyleChatService {
             return handleColorSelection(req, context);
         }
 
-        // Font selection — user submits typography picker selections
-        if (req.getFontSelections() != null && !req.getFontSelections().isEmpty()) {
+        // Phase 3: Typography selection — user submits font picker selections (Q2 → Q3)
+        if (context.getCurrentQuestionNumber() == 2 && req.getFontSelections() != null && !req.getFontSelections().isEmpty()) {
             return handleFontSelection(req, context);
         }
 
-        // Phase 3: Conversational AI questions (Q2-Q10)
+        // Phase 4: Layout selection — user picks a layout style (Q3 → Q4)
+        if (context.getCurrentQuestionNumber() == 3 && req.getLayoutSelection() != null && !req.getLayoutSelection().isBlank()) {
+            return handleLayoutSelection(req, context);
+        }
+
+        // Phase 5: Conversational AI questions (Q4-Q10)
         if (req.getUserMessage() == null || req.getUserMessage().isBlank())
             throw new IllegalArgumentException("userMessage is required!");
 
@@ -99,18 +117,31 @@ public class StyleChatServiceImpl implements StyleChatService {
         context.setLastUserMessage(req.getUserMessage());
         contextStore.put(req.getPortfolioId(), context);
 
-        // Build response — no AI call needed, just acknowledge and show color picker
+        // Ask AI for top custom palette recommendations based on the user's goal.
+        List<StyleColorPresetDTO> recommendedColorPresets = recommendColorPresets(req.getUserMessage());
+
+        // Build response and show color picker.
         StyleChatResponseDTO dto = new StyleChatResponseDTO();
+        String recommendationLine = recommendedColorPresets.isEmpty()
+                ? ""
+                : " I generated custom palette options for you: **" +
+                  recommendedColorPresets.stream()
+                          .map(StyleColorPresetDTO::getName)
+                          .filter(name -> name != null && !name.isBlank())
+                          .reduce((a, b) -> a + "**, **" + b)
+                          .orElse("AI Custom Palette") + "**.";
         dto.setAssistantMessage(
                 "Great vision! I can already picture it. Now let's pick the colors that'll bring this to life — " +
-                "choose a preset palette or customize your own below.");
+                "choose a preset palette or customize your own below." + recommendationLine);
         dto.setQuestionNumber(1);
         dto.setTotalQuestions(TOTAL_QUESTIONS);
         dto.setComplete(false);
         dto.setStylePreferences(buildProgressStylePreferences(context));
         dto.setShowColorPicker(true);
+        dto.setRecommendedColorPresets(recommendedColorPresets);
 
         debugContext("THEME GOAL SET", context);
+        logResponseDto("theme-goal-return", dto);
 
         return dto;
     }
@@ -126,78 +157,122 @@ public class StyleChatServiceImpl implements StyleChatService {
         q1.setAnswer(formatColorSelections(req.getColorSelections()));
         context.getConversationHistory().add(q1);
 
-        // Call AI to generate first conversational question, with both designGoal AND colors in context
-        Prompt prompt = styleChatPromptBuilder.buildFirstQuestionPrompt(context);
-        ChatResponse response = openAiChatModel.call(prompt);
-        StyleChatResponseParser.StyleChatParseResult parseResult = styleChatResponseParser.parse(
-                response.getResult().getOutput().getText()
-        );
-        StyleChatResponseDTO parsed = parseResult.response();
-        logTypographyRecommendationState("first-question", parsed);
+        // Get AI font recommendations (small focused call)
+        StyleChatResponseParser.FontRecommendation fontRec = recommendFonts(context.getDesignGoal());
+        String recHeading = fontRec != null ? fontRec.headingFont() : DEFAULT_HEADING_FONT;
+        String recBody = fontRec != null ? fontRec.bodyFont() : DEFAULT_BODY_FONT;
 
-        // Advance to question 2
+        // Advance to Q2 (typography) — deterministic, no conversational LLM call
         context.setCurrentQuestionNumber(2);
-        context.setCurrentQuestion(parsed.getAssistantMessage());
+        context.setTypographyPickerShown(true);
+        context.setCurrentQuestion("Typography selection");
         context.setLastUserMessage(null);
-
         contextStore.put(req.getPortfolioId(), context);
 
-        // Track typography picker if AI triggered it in the first question
-        if (parsed.isShowTypographyPicker()) {
-            context.setTypographyPickerShown(true);
-            contextStore.put(req.getPortfolioId(), context);
-        }
+        // Build response — show typography picker directly
+        StyleChatResponseDTO dto = new StyleChatResponseDTO();
+        dto.setAssistantMessage(
+                "Love that palette! Now let's pick the typography that matches your vision. " +
+                "I've pre-selected **" + recHeading + "** for headings and **" + recBody + "** for body text " +
+                "based on your style direction — but feel free to explore and pick your own below.");
+        dto.setQuestionNumber(2);
+        dto.setTotalQuestions(TOTAL_QUESTIONS);
+        dto.setComplete(false);
+        dto.setShowColorPicker(false);
+        dto.setRecommendedColorPresets(null);
+        dto.setShowTypographyPicker(true);
+        dto.setRecommendedHeadingFont(recHeading);
+        dto.setRecommendedBodyFont(recBody);
+        dto.setStylePreferences(buildProgressStylePreferences(context));
 
-        // Build response
-        parsed.setQuestionNumber(2);
-        parsed.setTotalQuestions(TOTAL_QUESTIONS);
-        parsed.setComplete(false);
-        parsed.setStylePreferences(buildProgressStylePreferences(context));
-        parsed.setShowColorPicker(false);
+        debugContext("COLOR SELECTION COMPLETE → TYPOGRAPHY", context);
+        logResponseDto("color-selection-return", dto);
 
-        debugContext("COLOR SELECTION COMPLETE", context);
-        logResponseDto("color-selection-return", parsed);
-
-        return parsed;
+        return dto;
     }
 
     private StyleChatResponseDTO handleFontSelection(StyleChatRequestDTO req, StyleContext context) {
         // Store font selections
         context.setFontSelections(req.getFontSelections());
-        context.setTypographyPickerShown(true);
 
         // Record as Q&A pair
         StyleQAPair qa = new StyleQAPair();
-        qa.setQuestionNumber(context.getCurrentQuestionNumber());
+        qa.setQuestionNumber(2);
         qa.setQuestion("Typography selection");
         qa.setAnswer(formatFontSelections(req.getFontSelections()));
         context.getConversationHistory().add(qa);
 
-        // Call AI to continue the conversation after font selection
-        String fontMessage = "I selected these fonts: " + formatFontSelections(req.getFontSelections());
-        Prompt prompt = styleChatPromptBuilder.buildPrompt(fontMessage, context);
+        // Advance to Q3 (layout) — deterministic, no LLM call
+        context.setCurrentQuestionNumber(3);
+        context.setCurrentQuestion("Layout style selection");
+        contextStore.put(req.getPortfolioId(), context);
+
+        // Build response — show layout picker directly
+        StyleChatResponseDTO dto = new StyleChatResponseDTO();
+        dto.setAssistantMessage(
+                "Great font combo! Now let's decide how your portfolio is laid out. " +
+                "Each layout style creates a different feel:\n\n" +
+                "- **Spacious** — generous whitespace, lets each piece breathe\n" +
+                "- **Compact** — information-dense, efficient use of space\n" +
+                "- **Bento** — modular grid of varied-size cards, visually striking\n" +
+                "- **Masonry** — Pinterest-style staggered grid, great for visual work\n" +
+                "- **Dynamic** — flexible blocks that adapt based on your content\n\n" +
+                "Which layout style fits your portfolio best?");
+        dto.setQuestionNumber(3);
+        dto.setTotalQuestions(TOTAL_QUESTIONS);
+        dto.setComplete(false);
+        dto.setShowColorPicker(false);
+        dto.setShowTypographyPicker(false);
+        dto.setSuggestions(List.of("Spacious", "Compact", "Bento", "Masonry", "Dynamic"));
+        dto.setPreviewType("layout_style");
+        dto.setDesignTip("Your layout style sets the foundation — it affects how visitors experience every section.");
+        dto.setStylePreferences(buildProgressStylePreferences(context));
+
+        debugContext("FONT SELECTION COMPLETE → LAYOUT", context);
+        logResponseDto("font-selection-return", dto);
+
+        return dto;
+    }
+
+    private StyleChatResponseDTO handleLayoutSelection(StyleChatRequestDTO req, StyleContext context) {
+        // Store layout selection
+        context.setLayoutSelection(req.getLayoutSelection());
+
+        // Record as Q&A pair
+        StyleQAPair qa = new StyleQAPair();
+        qa.setQuestionNumber(3);
+        qa.setQuestion("Layout style selection");
+        qa.setAnswer(req.getLayoutSelection());
+        context.getConversationHistory().add(qa);
+
+        // Advance to Q4 — now start the free-form AI conversation
+        context.setCurrentQuestionNumber(4);
+        context.setLastUserMessage(req.getLayoutSelection());
+        contextStore.put(req.getPortfolioId(), context);
+
+        // Call AI for first free-form question (about remaining topics: tone, animations, etc.)
+        String layoutMessage = "I selected the " + req.getLayoutSelection() + " layout.";
+        Prompt prompt = styleChatPromptBuilder.buildPrompt(layoutMessage, context);
         ChatResponse response = openAiChatModel.call(prompt);
         StyleChatResponseParser.StyleChatParseResult parseResult = styleChatResponseParser.parse(
                 response.getResult().getOutput().getText()
         );
         StyleChatResponseDTO parsed = parseResult.response();
-        logTypographyRecommendationState("font-selection-followup", parsed);
 
-        // Advance to next question
-        int nextQuestion = context.getCurrentQuestionNumber() + 1;
-        context.setCurrentQuestionNumber(nextQuestion);
+        // Update context with AI's question
         context.setCurrentQuestion(parsed.getAssistantMessage());
-
         contextStore.put(req.getPortfolioId(), context);
 
-        parsed.setQuestionNumber(nextQuestion);
+        // Build response
+        parsed.setQuestionNumber(4);
         parsed.setTotalQuestions(TOTAL_QUESTIONS);
         parsed.setComplete(false);
-        parsed.setStylePreferences(buildProgressStylePreferences(context));
+        parsed.setShowColorPicker(false);
         parsed.setShowTypographyPicker(false);
+        parsed.setStylePreferences(buildProgressStylePreferences(context));
 
-        debugContext("FONT SELECTION COMPLETE", context);
-        logResponseDto("font-selection-return", parsed);
+        debugContext("LAYOUT SELECTION COMPLETE → FREE-FORM Q4", context);
+        logResponseDto("layout-selection-return", parsed);
 
         return parsed;
     }
@@ -212,15 +287,11 @@ public class StyleChatServiceImpl implements StyleChatService {
                 response.getResult().getOutput().getText()
         );
         StyleChatResponseDTO parsed = parseResult.response();
-        logTypographyRecommendationState("conversation", parsed);
 
-        // Track typography picker state: if AI wants to show it and it hasn't been shown yet, mark it
-        if (parsed.isShowTypographyPicker() && !context.isTypographyPickerShown()) {
-            context.setTypographyPickerShown(true);
-        } else {
-            // Prevent re-triggering if already shown
-            parsed.setShowTypographyPicker(false);
-        }
+        // Force typography picker and layout off — these are handled deterministically
+        parsed.setShowTypographyPicker(false);
+        parsed.setRecommendedHeadingFont(null);
+        parsed.setRecommendedBodyFont(null);
 
         boolean answerValid = parseResult.answerValid();
         boolean provisionalAdvance = false;
@@ -319,6 +390,11 @@ public class StyleChatServiceImpl implements StyleChatService {
             compiled.setTypography(formatFontSelections(context.getFontSelections()));
         }
 
+        // Store layout info into compiled preferences
+        if (context.getLayoutSelection() != null) {
+            compiled.setLayoutDensity(context.getLayoutSelection());
+        }
+
         context.setCompiledStylePreferences(compiled);
 
         // Convert compiled preferences to Map<String, String>
@@ -363,7 +439,22 @@ public class StyleChatServiceImpl implements StyleChatService {
         context.setInvalidAttemptsForCurrentQuestion(0);
         context.setFontSelections(null);
         context.setTypographyPickerShown(false);
+        context.setLayoutSelection(null);
         return context;
+    }
+
+    private StyleChatResponseParser.FontRecommendation recommendFonts(String designGoal) {
+        try {
+            Prompt prompt = styleChatPromptBuilder.buildFontRecommendationPrompt(designGoal);
+            ChatResponse response = openAiChatModel.call(prompt);
+            String rawJson = response.getResult().getOutput().getText();
+            StyleChatResponseParser.FontRecommendation rec = styleChatResponseParser.parseFontRecommendation(rawJson);
+            if (rec != null) return rec;
+            log.warn("[style-chat] Font recommendation response parsed but produced no valid result");
+        } catch (Exception e) {
+            log.warn("[style-chat] Failed to generate font recommendations: {}", e.getMessage());
+        }
+        return new StyleChatResponseParser.FontRecommendation(DEFAULT_HEADING_FONT, DEFAULT_BODY_FONT);
     }
 
     private boolean isIndecisiveReply(String userMessage) {
@@ -390,7 +481,7 @@ public class StyleChatServiceImpl implements StyleChatService {
     private Map<String, String> buildProgressStylePreferences(StyleContext context) {
         Map<String, String> map = new LinkedHashMap<>();
         map.put("colorScheme", context.getColorSelections() == null ? "" : formatColorSelections(context.getColorSelections()));
-        map.put("layoutDensity", "");
+        map.put("layoutDensity", context.getLayoutSelection() == null ? "" : context.getLayoutSelection());
         map.put("tone", "");
         map.put("visualStyle", "");
         map.put("sectionEmphasis", "");
@@ -443,24 +534,161 @@ public class StyleChatServiceImpl implements StyleChatService {
         return value == null ? "" : value;
     }
 
-    private void logTypographyRecommendationState(String phase, StyleChatResponseDTO parsed) {
-        log.info(
-                "[style-chat:{}] showTypographyPicker={}, recommendedHeadingFont={}, recommendedBodyFont={}",
-                phase,
-                parsed.isShowTypographyPicker(),
-                parsed.getRecommendedHeadingFont(),
-                parsed.getRecommendedBodyFont()
+    private List<StyleColorPresetDTO> recommendColorPresets(String designGoal) {
+        try {
+            Prompt prompt = styleChatPromptBuilder.buildColorRecommendationPrompt(designGoal);
+            ChatResponse response = openAiChatModel.call(prompt);
+            String rawJson = response.getResult().getOutput().getText();
+            List<StyleColorPresetDTO> parsed = styleChatResponseParser.parseRecommendedColorPresets(rawJson);
+            List<StyleColorPresetDTO> normalized = normalizeColorPresets(parsed);
+            if (!normalized.isEmpty()) return normalized;
+            log.warn("[style-chat] Color recommendation response parsed but produced no valid palettes");
+        } catch (Exception e) {
+            log.warn("[style-chat] Failed to generate color palette recommendations: {}", e.getMessage());
+        }
+        return List.of(buildGoalDerivedFallbackPreset(designGoal));
+    }
+
+    private List<StyleColorPresetDTO> normalizeColorPresets(List<StyleColorPresetDTO> rawPresets) {
+        if (rawPresets == null || rawPresets.isEmpty()) {
+            return List.of();
+        }
+
+        LinkedHashMap<String, StyleColorPresetDTO> deduped = new LinkedHashMap<>();
+        int anonymousCounter = 1;
+        for (StyleColorPresetDTO raw : rawPresets) {
+            if (raw == null) continue;
+
+            String name = safe(raw.getName()).trim();
+            if (name.isBlank()) {
+                name = "AI Palette " + anonymousCounter++;
+            }
+            String dedupeKey = name.toLowerCase(Locale.ROOT);
+            if (deduped.containsKey(dedupeKey)) continue;
+
+            Map<String, String> normalizedColors = normalizeColors(raw.getColors());
+            if (normalizedColors == null) continue;
+
+            String description = safe(raw.getDescription()).trim();
+            if (description.isBlank()) {
+                description = "Custom AI-generated palette.";
+            }
+
+            deduped.put(
+                    dedupeKey,
+                    new StyleColorPresetDTO(name, description, normalizedColors)
+            );
+            if (deduped.size() >= 3) break;
+        }
+
+        if (deduped.isEmpty()) return List.of();
+        return new ArrayList<>(deduped.values());
+    }
+
+    private Map<String, String> normalizeColors(Map<String, String> colors) {
+        if (colors == null || colors.isEmpty()) return null;
+
+        LinkedHashMap<String, String> normalized = new LinkedHashMap<>();
+        for (String key : REQUIRED_COLOR_KEYS) {
+            String raw = colors.get(key);
+            String validHex = normalizeHex(raw);
+            if (validHex == null) return null;
+            normalized.put(key, validHex);
+        }
+
+        return normalized;
+    }
+
+    private String normalizeHex(String raw) {
+        if (raw == null) return null;
+        String trimmed = raw.trim();
+        if (trimmed.isEmpty()) return null;
+        if (!HEX_COLOR_PATTERN.matcher(trimmed).matches()) return null;
+        return trimmed.startsWith("#")
+                ? trimmed.toLowerCase(Locale.ROOT)
+                : "#" + trimmed.toLowerCase(Locale.ROOT);
+    }
+
+    private StyleColorPresetDTO buildGoalDerivedFallbackPreset(String designGoal) {
+        String normalizedGoal = safe(designGoal).trim().toLowerCase(Locale.ROOT);
+        int seed = normalizedGoal.isEmpty() ? 97 : Math.abs(normalizedGoal.hashCode());
+        double baseHue = seed % 360;
+        double secondaryHue = (baseHue + 32) % 360;
+        double accentHue = (baseHue + 320) % 360;
+
+        LinkedHashMap<String, String> colors = new LinkedHashMap<>();
+        colors.put("primary", hslToHex(baseHue, 0.72, 0.56));
+        colors.put("secondary", hslToHex(secondaryHue, 0.66, 0.52));
+        colors.put("accent", hslToHex(accentHue, 0.84, 0.60));
+        colors.put("background", hslToHex(baseHue, 0.30, 0.10));
+        colors.put("text", hslToHex(baseHue, 0.20, 0.95));
+        colors.put("muted", hslToHex(baseHue, 0.22, 0.56));
+
+        return new StyleColorPresetDTO(
+                "Vision-Tuned Palette",
+                "Generated from your design goal for this style direction.",
+                colors
         );
+    }
+
+    private String hslToHex(double hueDegrees, double saturation, double lightness) {
+        double h = ((hueDegrees % 360) + 360) % 360;
+        double c = (1 - Math.abs(2 * lightness - 1)) * saturation;
+        double x = c * (1 - Math.abs((h / 60.0) % 2 - 1));
+        double m = lightness - c / 2.0;
+
+        double rPrime;
+        double gPrime;
+        double bPrime;
+
+        if (h < 60) {
+            rPrime = c;
+            gPrime = x;
+            bPrime = 0;
+        } else if (h < 120) {
+            rPrime = x;
+            gPrime = c;
+            bPrime = 0;
+        } else if (h < 180) {
+            rPrime = 0;
+            gPrime = c;
+            bPrime = x;
+        } else if (h < 240) {
+            rPrime = 0;
+            gPrime = x;
+            bPrime = c;
+        } else if (h < 300) {
+            rPrime = x;
+            gPrime = 0;
+            bPrime = c;
+        } else {
+            rPrime = c;
+            gPrime = 0;
+            bPrime = x;
+        }
+
+        int red = toRgbChannel(rPrime + m);
+        int green = toRgbChannel(gPrime + m);
+        int blue = toRgbChannel(bPrime + m);
+
+        return String.format(Locale.ROOT, "#%02x%02x%02x", red, green, blue);
+    }
+
+    private int toRgbChannel(double value) {
+        int channel = (int) Math.round(value * 255);
+        return Math.max(0, Math.min(255, channel));
     }
 
     private void logResponseDto(String phase, StyleChatResponseDTO dto) {
         log.info(
-                "[style-chat:{}] dto assistantMessage={}, showTypographyPicker={}, recommendedHeadingFont={}, recommendedBodyFont={}, questionNumber={}, isComplete={}",
+                "[style-chat:{}] dto assistantMessage={}, showTypographyPicker={}, recommendedHeadingFont={}, recommendedBodyFont={}, suggestions={}, previewType={}, questionNumber={}, isComplete={}",
                 phase,
                 dto.getAssistantMessage(),
                 dto.isShowTypographyPicker(),
                 dto.getRecommendedHeadingFont(),
                 dto.getRecommendedBodyFont(),
+                dto.getSuggestions(),
+                dto.getPreviewType(),
                 dto.getQuestionNumber(),
                 dto.isComplete()
         );
@@ -479,6 +707,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         sb.append("║  Design Goal: ").append(context.getDesignGoal()).append("\n");
         sb.append("║  Color Selections: ").append(context.getColorSelections()).append("\n");
         sb.append("║  Font Selections: ").append(context.getFontSelections()).append("\n");
+        sb.append("║  Layout Selection: ").append(context.getLayoutSelection()).append("\n");
         sb.append("║  Typography Picker Shown: ").append(context.isTypographyPickerShown()).append("\n");
         sb.append("║  Invalid Attempts (current question): ")
           .append(context.getInvalidAttemptsForCurrentQuestion()).append("\n");
