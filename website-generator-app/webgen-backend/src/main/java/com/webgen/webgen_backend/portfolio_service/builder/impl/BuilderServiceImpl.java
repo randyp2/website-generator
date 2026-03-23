@@ -69,9 +69,11 @@ public class BuilderServiceImpl implements BuilderService {
         System.out.println(">>> [BUILDER] Section plans count: " + req.getSectionPlans().size());
         System.out.println(">>> [BUILDER] Assets count: " + (req.getAssets() == null ? 0 : req.getAssets().size()));
 
-        // Get context from clarifier for constraints
-        System.out.println(">>> [BUILDER] Loading clarifier context...");
-        ClarifierContext context = clarifierService.getContext(req.getPortfolioId());
+        // Get context from clarifier via sessionId
+        if (req.getSessionId() == null || req.getSessionId().isBlank())
+            throw new IllegalArgumentException("sessionId required!");
+        System.out.println(">>> [BUILDER] Loading clarifier context for session: " + req.getSessionId());
+        ClarifierContext context = clarifierService.getContext(req.getSessionId());
         if (context == null)
             throw new IllegalStateException("No clarifier context found. Run clarify first.");
         System.out.println(">>> [BUILDER] Context loaded with turnCount=" + context.getTurnCount()
@@ -149,8 +151,8 @@ public class BuilderServiceImpl implements BuilderService {
 
         generateJobService.fanOutSections(messages);
 
-        // Reset clarifier context so the next refine conversation starts fresh
-        clarifierService.resetContext(req.getPortfolioId());
+        // No explicit context reset needed — TTL handles cleanup,
+        // and each new refinement gets a fresh sessionId
 
         // Return jobId for status polling
         BuilderResponseDTO response = new BuilderResponseDTO();

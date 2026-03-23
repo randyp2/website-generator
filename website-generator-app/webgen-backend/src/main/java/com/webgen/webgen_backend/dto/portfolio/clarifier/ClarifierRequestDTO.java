@@ -10,6 +10,7 @@ import java.util.UUID;
 public class ClarifierRequestDTO {
     private UUID portfolioId;
     private String userPrompt;
+    private String sessionId;
     private List<SectionSummaryDTO> sections;
     private List<AssetDTO> assets;
 }
