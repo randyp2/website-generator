@@ -17,12 +17,14 @@ const StyleDiscussionPage: React.FC = () => {
         normalizedStyleMessages,
         isSending,
         showColorPicker,
+        recommendedColorPresets,
         showTypographyPicker,
         recommendedHeadingFont,
         recommendedBodyFont,
         handleSend,
         handleColorSubmit,
         handleFontSubmit,
+        handleLayoutSubmit,
         flushStyleHistorySync,
     } = useStyleChat({ portfolioId, templateId });
 
@@ -79,11 +81,13 @@ const StyleDiscussionPage: React.FC = () => {
                 onContinue={handleContinueToResume}
                 continueLabel="Continue to Review & Edit"
                 showColorPicker={showColorPicker}
+                recommendedColorPresets={recommendedColorPresets}
                 onColorSubmit={handleColorSubmit}
                 showTypographyPicker={showTypographyPicker}
                 onTypographySubmit={handleFontSubmit}
                 recommendedHeadingFont={recommendedHeadingFont}
                 recommendedBodyFont={recommendedBodyFont}
+                onLayoutSubmit={handleLayoutSubmit}
                 className="max-w-7xl h-[calc(100vh-7rem)] md:h-[calc(100vh-8rem)]"
             />
         </main>
