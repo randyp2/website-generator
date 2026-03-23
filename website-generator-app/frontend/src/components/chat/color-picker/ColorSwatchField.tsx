@@ -82,7 +82,11 @@ export const ColorSwatchField = ({
                     <input
                         type="text"
                         value={color}
-                        onClick={(event) => event.stopPropagation()}
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            onSelect?.();
+                        }}
+                        onFocus={() => onSelect?.()}
                         onKeyDown={(event) => event.stopPropagation()}
                         onChange={(event) =>
                             onColorChange?.(event.target.value)

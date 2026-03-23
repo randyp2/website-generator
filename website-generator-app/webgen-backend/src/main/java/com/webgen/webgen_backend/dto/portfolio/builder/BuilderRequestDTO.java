@@ -11,6 +11,7 @@ import java.util.UUID;
 @Data
 public class BuilderRequestDTO {
     private UUID portfolioId;
+    private String sessionId;
     private List<SectionContentDTO> sections;
     private List<SectionPlanDTO> sectionPlans;
     private List<AssetDTO> assets;

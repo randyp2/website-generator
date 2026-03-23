@@ -65,7 +65,7 @@ public class PortfolioRefineController {
         );
         portfolioCrudService.verifyOwnership(userId, req.getPortfolioId());
 
-        BuilderResponseDTO response = builderService.build(req);
+        BuilderResponseDTO response = builderService.build(req, userId);
         return ResponseEntity.ok(response);
     }
 }

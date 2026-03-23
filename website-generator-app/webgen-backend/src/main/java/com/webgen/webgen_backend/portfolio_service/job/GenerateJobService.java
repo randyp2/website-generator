@@ -58,32 +58,36 @@ public class GenerateJobService {
 
     }
 
-     /**
-     * Fan out section generation messages to the section queue.
-     * Called by the orchestrator after blueprint generation is complete.
-     * Publishes one message per section in the blueprint's section plan,
-     * allowing multiple workers to generate sections in parallel.
+    /**
+     * Generate a job and save to redis in order to keep track of status
      *
-     * @param jobId         Active job ID (already exists in Redis)
-     * @param portfolioId   Portfolio being generated
-     * @param userId        Owner of the portfolio
-     * @param req           Original generation request (resume, style prefs, prompt)
-     * @param refinedPrompt Refined prompt providing global design direction
-     * @param blueprint     Blueprint containing section plan and design directive
+     * @param portfolioId - portfolio that this job is related to
+     * @return the jobId of the job that was saved
      */
-    public void fanOutSections(
-            String jobId, String portfolioId, String userId,
-            PortfolioGenerateRequestDTO req, String refinedPrompt, BlueprintDTO blueprint
-    ) {
-        List<BlueprintSectionPlanDTO> plan = blueprint.getSectionPlan();
+    public String createJob(UUID portfolioId) {
+        String jobId = UUID.randomUUID().toString();
 
-        for (BlueprintSectionPlanDTO p : plan) {
-            SectionGenerationMessage msg = new SectionGenerationMessage(
-                    jobId, portfolioId, userId,
-                    req, refinedPrompt, blueprint,
-                    p, plan.size()
-            );
+        JobStatusDTO status = new JobStatusDTO();
+        status.setJobId(jobId);
+        status.setPortfolioId(portfolioId.toString());
+        status.setStatus(JobStatusDTO.Status.QUEUED);
+        status.setCompletedCount(0);
+        status.setTotalSections(0);
 
+        saveToRedis(status);
+        return jobId;
+    }
+
+
+
+    /**
+     * Fan out section generation messages to the section queue.
+     * Called by the orchestrator
+     *
+     * @param messages List of messages to publish to the portfolio.section.queue
+     */
+    public void fanOutSections(List<SectionGenerationMessage> messages) {
+        for (SectionGenerationMessage msg : messages) {
             rabbitTemplate.convertAndSend(
                     RabbitMQConfig.EXCHANGE,
                     RabbitMQConfig.SECTION_ROUTING_KEY,
@@ -118,20 +122,6 @@ public class GenerateJobService {
         // Query the list
         List<String> resultSections = redisTemplate.opsForList().range(key, offset, -1);
         return resultSections != null ? resultSections : List.of();
-    }
-
-    private String createJob(UUID portfolioId) {
-        String jobId = UUID.randomUUID().toString();
-
-        JobStatusDTO status = new JobStatusDTO();
-        status.setJobId(jobId);
-        status.setPortfolioId(portfolioId.toString());
-        status.setStatus(JobStatusDTO.Status.QUEUED);
-        status.setCompletedCount(0);
-        status.setTotalSections(0);
-
-        saveToRedis(status);
-        return jobId;
     }
 
     public void updateStatus(String jobId, JobStatusDTO.Status status) {
@@ -176,6 +166,30 @@ public class GenerateJobService {
 
         jobStatusDTO.setTotalSections(total);
         saveToRedis(jobStatusDTO);
+    }
+
+    /**
+     * Store section keys marked for deletion at fan-out time.
+     * The barrier worker reads these at persistence time to delete sections.
+     */
+    public void storeDeleteKeys(String jobId, List<String> deleteKeys) {
+        if (deleteKeys == null || deleteKeys.isEmpty()) return;
+
+        String key = KEY_PREFIX + jobId + ":deleteKeys";
+        for (String sectionKey : deleteKeys) {
+            redisTemplate.opsForList().rightPush(key, sectionKey);
+        }
+        redisTemplate.expire(key, TTL);
+    }
+
+    /**
+     * Retrieve section keys marked for deletion.
+     * Called by the barrier worker during persistence.
+     */
+    public List<String> getDeleteKeys(String jobId) {
+        String key = KEY_PREFIX + jobId + ":deleteKeys";
+        List<String> keys = redisTemplate.opsForList().range(key, 0, -1);
+        return keys != null ? keys : List.of();
     }
 
     public void failJob(String jobId, String error) {

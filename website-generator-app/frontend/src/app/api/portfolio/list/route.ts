@@ -35,7 +35,36 @@ export async function GET() {
         }
 
         const data = await res.json();
-        return NextResponse.json(data);
+        const portfolios = Array.isArray(data?.portfolios)
+            ? data.portfolios.map((portfolio: Record<string, unknown>) => ({
+                  ...portfolio,
+                  template_id:
+                      (portfolio.template_id as string | null | undefined) ??
+                      (portfolio.templateId as string | null | undefined) ??
+                      null,
+                  last_step:
+                      (portfolio.last_step as string | null | undefined) ??
+                      (portfolio.lastStep as string | null | undefined) ??
+                      null,
+                  style_chat_history:
+                      (portfolio.style_chat_history as unknown[] | null | undefined) ??
+                      (portfolio.styleChatHistory as unknown[] | null | undefined) ??
+                      null,
+                  created_at:
+                      (portfolio.created_at as string | null | undefined) ??
+                      (portfolio.createdAt as string | null | undefined) ??
+                      null,
+                  updated_at:
+                      (portfolio.updated_at as string | null | undefined) ??
+                      (portfolio.updatedAt as string | null | undefined) ??
+                      null,
+              }))
+            : [];
+
+        return NextResponse.json({
+            ...data,
+            portfolios,
+        });
     } catch (err) {
         console.error("Server error:", err);
         return NextResponse.json(

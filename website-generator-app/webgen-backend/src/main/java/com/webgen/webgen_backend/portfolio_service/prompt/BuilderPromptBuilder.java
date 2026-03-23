@@ -20,342 +20,250 @@ import java.util.List;
 public class BuilderPromptBuilder {
     private final ObjectMapper objectMapper;
 
-    public Prompt buildPrompt(
+    /**
+     * Build a prompt for refining a SINGLE section.
+     * Scoped to one section to enable parallel worker execution.
+     *
+     * @param context          Clarifier constraints (intensity, preserveContent, etc.)
+     * @param existingSection  Current section content (null for "add" actions)
+     * @param plan             The planner's instruction for this specific section
+     * @param assets           Available media assets
+     */
+    public Prompt buildSingleSectionPrompt(
             ClarifierContext context,
-            List<SectionContentDTO> sections,
-            List<SectionPlanDTO> sectionPlans,
+            SectionContentDTO existingSection,
+            SectionPlanDTO plan,
             List<AssetDTO> assets
     ) {
         String contextJson = safeJson(context);
-        String sectionsJson = safeJson(sections);
-        String plansJson = safeJson(sectionPlans);
+        String existingJson = existingSection != null
+                ? safeJson(existingSection)
+                : "null (this is a new section — create from scratch)";
+        String planJson = safeJson(plan);
         String assetsJson = safeJson(assets);
 
         SystemMessage system = new SystemMessage("""
-                You are a portfolio builder inside the PortfolioAI system.
+              You are a portfolio builder inside the PortfolioAI system.
 
-                Your role is to execute modification plans and generate refined portfolio sections.
-                You receive the original sections, a modification plan, constraints, and available assets.
+              You are modifying a SINGLE portfolio section based on a modification plan.
 
-                ========================
-                INPUTS YOU WILL RECEIVE
+              ========================
+              INPUTS YOU WILL RECEIVE
 
-                1. ClarifierContext - contains constraints and intent
-                2. Current portfolio sections with full React source
-                3. Section plans with instructions for each section
-                4. Available assets (images/videos uploaded by user)
+              1. ClarifierContext — constraints and intent from the user's chat
+              2. The EXISTING section (reactSource + contentJson) — or null if this is a new section
+              3. A SectionPlan — the specific instruction for what to change
+              4. Available assets (images/videos uploaded by user)
 
-                ========================
-                YOUR RESPONSIBILITIES
+              ========================
+              YOUR TASK
 
-                For each section plan:
-                - If action = "keep": return section unchanged
-                - If action = "modify": apply the instruction and generate new React source
-                - If action = "add": create a NEW section using the provided sectionKey and instruction
-                - If action = "reorder": note the new order (handled by frontend)
-                - If action = "delete": omit that section from modifiedSections and include its key in deletedSectionKeys
-                - If action = "delete": omit that section from modifiedSections and include its key in deletedSectionKeys
+              Based on the plan's action:
+              - "modify": Apply the instruction to the existing section. Respect preserveElements.
+              - "add": Create a brand new section from scratch using the instruction.
 
-                ========================
-                CONSTRAINTS TO RESPECT
+              ========================
+              CONSTRAINTS TO RESPECT
 
-                - lockedSectionKeys: DO NOT modify these sections
-                - preserveContent: if true, only enhance, don't remove content
-                - changeIntensity: LIGHT (minimal changes), MEDIUM (reframe), STRONG (rewrite)
-                - avoidCasualTone: if true, maintain professional language
-                - reduceTextDensity: if true, keep content concise
+              - changeIntensity: LIGHT (minimal changes), MEDIUM (reframe), STRONG (rewrite)
+              - preserveElements: list of elements that MUST remain unchanged when modifying
+              - preserveContent: if true, only enhance — don't remove content
+              - avoidCasualTone: if true, maintain professional language
+              - reduceTextDensity: if true, keep content concise
 
-                ========================
-                MEDIA USAGE RULES (CRITICAL)
-                ========================
+              ========================
+              MEDIA USAGE RULES (CRITICAL)
+              ========================
 
-                - The user may have uploaded media assets as structured input
-                - Each asset includes metadata such as:
-                  id, type, url, label, title, description, alt, sectionHint
+              - You MAY include images and videos from the assets list
+              - Media MUST be referenced by URL only
+              - You MUST NOT invent, modify, guess, or hallucinate media URLs
+              - You MUST NOT create new media assets
+              - You MUST NOT transform media into base64, data URLs, blobs, or inline SVGs
 
-                - You MAY include images and videos provided by the user
-                - Media MUST be referenced by URL only
-                - You MUST NOT invent, modify, guess, or hallucinate media URLs
-                - You MUST NOT create new media assets
-                - You MUST NOT transform media into base64, data URLs, blobs, or inline SVGs
+              - All media references MUST live inside contentJson
+              - reactSource MUST render media using standard HTML elements only:
+                - <img> for images
+                - <video> for videos
 
-                - All media references MUST live inside contentJson
-                - reactSource MUST render media using standard HTML elements only:
-                  - <img> for images
-                  - <video> for videos
+              - <video> elements:
+                - MUST include controls
+                - MUST NOT autoplay
+                - MUST NOT loop unless clearly justified by the design
 
-                - <video> elements:
-                  - MUST include controls
-                  - MUST NOT autoplay
-                  - MUST NOT loop unless clearly justified by the design
+              - Media usage MUST be intentional and support the portfolio narrative
+              - If an asset includes sectionHint, treat it as a soft suggestion only
+              - reactSource MUST NOT reference any media URLs that are not present in contentJson
 
-                - Media usage MUST be intentional and support the portfolio narrative
-                - If an asset includes sectionHint, treat it as a soft suggestion only
-                - reactSource MUST NOT reference any media URLs that are not present in contentJson
+              ========================
+              ICONS (REQUIRED WHERE APPROPRIATE)
+              ========================
+              Lucide React icons are AVAILABLE and should be used to enhance visual polish.
+              Assume these icons are in scope (NO import statements needed):
+                Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight
 
-                ========================
-                GLOBAL THEME HANDLING
-                ========================
+              You MUST use icons in these scenarios:
+              - Contact section: Use Mail for email, Phone for phone, MapPin for location
+              - Social links: Use Github, Linkedin, Globe for respective links
+              - External links: Use ArrowUpRight for "view project" or outbound links
 
-                If user requests a theme/background change:
-                - Output an updated `globalTheme` object in the response
-                - Do NOT add backgrounds to individual sections
+              Icons add visual clarity and professionalism. Do NOT omit them.
 
-                If user requests section change ONLY:
-                - Do NOT output globalTheme (omit the field entirely)
-                - Keep section backgrounds transparent (bg-transparent, bg-black/10, bg-white/5)
+              ========================
+              OUTPUT FORMAT (STRICT)
 
-                CRITICAL: Never add opaque backgrounds to sections.
-                Sections MUST remain transparent to allow the global theme to show through.
+              Return a single JSON object for this ONE section:
+              {
+                  "sectionKey": "<string>",
+                  "title": "<string>",
+                  "orderIndex": <number>,
+                  "reactSource": "<full React/JSX code for the section>",
+                  "contentJson": <object with section data>,
+                  "changeDescription": "<1-2 sentence summary of what was changed and why>"
+              }
 
-                ========================
-                ICONS (REQUIRED WHERE APPROPRIATE)
-                ========================
-                Lucide React icons are AVAILABLE and should be used to enhance visual polish.
-                Assume these icons are in scope (NO import statements needed):
-                  Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight
-
-                You MUST use icons in these scenarios:
-                - Contact section: Use Mail for email, Phone for phone, MapPin for location
-                - Social links: Use Github, Linkedin, Globe for respective links
-                - External links: Use ArrowUpRight for "view project" or outbound links
-
-                Icons add visual clarity and professionalism. Do NOT omit them.
-
-                ========================
-                OUTPUT FORMAT (STRICT)
-
-                Return a single JSON object:
-                {
-                    "buildSummary": "<1-2 sentence summary of changes made>",
-                    "globalTheme": {  // OPTIONAL: only include if theme was changed
-                        "background": "<Tailwind classes>",
-                        "textPrimary": "<Tailwind text class>",
-                        "textSecondary": "<Tailwind text class>",
-                        "accentColor": "<color name>"
-                    },
-                    "modifiedSections": [
-                        {
-                            "sectionKey": "<string>",
-                            "title": "<string>",
-                            "orderIndex": <number>,
-                            "reactSource": "<full React/JSX code for the section>",
-                            "contentJson": <object with section data>,
-                            "changeDescription": "<what was changed in this section>"
-                        }
-                    ],
-                    "deletedSectionKeys": ["<sectionKey>", "..."] // OPTIONAL
-                }
-
-                IMPORTANT:
-                - reactSource must be valid React/JSX code
-                - Include ALL sections (modified, unchanged, and newly added), except those deleted
-                - Preserve Tailwind CSS classes and Framer Motion
-                - Return JSON ONLY. No markdown, no explanations.
-                - Only include globalTheme if the user explicitly requested a theme/background change
-                """);
+              IMPORTANT:
+              - Section backgrounds MUST be transparent (bg-transparent, bg-black/10, bg-white/5)
+              - reactSource must be valid React/JSX code
+              - Preserve Tailwind CSS classes and Framer Motion
+              - Return JSON ONLY. No markdown, no explanations.
+              """);
 
         UserMessage user = new UserMessage("""
-                CLARIFIER CONTEXT (constraints):
-                %s
+              CLARIFIER CONTEXT (constraints):
+              %s
 
-                CURRENT SECTIONS:
-                %s
+              EXISTING SECTION:
+              %s
 
-                SECTION PLANS:
-                %s
+              SECTION PLAN:
+              %s
 
-                AVAILABLE ASSETS (images/videos - use URLs from here only):
-                %s
+              AVAILABLE ASSETS (images/videos - use URLs from here only):
+              %s
 
-                TASK:
-                - Execute each plan instruction
-                - Generate modified React source for "modify" actions
-                - Create new sections for "add" actions
-                - Return unchanged sections for "keep" actions
-                - For "delete" actions, omit the section and add its key to deletedSectionKeys
-                - When adding media, use ONLY URLs from the AVAILABLE ASSETS list
-                - Add media URLs to contentJson, then reference them in reactSource
-                - Return JSON only
-                """.formatted(contextJson, sectionsJson, plansJson, assetsJson));
+              TASK: Execute the plan for this single section. Return JSON only.
+              """.formatted(contextJson, existingJson, planJson, assetsJson));
 
         return new Prompt(List.of(system, user));
     }
 
-    public Prompt buildRetryPrompt(
+
+    /**
+     * Error-aware retry prompt for a single refined section.
+     * Includes validation errors from the previous attempt so the LLM
+     * can fix specific JSX issues instead of generating blindly.
+     */
+    public Prompt buildSingleSectionRetryPrompt(
             ClarifierContext context,
-            List<SectionContentDTO> sections,
-            List<SectionPlanDTO> sectionPlans,
+            SectionContentDTO existingSection,
+            SectionPlanDTO plan,
             List<AssetDTO> assets,
             List<ValidationResult.ValidationError> errors
     ) {
         String contextJson = safeJson(context);
-        String sectionsJson = safeJson(sections);
-        String plansJson = safeJson(sectionPlans);
+        String existingJson = existingSection != null
+                ? safeJson(existingSection)
+                : "null (this is a new section — create from scratch)";
+        String planJson = safeJson(plan);
         String assetsJson = safeJson(assets);
         String errorsJson = safeJson(errors);
 
         SystemMessage system = new SystemMessage("""
-                You are a portfolio builder inside the PortfolioAI system.
+              You are a portfolio builder inside the PortfolioAI system.
 
-                IMPORTANT: Your previous code generation attempt had syntax errors.
-                You MUST fix the errors listed below and return valid React/JSX code.
+              IMPORTANT: Your previous attempt to generate this section had JSX validation errors.
+              You MUST fix the errors listed below and return valid React/JSX code.
 
-                ========================
-                INPUTS YOU WILL RECEIVE
+              You are modifying a SINGLE portfolio section based on a modification plan.
 
-                1. ClarifierContext - contains constraints and intent
-                2. Current portfolio sections with full React source
-                3. Section plans with instructions for each section
-                4. Available assets (images/videos uploaded by user)
-                5. VALIDATION ERRORS from your previous attempt
+              ========================
+              VALIDATION ERRORS TO FIX
+              ========================
 
-                ========================
-                YOUR RESPONSIBILITIES
+              The errors are listed in the user message below. Fix ALL of them.
 
-                For each section plan:
-                - If action = "keep": return section unchanged
-                - If action = "modify": apply the instruction and generate new React source
-                - If action = "add": create a NEW section using the provided sectionKey and instruction
-                - If action = "reorder": note the new order (handled by frontend)
+              ========================
+              COMMON JSX ERRORS TO AVOID
+              ========================
 
-                ========================
-                CONSTRAINTS TO RESPECT
+              1. Syntax: Missing closing tags, unclosed JSX expressions, use camelCase attributes
+              2. Expressions: Unclosed curly braces, invalid JS inside JSX
+              3. Component: Missing default export, invalid function declaration, no TypeScript
+              4. Data access: No optional chaining (data?.field), access data directly (not data.contentJson)
 
-                - lockedSectionKeys: DO NOT modify these sections
-                - preserveContent: if true, only enhance, don't remove content
-                - changeIntensity: LIGHT (minimal changes), MEDIUM (reframe), STRONG (rewrite)
-                - avoidCasualTone: if true, maintain professional language
-                - reduceTextDensity: if true, keep content concise
+              ========================
+              YOUR TASK
 
-                ========================
-                MEDIA USAGE RULES (CRITICAL)
-                ========================
+              Based on the plan's action:
+              - "modify": Apply the instruction to the existing section. Respect preserveElements.
+              - "add": Create a brand new section from scratch using the instruction.
 
-                - The user may have uploaded media assets as structured input
-                - Each asset includes metadata such as:
-                  id, type, url, label, title, description, alt, sectionHint
+              ========================
+              CONSTRAINTS TO RESPECT
 
-                - You MAY include images and videos provided by the user
-                - Media MUST be referenced by URL only
-                - You MUST NOT invent, modify, guess, or hallucinate media URLs
-                - You MUST NOT create new media assets
-                - You MUST NOT transform media into base64, data URLs, blobs, or inline SVGs
+              - changeIntensity: LIGHT (minimal changes), MEDIUM (reframe), STRONG (rewrite)
+              - preserveElements: list of elements that MUST remain unchanged when modifying
+              - preserveContent: if true, only enhance — don't remove content
+              - avoidCasualTone: if true, maintain professional language
+              - reduceTextDensity: if true, keep content concise
 
-                - All media references MUST live inside contentJson
-                - reactSource MUST render media using standard HTML elements only:
-                  - <img> for images
-                  - <video> for videos
+              ========================
+              MEDIA USAGE RULES (CRITICAL)
+              ========================
 
-                - <video> elements:
-                  - MUST include controls
-                  - MUST NOT autoplay
-                  - MUST NOT loop unless clearly justified by the design
+              - You MAY include images and videos from the assets list
+              - Media MUST be referenced by URL only
+              - You MUST NOT invent, modify, guess, or hallucinate media URLs
+              - All media references MUST live inside contentJson
+              - reactSource MUST render media using <img> or <video> only
+              - <video> elements MUST include controls, MUST NOT autoplay
 
-                - Media usage MUST be intentional and support the portfolio narrative
-                - If an asset includes sectionHint, treat it as a soft suggestion only
-                - reactSource MUST NOT reference any media URLs that are not present in contentJson
+              ========================
+              ICONS (REQUIRED WHERE APPROPRIATE)
+              ========================
+              Lucide React icons are available (NO import needed):
+                Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight
 
-                ========================
-                GLOBAL THEME HANDLING
-                ========================
+              ========================
+              OUTPUT FORMAT (STRICT)
 
-                If user requests a theme/background change:
-                - Output an updated `globalTheme` object in the response
-                - Do NOT add backgrounds to individual sections
+              Return a single JSON object for this ONE section:
+              {
+                  "sectionKey": "<string>",
+                  "title": "<string>",
+                  "orderIndex": <number>,
+                  "reactSource": "<full React/JSX code for the section>",
+                  "contentJson": <object with section data>,
+                  "changeDescription": "<1-2 sentence summary of what was changed and why>"
+              }
 
-                If user requests section change ONLY:
-                - Do NOT output globalTheme (omit the field entirely)
-                - Keep section backgrounds transparent (bg-transparent, bg-black/10, bg-white/5)
-
-                CRITICAL: Never add opaque backgrounds to sections.
-                Sections MUST remain transparent to allow the global theme to show through.
-
-                ========================
-                ICONS (REQUIRED WHERE APPROPRIATE)
-                ========================
-                Lucide React icons are AVAILABLE and should be used to enhance visual polish.
-                Assume these icons are in scope (NO import statements needed):
-                  Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight
-
-                You MUST use icons in these scenarios:
-                - Contact section: Use Mail for email, Phone for phone, MapPin for location
-                - Social links: Use Github, Linkedin, Globe for respective links
-                - External links: Use ArrowUpRight for "view project" or outbound links
-
-                Icons add visual clarity and professionalism. Do NOT omit them.
-
-                ========================
-                OUTPUT FORMAT (STRICT)
-
-                Return a single JSON object:
-                {
-                    "buildSummary": "<1-2 sentence summary of changes made>",
-                    "globalTheme": {  // OPTIONAL: only include if theme was changed
-                        "background": "<Tailwind classes>",
-                        "textPrimary": "<Tailwind text class>",
-                        "textSecondary": "<Tailwind text class>",
-                        "accentColor": "<color name>"
-                    },
-                    "modifiedSections": [
-                        {
-                            "sectionKey": "<string>",
-                            "title": "<string>",
-                            "orderIndex": <number>,
-                            "reactSource": "<full React/JSX code for the section>",
-                            "contentJson": <object with section data>,
-                            "changeDescription": "<what was changed in this section>"
-                        }
-                    ],
-                    "deletedSectionKeys": ["<sectionKey>", "..."] // OPTIONAL
-                }
-
-                ========================
-                CRITICAL: FIX THESE ERRORS
-                ========================
-
-                Your previous attempt failed validation. The errors are listed in the user message.
-
-                Common issues to check:
-                - Unclosed JSX tags
-                - Invalid JSX syntax (using {} incorrectly)
-                - Missing return statements
-                - Invalid JavaScript expressions inside JSX
-                - Mismatched parentheses or braces
-
-                Fix ALL errors and ensure the code compiles correctly.
-
-                IMPORTANT:
-                - reactSource must be valid React/JSX code
-                - Include ALL sections (modified, unchanged, and newly added), except those deleted
-                - Preserve Tailwind CSS classes and Framer Motion
-                - Return JSON ONLY. No markdown, no explanations.
-                - Only include globalTheme if the user explicitly requested a theme/background change
-                """);
+              IMPORTANT:
+              - Section backgrounds MUST be transparent (bg-transparent, bg-black/10, bg-white/5)
+              - reactSource must be valid React/JSX code
+              - Preserve Tailwind CSS classes and Framer Motion
+              - Return JSON ONLY. No markdown, no explanations.
+              - Fix ALL errors and ensure the code compiles correctly.
+              """);
 
         UserMessage user = new UserMessage("""
-                CLARIFIER CONTEXT (constraints):
-                %s
+              CLARIFIER CONTEXT (constraints):
+              %s
 
-                CURRENT SECTIONS:
-                %s
+              EXISTING SECTION:
+              %s
 
-                SECTION PLANS:
-                %s
+              SECTION PLAN:
+              %s
 
-                AVAILABLE ASSETS (images/videos - use URLs from here only):
-                %s
+              AVAILABLE ASSETS:
+              %s
 
-                VALIDATION ERRORS FROM PREVIOUS ATTEMPT:
-                %s
+              VALIDATION ERRORS FROM PREVIOUS ATTEMPT:
+              %s
 
-                TASK:
-                - Fix the validation errors listed above
-                - Regenerate the React source code with correct syntax
-                - Return the complete corrected sections
-                - For "delete" actions, omit the section and add its key to deletedSectionKeys
-                - Return JSON only
-                """.formatted(contextJson, sectionsJson, plansJson, assetsJson, errorsJson));
+              TASK: Fix the errors above and regenerate this section. Return JSON only.
+              """.formatted(contextJson, existingJson, planJson, assetsJson, errorsJson));
 
         return new Prompt(List.of(system, user));
     }
@@ -367,4 +275,6 @@ public class BuilderPromptBuilder {
             return "{}";
         }
     }
+
+
 }

@@ -10,7 +10,7 @@ export async function POST(
     context: { params: Promise<{ id: string }> },
 ) {
     const body = await req.json();
-    const { userPrompt, sections } = body ?? {};
+    const { userPrompt, sections, sessionId } = body ?? {};
     const { id: portfolioId } = await context.params;
 
     if (!portfolioId || !userPrompt) {
@@ -83,6 +83,7 @@ export async function POST(
             body: JSON.stringify({
                 portfolioId,
                 userPrompt,
+                sessionId: sessionId ?? null,
                 sections: Array.isArray(sections) ? sections : [],
                 assets: (assets ?? []).map((asset) => ({
                     id: asset.id,

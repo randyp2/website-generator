@@ -34,9 +34,11 @@ public class PlannerServiceImpl implements PlannerService {
         System.out.println(">>> [PLANNER] Sections count: " + (req.getSections() == null ? 0 : req.getSections().size()));
         System.out.println(">>> [PLANNER] Assets count: " + (req.getAssets() == null ? 0 : req.getAssets().size()));
 
-        // Get context from clarifier
-        System.out.println(">>> [PLANNER] Loading clarifier context...");
-        ClarifierContext context = clarifierService.getContext(req.getPortfolioId());
+        // Get context from clarifier via sessionId
+        if (req.getSessionId() == null || req.getSessionId().isBlank())
+            throw new IllegalArgumentException("sessionId required!");
+        System.out.println(">>> [PLANNER] Loading clarifier context for session: " + req.getSessionId());
+        ClarifierContext context = clarifierService.getContext(req.getSessionId());
         if (context == null)
             throw new IllegalStateException("No clarifier context found. Run clarify first.");
         System.out.println(">>> [PLANNER] Context loaded with turnCount=" + context.getTurnCount()
