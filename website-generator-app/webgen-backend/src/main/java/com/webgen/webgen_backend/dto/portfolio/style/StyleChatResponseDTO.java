@@ -13,6 +13,7 @@ public class StyleChatResponseDTO {
     private boolean isComplete;
     private Map<String, String> stylePreferences; // only when isComplete=true
     private boolean showColorPicker;              // signals frontend to render color picker
+    private List<StyleColorPresetDTO> recommendedColorPresets; // AI-generated custom palettes (nullable)
     private boolean showTypographyPicker;          // signals frontend to render typography picker
     private String recommendedHeadingFont;         // AI's heading font suggestion (nullable)
     private String recommendedBodyFont;            // AI's body font suggestion (nullable)

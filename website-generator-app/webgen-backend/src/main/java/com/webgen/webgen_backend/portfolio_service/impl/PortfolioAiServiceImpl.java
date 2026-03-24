@@ -20,10 +20,10 @@ import com.webgen.webgen_backend.portfolio_service.validator.JsxValidatorService
 import com.webgen.webgen_backend.repository.GeneratedVersionRepository;
 import com.webgen.webgen_backend.repository.PortfolioRepository;
 import com.webgen.webgen_backend.repository.PortfolioSectionRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -33,22 +33,22 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class PortfolioAiServiceImpl implements PortfolioAiService {
 
-    private final OpenAiChatModel openAiChatModel; // Create ai chat model (generate response)
+    private final OpenAiChatModel blueprintModel;  // High creativity for design planning
+    private final OpenAiChatModel sectionModel;    // Low creativity for JSX code generation
 
     private final GenerateJobService jobService;
 
-    private final PromptRefinerService promptRefinerService; // Refine prompts
-    private final PortfolioPromptBuilder portfolioPromptBuilder; // Build user prompt
-    private final PortfolioResponseParser portfolioResponseParser; // Parse AI output
+    private final PromptRefinerService promptRefinerService;
+    private final PortfolioPromptBuilder portfolioPromptBuilder;
+    private final PortfolioResponseParser portfolioResponseParser;
 
     private final JsxValidatorService jsxValidatorService;
 
-    // DB Persistence
     private final PortfolioRepository portfolioRepository;
     private final GeneratedVersionRepository generatedVersionRepository;
     private final PortfolioSectionRepository sectionRepository;
@@ -57,6 +57,31 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
 
     @Value("${jsx.validator.max-retries:3}")
     private int maxRetries;
+
+    public PortfolioAiServiceImpl(
+            @Qualifier("blueprintModel") OpenAiChatModel blueprintModel,
+            @Qualifier("sectionModel") OpenAiChatModel sectionModel,
+            GenerateJobService jobService,
+            PromptRefinerService promptRefinerService,
+            PortfolioPromptBuilder portfolioPromptBuilder,
+            PortfolioResponseParser portfolioResponseParser,
+            JsxValidatorService jsxValidatorService,
+            PortfolioRepository portfolioRepository,
+            GeneratedVersionRepository generatedVersionRepository,
+            PortfolioSectionRepository sectionRepository,
+            ObjectMapper objectMapper) {
+        this.blueprintModel = blueprintModel;
+        this.sectionModel = sectionModel;
+        this.jobService = jobService;
+        this.promptRefinerService = promptRefinerService;
+        this.portfolioPromptBuilder = portfolioPromptBuilder;
+        this.portfolioResponseParser = portfolioResponseParser;
+        this.jsxValidatorService = jsxValidatorService;
+        this.portfolioRepository = portfolioRepository;
+        this.generatedVersionRepository = generatedVersionRepository;
+        this.sectionRepository = sectionRepository;
+        this.objectMapper = objectMapper;
+    }
 
     @Override
     public void generatePortfolio(
@@ -109,11 +134,25 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
 
         // Update, call, parse
         jobService.updateStatus(jobId, JobStatusDTO.Status.GENERATING);
-        ChatResponse blueprintResponse = openAiChatModel.call(blueprintPrompt);
+        ChatResponse blueprintResponse = blueprintModel.call(blueprintPrompt);
 
         String blueprintJson = blueprintResponse.getResult().getOutput().getText();
         BlueprintDTO blueprint = portfolioResponseParser.parseBlueprintResponse(blueprintJson);
         jobService.setTotalSections(jobId, blueprint.getSectionPlan().size());
+
+        // --- Blueprint quality log ---
+        System.out.println(">>> [BLUEPRINT] ===== BLUEPRINT OUTPUT =====");
+        System.out.println(">>> [BLUEPRINT] Raw JSON: " + blueprintJson);
+        System.out.println(">>> [BLUEPRINT] Design Directive: " + blueprint.getDesignDirective());
+        System.out.println(">>> [BLUEPRINT] Global Theme: " + blueprint.getGlobalThemeDTO());
+        System.out.println(">>> [BLUEPRINT] Section count: " + blueprint.getSectionPlan().size());
+        for (BlueprintSectionPlanDTO plan : blueprint.getSectionPlan()) {
+            System.out.println(">>> [BLUEPRINT]   [" + plan.getOrderIndex() + "] "
+                    + plan.getSectionKey() + " — \"" + plan.getTitle() + "\""
+                    + " | layout: " + plan.getLayoutHint()
+                    + " | strategy: " + plan.getContentStrategy());
+        }
+        System.out.println(">>> [BLUEPRINT] =============================");
 
         // --- Step 3) Fan out sections
         List<SectionGenerationMessage> messages = blueprint.getSectionPlan().stream()
@@ -163,17 +202,23 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
             } else {
                 System.out.println(">>> [SECTION-WORKER] Retrying with validation errors (attempt " + attempt + ")");
                 sectionPrompt = portfolioPromptBuilder
-                        .buildSectionRetryPrompt(msg.getReq(), msg.getRefinedPrompt(), msg.getBlueprint(), msg.getPlanItem(), validation.getErrors());
+                        .buildSectionRetryPrompt(msg.getReq(), msg.getRefinedPrompt(), msg.getBlueprint(), msg.getPlanItem(), validation.getErrors(), parsedSection.getReactSource());
             }
 
             // --- Call and parse LLM
             long llmStart = System.currentTimeMillis();
             jobService.updateStatus(jobId, JobStatusDTO.Status.GENERATING);
-            ChatResponse response = openAiChatModel.call(sectionPrompt);
+            ChatResponse response = sectionModel.call(sectionPrompt);
             String rawJson = response.getResult().getOutput().getText();
             parsedSection = portfolioResponseParser.parseSingleSectionResponse(rawJson);
             System.out.println(">>> [SECTION-WORKER] Section '" + sectionKey + "' LLM call completed in "
                     + (System.currentTimeMillis() - llmStart) + "ms");
+            System.out.println(">>> [SECTION-WORKER] Section '" + sectionKey + "' parse summary: "
+                    + "parsedSectionKey=" + parsedSection.getSectionKey()
+                    + " | title=" + parsedSection.getTitle()
+                    + " | orderIndex=" + parsedSection.getOrderIndex()
+                    + " | reactSourceChars="
+                    + (parsedSection.getReactSource() == null ? 0 : parsedSection.getReactSource().length()));
 
             // --- Validate
             validation = jsxValidatorService.validateGeneratedSection(parsedSection);
@@ -184,9 +229,13 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
             }
 
             System.out.println(">>> [SECTION-WORKER] Section '" + sectionKey + "' validation failed (attempt " + attempt + ")");
+            System.err.println(">>> [SECTION-WORKER] Section '" + sectionKey + "' validation errors (attempt " + attempt + "):\n"
+                    + formatValidationErrors(validation, parsedSection.getReactSource()));
         }
 
         if (validation == null || !validation.isValid()) {
+            System.err.println(">>> [SECTION-WORKER] Final validation errors for section '" + sectionKey + "':\n"
+                    + formatValidationErrors(validation, parsedSection == null ? null : parsedSection.getReactSource()));
             String failReason = "Failed to generate valid JSX for section '"
                     + sectionKey + "' after " + maxRetries + " attempts";
             jobService.failJob(jobId, failReason);
@@ -284,7 +333,7 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
 //
 //            // --- Call LLM
 //            jobService.updateStatus(jobId, JobStatusDTO.Status.GENERATING);
-//            ChatResponse response = openAiChatModel.call(sectionPrompt);
+//            ChatResponse response = sectionModel.call(sectionPrompt);
 //            String rawJson = response.getResult().getOutput().getText();
 //
 //            // --- Parse
@@ -318,6 +367,35 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
     private String buildSignature(BlueprintSectionPlanDTO planItem, SectionDTO validSection) {
         return planItem.getSectionKey() + ": " + planItem.getLayoutHint()
                 + " | title: " + validSection.getTitle();
+    }
+
+    private String formatValidationErrors(ValidationResult validation, String reactSource) {
+        if (validation == null || validation.getErrors() == null || validation.getErrors().isEmpty())
+            return "none";
+
+        String[] sourceLines = reactSource == null ? new String[0] : reactSource.split("\\R", -1);
+
+        return validation.getErrors().stream()
+                .map(error -> {
+                    StringBuilder line = new StringBuilder();
+                    line.append("- ")
+                            .append(error.getMessage() == null ? "Unknown validation error" : error.getMessage())
+                            .append(" [line=")
+                            .append(error.getLine() == null ? "?" : error.getLine())
+                            .append(", col=")
+                            .append(error.getColumn() == null ? "?" : error.getColumn())
+                            .append("]");
+
+                    if (error.getLine() != null && error.getLine() > 0 && error.getLine() <= sourceLines.length) {
+                        String sourceLine = sourceLines[error.getLine() - 1].trim();
+                        if (sourceLine.length() > 220)
+                            sourceLine = sourceLine.substring(0, 220) + "...";
+                        line.append("\n  source: ").append(sourceLine);
+                    }
+
+                    return line.toString();
+                })
+                .collect(Collectors.joining("\n"));
     }
 
 

@@ -12,11 +12,27 @@ export interface StylePreferences {
   customNotes: string;
 }
 
+export interface ColorPresetColors {
+  primary: string;
+  secondary: string;
+  accent: string;
+  background: string;
+  text: string;
+  muted: string;
+}
+
+export interface ColorPresetRecommendation {
+  name: string;
+  description: string;
+  colors: ColorPresetColors;
+}
+
 export interface StyleChatRequest {
   portfolioId: string;
   userMessage?: string;
   colorSelections?: Record<string, string>;
   fontSelections?: Record<string, string>;
+  layoutSelection?: string;
 }
 
 export interface StyleChatResponse {
@@ -26,6 +42,7 @@ export interface StyleChatResponse {
   isComplete: boolean;
   stylePreferences?: Partial<StylePreferences>;
   showColorPicker?: boolean;
+  recommendedColorPresets?: ColorPresetRecommendation[];
   showTypographyPicker?: boolean;
   recommendedHeadingFont?: string;
   recommendedBodyFont?: string;

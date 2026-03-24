@@ -19,6 +19,7 @@ import {
     type ColorKey,
     type ColorPickerPanelProps,
     type PaletteColors,
+    type RecommendedColorPreset,
 } from "./color-picker/types";
 
 type ThemeMode = "dark" | "light";
@@ -38,11 +39,18 @@ const createRandomPalette = (): PaletteColors => ({
     muted: randomHex(),
 });
 
-export const ColorPickerPanel = ({ onSubmit }: ColorPickerPanelProps) => {
+export const ColorPickerPanel = ({
+    onSubmit,
+    recommendedPresets = [],
+}: ColorPickerPanelProps) => {
     const [themeMode, setThemeMode] = useState<ThemeMode>(DEFAULT_THEME_MODE);
     const [selectedPaletteName, setSelectedPaletteName] = useState<string>(
         PRESET_PALETTES[0].name,
     );
+    const [selectedAiPresetName, setSelectedAiPresetName] = useState<string | null>(
+        null,
+    );
+    const [hasExplicitPresetChoice, setHasExplicitPresetChoice] = useState(false);
     const [customPalette, setCustomPalette] = useState<PaletteColors>(
         DEFAULT_CUSTOM_PALETTE,
     );
@@ -57,8 +65,30 @@ export const ColorPickerPanel = ({ onSubmit }: ColorPickerPanelProps) => {
         [selectedPaletteName],
     );
 
+    const effectiveSelectedAiPresetName = useMemo(() => {
+        if (recommendedPresets.length === 0) return null;
+        if (!hasExplicitPresetChoice) return recommendedPresets[0].name;
+        if (
+            selectedAiPresetName &&
+            recommendedPresets.some((preset) => preset.name === selectedAiPresetName)
+        ) {
+            return selectedAiPresetName;
+        }
+        return null;
+    }, [recommendedPresets, selectedAiPresetName, hasExplicitPresetChoice]);
+
+    const selectedAiPreset = useMemo(
+        () =>
+            recommendedPresets.find(
+                (preset) => preset.name === effectiveSelectedAiPresetName,
+            ) ?? null,
+        [recommendedPresets, effectiveSelectedAiPresetName],
+    );
+
     const currentColors =
-        activeTab === "custom" ? customPalette : selectedPalette[themeMode];
+        activeTab === "custom"
+            ? customPalette
+            : selectedAiPreset?.colors ?? selectedPalette[themeMode];
 
     const handleCustomColorChange = (key: ColorKey, color: string) => {
         setCustomPalette((previousPalette) => ({
@@ -178,20 +208,72 @@ export const ColorPickerPanel = ({ onSubmit }: ColorPickerPanelProps) => {
 
                 {activeTab === "presets" ? (
                     <div className="space-y-6">
-                        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                            {PRESET_PALETTES.map((palette) => (
-                                <PresetPaletteCard
-                                    key={palette.name}
-                                    palette={palette}
-                                    paletteColors={palette.dark}
-                                    isSelected={
-                                        selectedPalette.name === palette.name
-                                    }
-                                    onSelect={() =>
-                                        setSelectedPaletteName(palette.name)
-                                    }
-                                />
-                            ))}
+                        {recommendedPresets.length > 0 && (
+                            <div className="space-y-3">
+                                <div className="rounded-2xl border border-amber-300/30 bg-linear-to-r from-amber-300/12 via-orange-300/10 to-transparent px-4 py-3 text-amber-50">
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-100/80">
+                                        AI Generated Palettes
+                                    </p>
+                                    <p className="mt-1 text-sm text-amber-50/85">
+                                        These are custom palettes generated from your design goal.
+                                    </p>
+                                </div>
+
+                                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                                    {recommendedPresets.map(
+                                        (
+                                            preset: RecommendedColorPreset,
+                                            index: number,
+                                        ) => (
+                                            <PresetPaletteCard
+                                                key={`ai-${preset.name}-${index}`}
+                                                name={preset.name}
+                                                description={preset.description}
+                                                paletteColors={preset.colors}
+                                                isSelected={
+                                                    effectiveSelectedAiPresetName ===
+                                                    preset.name
+                                                }
+                                                isRecommended
+                                                recommendationRank={index + 1}
+                                                onSelect={() => {
+                                                    setHasExplicitPresetChoice(
+                                                        true,
+                                                    );
+                                                    setSelectedAiPresetName(
+                                                        preset.name,
+                                                    );
+                                                }}
+                                            />
+                                        ),
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="space-y-3">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
+                                Built-in Presets
+                            </p>
+                            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                                {PRESET_PALETTES.map((palette) => (
+                                    <PresetPaletteCard
+                                        key={palette.name}
+                                        name={palette.name}
+                                        description={palette.description}
+                                        paletteColors={palette.dark}
+                                        isSelected={
+                                            effectiveSelectedAiPresetName === null &&
+                                            selectedPalette.name === palette.name
+                                        }
+                                        onSelect={() => {
+                                            setHasExplicitPresetChoice(true);
+                                            setSelectedAiPresetName(null);
+                                            setSelectedPaletteName(palette.name);
+                                        }}
+                                    />
+                                ))}
+                            </div>
                         </div>
                         <PalettePreviewCard colors={currentColors} />
                     </div>

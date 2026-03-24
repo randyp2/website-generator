@@ -126,6 +126,9 @@ public class BuilderPromptBuilder {
               - Section backgrounds MUST be transparent (bg-transparent, bg-black/10, bg-white/5)
               - reactSource must be valid React/JSX code
               - Preserve Tailwind CSS classes and Framer Motion
+              - `motion` is already declared in scope — do NOT re-declare, re-assign, or create
+                fallbacks for it (no `var motion = ...`, no `typeof motion` checks)
+              - reactSource MUST NOT contain any code comments (no // or /* */ comments)
               - Return JSON ONLY. No markdown, no explanations.
               """);
 
@@ -150,9 +153,8 @@ public class BuilderPromptBuilder {
 
 
     /**
-     * Error-aware retry prompt for a single refined section.
-     * Includes validation errors from the previous attempt so the LLM
-     * can fix specific JSX issues instead of generating blindly.
+     * Minimal repair prompt — only sends the failed section and errors.
+     * No clarifier context, plan, or assets (saves tokens).
      */
     public Prompt buildSingleSectionRetryPrompt(
             ClarifierContext context,
@@ -161,109 +163,50 @@ public class BuilderPromptBuilder {
             List<AssetDTO> assets,
             List<ValidationResult.ValidationError> errors
     ) {
-        String contextJson = safeJson(context);
-        String existingJson = existingSection != null
+        String failedSectionJson = existingSection != null
                 ? safeJson(existingSection)
-                : "null (this is a new section — create from scratch)";
-        String planJson = safeJson(plan);
-        String assetsJson = safeJson(assets);
+                : "null";
         String errorsJson = safeJson(errors);
 
         SystemMessage system = new SystemMessage("""
-              You are a portfolio builder inside the PortfolioAI system.
+              You are fixing JSX validation errors in a React portfolio section.
 
-              IMPORTANT: Your previous attempt to generate this section had JSX validation errors.
-              You MUST fix the errors listed below and return valid React/JSX code.
+              This is a REPAIR task. Fix ONLY the listed errors. Do NOT redesign,
+              simplify, or remove any working code.
 
-              You are modifying a SINGLE portfolio section based on a modification plan.
+              RULES:
+              - Preserve all layout, styling, animations, and contentJson as-is
+              - Plain JSX only — no TypeScript, no import statements
+              - Component format: export default function <Name>Section({ data }) { ... }
+              - `data` prop is always present — no optional chaining
+              - `motion` is already in scope — do NOT re-declare it
+                (no `var motion = ...`, no `typeof motion` checks)
+              - Lucide icons in scope: Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight
+              - No code comments (no // or /* */)
+              - Tailwind CSS only, transparent/semi-transparent backgrounds only
 
-              ========================
-              VALIDATION ERRORS TO FIX
-              ========================
-
-              The errors are listed in the user message below. Fix ALL of them.
-
-              ========================
-              COMMON JSX ERRORS TO AVOID
-              ========================
-
-              1. Syntax: Missing closing tags, unclosed JSX expressions, use camelCase attributes
-              2. Expressions: Unclosed curly braces, invalid JS inside JSX
-              3. Component: Missing default export, invalid function declaration, no TypeScript
-              4. Data access: No optional chaining (data?.field), access data directly (not data.contentJson)
-
-              ========================
-              YOUR TASK
-
-              Based on the plan's action:
-              - "modify": Apply the instruction to the existing section. Respect preserveElements.
-              - "add": Create a brand new section from scratch using the instruction.
-
-              ========================
-              CONSTRAINTS TO RESPECT
-
-              - changeIntensity: LIGHT (minimal changes), MEDIUM (reframe), STRONG (rewrite)
-              - preserveElements: list of elements that MUST remain unchanged when modifying
-              - preserveContent: if true, only enhance — don't remove content
-              - avoidCasualTone: if true, maintain professional language
-              - reduceTextDensity: if true, keep content concise
-
-              ========================
-              MEDIA USAGE RULES (CRITICAL)
-              ========================
-
-              - You MAY include images and videos from the assets list
-              - Media MUST be referenced by URL only
-              - You MUST NOT invent, modify, guess, or hallucinate media URLs
-              - All media references MUST live inside contentJson
-              - reactSource MUST render media using <img> or <video> only
-              - <video> elements MUST include controls, MUST NOT autoplay
-
-              ========================
-              ICONS (REQUIRED WHERE APPROPRIATE)
-              ========================
-              Lucide React icons are available (NO import needed):
-                Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight
-
-              ========================
-              OUTPUT FORMAT (STRICT)
-
-              Return a single JSON object for this ONE section:
+              OUTPUT FORMAT:
               {
                   "sectionKey": "<string>",
                   "title": "<string>",
                   "orderIndex": <number>,
-                  "reactSource": "<full React/JSX code for the section>",
-                  "contentJson": <object with section data>,
-                  "changeDescription": "<1-2 sentence summary of what was changed and why>"
+                  "reactSource": "<full React/JSX code>",
+                  "contentJson": <object>,
+                  "changeDescription": "<1-2 sentence summary>"
               }
 
-              IMPORTANT:
-              - Section backgrounds MUST be transparent (bg-transparent, bg-black/10, bg-white/5)
-              - reactSource must be valid React/JSX code
-              - Preserve Tailwind CSS classes and Framer Motion
-              - Return JSON ONLY. No markdown, no explanations.
-              - Fix ALL errors and ensure the code compiles correctly.
+              Return JSON ONLY.
               """);
 
         UserMessage user = new UserMessage("""
-              CLARIFIER CONTEXT (constraints):
+              Fix the errors in this section and return the corrected JSON.
+
+              FAILED SECTION:
               %s
 
-              EXISTING SECTION:
+              VALIDATION ERRORS:
               %s
-
-              SECTION PLAN:
-              %s
-
-              AVAILABLE ASSETS:
-              %s
-
-              VALIDATION ERRORS FROM PREVIOUS ATTEMPT:
-              %s
-
-              TASK: Fix the errors above and regenerate this section. Return JSON only.
-              """.formatted(contextJson, existingJson, planJson, assetsJson, errorsJson));
+              """.formatted(failedSectionJson, errorsJson));
 
         return new Prompt(List.of(system, user));
     }

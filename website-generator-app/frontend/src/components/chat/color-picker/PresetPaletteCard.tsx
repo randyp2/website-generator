@@ -1,20 +1,26 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { PaletteColors, ThemedPalette } from "./types";
+import type { PaletteColors } from "./types";
 
 interface PresetPaletteCardProps {
-    palette: ThemedPalette;
+    name: string;
+    description: string;
     paletteColors: PaletteColors;
     isSelected: boolean;
+    isRecommended?: boolean;
+    recommendationRank?: number;
     onSelect: () => void;
 }
 
 export const PresetPaletteCard = ({
-    palette,
+    name,
+    description,
     paletteColors,
     isSelected,
+    isRecommended = false,
+    recommendationRank,
     onSelect,
 }: PresetPaletteCardProps) => {
     return (
@@ -25,13 +31,21 @@ export const PresetPaletteCard = ({
                 "group relative overflow-hidden rounded-2xl border-2 text-left transition-all",
                 isSelected
                     ? "border-blue-400 shadow-[0_0_0_1px_rgba(96,165,250,0.3)]"
-                    : "border-white/10 hover:border-white/25",
+                    : isRecommended
+                      ? "border-amber-300/40 shadow-[0_0_0_1px_rgba(252,211,77,0.18)] hover:border-amber-300/55"
+                      : "border-white/10 hover:border-white/25",
             )}
         >
             <div
                 className="space-y-3 p-4"
                 style={{ backgroundColor: paletteColors.background }}
             >
+                {isRecommended ? (
+                    <div className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full border border-amber-300/35 bg-amber-300/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-amber-100">
+                        <Sparkles className="h-3 w-3" />
+                        {recommendationRank ? `AI Pick #${recommendationRank}` : "AI Pick"}
+                    </div>
+                ) : null}
                 {isSelected ? (
                     <div className="absolute right-3 top-3">
                         <Check
@@ -54,13 +68,13 @@ export const PresetPaletteCard = ({
                         className="font-medium"
                         style={{ color: paletteColors.text }}
                     >
-                        {palette.name}
+                        {name}
                     </h3>
                     <p
                         className="text-xs"
                         style={{ color: paletteColors.muted }}
                     >
-                        {palette.description}
+                        {description}
                     </p>
                 </div>
             </div>

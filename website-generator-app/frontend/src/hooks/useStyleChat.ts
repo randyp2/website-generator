@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
-import type { StylePreferences, StyleChatResponse } from "@/types/style";
+import type {
+    ColorPresetRecommendation,
+    StylePreferences,
+    StyleChatResponse,
+} from "@/types/style";
 import type { Message } from "@/types/preview";
 import type { PersistedStyleChatMessage } from "@/types/style-chat";
 import {
@@ -38,6 +42,56 @@ function mergeStylePreferences(
     };
 }
 
+function normalizeRecommendedPresets(value: unknown): ColorPresetRecommendation[] {
+    if (!Array.isArray(value)) return [];
+    const seen = new Set<string>();
+    const normalized: ColorPresetRecommendation[] = [];
+    const requiredColorKeys = [
+        "primary",
+        "secondary",
+        "accent",
+        "background",
+        "text",
+        "muted",
+    ] as const;
+
+    for (const item of value) {
+        if (!item || typeof item !== "object") continue;
+        const row = item as Record<string, unknown>;
+        const name = typeof row.name === "string" ? row.name.trim() : "";
+        const description =
+            typeof row.description === "string"
+                ? row.description.trim()
+                : "Custom AI-generated palette.";
+        const colors = row.colors;
+        if (!name || !colors || typeof colors !== "object") continue;
+        const colorMap = colors as Record<string, unknown>;
+        const normalizedColors: Record<string, string> = {};
+        let valid = true;
+        for (const key of requiredColorKeys) {
+            const raw = colorMap[key];
+            if (typeof raw !== "string" || !raw.trim()) {
+                valid = false;
+                break;
+            }
+            normalizedColors[key] = raw.trim();
+        }
+        if (!valid) continue;
+
+        const dedupeKey = name.toLowerCase();
+        if (seen.has(dedupeKey)) continue;
+        seen.add(dedupeKey);
+        normalized.push({
+            name,
+            description,
+            colors: normalizedColors as ColorPresetRecommendation["colors"],
+        });
+        if (normalized.length >= 3) break;
+    }
+
+    return normalized;
+}
+
 export function useStyleChat(params: {
     portfolioId: string | null;
     templateId: string | null;
@@ -58,6 +112,7 @@ export function useStyleChat(params: {
     const [isHydrated, setIsHydrated] = useState(false);
     const [hasLoadedHistory, setHasLoadedHistory] = useState(false);
     const [showColorPicker, setShowColorPicker] = useState(false);
+    const [recommendedColorPresets, setRecommendedColorPresets] = useState<ColorPresetRecommendation[]>([]);
     const [showTypographyPicker, setShowTypographyPicker] = useState(false);
     const [recommendedHeadingFont, setRecommendedHeadingFont] = useState<string | undefined>();
     const [recommendedBodyFont, setRecommendedBodyFont] = useState<string | undefined>();
@@ -89,6 +144,7 @@ export function useStyleChat(params: {
         const loadHistory = async () => {
             if (!portfolioId) {
                 setShowColorPicker(false);
+                setRecommendedColorPresets([]);
                 setStyleMessages([introStyleMessage]);
                 setHasLoadedHistory(true);
                 return;
@@ -106,11 +162,13 @@ export function useStyleChat(params: {
                     setStyleMessages(toUiStyleMessages(rawHistory));
                 } else {
                     setShowColorPicker(false);
+                    setRecommendedColorPresets([]);
                     setStyleMessages([introStyleMessage]);
                 }
             } catch {
                 if (cancelled) return;
                 setShowColorPicker(false);
+                setRecommendedColorPresets([]);
                 setStyleMessages([introStyleMessage]);
             } finally {
                 if (!cancelled) {
@@ -306,6 +364,11 @@ export function useStyleChat(params: {
                 ]);
 
                 setShowColorPicker(Boolean(data.showColorPicker));
+                setRecommendedColorPresets(
+                    data.showColorPicker
+                        ? normalizeRecommendedPresets(data.recommendedColorPresets)
+                        : [],
+                );
 
                 if (data.showTypographyPicker) {
                     setShowTypographyPicker(true);
@@ -365,6 +428,7 @@ export function useStyleChat(params: {
             ]);
 
             setShowColorPicker(false);
+            setRecommendedColorPresets([]);
 
             if (!portfolioId) return;
 
@@ -523,16 +587,93 @@ export function useStyleChat(params: {
         ],
     );
 
+    const handleLayoutSubmit = useCallback(
+        async (layoutName: string) => {
+            setStyleMessages((prev) => [
+                ...prev,
+                {
+                    id: `user-layout-${Date.now()}`,
+                    role: "user",
+                    content: `Selected layout: ${layoutName}`,
+                    timestamp: new Date(),
+                },
+            ]);
+
+            if (!portfolioId) return;
+
+            setIsSendingStyle(true);
+            try {
+                const res = await fetch("/api/portfolio/style-chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        portfolioId,
+                        layoutSelection: layoutName,
+                    }),
+                });
+
+                if (!res.ok) {
+                    throw new Error("Layout submission failed");
+                }
+
+                const data: StyleChatResponse = await res.json();
+
+                setStyleMessages((prev) => [
+                    ...prev,
+                    {
+                        id: `ai-${Date.now()}`,
+                        role: "ai",
+                        content: data.assistantMessage,
+                        timestamp: new Date(),
+                        ...(data.suggestions && { suggestions: data.suggestions }),
+                        ...(data.designTip && { designTip: data.designTip }),
+                        ...(data.previewType && { previewType: data.previewType }),
+                        ...(data.isComplete && { isStyleComplete: true }),
+                        ...(data.isComplete && data.stylePreferences && { stylePreferences: data.stylePreferences }),
+                    },
+                ]);
+
+                if (data.stylePreferences) {
+                    setStylePreferences(
+                        mergeStylePreferences(stylePreferences, data.stylePreferences),
+                    );
+                }
+            } catch (error) {
+                console.error("Layout submit error:", error);
+                setStyleMessages((prev) => [
+                    ...prev,
+                    {
+                        id: `error-${Date.now()}`,
+                        role: "ai",
+                        content: "Sorry, something went wrong submitting your layout choice. Please try again.",
+                        timestamp: new Date(),
+                    },
+                ]);
+            } finally {
+                setIsSendingStyle(false);
+            }
+        },
+        [
+            portfolioId,
+            stylePreferences,
+            setStyleMessages,
+            setStylePreferences,
+            setIsSendingStyle,
+        ],
+    );
+
     return {
         normalizedStyleMessages,
         isSending: isSendingStyle,
         showColorPicker,
+        recommendedColorPresets,
         showTypographyPicker,
         recommendedHeadingFont,
         recommendedBodyFont,
         handleSend,
         handleColorSubmit,
         handleFontSubmit,
+        handleLayoutSubmit,
         flushStyleHistorySync,
     };
 }
