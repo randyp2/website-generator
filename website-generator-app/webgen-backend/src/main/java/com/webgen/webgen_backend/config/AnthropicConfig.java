@@ -13,7 +13,9 @@ public class AnthropicConfig {
 
     @Bean
     public AnthropicApi anthropicApi(@Value("${spring.ai.anthropic.api-key}") String apiKey) {
-        return new AnthropicApi(apiKey);
+        return AnthropicApi.builder()
+                .apiKey(apiKey)
+                .build();
     }
 
     @Bean("anthropicBlueprintModel")
@@ -29,7 +31,10 @@ public class AnthropicConfig {
                 .temperature(temperature)
                 .build();
 
-        return new AnthropicChatModel(anthropicApi, options);
+        return AnthropicChatModel.builder()
+                .anthropicApi(anthropicApi)
+                .defaultOptions(options)
+                .build();
     }
 
     @Bean("anthropicSectionModel")
@@ -45,6 +50,9 @@ public class AnthropicConfig {
                 .temperature(temperature)
                 .build();
 
-        return new AnthropicChatModel(anthropicApi, options);
+        return AnthropicChatModel.builder()
+                .anthropicApi(anthropicApi)
+                .defaultOptions(options)
+                .build();
     }
 }
