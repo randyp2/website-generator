@@ -13,7 +13,7 @@ import {
     Send,
     Sparkles,
 } from "lucide-react";
-import type { StylePreferences } from "@/types/style";
+import type { ColorPresetRecommendation, StylePreferences } from "@/types/style";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import ReactMarkdown from "react-markdown";
@@ -30,10 +30,12 @@ interface PortfolioStyleChatProps {
     isContinueDisabled?: boolean;
     showColorPicker?: boolean;
     onColorSubmit?: (colors: Record<string, string>) => void;
+    recommendedColorPresets?: ColorPresetRecommendation[];
     showTypographyPicker?: boolean;
     onTypographySubmit?: (fonts: { heading: string; body: string }) => void;
     recommendedHeadingFont?: string;
     recommendedBodyFont?: string;
+    onLayoutSubmit?: (layout: string) => void;
     className?: string;
 }
 
@@ -70,9 +72,10 @@ const SuggestionChip = ({ label, onClick }: SuggestionChipProps) => (
 interface AiMessageContentProps {
     message: Message;
     onSuggestionClick?: (suggestion: string) => void;
+    onLayoutSelect?: (layout: string) => void;
 }
 
-const AiMessageContent = ({ message, onSuggestionClick }: AiMessageContentProps) => (
+const AiMessageContent = ({ message, onSuggestionClick, onLayoutSelect }: AiMessageContentProps) => (
     <div className="space-y-3">
         <ReactMarkdown
             components={{
@@ -102,7 +105,7 @@ const AiMessageContent = ({ message, onSuggestionClick }: AiMessageContentProps)
             message.previewType === "layout_style" ? (
                 <LayoutPreviewGrid
                     suggestions={message.suggestions}
-                    onSelect={(layoutName) => onSuggestionClick?.(layoutName)}
+                    onSelect={(layoutName) => (onLayoutSelect ?? onSuggestionClick)?.(layoutName)}
                 />
             ) : (
                 <div className="flex flex-wrap gap-2">
@@ -189,10 +192,12 @@ export function PortfolioStyleChat({
     isContinueDisabled = false,
     showColorPicker = false,
     onColorSubmit,
+    recommendedColorPresets = [],
     showTypographyPicker = false,
     onTypographySubmit,
     recommendedHeadingFont,
     recommendedBodyFont,
+    onLayoutSubmit,
     className,
 }: PortfolioStyleChatProps) {
     const [prompt, setPrompt] = useState("");
@@ -408,6 +413,7 @@ export function PortfolioStyleChat({
                                 <div className="mt-8">
                                     <ColorPickerPanel
                                         onSubmit={onColorSubmit}
+                                        recommendedPresets={recommendedColorPresets}
                                     />
                                 </div>
                             )}
@@ -471,6 +477,7 @@ export function PortfolioStyleChat({
                                                     <AiMessageContent
                                                         message={message}
                                                         onSuggestionClick={handleSuggestionSend}
+                                                        onLayoutSelect={onLayoutSubmit}
                                                     />
                                                 )
                                             ) : (
@@ -486,6 +493,7 @@ export function PortfolioStyleChat({
                                 {showColorPicker && onColorSubmit && (
                                     <ColorPickerPanel
                                         onSubmit={onColorSubmit}
+                                        recommendedPresets={recommendedColorPresets}
                                     />
                                 )}
 

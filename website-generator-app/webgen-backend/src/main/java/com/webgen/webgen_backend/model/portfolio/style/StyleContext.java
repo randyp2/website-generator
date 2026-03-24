@@ -19,4 +19,5 @@ public class StyleContext {
     private int invalidAttemptsForCurrentQuestion;
     private Map<String, String> fontSelections;    // user's font picks from typography picker
     private boolean typographyPickerShown;         // prevent re-triggering
+    private String layoutSelection;                // user's layout choice (e.g. "Bento")
 }

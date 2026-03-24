@@ -20,6 +20,13 @@ export interface ThemedPalette {
     dark: PaletteColors;
 }
 
+export interface RecommendedColorPreset {
+    name: string;
+    description: string;
+    colors: PaletteColors;
+}
+
 export interface ColorPickerPanelProps {
     onSubmit: (colors: Record<string, string>) => void;
+    recommendedPresets?: RecommendedColorPreset[];
 }

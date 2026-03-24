@@ -40,8 +40,9 @@ public class PortfolioPromptBuilder {
                         multiple independent sections.
 
                         You must output JSON ONLY, following the exact schema below.
-                        Do NOT include markdown, explanations, comments, backticks, or extra text
+                        Do NOT include markdown, explanations, backticks, or extra text
                         outside of the defined JSON fields.
+                        reactSource MUST NOT contain any code comments (no // or /* */ comments).
 
                         ========================
                         ARCHITECTURAL RULES
@@ -158,6 +159,13 @@ public class PortfolioPromptBuilder {
                         - If custom style notes are provided, you MUST implement them.
                         - Treat them as hard requirements for the visual design.
 
+                        11. Responsive design (REQUIRED)
+                        - All sections MUST be responsive and render correctly across screen sizes.
+                        - Use Tailwind responsive prefixes (sm:, md:, lg:) for layout shifts.
+                        - Grids and multi-column layouts MUST stack on mobile.
+                        - Typography and spacing should scale appropriately.
+                        - Design mobile-first, then adapt for larger screens.
+
                         ========================
                         MEDIA USAGE RULES
                         ========================
@@ -191,8 +199,10 @@ public class PortfolioPromptBuilder {
 
                         - Framer Motion is AVAILABLE and REQUIRED
                         - You MUST use Framer Motion for animations and transitions
-                        - Assume `motion` is available in scope
+                        - `motion` is already declared in scope — use it directly (e.g. <motion.div>)
                         - Do NOT import framer-motion explicitly
+                        - Do NOT re-declare, re-assign, or create fallbacks for `motion`
+                          (no `var motion = ...`, no `const motion = ...`, no `typeof motion` checks)
                         - Animations MUST remain scoped to the section
                         - Animations MUST serve a purpose such as:
                           - Establishing visual hierarchy
@@ -474,9 +484,9 @@ public class PortfolioPromptBuilder {
      * No react code being generated
      * Locks in shared design idea so sections remain coherent
      * 
-     * @param req
-     * @param refinedPrompt
-     * @return
+     * @param req - request holding metadata of user for more context
+     * @param refinedPrompt - refined user prompt
+     * @return return structured raw json for overall theme and plan of portfolio
      */
     public Prompt buildBlueprintPrompt(PortfolioGenerateRequestDTO req, String refinedPrompt) {
         ParsedResumeDTO resume = req.getResume();
@@ -506,31 +516,62 @@ public class PortfolioPromptBuilder {
                 - If contact info exists, include a "contact" section near the end
                 - You MUST include ALL resume sections — either as dedicated sections
                   or clearly combined into narrative sections
-                - At least TWO sections must reframe or combine resume content
+                - At least ONE section MUST reframe or combine resume content
                   (e.g. "Journey", "Selected Work", "Focus")
-                - Avoid generic names like "Skills", "Experience", "Education"
+                - Additional sections SHOULD prefer expressive, intent-driven titles
+                  but MAY use conventional titles when the content warrants it
 
                 Each section plan item must include:
                 - sectionKey: lowercase identifier
                 - title: display title
                 - orderIndex: integer render order
-                - layoutHint: brief description of intended layout
-                  (e.g. "bento grid", "full-bleed with centered text", "two-column cards")
+                - layoutHint: brief description of intended layout.
+                  Be specific and varied — do NOT default to the same layout for
+                  every section. Examples of diverse layouts:
+                  "asymmetric two-column with oversized left heading",
+                  "staggered masonry grid", "full-bleed hero with viewport split",
+                  "horizontal scroll cards on desktop, stacked on mobile",
+                  "timeline with alternating sides", "bento grid with one featured item"
+                  Layout hints MUST be mobile-friendly — avoid layouts that cannot
+                  gracefully stack or reflow on small screens.
                 - contentStrategy: what resume data to include and what to emphasize
 
                 ========================
-                DESIGN DIRECTIVE
+                DESIGN DIRECTIVE (CRITICAL)
                 ========================
 
-                The designDirective is a paragraph that captures:
+                The designDirective is a detailed paragraph that captures:
                 - The chosen visual theme (minimal, bold, editorial, etc.)
-                - Animation style and intensity
+                - Animation style and intensity — specify WHICH sections get bold
+                  animation vs. subtle or none
                 - Spacing and density preferences
                 - How sections should relate to each other visually
-                - Any recurring visual motifs
+                - Responsive strategy (how layouts adapt from mobile to desktop)
+                - Recurring visual motifs or signature design elements
+                - At least ONE unconventional design choice that makes this
+                  portfolio feel distinct (e.g. asymmetric grids, oversized
+                  typography, layered depth effects, editorial whitespace,
+                  accent-colored dividers, mixed layout rhythms)
+
+                The designDirective MUST be specific and opinionated, NOT generic.
+
+                BAD example (too vague):
+                "A clean, modern portfolio with smooth animations and good spacing."
+
+                GOOD example (specific, bold):
+                "Editorial magazine aesthetic — dramatic scale contrast between
+                section headings (8xl+) and body text, generous vertical whitespace
+                between sections, accent-colored thin rules as dividers. Hero uses
+                a full-viewport split layout with name on the left and a bold
+                gradient shape on the right. Projects section uses an asymmetric
+                masonry grid. Animations are cinematic: slow slide-ups (0.8s) for
+                headings, staggered fade-ins for cards. Footer is minimal, single
+                line. Mobile collapses grids to single column with preserved
+                typographic hierarchy."
 
                 This directive will be passed verbatim to each per-section prompt,
-                so it must be specific enough to produce a coherent portfolio.
+                so it must be specific enough to produce a coherent and visually
+                distinctive portfolio. Generic directives produce generic results.
 
                 ========================
                 TYPOGRAPHY (CRITICAL)
@@ -673,11 +714,52 @@ public class PortfolioPromptBuilder {
 
                 %s
 
-                Sections MUST use transparent/semi-transparent backgrounds only.
                 The globalTheme controls the page background.
+                Sections SHOULD use transparent or semi-transparent backgrounds
+                (e.g. bg-transparent, bg-black/10, bg-white/5, bg-slate-900/50).
+                Subtle high-opacity backgrounds (e.g. bg-black/90, bg-slate-800/80) are
+                ALLOWED when the design calls for contrast between sections.
+                Fully opaque backgrounds that clash with the globalTheme are NOT allowed.
 
                 ========================
-                ARCHITECTURAL RULES
+                CREATIVITY GUIDANCE
+                ========================
+
+                The blueprint's layoutHint and designDirective define the creative
+                direction. Interpret them boldly — push beyond the first obvious
+                implementation.
+
+                - Vary visual density: not every section needs the same rhythm
+                - Use whitespace, scale contrast, and typography weight as design tools
+                - Layouts should feel intentional — avoid defaulting to centered-stack
+                  or uniform card-grid unless the blueprint specifically calls for it
+                - Each section should have a distinct visual identity while staying
+                  coherent with the globalTheme
+                - Default or generic layouts are NOT acceptable
+                - Each section should feel designed, not templated
+
+                ========================
+                ANIMATION GUIDANCE
+                ========================
+
+                Framer Motion is available in scope (no imports needed).
+                `motion` is already declared — use it directly (e.g. <motion.div>).
+                Do NOT re-declare, re-assign, or create fallbacks for `motion`
+                (no `var motion = ...`, no `const motion = ...`, no `typeof motion` checks).
+
+                - Hero/intro and content-heavy sections SHOULD use Framer Motion for
+                  entrance animations and hover interactions
+                - Supporting sections (footer, contact, navbar) MAY use simpler CSS
+                  transitions or minimal animation — forced animation on every section
+                  reduces impact
+                - Vary animation intensity by section importance: bold for hero,
+                  understated for supporting sections
+                - Prefer staggered entrance and emphasis animations over uniform fade-ins
+                - Animations should serve the design (hierarchy, attention, reading order),
+                  not be applied uniformly
+
+                ========================
+                ARCHITECTURAL RULES (STRICT)
                 ========================
 
                 1. Generate exactly ONE section.
@@ -688,11 +770,21 @@ public class PortfolioPromptBuilder {
                 6. Plain JSX only — no TypeScript, no imports, no arrow function exports.
                 7. All dynamic content from contentJson via the `data` prop.
                 8. Tailwind CSS only for styling.
-                9. Framer Motion required for animations (motion is in scope, no imports).
-                10. Lucide icons in scope: Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight.
-                11. Apply fonts from globalTheme using inline style or Tailwind arbitrary values.
-                12. Custom style notes are mandatory if provided.
-                13. Media URLs must come from contentJson only — never invent URLs.
+                9. Lucide icons in scope: Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight.
+                10. Apply fonts from globalTheme using inline style or Tailwind arbitrary values.
+                11. Custom style notes are mandatory if provided.
+                12. Media URLs must come from contentJson only — never invent URLs.
+                13. No code comments — do NOT include // or /* */ comments in reactSource.
+
+                ========================
+                RESPONSIVE DESIGN (REQUIRED)
+                ========================
+
+                All sections MUST be responsive and render correctly across screen sizes.
+                - Use Tailwind responsive prefixes (sm:, md:, lg:) for layout shifts
+                - Grids and multi-column layouts MUST stack on mobile
+                - Typography and spacing should scale appropriately
+                - Design mobile-first, then adapt for larger screens
 
                 ========================
                 OUTPUT FORMAT (EXACT)
@@ -827,29 +919,17 @@ public class PortfolioPromptBuilder {
     }
 
     /**
-     * Error-aware retry prompt for per-section generation.
-     * Includes validation errors from the previous attempt so the LLM
-     * can fix specific issues instead of generating blindly.
+     * Minimal repair prompt — only sends the failed code and errors.
+     * No resume, assets, or blueprint context (saves tokens).
      */
     public Prompt buildSectionRetryPrompt(
             PortfolioGenerateRequestDTO req,
             String refinedPrompt,
             BlueprintDTO blueprint,
             BlueprintSectionPlanDTO targetSection,
-            List<ValidationResult.ValidationError> errors
+            List<ValidationResult.ValidationError> errors,
+            String failedReactSource
     ) {
-        ParsedResumeDTO resume = req.getResume();
-        String customNotes = extractCustomNotes(req.getStylePrefs());
-        String effectivePrompt = applyCustomNotes(refinedPrompt, customNotes);
-        String assetsJson = serializeAssets(req.getAssets());
-
-        String themeJson = "";
-        try {
-            themeJson = objectMapper.writeValueAsString(blueprint.getGlobalThemeDTO());
-        } catch (JsonProcessingException e) {
-            themeJson = "{}";
-        }
-
         String errorSummary = errors.stream()
                 .map(e -> String.format("- %s (line %s, col %s)",
                         e.getMessage(),
@@ -858,62 +938,26 @@ public class PortfolioPromptBuilder {
                 .collect(Collectors.joining("\n"));
 
         SystemMessage system = new SystemMessage("""
-                You are an AI software engineer working inside the PortfolioAI system.
+                You are fixing JSX validation errors in a React portfolio section.
 
-                IMPORTANT: Your previous attempt to generate this section had JSX validation errors.
-                You MUST fix these errors and return valid React/JSX code.
+                This is a REPAIR task. Fix ONLY the listed errors. Do NOT redesign,
+                simplify, or remove any working code.
 
-                You are generating a SINGLE portfolio section as part of a larger portfolio.
-                A planning step has already decided the theme, section list, and design direction.
-
-                ========================
-                VALIDATION ERRORS TO FIX
-                ========================
-
+                ERRORS TO FIX:
                 %s
 
-                ========================
-                COMMON JSX ERRORS TO AVOID
-                ========================
+                RULES:
+                - Preserve all layout, styling, animations, and contentJson as-is
+                - Plain JSX only — no TypeScript, no import statements
+                - Component format: export default function <Name>Section({ data }) { ... }
+                - `data` prop is always present — no optional chaining
+                - `motion` is already in scope — do NOT re-declare it
+                  (no `var motion = ...`, no `typeof motion` checks)
+                - Lucide icons in scope: Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight
+                - No code comments (no // or /* */)
+                - Tailwind CSS only, transparent/semi-transparent backgrounds only
 
-                1. Syntax: Missing closing tags, unclosed JSX expressions, use camelCase attributes
-                2. Expressions: Unclosed curly braces, invalid JS inside JSX
-                3. Component: Missing default export, invalid function declaration, no TypeScript
-                4. Data access: No optional chaining (data?.field), access data directly (not data.contentJson)
-
-                ========================
-                DESIGN DIRECTIVE (FOLLOW THIS)
-                ========================
-
-                %s
-
-                ========================
-                GLOBAL THEME (USE THIS)
-                ========================
-
-                %s
-
-                Sections MUST use transparent/semi-transparent backgrounds only.
-
-                ========================
-                ARCHITECTURAL RULES
-                ========================
-
-                1. Generate exactly ONE section.
-                2. Section must be fully self-contained and independently renderable.
-                3. The section MUST render a top-level element with id equal to its sectionKey.
-                4. React contract: single `data` prop, always present, no optional chaining.
-                5. Component format: export default function <PascalCaseSectionKey>Section({ data }) { ... }
-                6. Plain JSX only — no TypeScript, no imports, no arrow function exports.
-                7. All dynamic content from contentJson via the `data` prop.
-                8. Tailwind CSS only for styling.
-                9. Framer Motion required for animations (motion is in scope, no imports).
-                10. Lucide icons in scope: Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight.
-
-                ========================
-                OUTPUT FORMAT (EXACT)
-                ========================
-
+                OUTPUT FORMAT:
                 {
                   "sectionKey": "<string>",
                   "title": "<string>",
@@ -922,50 +966,17 @@ public class PortfolioPromptBuilder {
                   "reactSource": "<escaped JSX source>"
                 }
 
-                Fix ALL errors and ensure the code compiles correctly.
-                Output JSON ONLY. No markdown, no backticks, no extra text.
-                """.formatted(
-                errorSummary,
-                blueprint.getDesignDirective(),
-                themeJson
-        ));
+                Return JSON ONLY.
+                """.formatted(errorSummary));
 
         UserMessage user = new UserMessage("""
-                        Fix the JSX errors and regenerate the "%s" section (orderIndex: %d).
+                Fix the errors in this code and return the corrected JSON.
 
-                        Section plan:
-                        - Layout hint: %s
-                        - Content strategy: %s
-
-                        User prompt: %s
-                        Custom style notes: %s
-
-                        Resume data:
-                        Name: %s
-                        Summary: %s
-                        Contact info: %s
-                        Skills: %s
-                        Experience: %s
-                        Projects: %s
-                        Education: %s
-
-                        Uploaded media assets:
-                        %s
+                FAILED CODE:
+                %s
                 """.formatted(
-                targetSection.getSectionKey(),
-                targetSection.getOrderIndex(),
-                targetSection.getLayoutHint(),
-                targetSection.getContentStrategy(),
-                effectivePrompt,
-                customNotes.isBlank() ? "none" : customNotes,
-                safe(resume.getFullName()),
-                safe(resume.getSummary()),
-                formatContactInfo(resume),
-                formatList(resume.getSkills()),
-                resume.getExperiences() == null ? "none" : resume.getExperiences().toString(),
-                resume.getProjects() == null ? "none" : resume.getProjects().toString(),
-                resume.getEducations() == null ? "none" : resume.getEducations().toString(),
-                assetsJson));
+                failedReactSource != null ? failedReactSource : "(no previous code available)"
+        ));
 
         return new Prompt(List.of(system, user));
     }

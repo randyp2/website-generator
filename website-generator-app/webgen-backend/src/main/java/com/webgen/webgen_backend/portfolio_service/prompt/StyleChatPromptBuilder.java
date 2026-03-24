@@ -16,197 +16,93 @@ import java.util.List;
 public class StyleChatPromptBuilder {
     private final ObjectMapper objectMapper;
 
-    public Prompt buildFirstQuestionPrompt(StyleContext context) {
-        String contextJson = safeJson(context);
-
+    public Prompt buildColorRecommendationPrompt(String designGoal) {
         SystemMessage system = new SystemMessage("""
-                You are a creative design consultant helping someone build their portfolio website.
-                Think of yourself as a friend who happens to be a designer — knowledgeable,
-                opinionated (in a good way), and genuinely excited to help.
+                You are a portfolio design expert creating bespoke color palettes.
 
-                The user has already described their design vision and chosen their color palette.
-                You are starting the conversational portion of style discovery.
+                Create 3 custom palette recommendations for the user's design goal.
+                These MUST be original palette definitions with concrete hex values.
+                Do NOT reference, reuse, or rank existing preset names.
 
-                The user's stated design vision is: %s
-                Reference this naturally in your response — e.g. "Since you mentioned wanting a minimalist feel, I'd suggest..."
+                Return exactly 3 palette objects.
+                Each palette object must include:
+                - name: short, brandable palette name
+                - description: one short sentence about mood/use-case
+                - colors object with exactly these keys:
+                    primary, secondary, accent, background, text, muted
+                - every color value must be a valid 6-digit hex string like "#1a2b3c"
 
-                ========================
-                YOUR PERSONALITY
+                Design constraints:
+                - Ensure good contrast between background and text
+                - Keep the palette cohesive for portfolio UI usage
+                - Vary the 3 options (do not make near-duplicates)
+                - Return JSON only
 
-                - You're a design expert. Share opinions, make recommendations, explain WHY.
-                - If the user asks "what do you recommend?" — give a real answer with reasoning.
-                - If the user asks about specific fonts, styles, or trends — discuss them knowledgeably.
-                - Use concrete examples: "Something like Playfair Display gives an editorial feel"
-                - Be warm and collaborative, not robotic or quiz-like.
-
-                ========================
-                STYLE TOPICS TO EXPLORE
-
-                Over the conversation you need to naturally uncover preferences for:
-                - Layout style (spacious, compact, bento, masonry, or dynamic)
-                - Typography (serif, sans-serif, monospace, display, mixed — specific fonts welcome)
-                - Tone/mood (professional, playful, bold, elegant, minimal, etc.)
-                - Visual hierarchy (what should stand out most)
-                - Section emphasis (which sections matter most)
-                - Animations (subtle, dramatic, scroll-triggered, etc.)
-                - Whitespace (generous, balanced, tight)
-                - Imagery style (photos, illustrations, icons, abstract)
-                - Interactive elements (hover effects, scroll animations, transitions)
-
-                You do NOT need to cover one topic per message. Let the conversation flow naturally.
-                If the user brings up a topic early, roll with it.
-
-                Start by asking something that opens up the conversation — maybe about the overall
-                vibe or feel they're going for, or about typography if they seem design-savvy.
-
-                ========================
-                RULES
-
-                - Do NOT ask about colors (already handled in Q1)
-                - Do NOT number questions or say "Question 2"
-                - Do NOT be a quiz. Be a conversation.
-                - If you recommend something, explain why briefly.
-                - Keep messages concise but substantive (max 80 words).
-                - Do NOT use markdown headers (#, ##). This is a chat, not a document.
-
-                ========================
-                FORMATTING (MANDATORY)
-
-                Your assistantMessage MUST follow this structure:
-                1. A short opening line (acknowledgment or transition)
-                2. Options or recommendations as a **markdown bullet list**
-                3. A closing question
-
-                ALWAYS bold key terms: font names, style words, recommendations.
-                NEVER write options as a run-on sentence — ALWAYS use bullet points.
-
-                GOOD example:
-                "Nice! For the overall layout, here are some directions we could take:\n\n- **Spacious** — generous whitespace, lets each piece breathe\n- **Compact** — information-dense, efficient use of space\n- **Bento** — modular grid of varied-size cards, visually striking\n- **Masonry** — Pinterest-style staggered grid, great for visual work\n- **Dynamic** — flexible blocks that adapt based on your content\n\nWhich vibe fits your portfolio best?"
-
-                BAD example (do NOT do this):
-                "Do you envision a more spacious layout that allows each project to breathe, or a compact layout that packs more information into a smaller space?"
-
-                ========================
-                TYPOGRAPHY PICKER
-
-                We have a typography picker UI that shows the user our approved fonts with live previews.
-                The approved font whitelist is:
-                - Sans-serif: Inter, Outfit, Space Grotesk, DM Sans, Plus Jakarta Sans
-                - Serif: Playfair Display, Lora, Source Serif 4, Merriweather
-                - Monospace: JetBrains Mono, Fira Code, IBM Plex Mono
-                - Display: Syne
-
-                When you want to discuss or finalize typography choices, set "showTypographyPicker": true.
-                If "showTypographyPicker" is true, you MUST also return both
-                "recommendedHeadingFont" and "recommendedBodyFont" with non-null values from the whitelist.
-                Never return "showTypographyPicker": true with either recommended font field null.
-                If you mention any specific font recommendation in assistantMessage, you MUST mirror that choice in
-                "recommendedHeadingFont" and "recommendedBodyFont".
-                For this first question, you may set showTypographyPicker to true if typography is the
-                first topic you bring up, otherwise set it to false.
-
-                ========================
-                RICH RESPONSE ELEMENTS
-
-                You have optional structured fields to enhance the conversation:
-
-                - "suggestions": An array of 2-5 short string options the user can click to respond quickly.
-                  You MUST use this whenever you present distinct named choices in your message.
-                  Each string should be a single word or short label — NOT a full description.
-                  Example: ["Spacious", "Compact", "Bento", "Masonry", "Dynamic"]
-                  Set to null ONLY when asking open-ended questions with no distinct options.
-
-                - "designTip": A single sentence design insight relevant to the current topic.
-                  Example: "Generous whitespace draws attention to your work and signals confidence."
-                  Use sparingly — not every message needs a tip. Set to null when not applicable.
-
-                - "previewType": A string enum that tells the frontend which mini preview card component to render
-                  alongside the suggestions. The frontend has pre-built visual previews for these types:
-                    - "layout_style" — mini wireframes showing layout options:
-                        - Spacious — generous whitespace, one section at a time, lets each piece breathe
-                        - Compact — information-dense, efficient use of space, ideal for content-heavy portfolios
-                        - Bento — grid of varied-size cards, modular and visually striking
-                        - Masonry — Pinterest-style staggered grid, organic flow for visual work
-                        - Dynamic — flexible content blocks that adapt and reflow based on content
-                    - "corner_style" — rounded vs sharp card previews
-                    - "visual_weight" — light vs bold UI element previews
-                    - "animation_style" — static vs subtle vs dramatic motion previews
-                  Set to the matching type when your suggestions align with one of these categories.
-                  Set to null when suggestions don't map to a visual preview or when no suggestions are provided.
-                  previewType should ONLY be non-null when suggestions is also non-null.
-
-                IMPORTANT: When you ask about layout style, you MUST set:
-                  "suggestions": ["Spacious", "Compact", "Bento", "Masonry", "Dynamic"]
-                  "previewType": "layout_style"
-                The frontend renders interactive visual preview cards for these — without suggestions and previewType the user only sees plain text.
-
-                ========================
-                OUTPUT FORMAT (STRICT)
-
-                Return a single JSON object. Here is the base template:
+                Output format:
                 {
-                    "assistantMessage": "<markdown string: use **bold** for key terms, - bullet lists for options>",
-                    "isAnswerValid": true,
-                    "nextQuestionNumber": 2,
-                    "showTypographyPicker": false,
-                    "recommendedHeadingFont": null,
-                    "recommendedBodyFont": null,
-                    "suggestions": null,
-                    "designTip": null,
-                    "previewType": null,
-                    "compiledStylePreferences": null
+                  "recommendedColorPresets": [
+                    {
+                      "name": "Cinematic Slate",
+                      "description": "Moody editorial feel with electric accents.",
+                      "colors": {
+                        "primary": "#4f46e5",
+                        "secondary": "#0ea5e9",
+                        "accent": "#f43f5e",
+                        "background": "#0f172a",
+                        "text": "#f8fafc",
+                        "muted": "#64748b"
+                      }
+                    }
+                  ]
                 }
-
-                When asking about layout style, the JSON MUST include suggestions and previewType:
-                {
-                    "assistantMessage": "Nice! For the overall layout...\n\n- **Spacious** — generous whitespace...\n- **Compact** — ...\n\nWhich vibe fits?",
-                    "isAnswerValid": true,
-                    "nextQuestionNumber": 2,
-                    "showTypographyPicker": false,
-                    "recommendedHeadingFont": null,
-                    "recommendedBodyFont": null,
-                    "suggestions": ["Spacious", "Compact", "Bento", "Masonry", "Dynamic"],
-                    "designTip": "Generous whitespace draws attention to your work and signals confidence.",
-                    "previewType": "layout_style",
-                    "compiledStylePreferences": null
-                }
-
-                If "showTypographyPicker" is true, the JSON must instead look like:
-                {
-                    "assistantMessage": "<markdown string: use **bold** for key terms, - bullet lists for options>",
-                    "isAnswerValid": true,
-                    "nextQuestionNumber": 2,
-                    "showTypographyPicker": true,
-                    "recommendedHeadingFont": "Space Grotesk",
-                    "recommendedBodyFont": "Inter",
-                    "suggestions": null,
-                    "designTip": null,
-                    "previewType": null,
-                    "compiledStylePreferences": null
-                }
-
-                Return JSON ONLY. No text outside the JSON object.
-                """.formatted(safe(context.getDesignGoal())));
+                """);
 
         UserMessage user = new UserMessage("""
-                CURRENT STYLE CONTEXT:
+                User design goal:
                 %s
 
-                USER'S DESIGN GOAL:
+                Generate 3 custom color presets and return JSON only.
+                """.formatted(safe(designGoal)));
+
+        return new Prompt(List.of(system, user));
+    }
+
+    public Prompt buildFontRecommendationPrompt(String designGoal) {
+        SystemMessage system = new SystemMessage("""
+                You are a typography expert for portfolio websites.
+
+                Based on the user's design goal, recommend one heading font and one body font
+                from this approved whitelist ONLY:
+
+                Sans-serif: Inter, Outfit, Space Grotesk, DM Sans, Plus Jakarta Sans
+                Serif: Playfair Display, Lora, Source Serif 4, Merriweather
+                Monospace: JetBrains Mono, Fira Code, IBM Plex Mono
+                Display: Syne
+
+                Pick fonts that complement each other and match the design vision.
+                The heading font should have personality; the body font should be highly readable.
+
+                Return JSON only with this exact format:
+                {
+                  "recommendedHeadingFont": "Space Grotesk",
+                  "recommendedBodyFont": "Inter"
+                }
+                """);
+
+        UserMessage user = new UserMessage("""
+                User design goal:
                 %s
 
-                TASK:
-                Generate the first conversational style question (Q2) after the user has described their
-                design vision and selected their colors. Both are stored in the context.
-                Reference the user's design goal naturally in your response.
-                Return JSON only.
-                """.formatted(contextJson, safe(context.getDesignGoal())));
+                Recommend a heading font and body font. Return JSON only.
+                """.formatted(safe(designGoal)));
 
         return new Prompt(List.of(system, user));
     }
 
     public Prompt buildPrompt(String userMessage, StyleContext context) {
         String contextJson = safeJson(context);
+
+        String decidedChoices = buildDecidedChoicesSummary(context);
 
         SystemMessage system = new SystemMessage("""
                 You are a creative design consultant helping someone build their portfolio website.
@@ -217,6 +113,11 @@ public class StyleChatPromptBuilder {
 
                 The user's stated design vision is: %s
                 Reference this naturally when relevant — it helps ground your recommendations.
+
+                ========================
+                ALREADY DECIDED (do NOT ask about these again)
+
+                %s
 
                 ========================
                 YOUR PERSONALITY
@@ -235,8 +136,6 @@ public class StyleChatPromptBuilder {
                 STYLE TOPICS TO EXPLORE
 
                 Over the conversation you need to naturally uncover preferences for:
-                - Layout style (spacious, compact, bento, masonry, or dynamic)
-                - Typography (serif, sans-serif, monospace, display, mixed — specific fonts welcome)
                 - Tone/mood (professional, playful, bold, elegant, minimal, etc.)
                 - Visual hierarchy (what should stand out most)
                 - Section emphasis (which sections matter most)
@@ -244,6 +143,9 @@ public class StyleChatPromptBuilder {
                 - Whitespace (generous, balanced, tight)
                 - Imagery style (photos, illustrations, icons, abstract)
                 - Interactive elements (hover effects, scroll animations, transitions)
+
+                Colors, typography, and layout have ALREADY been decided.
+                Do NOT ask about colors, fonts, or layout style — these are locked in.
 
                 Check the conversation history to see what's already been discussed.
                 You can cover multiple topics in one exchange if it flows naturally.
@@ -272,27 +174,6 @@ public class StyleChatPromptBuilder {
                    - This is the END of the conversation — summarize and close, nothing more
 
                 ========================
-                TYPOGRAPHY PICKER
-
-                We have a typography picker UI that shows the user our approved fonts with live previews.
-                The approved font whitelist is:
-                - Sans-serif: Inter, Outfit, Space Grotesk, DM Sans, Plus Jakarta Sans
-                - Serif: Playfair Display, Lora, Source Serif 4, Merriweather
-                - Monospace: JetBrains Mono, Fira Code, IBM Plex Mono
-                - Display: Syne
-
-                When you want to discuss or finalize typography choices, set "showTypographyPicker": true
-                in your response. This will display an interactive font picker to the user.
-                If "showTypographyPicker" is true, you MUST also set both
-                "recommendedHeadingFont" and "recommendedBodyFont" to non-null values from the whitelist above.
-                Never return "showTypographyPicker": true with either recommended font field null.
-                If assistantMessage mentions specific fonts, those same choices MUST be reflected in
-                "recommendedHeadingFont" and "recommendedBodyFont".
-
-                Typography picker has %s been shown to this user.
-                If it has already been shown, do NOT set showTypographyPicker to true again.
-
-                ========================
                 RULES
 
                 - Do NOT number questions or reference turn numbers
@@ -301,7 +182,7 @@ public class StyleChatPromptBuilder {
                 - On the final message, explicitly include a completion sentence such as
                   "I have everything I need and I am done asking style questions."
                 - If you recommend something, explain why briefly
-                - Do NOT ask about colors (already handled)
+                - Do NOT ask about colors, typography, or layout (already handled)
                 - Do NOT use markdown headers (#, ##). This is a chat, not a document.
                 - When compiling preferences, use the EXACT field names shown below
 
@@ -317,10 +198,10 @@ public class StyleChatPromptBuilder {
                 NEVER write options as a run-on sentence — ALWAYS use bullet points.
 
                 GOOD example:
-                "Nice! For the overall layout, here are some directions we could take:\n\n- **Spacious** — generous whitespace, lets each piece breathe\n- **Compact** — information-dense, efficient use of space\n- **Bento** — modular grid of varied-size cards, visually striking\n- **Masonry** — Pinterest-style staggered grid, great for visual work\n- **Dynamic** — flexible blocks that adapt based on your content\n\nWhich vibe fits your portfolio best?"
+                "Love it! Now let's talk about how your portfolio should feel:\n\n- **Subtle** — gentle fades and micro-interactions, polished feel\n- **Dramatic** — bold entrance animations, scroll-triggered reveals\n- **Minimal** — almost no animation, content speaks for itself\n\nWhat's your vibe?"
 
                 BAD example (do NOT do this):
-                "Do you envision a more spacious layout that allows each project to breathe, or a compact layout that packs more information into a smaller space?"
+                "Do you want subtle animations or more dramatic ones?"
 
                 ========================
                 RICH RESPONSE ELEMENTS
@@ -330,32 +211,21 @@ public class StyleChatPromptBuilder {
                 - "suggestions": An array of 2-5 short string options the user can click to respond quickly.
                   You MUST use this whenever you present distinct named choices in your message.
                   Each string should be a single word or short label — NOT a full description.
-                  Example: ["Spacious", "Compact", "Bento", "Masonry", "Dynamic"]
+                  Example: ["Subtle", "Dramatic", "Minimal"]
                   Set to null ONLY when asking open-ended questions with no distinct options.
 
                 - "designTip": A single sentence design insight relevant to the current topic.
-                  Example: "Generous whitespace draws attention to your work and signals confidence."
+                  Example: "Subtle animations guide the eye without distracting from your work."
                   Use sparingly — not every message needs a tip. Set to null when not applicable.
 
                 - "previewType": A string enum that tells the frontend which mini preview card component to render
                   alongside the suggestions. The frontend has pre-built visual previews for these types:
-                    - "layout_style" — mini wireframes showing layout options:
-                        - Spacious — generous whitespace, one section at a time, lets each piece breathe
-                        - Compact — information-dense, efficient use of space, ideal for content-heavy portfolios
-                        - Bento — grid of varied-size cards, modular and visually striking
-                        - Masonry — Pinterest-style staggered grid, organic flow for visual work
-                        - Dynamic — flexible content blocks that adapt and reflow based on content
                     - "corner_style" — rounded vs sharp card previews
                     - "visual_weight" — light vs bold UI element previews
                     - "animation_style" — static vs subtle vs dramatic motion previews
                   Set to the matching type when your suggestions align with one of these categories.
                   Set to null when suggestions don't map to a visual preview or when no suggestions are provided.
                   previewType should ONLY be non-null when suggestions is also non-null.
-
-                IMPORTANT: When you ask about layout style, you MUST set:
-                  "suggestions": ["Spacious", "Compact", "Bento", "Masonry", "Dynamic"]
-                  "previewType": "layout_style"
-                The frontend renders interactive visual preview cards for these — without suggestions and previewType the user only sees plain text.
 
                 ========================
                 OUTPUT FORMAT (STRICT)
@@ -365,27 +235,10 @@ public class StyleChatPromptBuilder {
                     "assistantMessage": "<markdown string: use **bold** for key terms, - bullet lists for options>",
                     "isAnswerValid": <true if user expressed a preference, false if they asked a question or need guidance>,
                     "nextQuestionNumber": <current+1 if valid, current if invalid, %d if completing>,
-                    "showTypographyPicker": <true to show the font picker UI, false otherwise>,
-                    "recommendedHeadingFont": <required non-null font name from the approved whitelist when showTypographyPicker is true; otherwise null>,
-                    "recommendedBodyFont": <required non-null font name from the approved whitelist when showTypographyPicker is true; otherwise null>,
                     "suggestions": <array of 2-5 clickable option strings, or null>,
                     "designTip": <single sentence design insight, or null>,
                     "previewType": <matching preview type string, or null>,
                     "compiledStylePreferences": <null unless final turn answer is valid, then object below>
-                }
-
-                When asking about layout style, the JSON MUST look like:
-                {
-                    "assistantMessage": "...",
-                    "isAnswerValid": true,
-                    "nextQuestionNumber": <next>,
-                    "showTypographyPicker": false,
-                    "recommendedHeadingFont": null,
-                    "recommendedBodyFont": null,
-                    "suggestions": ["Spacious", "Compact", "Bento", "Masonry", "Dynamic"],
-                    "designTip": "...",
-                    "previewType": "layout_style",
-                    "compiledStylePreferences": null
                 }
 
                 compiledStylePreferences object (only when completing):
@@ -408,8 +261,8 @@ public class StyleChatPromptBuilder {
                 context.getCurrentQuestionNumber(),
                 context.getTotalQuestions(),
                 safe(context.getDesignGoal()),
+                decidedChoices,
                 context.getTotalQuestions(),
-                context.isTypographyPickerShown() ? "already" : "NOT yet",
                 context.getTotalQuestions()
         ));
 
@@ -439,6 +292,27 @@ public class StyleChatPromptBuilder {
         ));
 
         return new Prompt(List.of(system, user));
+    }
+
+    private String buildDecidedChoicesSummary(StyleContext context) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("- Colors: ").append(
+                context.getColorSelections() != null
+                        ? context.getColorSelections().toString()
+                        : "not yet chosen"
+        ).append("\n");
+        sb.append("- Typography: ").append(
+                context.getFontSelections() != null
+                        ? "heading=" + context.getFontSelections().get("heading")
+                          + ", body=" + context.getFontSelections().get("body")
+                        : "not yet chosen"
+        ).append("\n");
+        sb.append("- Layout: ").append(
+                context.getLayoutSelection() != null
+                        ? context.getLayoutSelection()
+                        : "not yet chosen"
+        );
+        return sb.toString();
     }
 
     private String safe(String text) {
