@@ -11,16 +11,20 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 public class PortfolioResponseParser {
+
+    private static final Pattern MARKDOWN_FENCE = Pattern.compile("^\\s*```(?:json)?\\s*\\n?(.*?)\\n?\\s*```\\s*$", Pattern.DOTALL);
 
     private final ObjectMapper objectMapper;
 
     public BlueprintDTO parseBlueprintResponse(String rawJson) {
         System.out.println(">>> [PARSER] parseBlueprintResponse () started");
         System.out.println(">>> [PARSER] Raw JSON length: " + (rawJson != null ? rawJson.length() : 0));
+        rawJson = stripMarkdownFence(rawJson);
 
         try {
             JsonNode root = objectMapper.readTree(rawJson);
@@ -100,6 +104,7 @@ public class PortfolioResponseParser {
 
     public SectionDTO parseSingleSectionResponse(String rawJson) {
         System.out.println(">>> [PARSER] parseSectionResponse() started");
+        rawJson = stripMarkdownFence(rawJson);
 
         try {
 
@@ -122,6 +127,7 @@ public class PortfolioResponseParser {
     public PortfolioGenerateResponseDTO parseGenerateResponse(String rawJson) {
         System.out.println(">>> [PARSER] parseGenerateResponse() started");
         System.out.println(">>> [PARSER] Raw JSON length: " + (rawJson != null ? rawJson.length() : 0));
+        rawJson = stripMarkdownFence(rawJson);
 
         try {
             JsonNode root = objectMapper.readTree(rawJson);
@@ -225,6 +231,12 @@ public class PortfolioResponseParser {
 
     private String normalizeSectionKey(String sectionKey) {
         return sectionKey == null ? null : sectionKey.trim().toLowerCase();
+    }
+
+    private String stripMarkdownFence(String raw) {
+        if (raw == null) return null;
+        var matcher = MARKDOWN_FENCE.matcher(raw);
+        return matcher.matches() ? matcher.group(1).trim() : raw.trim();
     }
 
     private String sanitizeReactSource(String reactSource) {
