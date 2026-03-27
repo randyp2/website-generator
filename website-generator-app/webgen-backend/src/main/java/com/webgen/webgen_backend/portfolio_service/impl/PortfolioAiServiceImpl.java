@@ -20,10 +20,9 @@ import com.webgen.webgen_backend.portfolio_service.validator.JsxValidatorService
 import com.webgen.webgen_backend.repository.GeneratedVersionRepository;
 import com.webgen.webgen_backend.repository.PortfolioRepository;
 import com.webgen.webgen_backend.repository.PortfolioSectionRepository;
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.anthropic.AnthropicChatModel;
-//import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -39,10 +38,8 @@ import java.util.stream.Collectors;
 @Service
 public class PortfolioAiServiceImpl implements PortfolioAiService {
 
-    private final AnthropicChatModel blueprintModel;  // High creativity for design planning
-    private final AnthropicChatModel sectionModel;    // Low creativity for JSX code generation
-//    private final OpenAiChatModel blueprintModel;
-//    private final OpenAiChatModel sectionModel;
+    private final ChatModel blueprintModel;
+    private final ChatModel sectionModel;
 
     private final GenerateJobService jobService;
 
@@ -62,8 +59,8 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
     private int maxRetries;
 
     public PortfolioAiServiceImpl(
-            @Qualifier("anthropicBlueprintModel") AnthropicChatModel blueprintModel,
-            @Qualifier("anthropicSectionModel") AnthropicChatModel sectionModel,
+            @Qualifier("portfolioBlueprintModel") ChatModel blueprintModel,
+            @Qualifier("portfolioSectionModel") ChatModel sectionModel,
             GenerateJobService jobService,
             PromptRefinerService promptRefinerService,
             PortfolioPromptBuilder portfolioPromptBuilder,
