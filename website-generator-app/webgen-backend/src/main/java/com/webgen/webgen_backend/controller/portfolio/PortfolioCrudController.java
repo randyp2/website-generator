@@ -132,5 +132,25 @@ public class PortfolioCrudController {
         ActivateVersionResponseDTO response = portfolioCrudService.activateVersion(userId, id, versionId);
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/{id}/publish")
+    public ResponseEntity<PublishResponseDTO> publishPortfolio(
+            @PathVariable UUID id,
+            @RequestBody PublishRequestDTO request) {
+        UUID userId = UUID.fromString(
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
+        );
+        PublishResponseDTO response = portfolioCrudService.publishPortfolio(userId, id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/unpublish")
+    public ResponseEntity<Void> unpublishPortfolio(@PathVariable UUID id) {
+        UUID userId = UUID.fromString(
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
+        );
+        portfolioCrudService.unpublishPortfolio(userId, id);
+        return ResponseEntity.noContent().build();
+    }
 }
 

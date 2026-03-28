@@ -17,7 +17,9 @@ import com.webgen.webgen_backend.repository.AssetRepository;
 import com.webgen.webgen_backend.repository.GeneratedVersionRepository;
 import com.webgen.webgen_backend.repository.PortfolioRepository;
 import com.webgen.webgen_backend.repository.PortfolioSectionRepository;
+import com.webgen.webgen_backend.repository.ProfileRepository;
 import com.webgen.webgen_backend.repository.ResumeRepository;
+import com.webgen.webgen_backend.util.SlugUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -38,6 +40,7 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
     private final AssetRepository assetRepository;
     private final GeneratedVersionRepository generatedVersionRepository;
     private final PortfolioSectionRepository portfolioSectionRepository;
+    private final ProfileRepository profileRepository;
     private final PortfolioMapper portfolioMapper;
     private final ResumeMapper resumeMapper;
     private final AssetMapper assetMapper;
@@ -306,5 +309,69 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         portfolioRepository.save(portfolio);
 
         return new ActivateVersionResponseDTO(portfolioId, versionId);
+    }
+
+    @Override
+    public PublishResponseDTO publishPortfolio(UUID userId, UUID portfolioId, PublishRequestDTO request) {
+        Portfolio portfolio = portfolioRepository.findById(portfolioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio not found"));
+
+        if (!portfolio.getUserId().equals(userId))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+
+        // Must have sections to publish
+        List<PortfolioSection> sections = portfolioSectionRepository
+                .findAllByPortfolioIdOrderByOrderIndexAsc(portfolioId);
+        if (sections.isEmpty())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot publish a portfolio with no sections");
+
+        // Resolve slug
+        String slug;
+        if (request.getSlug() != null && !request.getSlug().isBlank()) {
+            slug = request.getSlug().trim().toLowerCase();
+            if (!SlugUtil.isValid(slug))
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid slug format");
+            // Allow re-publishing with the same slug the portfolio already owns
+            boolean slugTaken = portfolioRepository.existsBySlug(slug);
+            boolean ownSlug = slug.equals(portfolio.getSlug());
+            if (slugTaken && !ownSlug)
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Slug is already taken");
+        } else {
+            // Auto-generate from profile name or portfolio title
+            String baseName = profileRepository.findById(userId)
+                    .map(p -> p.getFullName())
+                    .orElse(portfolio.getTitle());
+            slug = generateUniqueSlug(baseName != null ? baseName : "portfolio");
+        }
+
+        portfolio.setSlug(slug);
+        portfolio.setStatus("publish");
+        portfolio.setLastStep("publish");
+        portfolio.setUpdatedAt(OffsetDateTime.now());
+        portfolioRepository.save(portfolio);
+
+        return new PublishResponseDTO(slug, "publish");
+    }
+
+    @Override
+    public void unpublishPortfolio(UUID userId, UUID portfolioId) {
+        Portfolio portfolio = portfolioRepository.findById(portfolioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio not found"));
+
+        if (!portfolio.getUserId().equals(userId))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+
+        portfolio.setStatus("draft");
+        portfolio.setUpdatedAt(OffsetDateTime.now());
+        // Retain slug so the user can re-publish at the same URL
+        portfolioRepository.save(portfolio);
+    }
+
+    private String generateUniqueSlug(String baseName) {
+        for (int attempt = 0; attempt < 5; attempt++) {
+            String slug = SlugUtil.generateSlug(baseName);
+            if (!portfolioRepository.existsBySlug(slug)) return slug;
+        }
+        throw new ResponseStatusException(HttpStatus.CONFLICT, "Could not generate a unique slug, please provide one manually");
     }
 }

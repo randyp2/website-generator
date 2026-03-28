@@ -111,4 +111,22 @@ public interface PortfolioCrudService {
      * @param portfolioId - UUID of the portfolio to check
      */
     void verifyOwnership(UUID userId, UUID portfolioId);
+
+    /**
+     * Publish a portfolio: assign a slug and set status to 'publish'
+     *
+     * @param userId      - UUID of the authenticated user (for ownership check)
+     * @param portfolioId - UUID of the portfolio to publish
+     * @param request     - Optional slug (auto-generated if null)
+     * @return PublishResponseDTO - The assigned slug and new status
+     */
+    PublishResponseDTO publishPortfolio(UUID userId, UUID portfolioId, PublishRequestDTO request);
+
+    /**
+     * Unpublish a portfolio: set status back to 'draft', retain slug
+     *
+     * @param userId      - UUID of the authenticated user (for ownership check)
+     * @param portfolioId - UUID of the portfolio to unpublish
+     */
+    void unpublishPortfolio(UUID userId, UUID portfolioId);
 }
