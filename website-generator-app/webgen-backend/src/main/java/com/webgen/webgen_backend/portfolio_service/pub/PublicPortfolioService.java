@@ -6,4 +6,5 @@ import java.util.Optional;
 
 public interface PublicPortfolioService {
     Optional<PublicPortfolioDTO> getBySlug(String slug);
+    Optional<String> getHtmlBySlug(String slug);
 }

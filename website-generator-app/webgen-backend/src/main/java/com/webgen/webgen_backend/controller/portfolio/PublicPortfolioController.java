@@ -5,6 +5,7 @@ import com.webgen.webgen_backend.portfolio_service.pub.PublicPortfolioService;
 import com.webgen.webgen_backend.repository.PortfolioRepository;
 import com.webgen.webgen_backend.util.SlugUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,6 +26,13 @@ public class PublicPortfolioController {
     public ResponseEntity<PublicPortfolioDTO> getBySlug(@PathVariable String slug) {
         return publicPortfolioService.getBySlug(slug)
                 .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping(value = "/{slug}/html", produces = MediaType.TEXT_HTML_VALUE)
+    public ResponseEntity<String> getHtmlBySlug(@PathVariable String slug) {
+        return publicPortfolioService.getHtmlBySlug(slug)
+                .map(html -> ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(html))
                 .orElse(ResponseEntity.notFound().build());
     }
 
