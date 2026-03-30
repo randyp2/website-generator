@@ -3,6 +3,7 @@ package com.webgen.webgen_backend.portfolio_service.pub.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.dto.portfolio.GlobalThemeDTO;
 import com.webgen.webgen_backend.dto.portfolio.SectionDTO;
+import com.webgen.webgen_backend.dto.portfolio.pub.PublicPortfolioCardDTO;
 import com.webgen.webgen_backend.dto.portfolio.pub.PublicPortfolioDTO;
 import com.webgen.webgen_backend.dto.portfolio.pub.PublicSectionDTO;
 import com.webgen.webgen_backend.entity.GeneratedVersion;
@@ -16,6 +17,8 @@ import com.webgen.webgen_backend.repository.PortfolioRepository;
 import com.webgen.webgen_backend.repository.PortfolioSectionRepository;
 import com.webgen.webgen_backend.repository.ProfileRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -117,5 +120,25 @@ public class PublicPortfolioServiceImpl implements PublicPortfolioService {
 
         String html = htmlExportService.generateHtml(sectionDTOs, globalTheme, portfolio.getTitle());
         return Optional.of(html);
+    }
+
+    @Override
+    public Page<PublicPortfolioCardDTO> listPublished(Pageable pageable) {
+        Page<Portfolio> portfolios = portfolioRepository.findByStatusAndSlugIsNotNull("publish", pageable);
+
+        return portfolios.map(portfolio -> {
+            PublicPortfolioCardDTO card = new PublicPortfolioCardDTO();
+            card.setTitle(portfolio.getTitle());
+            card.setSlug(portfolio.getSlug());
+            card.setTemplateId(portfolio.getTemplateId());
+            card.setPublishedAt(portfolio.getUpdatedAt());
+
+            profileRepository.findById(portfolio.getUserId()).ifPresent(profile -> {
+                card.setOwnerName(profile.getFullName());
+                card.setOwnerAvatarUrl(profile.getAvatarUrl());
+            });
+
+            return card;
+        });
     }
 }
