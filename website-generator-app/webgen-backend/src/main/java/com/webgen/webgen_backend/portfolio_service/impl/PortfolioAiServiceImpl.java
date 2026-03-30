@@ -156,27 +156,26 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
 
         // --- Step 3) Fan out sections
         List<SectionGenerationMessage> messages = blueprint.getSectionPlan().stream()
-                        .map(planItem -> {
-                            SectionGenerationMessage msg = new SectionGenerationMessage();
+                .map(planItem -> {
+                    SectionGenerationMessage msg = new SectionGenerationMessage();
 
-                            // Set property fields for one shot generation flow
-                            msg.setJobId(jobId);
-                            msg.setPortfolioId(portfolioId.toString());
-                            msg.setUserId(userId.toString());
-                            msg.setTotalSections(blueprint.getSectionPlan().size());
-                            msg.setMode(SectionGenerationMessage.Mode.GENERATE);
-                            msg.setReq(req);
-                            msg.setRefinedPrompt(refinedPrompt);
-                            msg.setBlueprint(blueprint);
-                            msg.setPlanItem(planItem);
+                    // Set property fields for one shot generation flow
+                    msg.setJobId(jobId);
+                    msg.setPortfolioId(portfolioId.toString());
+                    msg.setUserId(userId.toString());
+                    msg.setTotalSections(blueprint.getSectionPlan().size());
+                    msg.setMode(SectionGenerationMessage.Mode.GENERATE);
+                    msg.setReq(req);
+                    msg.setRefinedPrompt(refinedPrompt);
+                    msg.setBlueprint(blueprint);
+                    msg.setPlanItem(planItem);
 
-                            return msg;
-                        })
-                        .toList();
+                    return msg;
+                })
+                .toList();
 
         jobService.fanOutSections(messages);
     }
-
 
     @Override
     public void generateSingleSectionFromQueue(SectionGenerationMessage msg) {
@@ -190,19 +189,23 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
         ValidationResult validation = null;
         int attempt = 0;
 
-        while (attempt < maxRetries)  {
+        while (attempt < maxRetries) {
             ++attempt;
-            System.out.println(">>> [SECTION-WORKER] Section '" + sectionKey + "' attempt " + attempt + "/" + maxRetries);
+            System.out
+                    .println(">>> [SECTION-WORKER] Section '" + sectionKey + "' attempt " + attempt + "/" + maxRetries);
 
-            // --- Build prompt (use retry prompt with errors if previous attempt failed validation)
+            // --- Build prompt (use retry prompt with errors if previous attempt failed
+            // validation)
             Prompt sectionPrompt;
             if (validation == null || validation.isValid()) {
                 sectionPrompt = portfolioPromptBuilder
-                        .buildSectionPrompt(msg.getReq(), msg.getRefinedPrompt(), msg.getBlueprint(), msg.getPlanItem());
+                        .buildSectionPrompt(msg.getReq(), msg.getRefinedPrompt(), msg.getBlueprint(),
+                                msg.getPlanItem());
             } else {
                 System.out.println(">>> [SECTION-WORKER] Retrying with validation errors (attempt " + attempt + ")");
                 sectionPrompt = portfolioPromptBuilder
-                        .buildSectionRetryPrompt(msg.getReq(), msg.getRefinedPrompt(), msg.getBlueprint(), msg.getPlanItem(), validation.getErrors(), parsedSection.getReactSource());
+                        .buildSectionRetryPrompt(msg.getReq(), msg.getRefinedPrompt(), msg.getBlueprint(),
+                                msg.getPlanItem(), validation.getErrors(), parsedSection.getReactSource());
             }
 
             // --- Call and parse LLM
@@ -228,14 +231,17 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
                 break;
             }
 
-            System.out.println(">>> [SECTION-WORKER] Section '" + sectionKey + "' validation failed (attempt " + attempt + ")");
-            System.err.println(">>> [SECTION-WORKER] Section '" + sectionKey + "' validation errors (attempt " + attempt + "):\n"
-                    + formatValidationErrors(validation, parsedSection.getReactSource()));
+            System.out.println(
+                    ">>> [SECTION-WORKER] Section '" + sectionKey + "' validation failed (attempt " + attempt + ")");
+            System.err.println(
+                    ">>> [SECTION-WORKER] Section '" + sectionKey + "' validation errors (attempt " + attempt + "):\n"
+                            + formatValidationErrors(validation, parsedSection.getReactSource()));
         }
 
         if (validation == null || !validation.isValid()) {
             System.err.println(">>> [SECTION-WORKER] Final validation errors for section '" + sectionKey + "':\n"
-                    + formatValidationErrors(validation, parsedSection == null ? null : parsedSection.getReactSource()));
+                    + formatValidationErrors(validation,
+                            parsedSection == null ? null : parsedSection.getReactSource()));
             String failReason = "Failed to generate valid JSX for section '"
                     + sectionKey + "' after " + maxRetries + " attempts";
             jobService.failJob(jobId, failReason);
@@ -247,9 +253,11 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
         int completedCount = jobService.incrementCompleted(jobId);
 
         System.out.println(">>> [SECTION-WORKER] Section '" + sectionKey + "' completed in "
-                + (System.currentTimeMillis() - sectionStart) + "ms (" + completedCount + "/" + msg.getTotalSections() + ")");
+                + (System.currentTimeMillis() - sectionStart) + "ms (" + completedCount + "/" + msg.getTotalSections()
+                + ")");
 
-        // Check if last section was generated
+        // Persist all sections into one cohesive portfolio if last section was
+        // generated
         if (completedCount == msg.getTotalSections()) {
             System.out.println(">>> [SECTION-WORKER] All sections complete — triggering persistence | job: " + jobId);
             persistFromRedis(jobId, msg.getPortfolioId(), msg.getBlueprint(), msg.getReq());
@@ -261,8 +269,7 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
             String jobId,
             String portfolioId,
             BlueprintDTO blueprint,
-            PortfolioGenerateRequestDTO req
-    ) {
+            PortfolioGenerateRequestDTO req) {
         System.out.println(">>> [PERSIST] Starting DB persistence | job: " + jobId);
         long persistStart = System.currentTimeMillis();
         jobService.updateStatus(jobId, JobStatusDTO.Status.PERSISTING);
@@ -284,85 +291,85 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
                 "",
                 sections,
                 blueprint.getAssistantMessage(),
-                blueprint.getGlobalThemeDTO()
-        );
+                blueprint.getGlobalThemeDTO());
 
         persistGenerationResults(
                 UUID.fromString(portfolioId),
                 portfolioRepository.findById(UUID.fromString(portfolioId)).orElseThrow(),
-                 req,
-                response
-        );
+                req,
+                response);
 
         jobService.updateStatus(jobId, JobStatusDTO.Status.COMPLETED);
         System.out.println(">>> [PERSIST] DB persistence completed in "
                 + (System.currentTimeMillis() - persistStart) + "ms | job: " + jobId);
     }
 
-
-//    /**
-//     * Call LLM and generate the react source code for a single section
-//     * Update the job status accordingly in redis DB
-//     * Validate react source code
-//     * @param req Generation request
-//     * @param refinedPrompt Refined user prompt
-//     * @param blueprint Blueprint of overall portfolio goals
-//     * @param planItem Specific section plan blueprint
-//     * @param priorSignatures Prior completed sections
-//     * @param jobId current job
-//     * @return section dto w/ react source code
-//     */
-//    private SectionDTO generateSingleSection(
-//            PortfolioGenerateRequestDTO req,
-//            String refinedPrompt,
-//            BlueprintDTO blueprint,
-//            BlueprintSectionPlanDTO planItem,
-//            List<String> priorSignatures,
-//            String jobId
-//    ) {
-//        SectionDTO parsedSection = null;
-//        ValidationResult validation = null;
-//        int attempt = 0;
-//
-//        while (attempt < maxRetries) {
-//            attempt++;
-//
-//            // --- Build prompt
-//            Prompt sectionPrompt = portfolioPromptBuilder
-//                    .buildSectionPrompt(req, refinedPrompt, blueprint, planItem, priorSignatures);
-//
-//            // --- Call LLM
-//            jobService.updateStatus(jobId, JobStatusDTO.Status.GENERATING);
-//            ChatResponse response = sectionModel.call(sectionPrompt);
-//            String rawJson = response.getResult().getOutput().getText();
-//
-//            // --- Parse
-//            parsedSection = portfolioResponseParser.parseSingleSectionResponse(rawJson);
-//
-//            // --- Validate react source code
-//            jobService.updateStatus(jobId, JobStatusDTO.Status.VALIDATING);
-//            validation = jsxValidatorService.validateGeneratedSections(List.of(parsedSection));
-//
-//            if (validation.isValid()) {
-//                System.out.println(">>> [SERVICE] Section  '" + planItem.getSectionKey()
-//                        + "' validated on attempt " + attempt);
-//                break;
-//            }
-//
-//            jobService.updateStatus(jobId, JobStatusDTO.Status.RETRYING);
-//            System.out.println(">>> [SERVICE] Section '" + planItem.getSectionKey()
-//                    + "' validation failed (attempt " + attempt + "): " + validation.getErrors());
-//        }
-//
-//        if (validation == null || !validation.isValid()) {
-//            String failReason = "Failed to generate valid JSX for section '"
-//                    + planItem.getSectionKey() + "' after " + maxRetries + " attempts";
-//            jobService.failJob(jobId, failReason);
-//            throw new IllegalStateException(failReason);
-//        }
-//
-//        return parsedSection;
-//    }
+    // /**
+    // * Call LLM and generate the react source code for a single section
+    // * Update the job status accordingly in redis DB
+    // * Validate react source code
+    // * @param req Generation request
+    // * @param refinedPrompt Refined user prompt
+    // * @param blueprint Blueprint of overall portfolio goals
+    // * @param planItem Specific section plan blueprint
+    // * @param priorSignatures Prior completed sections
+    // * @param jobId current job
+    // * @return section dto w/ react source code
+    // */
+    // private SectionDTO generateSingleSection(
+    // PortfolioGenerateRequestDTO req,
+    // String refinedPrompt,
+    // BlueprintDTO blueprint,
+    // BlueprintSectionPlanDTO planItem,
+    // List<String> priorSignatures,
+    // String jobId
+    // ) {
+    // SectionDTO parsedSection = null;
+    // ValidationResult validation = null;
+    // int attempt = 0;
+    //
+    // while (attempt < maxRetries) {
+    // attempt++;
+    //
+    // // --- Build prompt
+    // Prompt sectionPrompt = portfolioPromptBuilder
+    // .buildSectionPrompt(req, refinedPrompt, blueprint, planItem,
+    // priorSignatures);
+    //
+    // // --- Call LLM
+    // jobService.updateStatus(jobId, JobStatusDTO.Status.GENERATING);
+    // ChatResponse response = sectionModel.call(sectionPrompt);
+    // String rawJson = response.getResult().getOutput().getText();
+    //
+    // // --- Parse
+    // parsedSection = portfolioResponseParser.parseSingleSectionResponse(rawJson);
+    //
+    // // --- Validate react source code
+    // jobService.updateStatus(jobId, JobStatusDTO.Status.VALIDATING);
+    // validation =
+    // jsxValidatorService.validateGeneratedSections(List.of(parsedSection));
+    //
+    // if (validation.isValid()) {
+    // System.out.println(">>> [SERVICE] Section '" + planItem.getSectionKey()
+    // + "' validated on attempt " + attempt);
+    // break;
+    // }
+    //
+    // jobService.updateStatus(jobId, JobStatusDTO.Status.RETRYING);
+    // System.out.println(">>> [SERVICE] Section '" + planItem.getSectionKey()
+    // + "' validation failed (attempt " + attempt + "): " +
+    // validation.getErrors());
+    // }
+    //
+    // if (validation == null || !validation.isValid()) {
+    // String failReason = "Failed to generate valid JSX for section '"
+    // + planItem.getSectionKey() + "' after " + maxRetries + " attempts";
+    // jobService.failJob(jobId, failReason);
+    // throw new IllegalStateException(failReason);
+    // }
+    //
+    // return parsedSection;
+    // }
 
     private String buildSignature(BlueprintSectionPlanDTO planItem, SectionDTO validSection) {
         return planItem.getSectionKey() + ": " + planItem.getLayoutHint()
@@ -397,8 +404,6 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
                 })
                 .collect(Collectors.joining("\n"));
     }
-
-
 
     private void persistGenerationResults(
             UUID portfolioId,

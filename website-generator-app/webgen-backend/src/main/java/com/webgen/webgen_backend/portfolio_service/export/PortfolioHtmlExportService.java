@@ -33,19 +33,37 @@ public class PortfolioHtmlExportService {
                 .sorted(Comparator.comparingInt(s -> s.getOrderIndex() != null ? s.getOrderIndex() : 0))
                 .collect(Collectors.toList());
 
-        // Build section components
-        String sectionComponents = IntStream.range(0, sortedSections.size())
-                .mapToObj(i -> transformSectionSource(sortedSections.get(i).getReactSource(), i))
-                .collect(Collectors.joining("\n\n"));
+        // Build isolated section script blocks (each parsed independently by Babel)
+        String sectionScriptBlocks = IntStream.range(0, sortedSections.size())
+                .mapToObj(i -> String.format("""
+  <script type="text/babel">
+    const { motion, AnimatePresence, useScroll, useTransform, useSpring, useInView,
+      once, y, x, opacity, scale, rotate, stiffness, damping, repeat, duration, icon,
+      fontFamily, headingFontFamily,
+      Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight, Twitter, Instagram,
+      Youtube, ExternalLink, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
+      Menu, X, Star, Calendar, Clock, Check, Award, Briefcase, GraduationCap,
+      Code, Zap, Send, User, Users, Heart, MessageCircle, Download, FileText,
+      Image, Play, ArrowRight, ArrowLeft, ArrowDown, Plus, Minus, Search,
+      Settings, Sparkles, Quote, Target, Layers, Folder, Link } = window;
+    try {
+      %s
+      window.__sections[%d] = Section%d;
+    } catch(e) {
+      console.error("Section %d failed:", e);
+    }
+  </script>""",
+                        transformSectionSource(sortedSections.get(i).getReactSource(), i), i, i, i))
+                .collect(Collectors.joining("\n"));
 
         // Build sections data array
         String sectionsData = buildSectionsData(sortedSections);
 
-        // Build section renders
+        // Build section renders — reference window.__sections, wrapped in ErrorBoundary
         String sectionRenders = IntStream.range(0, sortedSections.size())
                 .mapToObj(i -> String.format(
-                        "        <Section%d content={sectionsData[%d]} data={sectionsData[%d]} />",
-                        i, i, i))
+                        "          {window.__sections[%d] && <ErrorBoundary key={%d}>{React.createElement(window.__sections[%d], { content: sectionsData[%d], data: sectionsData[%d] })}</ErrorBoundary>}",
+                        i, i, i, i, i))
                 .collect(Collectors.joining("\n"));
 
         // Build theme object
@@ -54,7 +72,7 @@ public class PortfolioHtmlExportService {
         // Page title
         String pageTitle = title != null && !title.isBlank() ? escapeHtml(title) : "Portfolio";
 
-        return buildHtmlDocument(pageTitle, themeJson, sectionsData, sectionComponents, sectionRenders, globalTheme);
+        return buildHtmlDocument(pageTitle, themeJson, sectionsData, sectionScriptBlocks, sectionRenders, globalTheme);
     }
 
     /**
@@ -161,7 +179,7 @@ public class PortfolioHtmlExportService {
             String pageTitle,
             String themeJson,
             String sectionsData,
-            String sectionComponents,
+            String sectionScriptBlocks,
             String sectionRenders,
             GlobalThemeDTO globalTheme
     ) {
@@ -232,15 +250,24 @@ public class PortfolioHtmlExportService {
 <body>
   <div id="root"></div>
 
+  <!-- Initialize section registry -->
+  <script>window.__sections = [];</script>
+
+  <!-- Shared globals: Framer Motion, constants, icons, theme, data -->
   <script type="text/babel">
     // =========================================================================
     // FRAMER MOTION GLOBALS
     // =========================================================================
     const { motion, AnimatePresence, useScroll, useTransform, useSpring, useInView } = Motion;
+    window.motion = motion;
+    window.AnimatePresence = AnimatePresence;
+    window.useScroll = useScroll;
+    window.useTransform = useTransform;
+    window.useSpring = useSpring;
+    window.useInView = useInView;
 
     // =========================================================================
     // COMMON ANIMATION CONSTANTS
-    // These are commonly used in portfolio section components
     // =========================================================================
     const once = true;
     const y = 0;
@@ -252,14 +279,39 @@ public class PortfolioHtmlExportService {
     const damping = 20;
     const repeat = Infinity;
     const duration = 0.5;
+    window.__consts = { once, y, x, opacity, scale, rotate, stiffness, damping, repeat, duration };
 
     // Fallback icon for shorthand syntax { icon, ... }
-    // This handles cases where components use shorthand property syntax
     const icon = (props) => (
       <svg xmlns="http://www.w3.org/2000/svg" width={props?.size || 24} height={props?.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={props?.strokeWidth || 2} strokeLinecap="round" strokeLinejoin="round" className={props?.className} style={props?.style}>
         <circle cx="12" cy="12" r="10"/>
       </svg>
     );
+    window.icon = icon;
+
+    // =========================================================================
+    // ERROR BOUNDARY — isolates section render failures
+    // =========================================================================
+    class ErrorBoundary extends React.Component {
+      constructor(props) {
+        super(props);
+        this.state = { hasError: false };
+      }
+      static getDerivedStateFromError() {
+        return { hasError: true };
+      }
+      render() {
+        if (this.state.hasError) {
+          return (
+            <div style={{ padding: '2rem', textAlign: 'center', opacity: 0.5 }}>
+              <p style={{ fontSize: '0.875rem' }}>This section could not be rendered.</p>
+            </div>
+          );
+        }
+        return this.props.children;
+      }
+    }
+    window.ErrorBoundary = ErrorBoundary;
 
     // =========================================================================
     // LUCIDE ICON COMPONENTS (Inline SVG)
@@ -267,23 +319,40 @@ public class PortfolioHtmlExportService {
 %s
 
     // =========================================================================
-    // THEME
+    // EXPOSE ALL GLOBALS TO WINDOW — section scripts run in separate scopes
     // =========================================================================
-    const theme = %s;
+    Object.assign(window, {
+      motion, AnimatePresence, useScroll, useTransform, useSpring, useInView,
+      once, y, x, opacity, scale, rotate, stiffness, damping, repeat, duration, icon,
+      Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight, Twitter, Instagram,
+      Youtube, ExternalLink, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
+      Menu, X, Star, Calendar, Clock, Check, Award, Briefcase, GraduationCap,
+      Code, Zap, Send, User, Users, Heart, MessageCircle, Download, FileText,
+      Image, Play, ArrowRight, ArrowLeft, ArrowDown, Plus, Minus, Search,
+      Settings, Sparkles, Quote, Target, Layers, Folder, Link
+    });
 
     // =========================================================================
-    // SECTIONS DATA
+    // THEME & SECTIONS DATA
     // =========================================================================
-    const sectionsData = %s;
+    window.__theme = %s;
+    window.__sectionsData = %s;
 
-    // =========================================================================
-    // SECTION COMPONENTS
-    // =========================================================================
+    // Font family globals — AI-generated sections may reference these directly
+    const fontFamily = window.__theme?.fonts?.body || 'Inter, sans-serif';
+    const headingFontFamily = window.__theme?.fonts?.heading || 'Inter, sans-serif';
+    Object.assign(window, { fontFamily, headingFontFamily });
+  </script>
+
+  <!-- Section components — each in its own script for parse isolation -->
 %s
 
-    // =========================================================================
-    // MAIN APP
-    // =========================================================================
+  <!-- Main App — assembles sections -->
+  <script type="text/babel">
+    const { ErrorBoundary } = window;
+    const sectionsData = window.__sectionsData;
+    const theme = window.__theme;
+
     function App() {
       return (
         <div className={`min-h-screen %s`}>
@@ -308,7 +377,7 @@ public class PortfolioHtmlExportService {
                 buildIconDefinitions(),
                 themeJson,
                 sectionsData,
-                sectionComponents,
+                sectionScriptBlocks,
                 bgClass,
                 textClass,
                 sectionRenders

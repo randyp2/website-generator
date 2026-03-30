@@ -1,86 +1,102 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ExploreEmptyState } from "./ExploreEmptyState";
 import { ExploreGrid } from "./ExploreGrid";
-import { ExploreToolbar } from "./ExploreToolbar";
-import {
-  GigPlatform,
-  GigRole,
-  MOCK_PORTFOLIOS,
-  PLATFORM_FILTERS,
-  ROLE_FILTERS,
-} from "../data/mockPortfolios";
+
+export interface PortfolioCard {
+  title: string;
+  slug: string;
+  templateId: string | null;
+  ownerName: string | null;
+  ownerAvatarUrl: string | null;
+  publishedAt: string;
+}
+
+interface PageResponse {
+  content: PortfolioCard[];
+  totalPages: number;
+  last: boolean;
+  number: number;
+}
 
 export function ExplorePageClient() {
-  const [query, setQuery] = useState("");
-  const [selectedRoles, setSelectedRoles] = useState<GigRole[]>([]);
-  const [selectedPlatforms, setSelectedPlatforms] = useState<GigPlatform[]>([]);
+  const [portfolios, setPortfolios] = useState<PortfolioCard[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(0);
+  const [isLast, setIsLast] = useState(false);
+  const observerRef = useRef<HTMLDivElement | null>(null);
 
-  const filteredPortfolios = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
+  const fetchPage = useCallback(async (pageNum: number) => {
+    const res = await fetch(`/api/public/portfolio?page=${pageNum}&size=12`);
+    if (!res.ok) return null;
+    return (await res.json()) as PageResponse;
+  }, []);
 
-    const filtered = MOCK_PORTFOLIOS.filter((portfolio) => {
-      const matchesQuery =
-        normalized.length === 0 ||
-        portfolio.title.toLowerCase().includes(normalized) ||
-        portfolio.description.toLowerCase().includes(normalized) ||
-        portfolio.uploaderName.toLowerCase().includes(normalized) ||
-        portfolio.tags.some((tag) => tag.toLowerCase().includes(normalized));
+  useEffect(() => {
+    const load = async () => {
+      const data = await fetchPage(0);
+      if (data) {
+        setPortfolios(data.content);
+        setIsLast(data.last);
+      }
+      setLoading(false);
+    };
+    load();
+  }, [fetchPage]);
 
-      const matchesRole =
-        selectedRoles.length === 0 ||
-        selectedRoles.includes(portfolio.uploaderRole);
+  const loadMore = useCallback(async () => {
+    if (loadingMore || isLast) return;
+    setLoadingMore(true);
+    const nextPage = page + 1;
+    const data = await fetchPage(nextPage);
+    if (data) {
+      setPortfolios((prev) => [...prev, ...data.content]);
+      setPage(nextPage);
+      setIsLast(data.last);
+    }
+    setLoadingMore(false);
+  }, [loadingMore, isLast, page, fetchPage]);
 
-      const matchesPlatform =
-        selectedPlatforms.length === 0 ||
-        selectedPlatforms.includes(portfolio.platform);
+  useEffect(() => {
+    const el = observerRef.current;
+    if (!el) return;
 
-      return matchesQuery && matchesRole && matchesPlatform;
-    });
-    return filtered;
-  }, [query, selectedPlatforms, selectedRoles]);
-
-  const toggleRole = (role: GigRole) => {
-    setSelectedRoles((current) =>
-      current.includes(role)
-        ? current.filter((item) => item !== role)
-        : [...current, role],
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) loadMore();
+      },
+      { threshold: 0.1 },
     );
-  };
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [loadMore]);
 
-  const togglePlatform = (platform: GigPlatform) => {
-    setSelectedPlatforms((current) =>
-      current.includes(platform)
-        ? current.filter((item) => item !== platform)
-        : [...current, platform],
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[radial-gradient(120%_120%_at_50%_0%,#0b1628_0%,#04070f_45%,#010205_100%)] px-4 pb-16 pt-20 md:px-8 md:pt-24">
+        <div className="flex items-center justify-center py-20">
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+        </div>
+      </main>
     );
-  };
-
-  const resetFilters = () => {
-    setQuery("");
-    setSelectedRoles([]);
-    setSelectedPlatforms([]);
-  };
+  }
 
   return (
     <main className="min-h-screen bg-[radial-gradient(120%_120%_at_50%_0%,#0b1628_0%,#04070f_45%,#010205_100%)] px-4 pb-16 pt-20 md:px-8 md:pt-24">
-      <ExploreToolbar
-        query={query}
-        onQueryChange={setQuery}
-        selectedRoles={selectedRoles}
-        selectedPlatforms={selectedPlatforms}
-        roleFilters={ROLE_FILTERS}
-        platformFilters={PLATFORM_FILTERS}
-        onToggleRole={toggleRole}
-        onTogglePlatform={togglePlatform}
-        onReset={resetFilters}
-      />
-
-      {filteredPortfolios.length === 0 ? (
-        <ExploreEmptyState onReset={resetFilters} />
+      {portfolios.length === 0 ? (
+        <ExploreEmptyState />
       ) : (
-        <ExploreGrid items={filteredPortfolios} />
+        <>
+          <ExploreGrid items={portfolios} />
+          <div ref={observerRef} className="h-10" />
+          {loadingMore && (
+            <div className="flex items-center justify-center py-8">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+            </div>
+          )}
+        </>
       )}
     </main>
   );
