@@ -21,6 +21,17 @@ interface PortfolioItem {
   updatedAt: string;
 }
 
+interface PortfolioListApiItem {
+  id: string;
+  title?: string | null;
+  status?: string | null;
+  slug?: string | null;
+  updated_at?: string;
+  updatedAt?: string;
+  created_at?: string;
+  createdAt?: string;
+}
+
 const SLUG_REGEX = /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/;
 const BASE_URL = typeof window !== "undefined" ? window.location.origin : "";
 
@@ -46,10 +57,10 @@ const PublishPage: React.FC = () => {
         const res = await fetch("/api/portfolio/list");
         if (!res.ok) throw new Error();
         const data = await res.json();
-        const items: PortfolioItem[] = (data.portfolios ?? []).map((p: any) => ({
+        const items: PortfolioItem[] = ((data.portfolios ?? []) as PortfolioListApiItem[]).map((p) => ({
           id: p.id,
           title: p.title ?? "Untitled",
-          status: p.status ?? p.status ?? "draft",
+          status: p.status ?? "draft",
           slug: p.slug ?? null,
           updatedAt: p.updated_at ?? p.updatedAt ?? p.created_at ?? p.createdAt ?? "",
         }));
@@ -106,9 +117,6 @@ const PublishPage: React.FC = () => {
     setSlugAvailable(null);
     setPublishError(null);
     setPublishState("idle");
-    if (existingSlug && SLUG_REGEX.test(existingSlug)) {
-      checkSlugAvailability(existingSlug);
-    }
   };
 
   const closeModal = () => {
@@ -143,8 +151,8 @@ const PublishPage: React.FC = () => {
       );
       setPublishState("success");
       setTimeout(() => closeModal(), 1500);
-    } catch (err: any) {
-      setPublishError(err.message);
+    } catch (err: unknown) {
+      setPublishError(err instanceof Error ? err.message : "Publish failed");
       setPublishState("error");
       setTimeout(() => setPublishState("idle"), 3000);
     }
@@ -152,14 +160,17 @@ const PublishPage: React.FC = () => {
 
   const handleUnpublish = async (portfolioId: string) => {
     try {
-      await fetch(`/api/portfolio/${portfolioId}/unpublish`, { method: "POST" });
+      const res = await fetch(`/api/portfolio/${portfolioId}/unpublish`, { method: "POST" });
+      if (!res.ok) {
+        throw new Error("Failed to unpublish");
+      }
       setPortfolios((prev) =>
         prev.map((p) =>
           p.id === portfolioId ? { ...p, status: "draft" } : p
         )
       );
-    } catch {
-      console.error("Failed to unpublish");
+    } catch (error) {
+      console.error("Failed to unpublish", error);
     }
   };
 
@@ -172,7 +183,7 @@ const PublishPage: React.FC = () => {
   const slugIsValid = slugInput.length >= 3 && SLUG_REGEX.test(slugInput);
   const canPublish =
     slugIsValid &&
-    (slugAvailable === true || (selectedPortfolio?.slug === slugInput && selectedPortfolio?.status === "publish"));
+    (slugAvailable === true || selectedPortfolio?.slug === slugInput);
 
   if (loading) {
     return (
@@ -325,7 +336,7 @@ const PublishPage: React.FC = () => {
                     {!slugChecking && slugAvailable === true && slugInput !== selectedPortfolio.slug && (
                       <FiCheck className="w-4 h-4 text-emerald-400" />
                     )}
-                    {!slugChecking && slugAvailable === false && (
+                    {!slugChecking && slugAvailable === false && slugInput !== selectedPortfolio.slug && (
                       <span className="text-xs text-red-400">taken</span>
                     )}
                   </div>
