@@ -5,6 +5,12 @@ target/
 !**/src/test/**/target/
 *secrets.properties
 
+### Local env files (do not commit secrets) ###
+.env
+.env.*
+!.env.example
+!.env.*.example
+
 ### STS ###
 .apt_generated
 .classpath
@@ -45,3 +51,7 @@ aws.txt
 
 ### JSX validator dependencies ###
 scripts/node_modules/
+
+### Local runtime artifacts ###
+dump.rdb
+*.pid

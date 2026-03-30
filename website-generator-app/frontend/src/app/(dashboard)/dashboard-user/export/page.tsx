@@ -1,487 +1,398 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  FiDownload,
-  FiLink,
   FiGlobe,
   FiCheck,
   FiCopy,
   FiLoader,
   FiExternalLink,
-  FiPackage,
+  FiEyeOff,
 } from "react-icons/fi";
 
-/**
- * MODULE 6: EXPORT / SHARE / DEPLOY
- * 
- * Design Goals:
- * - Clear three-option layout (export, share, deploy)
- * - Celebratory success states (confetti, sparkles)
- * - Copy-to-clipboard with instant feedback
- * - Deploy simulation feels magical
- * - Progress indicators for all async operations
- */
+type ActionState = "idle" | "loading" | "success" | "error";
 
-type ActionState = "idle" | "loading" | "success";
+interface PortfolioItem {
+  id: string;
+  title: string;
+  status: string;
+  slug: string | null;
+  updatedAt: string;
+}
 
-const ExportShare: React.FC = () => {
-  const [exportState, setExportState] = useState<ActionState>("idle");
-  const [shareState, setShareState] = useState<ActionState>("idle");
-  const [deployState, setDeployState] = useState<ActionState>("idle");
-  const [deployUrl, setDeployUrl] = useState<string>("");
-  const [showConfetti, setShowConfetti] = useState(false);
+interface PortfolioListApiItem {
+  id: string;
+  title?: string | null;
+  status?: string | null;
+  slug?: string | null;
+  updated_at?: string;
+  updatedAt?: string;
+  created_at?: string;
+  createdAt?: string;
+}
 
-  // Mock portfolio URL
-  const portfolioUrl = "https://johndoe.portfolio.ai";
+const SLUG_REGEX = /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/;
+const BASE_URL = typeof window !== "undefined" ? window.location.origin : "";
 
-  const handleExport = async () => {
-    setExportState("loading");
-    // Simulate export process
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setExportState("success");
-    setTimeout(() => setExportState("idle"), 3000);
+const PublishPage: React.FC = () => {
+  const [portfolios, setPortfolios] = useState<PortfolioItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Publish modal state
+  const [selectedPortfolio, setSelectedPortfolio] = useState<PortfolioItem | null>(null);
+  const [slugInput, setSlugInput] = useState("");
+  const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
+  const [slugChecking, setSlugChecking] = useState(false);
+  const [publishState, setPublishState] = useState<ActionState>("idle");
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const slugCheckTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Fetch all portfolios
+  useEffect(() => {
+    const fetchPortfolios = async () => {
+      try {
+        const res = await fetch("/api/portfolio/list");
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        const items: PortfolioItem[] = ((data.portfolios ?? []) as PortfolioListApiItem[]).map((p) => ({
+          id: p.id,
+          title: p.title ?? "Untitled",
+          status: p.status ?? "draft",
+          slug: p.slug ?? null,
+          updatedAt: p.updated_at ?? p.updatedAt ?? p.created_at ?? p.createdAt ?? "",
+        }));
+        setPortfolios(items);
+      } catch {
+        console.error("Failed to fetch portfolios");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPortfolios();
+  }, []);
+
+  const published = portfolios.filter((p) => p.status === "publish");
+  const drafts = portfolios.filter((p) => p.status !== "publish");
+
+  // Slug availability check
+  const checkSlugAvailability = useCallback((value: string) => {
+    if (slugCheckTimeout.current) clearTimeout(slugCheckTimeout.current);
+    if (!value || !SLUG_REGEX.test(value)) {
+      setSlugAvailable(null);
+      return;
+    }
+    setSlugChecking(true);
+    slugCheckTimeout.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/portfolio/slug-check?slug=${encodeURIComponent(value)}`);
+        const data = await res.json();
+        setSlugAvailable(data.available);
+      } catch {
+        setSlugAvailable(null);
+      } finally {
+        setSlugChecking(false);
+      }
+    }, 400);
+  }, []);
+
+  const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "");
+    setSlugInput(value);
+    setPublishError(null);
+    const current = selectedPortfolio;
+    if (current && value === current.slug) {
+      setSlugAvailable(null);
+      return;
+    }
+    checkSlugAvailability(value);
   };
 
-  const handleCopyLink = async () => {
-    setShareState("loading");
-    // Copy to clipboard
-    await navigator.clipboard.writeText(portfolioUrl);
-    setShareState("success");
-    setTimeout(() => setShareState("idle"), 2000);
+  const openPublishModal = (portfolio: PortfolioItem) => {
+    setSelectedPortfolio(portfolio);
+    const existingSlug = portfolio.slug ?? "";
+    setSlugInput(existingSlug);
+    setSlugAvailable(null);
+    setPublishError(null);
+    setPublishState("idle");
   };
 
-  const handleDeploy = async () => {
-    setDeployState("loading");
-    // Simulate deployment
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-    setDeployUrl("https://johndoe.vercel.app");
-    setDeployState("success");
-    setShowConfetti(true);
-    setTimeout(() => setShowConfetti(false), 3000);
+  const closeModal = () => {
+    setSelectedPortfolio(null);
+    setSlugInput("");
+    setSlugAvailable(null);
+    setPublishError(null);
   };
 
-  // Confetti particles
-  const confettiColors = [
-    "bg-sky-400",
-    "bg-cyan-400",
-    "bg-teal-400",
-    "bg-emerald-400",
-    "bg-amber-400",
-    "bg-pink-400",
-  ];
+  const handlePublish = async () => {
+    if (!selectedPortfolio) return;
+    setPublishState("loading");
+    setPublishError(null);
+    try {
+      const res = await fetch(`/api/portfolio/${selectedPortfolio.id}/publish`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug: slugInput || null }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Publish failed" }));
+        throw new Error(err.error || "Publish failed");
+      }
+      const data = await res.json();
+      // Update local state
+      setPortfolios((prev) =>
+        prev.map((p) =>
+          p.id === selectedPortfolio.id
+            ? { ...p, status: "publish", slug: data.slug }
+            : p
+        )
+      );
+      setPublishState("success");
+      setTimeout(() => closeModal(), 1500);
+    } catch (err: unknown) {
+      setPublishError(err instanceof Error ? err.message : "Publish failed");
+      setPublishState("error");
+      setTimeout(() => setPublishState("idle"), 3000);
+    }
+  };
+
+  const handleUnpublish = async (portfolioId: string) => {
+    try {
+      const res = await fetch(`/api/portfolio/${portfolioId}/unpublish`, { method: "POST" });
+      if (!res.ok) {
+        throw new Error("Failed to unpublish");
+      }
+      setPortfolios((prev) =>
+        prev.map((p) =>
+          p.id === portfolioId ? { ...p, status: "draft" } : p
+        )
+      );
+    } catch (error) {
+      console.error("Failed to unpublish", error);
+    }
+  };
+
+  const handleCopyUrl = async (slug: string) => {
+    await navigator.clipboard.writeText(`${BASE_URL}/portfolio/${slug}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const slugIsValid = slugInput.length >= 3 && SLUG_REGEX.test(slugInput);
+  const canPublish =
+    slugIsValid &&
+    (slugAvailable === true || selectedPortfolio?.slug === slugInput);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          className="w-12 h-12 border-3 border-white/20 border-t-white rounded-full"
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 p-10">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <h1 className="text-4xl font-bold text-slate-900 mb-2">
-          Export & Share
-        </h1>
-        <p className="text-slate-600">
-          Download, share, or deploy your portfolio to the world
-        </p>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        <h1 className="text-4xl font-bold text-white mb-2">Publish</h1>
+        <p className="text-white/60">Make your portfolios publicly accessible</p>
       </motion.div>
 
-      {/* Three Option Cards */}
-      <div className="grid md:grid-cols-3 gap-6">
-        {/* Export Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0 }}
-          whileHover={{ y: -4 }}
-          className="bg-white/80 backdrop-blur-xl rounded-2xl p-8 border border-white/40 shadow-lg hover:shadow-xl transition-all"
-        >
-          <div className="flex flex-col h-full">
-            {/* Icon */}
-            <div className="w-14 h-14 bg-linear-to-br from-sky-100 to-cyan-100 rounded-xl flex items-center justify-center text-sky-600 mb-4">
-              <FiPackage className="w-7 h-7" />
-            </div>
-
-            {/* Content */}
-            <h3 className="text-xl font-bold text-slate-900 mb-2">
-              Export as .zip
-            </h3>
-            <p className="text-sm text-slate-600 mb-6 flex-1">
-              Download your complete portfolio as a static website package
-            </p>
-
-            {/* Action Button */}
-            <motion.button
-              whileHover={{ scale: exportState === "idle" ? 1.02 : 1 }}
-              whileTap={{ scale: exportState === "idle" ? 0.98 : 1 }}
-              onClick={handleExport}
-              disabled={exportState !== "idle"}
-              className={`w-full px-6 py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
-                exportState === "success"
-                  ? "bg-emerald-500 text-white"
-                  : exportState === "loading"
-                  ? "bg-slate-200 text-slate-600"
-                  : "bg-linear-to-r from-sky-500 to-cyan-500 text-white hover:shadow-lg hover:shadow-sky-400/30"
-              }`}
-            >
-              <AnimatePresence mode="wait">
-                {exportState === "loading" && (
-                  <motion.div
-                    key="loading"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                  >
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{
-                        duration: 1,
-                        repeat: Infinity,
-                        ease: "linear",
-                      }}
-                    >
-                      <FiLoader className="w-5 h-5" />
-                    </motion.div>
-                  </motion.div>
-                )}
-                {exportState === "success" && (
-                  <motion.div
-                    key="success"
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    exit={{ scale: 0 }}
-                    transition={{ type: "spring", stiffness: 200 }}
-                  >
-                    <FiCheck className="w-5 h-5" />
-                  </motion.div>
-                )}
-                {exportState === "idle" && (
-                  <motion.div
-                    key="idle"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                  >
-                    <FiDownload className="w-5 h-5" />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              <span>
-                {exportState === "loading"
-                  ? "Exporting..."
-                  : exportState === "success"
-                  ? "Downloaded!"
-                  : "Download Now"}
-              </span>
-            </motion.button>
-
-            {/* Progress Bar */}
-            {exportState === "loading" && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                className="mt-4"
+      {/* Published Portfolios */}
+      {published.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <h2 className="text-lg font-semibold text-white mb-4">Live</h2>
+          <div className="space-y-3">
+            {published.map((p) => (
+              <div
+                key={p.id}
+                className="flex items-center justify-between p-4 bg-white/[0.06] border border-white/[0.12] rounded-xl"
               >
-                <div className="h-1 bg-slate-200 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: "0%" }}
-                    animate={{ width: "100%" }}
-                    transition={{ duration: 2, ease: "easeInOut" }}
-                    className="h-full bg-linear-to-r from-sky-500 to-cyan-500"
-                  />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-2 h-2 bg-emerald-400 rounded-full" />
+                    <h3 className="text-white font-medium truncate">{p.title}</h3>
+                  </div>
+                  {p.slug && (
+                    <a
+                      href={`${BASE_URL}/portfolio/${p.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-white/40 hover:text-white/60 font-mono flex items-center gap-1 transition-colors"
+                    >
+                      /portfolio/{p.slug}
+                      <FiExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
                 </div>
-              </motion.div>
-            )}
-          </div>
-        </motion.div>
-
-        {/* Share Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          whileHover={{ y: -4 }}
-          className="bg-white/80 backdrop-blur-xl rounded-2xl p-8 border border-white/40 shadow-lg hover:shadow-xl transition-all"
-        >
-          <div className="flex flex-col h-full">
-            {/* Icon */}
-            <div className="w-14 h-14 bg-linear-to-br from-cyan-100 to-teal-100 rounded-xl flex items-center justify-center text-cyan-600 mb-4">
-              <FiLink className="w-7 h-7" />
-            </div>
-
-            {/* Content */}
-            <h3 className="text-xl font-bold text-slate-900 mb-2">
-              Copy Shareable Link
-            </h3>
-            <p className="text-sm text-slate-600 mb-4">
-              Share your portfolio instantly with a direct link
-            </p>
-
-            {/* URL Display */}
-            <div className="flex-1 mb-4">
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                <p className="text-sm text-slate-700 truncate font-mono">
-                  {portfolioUrl}
-                </p>
+                <div className="flex items-center gap-2 ml-4">
+                  <button
+                    onClick={() => p.slug && handleCopyUrl(p.slug)}
+                    className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/50 hover:text-white"
+                    title="Copy URL"
+                  >
+                    {copied ? <FiCheck className="w-4 h-4 text-emerald-400" /> : <FiCopy className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={() => handleUnpublish(p.id)}
+                    className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/50 hover:text-red-400"
+                    title="Unpublish"
+                  >
+                    <FiEyeOff className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-            </div>
-
-            {/* Action Button */}
-            <motion.button
-              whileHover={{ scale: shareState === "idle" ? 1.02 : 1 }}
-              whileTap={{ scale: shareState === "idle" ? 0.98 : 1 }}
-              onClick={handleCopyLink}
-              disabled={shareState !== "idle"}
-              className={`w-full px-6 py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
-                shareState === "success"
-                  ? "bg-emerald-500 text-white"
-                  : shareState === "loading"
-                  ? "bg-slate-200 text-slate-600"
-                  : "bg-linear-to-r from-cyan-500 to-teal-500 text-white hover:shadow-lg hover:shadow-cyan-400/30"
-              }`}
-            >
-              <AnimatePresence mode="wait">
-                {shareState === "loading" && (
-                  <motion.div
-                    key="loading"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                  >
-                    <FiLoader className="w-5 h-5" />
-                  </motion.div>
-                )}
-                {shareState === "success" && (
-                  <motion.div
-                    key="success"
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    exit={{ scale: 0 }}
-                    transition={{ type: "spring", stiffness: 200 }}
-                  >
-                    <FiCheck className="w-5 h-5" />
-                  </motion.div>
-                )}
-                {shareState === "idle" && (
-                  <motion.div
-                    key="idle"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                  >
-                    <FiCopy className="w-5 h-5" />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              <span>
-                {shareState === "loading"
-                  ? "Copying..."
-                  : shareState === "success"
-                  ? "Copied!"
-                  : "Copy Link"}
-              </span>
-            </motion.button>
+            ))}
           </div>
         </motion.div>
+      )}
 
-        {/* Deploy Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          whileHover={{ y: -4 }}
-          className="bg-white/80 backdrop-blur-xl rounded-2xl p-8 border border-white/40 shadow-lg hover:shadow-xl transition-all relative overflow-hidden"
-        >
-          {/* Confetti */}
-          <AnimatePresence>
-            {showConfetti && (
-              <>
-                {[...Array(20)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{
-                      x: "50%",
-                      y: "50%",
-                      opacity: 1,
-                      scale: 0,
-                    }}
-                    animate={{
-                      x: `${Math.random() * 200 - 100}%`,
-                      y: `${-100 - Math.random() * 100}%`,
-                      opacity: 0,
-                      scale: 1,
-                      rotate: Math.random() * 360,
-                    }}
-                    transition={{
-                      duration: 1 + Math.random(),
-                      ease: "easeOut",
-                    }}
-                    className={`absolute w-2 h-2 ${
-                      confettiColors[i % confettiColors.length]
-                    } rounded-full`}
-                    style={{
-                      left: "50%",
-                      top: "50%",
-                    }}
-                  />
-                ))}
-              </>
-            )}
-          </AnimatePresence>
-
-          <div className="flex flex-col h-full relative z-10">
-            {/* Icon */}
-            <div className="w-14 h-14 bg-linear-to-br from-teal-100 to-emerald-100 rounded-xl flex items-center justify-center text-teal-600 mb-4">
-              <FiGlobe className="w-7 h-7" />
-            </div>
-
-            {/* Content */}
-            <h3 className="text-xl font-bold text-slate-900 mb-2">
-              Deploy to Vercel
-            </h3>
-            <p className="text-sm text-slate-600 mb-4">
-              Host your portfolio live with one click (mock deployment)
-            </p>
-
-            {/* Deploy URL (if deployed) */}
-            {deployState === "success" && deployUrl && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                className="mb-4"
+      {/* Draft Portfolios */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+        <h2 className="text-lg font-semibold text-white mb-4">
+          {published.length > 0 ? "Unpublished" : "Your Portfolios"}
+        </h2>
+        {drafts.length === 0 ? (
+          <div className="text-center py-12 text-white/40">
+            <FiGlobe className="w-10 h-10 mx-auto mb-3 opacity-50" />
+            <p>No portfolios to publish yet</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {drafts.map((p) => (
+              <div
+                key={p.id}
+                className="flex items-center justify-between p-4 bg-white/[0.04] border border-white/[0.08] rounded-xl hover:bg-white/[0.06] hover:border-white/[0.15] transition-all"
               >
-                <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-                  <p className="text-xs text-emerald-700 font-medium mb-1">
-                    🎉 Live at:
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-white font-medium truncate">{p.title}</h3>
+                  <p className="text-sm text-white/30">
+                    {p.slug ? `Previously at /portfolio/${p.slug}` : "Not yet published"}
                   </p>
-                  <a
-                    href={deployUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-emerald-600 hover:text-emerald-700 font-mono flex items-center gap-1 truncate"
-                  >
-                    {deployUrl}
-                    <FiExternalLink className="w-3 h-3 shrink-0" />
-                  </a>
                 </div>
-              </motion.div>
-            )}
-
-            <div className="flex-1" />
-
-            {/* Action Button */}
-            <motion.button
-              whileHover={{
-                scale: deployState === "idle" || deployState === "success" ? 1.02 : 1,
-              }}
-              whileTap={{
-                scale: deployState === "idle" || deployState === "success" ? 0.98 : 1,
-              }}
-              onClick={handleDeploy}
-              disabled={deployState === "loading"}
-              className={`w-full px-6 py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
-                deployState === "success"
-                  ? "bg-emerald-500 text-white"
-                  : deployState === "loading"
-                  ? "bg-slate-200 text-slate-600"
-                  : "bg-linear-to-r from-teal-500 to-emerald-500 text-white hover:shadow-lg hover:shadow-teal-400/30"
-              }`}
-            >
-              <AnimatePresence mode="wait">
-                {deployState === "loading" && (
-                  <motion.div
-                    key="loading"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                  >
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{
-                        duration: 1,
-                        repeat: Infinity,
-                        ease: "linear",
-                      }}
-                    >
-                      <FiLoader className="w-5 h-5" />
-                    </motion.div>
-                  </motion.div>
-                )}
-                {deployState === "success" && (
-                  <motion.div
-                    key="success"
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    exit={{ scale: 0 }}
-                    transition={{ type: "spring", stiffness: 200 }}
-                  >
-                    <FiCheck className="w-5 h-5" />
-                  </motion.div>
-                )}
-                {deployState === "idle" && (
-                  <motion.div
-                    key="idle"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                  >
-                    <FiGlobe className="w-5 h-5" />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              <span>
-                {deployState === "loading"
-                  ? "Deploying..."
-                  : deployState === "success"
-                  ? "View Live Site"
-                  : "Deploy Now"}
-              </span>
-            </motion.button>
-
-            {/* Progress Bar */}
-            {deployState === "loading" && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                className="mt-4"
-              >
-                <div className="h-1 bg-slate-200 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: "0%" }}
-                    animate={{ width: "100%" }}
-                    transition={{ duration: 3, ease: "easeInOut" }}
-                    className="h-full bg-linear-to-r from-teal-500 to-emerald-500"
-                  />
-                </div>
-                <p className="text-xs text-slate-500 mt-2 text-center">
-                  Building and deploying your site...
-                </p>
-              </motion.div>
-            )}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => openPublishModal(p)}
+                  className="ml-4 px-4 py-2 bg-white/10 hover:bg-white/15 border border-white/20 hover:border-white/30 rounded-lg text-sm font-medium text-white transition-all flex items-center gap-2"
+                >
+                  <FiGlobe className="w-4 h-4" />
+                  Publish
+                </motion.button>
+              </div>
+            ))}
           </div>
-        </motion.div>
-      </div>
-
-      {/* Additional Info */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.6 }}
-        className="bg-sky-50 rounded-xl p-6 border border-sky-100"
-      >
-        <h4 className="text-sm font-semibold text-slate-900 mb-2">
-          💡 Pro Tips
-        </h4>
-        <ul className="text-sm text-slate-600 space-y-1">
-          <li>
-            • Export regularly to keep a local backup of your portfolio
-          </li>
-          <li>• Shareable links are perfect for including in your resume</li>
-          <li>
-            • Deployed sites are live 24/7 and can be accessed from anywhere
-          </li>
-        </ul>
+        )}
       </motion.div>
+
+      {/* Publish Modal */}
+      <AnimatePresence>
+        {selectedPortfolio && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={closeModal}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-[#1a1d21] border border-white/10 rounded-2xl shadow-2xl max-w-md w-full p-6"
+            >
+              <h2 className="text-xl font-bold text-white mb-1">
+                Publish Portfolio
+              </h2>
+              <p className="text-sm text-white/50 mb-6">{selectedPortfolio.title}</p>
+
+              {/* Slug Input */}
+              <div className="mb-5">
+                <label className="text-xs font-medium text-white/50 mb-2 block">
+                  Choose your URL
+                </label>
+                <div className="flex items-center rounded-xl border border-white/20 bg-white/[0.06] overflow-hidden focus-within:border-white/30 transition-colors">
+                  <span className="text-xs text-white/30 px-3 py-3 bg-white/[0.04] border-r border-white/10 whitespace-nowrap font-mono">
+                    /portfolio/
+                  </span>
+                  <input
+                    type="text"
+                    value={slugInput}
+                    onChange={handleSlugChange}
+                    placeholder="your-name"
+                    autoFocus
+                    className="flex-1 px-3 py-3 text-sm text-white bg-transparent outline-none font-mono placeholder-white/20"
+                  />
+                  <div className="pr-3">
+                    {slugChecking && <FiLoader className="w-4 h-4 text-white/30 animate-spin" />}
+                    {!slugChecking && slugAvailable === true && slugInput !== selectedPortfolio.slug && (
+                      <FiCheck className="w-4 h-4 text-emerald-400" />
+                    )}
+                    {!slugChecking && slugAvailable === false && slugInput !== selectedPortfolio.slug && (
+                      <span className="text-xs text-red-400">taken</span>
+                    )}
+                  </div>
+                </div>
+                {slugInput && !slugIsValid && slugInput.length > 0 && (
+                  <p className="text-xs text-red-400/80 mt-1.5">
+                    3-64 chars, lowercase letters, numbers, and hyphens
+                  </p>
+                )}
+              </div>
+
+              {publishError && (
+                <p className="text-xs text-red-400 mb-4">{publishError}</p>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-3">
+                <button
+                  onClick={closeModal}
+                  className="flex-1 px-4 py-3 border border-white/20 text-white/70 rounded-xl font-medium hover:bg-white/5 transition-colors"
+                >
+                  Cancel
+                </button>
+                <motion.button
+                  whileHover={{ scale: canPublish ? 1.02 : 1 }}
+                  whileTap={{ scale: canPublish ? 0.98 : 1 }}
+                  onClick={handlePublish}
+                  disabled={!canPublish || publishState === "loading"}
+                  className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 ${
+                    publishState === "success"
+                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                      : "bg-white/10 hover:bg-white/15 border border-white/20 hover:border-white/30 text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                  }`}
+                >
+                  {publishState === "loading" ? (
+                    <FiLoader className="w-4 h-4 animate-spin" />
+                  ) : publishState === "success" ? (
+                    <FiCheck className="w-4 h-4" />
+                  ) : (
+                    <FiGlobe className="w-4 h-4" />
+                  )}
+                  <span>
+                    {publishState === "loading"
+                      ? "Publishing..."
+                      : publishState === "success"
+                      ? "Published!"
+                      : "Publish"}
+                  </span>
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
 
-export default ExportShare;
+export default PublishPage;
