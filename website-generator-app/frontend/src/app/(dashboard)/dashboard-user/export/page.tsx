@@ -101,10 +101,14 @@ const PublishPage: React.FC = () => {
 
   const openPublishModal = (portfolio: PortfolioItem) => {
     setSelectedPortfolio(portfolio);
-    setSlugInput(portfolio.slug ?? "");
+    const existingSlug = portfolio.slug ?? "";
+    setSlugInput(existingSlug);
     setSlugAvailable(null);
     setPublishError(null);
     setPublishState("idle");
+    if (existingSlug && SLUG_REGEX.test(existingSlug)) {
+      checkSlugAvailability(existingSlug);
+    }
   };
 
   const closeModal = () => {
