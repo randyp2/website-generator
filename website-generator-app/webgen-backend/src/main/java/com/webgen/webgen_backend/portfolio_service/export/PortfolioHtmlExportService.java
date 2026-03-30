@@ -39,6 +39,7 @@ public class PortfolioHtmlExportService {
   <script type="text/babel">
     const { motion, AnimatePresence, useScroll, useTransform, useSpring, useInView,
       once, y, x, opacity, scale, rotate, stiffness, damping, repeat, duration, icon,
+      fontFamily, headingFontFamily,
       Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight, Twitter, Instagram,
       Youtube, ExternalLink, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
       Menu, X, Star, Calendar, Clock, Check, Award, Briefcase, GraduationCap,
@@ -336,6 +337,11 @@ public class PortfolioHtmlExportService {
     // =========================================================================
     window.__theme = %s;
     window.__sectionsData = %s;
+
+    // Font family globals — AI-generated sections may reference these directly
+    const fontFamily = window.__theme?.fonts?.body || 'Inter, sans-serif';
+    const headingFontFamily = window.__theme?.fonts?.heading || 'Inter, sans-serif';
+    Object.assign(window, { fontFamily, headingFontFamily });
   </script>
 
   <!-- Section components — each in its own script for parse isolation -->
