@@ -132,25 +132,22 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                     whileHover={{ scale: collapsed ? 1.05 : 1 }}
                     whileTap={{ scale: 0.98 }}
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl group relative overflow-hidden ${
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-md border group relative ${
                         isActive
-                            ? "bg-white/10 text-white shadow-lg shadow-white/5"
-                            : "text-white/70 hover:bg-white/5 hover:text-white"
+                            ? "bg-blue-500/10 border-blue-400/20 text-white"
+                            : "text-white/70 border-transparent hover:bg-white/5 hover:text-white"
                     }`}
                 >
-                    {isActive && (
-                        <div className="pointer-events-none absolute -left-12 -top-12 h-32 w-32 bg-linear-to-br from-white/10 via-white/5 to-transparent blur-2xl" />
-                    )}
                     <div
-                        className={`flex items-center justify-center relative z-10 ${
+                        className={`flex items-center justify-center ${
                             collapsed ? "w-full" : ""
                         }`}
                     >
                         <Icon
                             className={`w-5 h-5 transition-all duration-200 ${
                                 isActive
-                                    ? "text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.4)]"
-                                    : "text-white/70 group-hover:text-white group-hover:drop-shadow-[0_0_4px_rgba(255,255,255,0.3)]"
+                                    ? "text-blue-100"
+                                    : "text-white/70 group-hover:text-white"
                             }`}
                         />
                     </div>
@@ -168,7 +165,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                             </span>
 
                             {item.badge && (
-                                <span className="px-2.5 py-1 text-xs font-bold rounded-md bg-linear-to-r from-blue-600 to-blue-500 text-white relative z-10 transition-all duration-200 shadow-lg">
+                                <span className="rounded-sm bg-blue-500/80 px-2 py-0.5 text-xs font-bold text-white transition-all duration-200">
                                     {item.badge}
                                 </span>
                             )}
@@ -183,7 +180,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
         <div className="flex flex-col h-full">
             {/* Logo / Brand */}
             <div
-                className={`px-6 pt-6 pb-2 border-b border-white/10 ${collapsed ? "px-4" : ""}`}
+                className={`border-b border-white/10 px-5 pt-5 pb-2 ${collapsed ? "px-3" : ""}`}
             >
                 {/* User Profile */}
                 {!collapsed && (
@@ -272,7 +269,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
             </div>
 
             {/* Main Navigation */}
-            <div className="flex-1 overflow-y-auto px-4 py-6 space-y-2">
+            <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5">
                 {navItems.map((item) => (
                     <NavItemComponent key={item.id} item={item} />
                 ))}
@@ -288,7 +285,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                         await signoutClient();
                         router.push("/login");
                     }}
-                    className={`hover:cursor-pointer w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 hover:border-red-400/30 border border-transparent transition-all duration-200 ${
+                    className={`hover:cursor-pointer w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-400 hover:bg-red-500/10 hover:border-red-400/30 border border-transparent transition-all duration-200 ${
                         collapsed ? "justify-center" : ""
                     }`}
                 >
@@ -306,7 +303,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                     whileTap={{ scale: 0.98 }}
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     onClick={handleToggle}
-                    className={`hover:cursor-pointer w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/70 hover:bg-white/5 hover:text-white hover:border-white/10 border border-transparent transition-all duration-200 ${
+                    className={`hover:cursor-pointer w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/70 hover:bg-white/5 hover:text-white hover:border-white/10 border border-transparent transition-all duration-200 ${
                         collapsed ? "justify-center" : ""
                     }`}
                 >
@@ -333,16 +330,16 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                 whileTap={{ scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 onClick={() => setMobileOpen(true)}
-                className="md:hidden fixed top-4 left-4 z-50 p-3 bg-white/5 rounded-xl shadow-lg border border-white/10"
+                className="md:hidden fixed top-4 left-4 z-50 p-3 bg-black/80 rounded-lg shadow-lg border border-white/10"
             >
                 <FiMenu className="w-6 h-6 text-white" />
             </motion.button>
 
             {/* Desktop Sidebar */}
             <motion.aside
-                animate={{ width: collapsed ? 80 : 280 }}
+                animate={{ width: collapsed ? 72 : 248 }}
                 transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="hidden md:block fixed left-0 top-0 h-screen bg-[#0a0f14]/95 border-r border-white/10 z-40 shadow-2xl shadow-black/20"
+                className="hidden md:block fixed left-0 top-0 h-screen bg-black border-r border-white/10 z-40 shadow-2xl shadow-black/40"
             >
                 <SidebarContent />
             </motion.aside>
@@ -362,11 +359,11 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
 
                         {/* Drawer */}
                         <motion.aside
-                            initial={{ x: -280 }}
+                            initial={{ x: -248 }}
                             animate={{ x: 0 }}
-                            exit={{ x: -280 }}
+                            exit={{ x: -248 }}
                             transition={{ duration: 0.3, ease: "easeOut" }}
-                            className="md:hidden fixed left-0 top-0 h-screen w-[280px] bg-[#0a0f14]/95 border-r border-white/10 z-50 shadow-2xl shadow-black/20"
+                            className="md:hidden fixed left-0 top-0 h-screen w-[248px] bg-black border-r border-white/10 z-50 shadow-2xl shadow-black/40"
                         >
                             {/* Close Button */}
                             <button
