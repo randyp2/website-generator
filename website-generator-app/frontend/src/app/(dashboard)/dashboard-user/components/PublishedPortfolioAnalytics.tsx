@@ -82,7 +82,7 @@ export const PublishedPortfolioAnalytics: React.FC = () => {
                             <p className="mt-2 text-2xl font-semibold tracking-tight text-white/95 md:text-[1.7rem]">
                                 {item.value}
                             </p>
-                            <p className="mt-1 text-sm font-medium text-orange-200/90">{item.delta}</p>
+                            <p className="mt-1 text-sm font-medium text-emerald-300/90">{item.delta}</p>
                         </div>
                     );
                 })}
