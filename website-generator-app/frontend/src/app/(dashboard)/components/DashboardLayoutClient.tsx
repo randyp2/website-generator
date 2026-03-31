@@ -29,9 +29,9 @@ const DashboardLayoutClientInner: React.FC<DashboardLayoutClientProps> = ({
 
       {/* Main Content Area - adjusts margin based on sidebar state */}
       <motion.main
-        animate={{ marginLeft: collapsed ? 80 : 280 }}
+        animate={{ marginLeft: collapsed ? 72 : 248 }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
-        className="md:ml-[280px] transition-shadow duration-300"
+        className="md:ml-[248px] transition-shadow duration-300"
       >
         <DashboardMotionWrapper>{children}</DashboardMotionWrapper>
       </motion.main>
