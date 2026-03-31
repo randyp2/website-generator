@@ -1,4 +1,3 @@
-import { UserContext } from "@/context/UserContext";
 import DashboardLayoutClient from "../components/DashboardLayoutClient";
 
 import { redirect } from "next/navigation";
@@ -29,14 +28,14 @@ export default async function DashboardLayout({
     user.user_metadata?.name ??
     (user.email ? user.email.split("@")[0] : "User");
   const email: string = user.email ?? "No Email";
-  const avatar: any = user.user_metadata?.avatar_url ?? null;
+  const avatar: string | null = user.user_metadata?.avatar_url ?? null;
   
 
   return (
     <UserProviderWrapper user = {{ id: user.id, username, email, avatar}}>
-      <div className="min-h-screen bg-[#0a0a0a] text-white relative">
-        {/* Full viewport gradient background */}
-        <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top_left,#4a4a4a_0%,#2a2a2a_25%,#1a1a1a_50%,#0a0a0a_75%)] pointer-events-none z-0" />
+      <div className="dashboard-user-shell relative min-h-dvh bg-background text-foreground">
+        {/* Keep dashboard background consistent during overscroll/bounce */}
+        <div className="pointer-events-none fixed inset-0 z-0 bg-background" />
         {/* DashboardLayoutClient handles sidebar and content with responsive margins */}
         <div className="relative z-10">
           <DashboardLayoutClient>{children}</DashboardLayoutClient>

@@ -4,44 +4,46 @@ interface MiniProjectCardProps {
   title: string;
   metric: string;
   cardStyle: "flat" | "elevated" | "glass";
+  thumbnailGradient?: string;
+  thumbnailContent?: React.ReactNode;
 }
 
 export const MiniProjectCard: React.FC<MiniProjectCardProps> = ({
   title,
   metric,
   cardStyle,
+  thumbnailGradient,
+  thumbnailContent,
 }) => {
   const cardClass =
     cardStyle === "glass"
-      ? "bg-white/40 backdrop-blur-sm border border-slate-200/50"
+      ? "bg-white/40 backdrop-blur-sm border border-white/30"
       : cardStyle === "elevated"
-      ? "bg-white shadow-md border border-slate-100"
-      : "bg-white/80 border border-slate-200";
+      ? "bg-white shadow-md border border-slate-100/50"
+      : "bg-white/80 border border-slate-200/60";
 
   return (
-    <div className={`${cardClass} rounded-lg p-3 hover:scale-105 transition-transform cursor-pointer`}>
-      {/* Project Thumbnail */}
+    <div className={`${cardClass} rounded-lg p-2.5`}>
       <div
-        className="aspect-video rounded mb-2 flex items-center justify-center opacity-20"
-        style={{ backgroundColor: "var(--theme-accent)" }}
+        className="aspect-video rounded-md mb-2 overflow-hidden relative"
+        style={{
+          background:
+            thumbnailGradient ??
+            `linear-gradient(135deg, var(--theme-accent), var(--theme-primary))`,
+          opacity: thumbnailGradient ? 1 : 0.18,
+        }}
       >
-        <span
-          className="text-[8px] font-medium"
-          style={{ color: "var(--theme-text)" }}
-        >
-          Project
-        </span>
+        {thumbnailContent}
       </div>
 
-      {/* Project Info */}
       <h3
-        className="text-[10px] font-semibold mb-1"
+        className="text-[10px] font-semibold mb-0.5 truncate"
         style={{ color: "var(--theme-text)" }}
       >
         {title}
       </h3>
       <p
-        className="text-[8px] opacity-60"
+        className="text-[8px] opacity-50 truncate"
         style={{ color: "var(--theme-text)" }}
       >
         {metric}

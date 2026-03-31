@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { MobilePortfolioMockup } from "@/components/ui/phone-mockup"
 import LightRays from "@/components/LightRays"
+import BrandWordmark from "@/components/branding/BrandWordmark"
 import Image from "next/image"
 
 const IMAGES = [
@@ -36,12 +37,12 @@ const IMAGES = [
 
 export default function HeroSection() {
   return (
-    <section className="relative bg-black text-white">
+    <section className="relative bg-background text-foreground">
       {/* LightRays background */}
       <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden opacity-90">
         <LightRays
           raysOrigin="top-center"
-          raysColor="#3b82f6"
+          raysColor="#f59e0b"
           raysSpeed={0.8}
           lightSpread={0.8}
           rayLength={1.5}
@@ -60,7 +61,7 @@ export default function HeroSection() {
           {IMAGES.map((image, index) => (
             <BentoCell
               key={image.src}
-              className="relative overflow-hidden rounded-2xl border border-white/10 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.75)]"
+              className="relative overflow-hidden rounded-2xl border border-border shadow-[0_20px_60px_-30px_rgba(0,0,0,0.75)]"
             >
               {index === 1 ? (
                 <MobilePortfolioMockup variant="tech" />
@@ -87,25 +88,26 @@ export default function HeroSection() {
 
         <ContainerScale className="relative z-20 px-6 text-center">
           <div className="mx-auto max-w-2xl">
-            <p className="mb-4 text-xs font-semibold uppercase tracking-[0.4em] text-white/70">
-              PortRN AI Portfolio Builder
+            <p className="mb-4 text-xs font-semibold uppercase tracking-[0.4em] text-foreground/70">
+              <BrandWordmark compact className="mr-2 text-xs text-foreground/90" />
+              AI Portfolio Builder
             </p>
             <h1 className="text-4xl font-semibold leading-tight tracking-tight md:text-6xl">
               Launch a portfolio that feels custom, polished, and ready in
               minutes.
             </h1>
-            <p className="mt-6 text-base text-white/75 md:text-lg">
+            <p className="mt-6 text-base text-foreground/75 md:text-lg">
               Upload your resume, pick a style, and let our AI craft a portfolio
               site you can ship today. Scroll to see the motion-first hero in
               action, then dive into the rest of the landing page.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-              <Button className="bg-white px-6 py-2 text-slate-900 hover:bg-white/90">
+              <Button className="bg-primary px-6 py-2 text-primary-foreground hover:bg-primary/90">
                 Build my portfolio
               </Button>
               <Button
                 variant="link"
-                className="px-4 py-2 text-white underline-offset-4 hover:text-white/80"
+                className="px-4 py-2 text-foreground underline-offset-4 hover:text-foreground/80"
               >
                 See examples
               </Button>

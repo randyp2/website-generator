@@ -69,7 +69,9 @@ export function TypographyPickerPanel({
   const [headingFont, setHeadingFont] = useState<string>(
     recommendedHeadingFont ?? "Inter"
   );
-  const [bodyFont, setBodyFont] = useState<string>(recommendedBodyFont ?? "Inter");
+  const [bodyFont, setBodyFont] = useState<string>(
+    recommendedBodyFont ?? "Source Serif 4"
+  );
   const [categoryFilter, setCategoryFilter] =
     useState<FilterCategory>("All Fonts");
   const [typeFilter, setTypeFilter] = useState<FontCategory | "All Types">(

@@ -75,16 +75,16 @@ export function ExplorePageClient() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[radial-gradient(120%_120%_at_50%_0%,#0b1628_0%,#04070f_45%,#010205_100%)] px-4 pb-16 pt-20 md:px-8 md:pt-24">
+      <main className="min-h-screen bg-[radial-gradient(120%_120%_at_50%_0%,#2a1805_0%,#17120c_45%,#0f0f0f_100%)] px-4 pb-16 pt-20 md:px-8 md:pt-24">
         <div className="flex items-center justify-center py-20">
-          <div className="h-10 w-10 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground" />
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(120%_120%_at_50%_0%,#0b1628_0%,#04070f_45%,#010205_100%)] px-4 pb-16 pt-20 md:px-8 md:pt-24">
+    <main className="min-h-screen bg-[radial-gradient(120%_120%_at_50%_0%,#2a1805_0%,#17120c_45%,#0f0f0f_100%)] px-4 pb-16 pt-20 md:px-8 md:pt-24">
       {portfolios.length === 0 ? (
         <ExploreEmptyState />
       ) : (
@@ -93,7 +93,7 @@ export function ExplorePageClient() {
           <div ref={observerRef} className="h-10" />
           {loadingMore && (
             <div className="flex items-center justify-center py-8">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground" />
             </div>
           )}
         </>

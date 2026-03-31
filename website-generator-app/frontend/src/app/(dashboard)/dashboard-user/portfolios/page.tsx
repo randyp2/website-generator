@@ -12,6 +12,9 @@ import {
   FiMoreVertical,
   FiTrash2,
   FiGlobe,
+  FiHeart,
+  FiMessageCircle,
+  FiShare2,
 } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
@@ -21,11 +24,30 @@ interface Portfolio {
   id: string;
   title: string;
   thumbnail: string;
-  status: "draft";
+  status: string;
   lastEdited: string;
   views: number;
+  likes: number;
+  comments: number;
+  shares: number;
   url?: string;
 }
+
+interface PortfolioListItem {
+  id: string;
+  title: string;
+  status?: string;
+  updated_at?: string;
+  created_at?: string;
+  url?: string | null;
+}
+
+interface PortfolioListResponse {
+  portfolios: PortfolioListItem[];
+}
+
+const DEFAULT_PORTFOLIO_CARD_IMAGE =
+  "https://images.unsplash.com/photo-1545665277-5937489579f2?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
 
 const PortfolioManager: React.FC = () => {
   const router = useRouter();
@@ -50,6 +72,10 @@ const PortfolioManager: React.FC = () => {
 
   // API call to fetch portfolios - Occurs on mount
   useEffect(() => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
 
     const handleFetchPortfolios = async () => {
       try {
@@ -62,17 +88,19 @@ const PortfolioManager: React.FC = () => {
 
         if (!response.ok ) throw new Error(`HTTP error! status: ${response.status}`);
         
-
-        const data = await response.json();
+        const data: PortfolioListResponse = await response.json();
 
         // Convert DB Rows to card format
-        const formattedPortfolios: Portfolio[] = data.portfolios.map((item: any, idx: number) => ({
+        const formattedPortfolios: Portfolio[] = data.portfolios.map((item) => ({
           id: item.id,
           title: item.title,
-          thumbnail: `gradient-${(idx % 4) + 1}`,
-          status: item.status,
+          thumbnail: DEFAULT_PORTFOLIO_CARD_IMAGE,
+          status: item.status ?? "draft",
           lastEdited: new Date(item.updated_at ?? item.created_at).toLocaleDateString(), // Format as needed
           views: 0, // Placeholder - replace with actual views logic
+          likes: 0, // Placeholder - replace with actual likes logic
+          comments: 0, // Placeholder - replace with actual comments logic
+          shares: 0, // Placeholder - replace with actual shares logic
           url: item.url ?? "unpublished",
         }));
 
@@ -87,7 +115,7 @@ const PortfolioManager: React.FC = () => {
     }
 
     handleFetchPortfolios();
-  }, [user?.id]);
+  }, [userId]);
 
   // Handler to open edit modal - triggered when user clicks Edit icon
   const handleEditClick = (portfolio: Portfolio) => {
@@ -127,7 +155,7 @@ const PortfolioManager: React.FC = () => {
         throw new Error(`Failed to update portfolio: ${response.status}`);
       }
 
-      const updatedData = await response.json();
+      await response.json();
 
       // Update local state to reflect changes immediately
       setPortfolios((prev) =>
@@ -178,24 +206,62 @@ const PortfolioManager: React.FC = () => {
         }
     }
 
-  const statusConfig = {
+  const statusConfig: Record<
+    string,
+    {
+      label: string;
+      bgColor: string;
+      textColor: string;
+      dotColor: string;
+    }
+  > = {
     draft: {
       label: "Draft",
-      color: "slate",
+      bgColor: "bg-white/10",
+      textColor: "text-white/80",
+      dotColor: "bg-yellow-500",
+    },
+    published: {
+      label: "Published",
+      bgColor: "bg-green-500/20",
+      textColor: "text-green-100",
+      dotColor: "bg-green-500",
+    },
+    publish: {
+      label: "Published",
+      bgColor: "bg-green-500/20",
+      textColor: "text-green-100",
+      dotColor: "bg-green-500",
+    },
+    unpublished: {
+      label: "Unpublished",
       bgColor: "bg-white/10",
       textColor: "text-white/80",
       dotColor: "bg-white/70",
     },
+    archived: {
+      label: "Archived",
+      bgColor: "bg-zinc-500/20",
+      textColor: "text-zinc-200",
+      dotColor: "bg-zinc-300",
+    },
   };
 
-  const getThumbnailGradient = (thumbnail: string) => {
-    const gradients: Record<string, string> = {
-      "gradient-1": "from-slate-900 via-slate-800 to-cyan-900",
-      "gradient-2": "from-zinc-900 via-emerald-900 to-teal-900",
-      "gradient-3": "from-neutral-900 via-rose-950 to-orange-900",
-      "gradient-4": "from-stone-900 via-amber-950 to-yellow-900",
+  const fallbackStatus = statusConfig.draft;
+
+  const getStatus = (rawStatus?: string) => {
+    if (!rawStatus) return fallbackStatus;
+
+    const normalized = rawStatus.toLowerCase();
+    const matched = statusConfig[normalized];
+    if (matched) return matched;
+
+    return {
+      ...fallbackStatus,
+      label: rawStatus
+        .replace(/[-_]/g, " ")
+        .replace(/\b\w/g, (char) => char.toUpperCase()),
     };
-    return gradients[thumbnail] || gradients["gradient-1"];
   };
 
   // Loading screen component
@@ -215,7 +281,7 @@ const PortfolioManager: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8 p-10">
+    <div className="space-y-6 px-4 py-8 md:px-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -233,12 +299,12 @@ const PortfolioManager: React.FC = () => {
         </div>
 
         <motion.button
-          whileHover={{ scale: 1.02 }}
+          whileHover={{ y: -1 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => router.push("/dashboard/create")}
-          className="hover:cursor-pointer hidden md:flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-xl border border-white/20 hover:bg-white/15 hover:border-white/30 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
+          className="hover:cursor-pointer hidden md:inline-flex h-10 items-center gap-1.5 rounded-md border border-primary bg-primary px-3.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          <FiPlus className="w-5 h-5" />
+          <FiPlus className="h-4 w-4 text-primary-foreground" />
           New Portfolio
         </motion.button>
       </motion.div>
@@ -246,7 +312,7 @@ const PortfolioManager: React.FC = () => {
       {/* Portfolio Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {portfolios.map((portfolio, index) => {
-          const status = statusConfig[portfolio.status];
+          const status = getStatus(portfolio.status);
 
           return (
             <motion.div
@@ -254,7 +320,6 @@ const PortfolioManager: React.FC = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              whileHover={{ y: -8 }}
               onHoverStart={() => setHoveredId(portfolio.id)}
               onHoverEnd={() => setHoveredId(null)}
               className={`group relative hover:cursor-pointer ${
@@ -262,19 +327,16 @@ const PortfolioManager: React.FC = () => {
               }`}
             >
               {/* Card Container */}
-              <div className="bg-white/[0.06] backdrop-blur-xl rounded-2xl overflow-hidden border border-white/[0.12] hover:border-white/[0.25] shadow-lg hover:shadow-xl transition-all">
-                {/* Thumbnail with linear */}
+              <div className="bg-white/[0.06] backdrop-blur-xl rounded-2xl overflow-visible border border-white/[0.12] hover:border-white/[0.25] shadow-lg hover:shadow-xl transition-all">
+                {/* Thumbnail image */}
                 <div className="relative h-48 overflow-hidden">
-                  <div
-                    className={`absolute inset-0 bg-linear-to-br ${getThumbnailGradient(
-                      portfolio.thumbnail
-                    )}`}
-                  >
-                    {/* Overlay pattern */}
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-size-[24px_24px]" />
-                    <div className="absolute inset-0 bg-linear-to-t from-black/45 via-black/10 to-white/5" />
-                    <div className="absolute -top-20 right-[-20%] h-40 w-40 rounded-full bg-white/10 blur-3xl" />
-                  </div>
+                  <img
+                    src={portfolio.thumbnail || DEFAULT_PORTFOLIO_CARD_IMAGE}
+                    alt={`${portfolio.title} preview`}
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-linear-to-t from-black/45 via-black/10 to-white/5" />
+                  <div className="absolute -top-20 right-[-20%] h-40 w-40 rounded-full bg-white/10 blur-3xl" />
 
                   {/* Status Badge */}
                   <div className="absolute top-3 left-3">
@@ -344,9 +406,23 @@ const PortfolioManager: React.FC = () => {
 
                   {/* Stats */}
                   <div className="flex items-center justify-between pt-4 border-t border-white/10">
-                    <div className="flex items-center gap-1 text-sm text-white/70">
-                      <FiEye className="w-4 h-4" />
-                      <span>{portfolio.views} views</span>
+                    <div className="flex items-center gap-4 text-sm text-white/70">
+                      <div className="flex items-center gap-1">
+                        <FiEye className="w-4 h-4" />
+                        <span>{portfolio.views}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <FiHeart className="w-4 h-4" />
+                        <span>{portfolio.likes}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <FiMessageCircle className="w-4 h-4" />
+                        <span>{portfolio.comments}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <FiShare2 className="w-4 h-4" />
+                        <span>{portfolio.shares}</span>
+                      </div>
                     </div>
 
                     {/* More Actions Menu */}
@@ -371,7 +447,7 @@ const PortfolioManager: React.FC = () => {
                             initial={{ opacity: 0, scale: 0.95, y: -10 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                            className="absolute right-0 top-full mt-2 w-48 bg-[#1a1d21] rounded-xl shadow-2xl border border-white/10 py-2 z-[60]"
+                            className="absolute right-0 top-full mt-2 w-48 bg-[#1a1d21] rounded-xl shadow-2xl border border-white/10 py-2 z-[9999]"
                           >
                             {[
                               {

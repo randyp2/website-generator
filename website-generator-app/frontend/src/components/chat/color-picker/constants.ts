@@ -5,12 +5,12 @@ import type { ColorKey, PaletteColors, ThemedPalette } from "./types";
 export const DEFAULT_THEME_MODE = "dark" as const;
 
 export const DEFAULT_CUSTOM_PALETTE: PaletteColors = {
-    primary: "#6366f1",
-    secondary: "#8b5cf6",
-    accent: "#f43f5e",
-    background: "#0f172a",
-    text: "#f8fafc",
-    muted: "#64748b",
+    primary: "#f59e0b",
+    secondary: "#262626",
+    accent: "#92400e",
+    background: "#0f0f0f",
+    text: "#e5e5e5",
+    muted: "#a3a3a3",
 };
 
 export const COLOR_LABELS: Record<ColorKey, string> = {
@@ -24,23 +24,23 @@ export const COLOR_LABELS: Record<ColorKey, string> = {
 
 export const PRESET_PALETTES: ThemedPalette[] = [
     {
-        name: "Midnight",
-        description: "Dark and professional",
+        name: "Amber Forge",
+        description: "Warm amber with deep neutrals",
         dark: {
-            primary: "#6366f1",
-            secondary: "#8b5cf6",
-            accent: "#f43f5e",
-            background: "#0f172a",
-            text: "#f8fafc",
-            muted: "#64748b",
+            primary: "#f59e0b",
+            secondary: "#262626",
+            accent: "#92400e",
+            background: "#0f0f0f",
+            text: "#e5e5e5",
+            muted: "#a3a3a3",
         },
         light: {
-            primary: "#4f46e5",
-            secondary: "#7c3aed",
-            accent: "#e11d48",
-            background: "#f8fafc",
-            text: "#0f172a",
-            muted: "#94a3b8",
+            primary: "#d97706",
+            secondary: "#e5e5e5",
+            accent: "#92400e",
+            background: "#fafaf9",
+            text: "#262626",
+            muted: "#737373",
         },
     },
     {

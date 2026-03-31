@@ -22,7 +22,7 @@ export const PortfolioCardView: React.FC<PortfolioCardViewProps> = ({
     const router = useRouter();
 
     return (
-        <div className="h-full overflow-y-auto p-6">
+        <div className="h-full overflow-y-auto p-4 md:p-5">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {portfolios.map((portfolio) => (
                     <motion.div

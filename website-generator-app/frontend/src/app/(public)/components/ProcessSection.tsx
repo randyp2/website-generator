@@ -28,19 +28,19 @@ const PROCESS_STEPS: TimelineStep[] = [
 
 export const ProcessSection: React.FC = () => {
     return (
-        <section className="relative py-20 px-6 bg-black text-white overflow-visible">
+        <section className="relative overflow-visible bg-background px-6 py-20 text-foreground">
             <div className="max-w-7xl mx-auto relative z-10">
                 {/* Header */}
                 <div className="text-center">
                     {/* Title Badge */}
                     <div className="inline-flex items-center justify-center mb-6">
-                        <span className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-slate-300 text-sm font-medium">
+                        <span className="rounded-full border border-border bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground">
                             How it works
                         </span>
                     </div>
 
                     {/* Main Heading */}
-                    <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
+                    <h2 className="mb-4 text-4xl font-bold text-foreground md:text-5xl">
                         The simplest way to build your portfolio
                     </h2>
                 </div>
@@ -55,7 +55,7 @@ export const ProcessSection: React.FC = () => {
 
                     {/* Right Column: Dashboard Image */}
                     <div className="relative overflow-visible">
-                        <div className="relative w-[1150px] h-[645px] max-w-none translate-x-28 lg:translate-x-20 rounded-2xl border border-white/60 shadow-[0_0_40px_rgba(59,130,246,0.45),0_0_80px_rgba(255,255,255,0.25)] overflow-hidden">
+                        <div className="relative h-[645px] w-[1150px] max-w-none translate-x-28 overflow-hidden rounded-2xl border border-border shadow-[0_0_40px_rgba(245,158,11,0.35),0_0_70px_rgba(146,64,14,0.25)] lg:translate-x-20">
                             <Image
                                 src="/images/dashboard_preview.png"
                                 alt="Dashboard preview"
