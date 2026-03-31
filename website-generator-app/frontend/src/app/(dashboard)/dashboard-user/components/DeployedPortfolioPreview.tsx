@@ -59,16 +59,13 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
     const metadata = [
         { label: "Created by", value: createdBy },
         { label: "Date created", value: formatPortfolioDate(deployedPortfolio.created_at) },
-        { label: "Last updated", value: formatPortfolioDate(deployedPortfolio.updated_at) },
-        { label: "URL", value: browserUrl },
-        { label: "Public route", value: publicRoute },
         { label: "Status", value: formatFieldValue(deployedPortfolio.status) },
         { label: "Template", value: formatFieldValue(deployedPortfolio.template_id) },
-        { label: "Last step", value: formatFieldValue(deployedPortfolio.last_step) },
     ];
+    const lastUpdated = formatPortfolioDate(deployedPortfolio.updated_at);
 
     return (
-        <section className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_400px]">
+        <section className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_370px]">
             <div className="flex h-full flex-col gap-2">
                 <h3 className="text-lg md:text-xl font-semibold text-white">Current Deployed Portfolio</h3>
                 <article className="flex-1 overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 md:p-5">
@@ -110,14 +107,29 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
                             </dl>
                         </div>
                     </div>
+
+                    <div className="mt-5 border-t border-white/10 pt-4">
+                        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-white/85">
+                            <p className="flex items-center gap-1">
+                                <span className="text-[11px] font-semibold uppercase tracking-wide text-white/45">URL:</span>
+                                <span className="break-all text-white/90">{browserUrl}</span>
+                            </p>
+                            <p className="flex items-center gap-1">
+                                <span className="text-[11px] font-semibold uppercase tracking-wide text-white/45">Public route:</span>
+                                <span className="break-all text-white/90">{publicRoute}</span>
+                            </p>
+                            <p className="flex items-center gap-1">
+                                <span className="text-[11px] font-semibold uppercase tracking-wide text-white/45">Last updated:</span>
+                                <span className="text-white/90">{lastUpdated}</span>
+                            </p>
+                        </div>
+                    </div>
                 </article>
             </div>
 
             <div className="flex h-full w-full flex-col gap-2 xl:justify-self-end">
                 <h3 className="text-lg md:text-xl font-semibold text-white">Portfolio Analytics</h3>
-                <PublishedPortfolioAnalytics
-                    portfolioTitle={deployedPortfolio.title ?? "Untitled Portfolio"}
-                />
+                <PublishedPortfolioAnalytics />
             </div>
         </section>
     );
