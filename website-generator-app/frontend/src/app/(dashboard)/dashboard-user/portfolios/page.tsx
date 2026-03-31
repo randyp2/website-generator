@@ -12,6 +12,9 @@ import {
   FiMoreVertical,
   FiTrash2,
   FiGlobe,
+  FiHeart,
+  FiMessageCircle,
+  FiShare2,
 } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
@@ -24,6 +27,9 @@ interface Portfolio {
   status: string;
   lastEdited: string;
   views: number;
+  likes: number;
+  comments: number;
+  shares: number;
   url?: string;
 }
 
@@ -39,6 +45,9 @@ interface PortfolioListItem {
 interface PortfolioListResponse {
   portfolios: PortfolioListItem[];
 }
+
+const DEFAULT_PORTFOLIO_CARD_IMAGE =
+  "https://images.unsplash.com/photo-1545665277-5937489579f2?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
 
 const PortfolioManager: React.FC = () => {
   const router = useRouter();
@@ -82,13 +91,16 @@ const PortfolioManager: React.FC = () => {
         const data: PortfolioListResponse = await response.json();
 
         // Convert DB Rows to card format
-        const formattedPortfolios: Portfolio[] = data.portfolios.map((item, idx: number) => ({
+        const formattedPortfolios: Portfolio[] = data.portfolios.map((item) => ({
           id: item.id,
           title: item.title,
-          thumbnail: `gradient-${(idx % 4) + 1}`,
+          thumbnail: DEFAULT_PORTFOLIO_CARD_IMAGE,
           status: item.status ?? "draft",
           lastEdited: new Date(item.updated_at ?? item.created_at).toLocaleDateString(), // Format as needed
           views: 0, // Placeholder - replace with actual views logic
+          likes: 0, // Placeholder - replace with actual likes logic
+          comments: 0, // Placeholder - replace with actual comments logic
+          shares: 0, // Placeholder - replace with actual shares logic
           url: item.url ?? "unpublished",
         }));
 
@@ -207,13 +219,13 @@ const PortfolioManager: React.FC = () => {
       label: "Draft",
       bgColor: "bg-white/10",
       textColor: "text-white/80",
-      dotColor: "bg-white/70",
+      dotColor: "bg-yellow-500",
     },
     published: {
       label: "Published",
       bgColor: "bg-blue-500/20",
       textColor: "text-blue-100",
-      dotColor: "bg-blue-300",
+      dotColor: "bg-green-500",
     },
     unpublished: {
       label: "Unpublished",
@@ -244,16 +256,6 @@ const PortfolioManager: React.FC = () => {
         .replace(/[-_]/g, " ")
         .replace(/\b\w/g, (char) => char.toUpperCase()),
     };
-  };
-
-  const getThumbnailGradient = (thumbnail: string) => {
-    const gradients: Record<string, string> = {
-      "gradient-1": "from-slate-900 via-slate-800 to-cyan-900",
-      "gradient-2": "from-zinc-900 via-emerald-900 to-teal-900",
-      "gradient-3": "from-neutral-900 via-rose-950 to-orange-900",
-      "gradient-4": "from-stone-900 via-amber-950 to-yellow-900",
-    };
-    return gradients[thumbnail] || gradients["gradient-1"];
   };
 
   // Loading screen component
@@ -312,7 +314,6 @@ const PortfolioManager: React.FC = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              whileHover={{ y: -8 }}
               onHoverStart={() => setHoveredId(portfolio.id)}
               onHoverEnd={() => setHoveredId(null)}
               className={`group relative hover:cursor-pointer ${
@@ -321,18 +322,15 @@ const PortfolioManager: React.FC = () => {
             >
               {/* Card Container */}
               <div className="bg-white/[0.06] backdrop-blur-xl rounded-2xl overflow-hidden border border-white/[0.12] hover:border-white/[0.25] shadow-lg hover:shadow-xl transition-all">
-                {/* Thumbnail with linear */}
+                {/* Thumbnail image */}
                 <div className="relative h-48 overflow-hidden">
-                  <div
-                    className={`absolute inset-0 bg-linear-to-br ${getThumbnailGradient(
-                      portfolio.thumbnail
-                    )}`}
-                  >
-                    {/* Overlay pattern */}
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-size-[24px_24px]" />
-                    <div className="absolute inset-0 bg-linear-to-t from-black/45 via-black/10 to-white/5" />
-                    <div className="absolute -top-20 right-[-20%] h-40 w-40 rounded-full bg-white/10 blur-3xl" />
-                  </div>
+                  <img
+                    src={portfolio.thumbnail || DEFAULT_PORTFOLIO_CARD_IMAGE}
+                    alt={`${portfolio.title} preview`}
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-linear-to-t from-black/45 via-black/10 to-white/5" />
+                  <div className="absolute -top-20 right-[-20%] h-40 w-40 rounded-full bg-white/10 blur-3xl" />
 
                   {/* Status Badge */}
                   <div className="absolute top-3 left-3">
@@ -402,9 +400,23 @@ const PortfolioManager: React.FC = () => {
 
                   {/* Stats */}
                   <div className="flex items-center justify-between pt-4 border-t border-white/10">
-                    <div className="flex items-center gap-1 text-sm text-white/70">
-                      <FiEye className="w-4 h-4" />
-                      <span>{portfolio.views} views</span>
+                    <div className="flex items-center gap-4 text-sm text-white/70">
+                      <div className="flex items-center gap-1">
+                        <FiEye className="w-4 h-4" />
+                        <span>{portfolio.views}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <FiHeart className="w-4 h-4" />
+                        <span>{portfolio.likes}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <FiMessageCircle className="w-4 h-4" />
+                        <span>{portfolio.comments}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <FiShare2 className="w-4 h-4" />
+                        <span>{portfolio.shares}</span>
+                      </div>
                     </div>
 
                     {/* More Actions Menu */}
