@@ -15,7 +15,7 @@ export const formatRelativeTime = (timestamp?: unknown | null): string => {
 
 export const normalizeStatus = (status?: string | null): "active" | "draft" | "archived" => {
     if (status === "archived") return "archived";
-    if (status === "active") return "active";
+    if (status === "active" || status === "publish" || status === "published") return "active";
     return "draft";
 };
 
