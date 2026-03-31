@@ -198,7 +198,7 @@ const PublishPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8 p-10">
+    <div className="space-y-6 px-4 py-8 md:px-6">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-4xl font-bold text-white mb-2">Publish</h1>

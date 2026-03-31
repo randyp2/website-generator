@@ -553,7 +553,7 @@ const UploadPage: React.FC = () => {
     };
 
     return (
-        <div className="relative min-h-screen p-10 pb-32">
+        <div className="relative min-h-screen px-4 py-8 pb-32 md:px-6">
             {/* Content */}
             <div className="relative z-10">
                 {/* Header */}

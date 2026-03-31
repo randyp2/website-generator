@@ -26,7 +26,7 @@ export const PortfolioListView: React.FC<PortfolioListViewProps> = ({
             {portfolios.map((portfolio) => (
                 <motion.div
                     key={portfolio.id}
-                    className="flex items-center justify-between px-8 py-5 hover:bg-white/5 transition-all cursor-pointer"
+                    className="flex items-center justify-between px-5 py-5 hover:bg-white/5 transition-all cursor-pointer md:px-6"
                 >
                     <div className="flex-1 text-white font-medium truncate flex items-center gap-2">
                         <span className="truncate">{portfolio.title}</span>
