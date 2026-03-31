@@ -17,32 +17,32 @@ interface TemplatePreviewBaseProps {
 export const TemplatePreviewBase: React.FC<TemplatePreviewBaseProps> = ({
   themeColors,
   children,
-  scale = 0.4,
+  scale = 0.56,
 }) => {
   return (
-    <div
-      className="w-64 h-52 overflow-hidden"
-      style={{
-        // Container for scaled content
-        width: `${640 * scale}px`,
-        height: `${500 * scale}px`,
-      }}
-    >
+    <div className="w-full h-full overflow-hidden flex justify-center">
       <div
-        className="origin-top-left"
         style={{
-          width: "640px",
-          height: "500px",
-          transform: `scale(${scale})`,
-          // Apply theme colors as CSS variables
-          ["--theme-primary" as string]: themeColors.primary,
-          ["--theme-secondary" as string]: themeColors.secondary,
-          ["--theme-accent" as string]: themeColors.accent,
-          ["--theme-bg" as string]: themeColors.background,
-          ["--theme-text" as string]: themeColors.text,
+          width: `${640 * scale}px`,
+          height: `${500 * scale}px`,
+          flexShrink: 0,
         }}
       >
-        {children}
+        <div
+          className="origin-top-left"
+          style={{
+            width: "640px",
+            height: "500px",
+            transform: `scale(${scale})`,
+            ["--theme-primary" as string]: themeColors.primary,
+            ["--theme-secondary" as string]: themeColors.secondary,
+            ["--theme-accent" as string]: themeColors.accent,
+            ["--theme-bg" as string]: themeColors.background,
+            ["--theme-text" as string]: themeColors.text,
+          }}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );

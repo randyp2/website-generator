@@ -57,10 +57,10 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
     const browserUrl = `https://portrn/${slug || "tbd-slug"}`;
     const publicRoute = `/portfolio/${slug || "tbd-slug"}`;
     const metadata = [
-        { label: "Created by", value: createdBy },
-        { label: "Date created", value: formatPortfolioDate(deployedPortfolio.created_at) },
-        { label: "Status", value: formatFieldValue(deployedPortfolio.status) },
-        { label: "Template", value: formatFieldValue(deployedPortfolio.template_id) },
+        { label: "Created By:", value: createdBy },
+        { label: "Date Created:", value: formatPortfolioDate(deployedPortfolio.created_at) },
+        { label: "Status:", value: formatFieldValue(deployedPortfolio.status) },
+        { label: "Template:", value: formatFieldValue(deployedPortfolio.template_id) },
     ];
     const lastUpdated = formatPortfolioDate(deployedPortfolio.updated_at);
 
@@ -95,13 +95,11 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
                         </div>
 
                         <div>
-                            <dl className="grid grid-cols-1 gap-x-8 gap-y-5 md:grid-cols-2">
+                            <dl className="flex flex-col gap-5">
                                 {metadata.map((item) => (
                                     <div key={item.label} className="space-y-1">
-                                        <dt className="text-[11px] font-semibold uppercase tracking-wide text-white/45">
-                                            {item.label}
-                                        </dt>
-                                        <dd className="break-all text-sm text-white/90">{item.value}</dd>
+                                        <dt className="text-sm font-semibold text-white/65">{item.label}</dt>
+                                        <dd className="break-words text-sm text-white/90">{item.value}</dd>
                                     </div>
                                 ))}
                             </dl>
