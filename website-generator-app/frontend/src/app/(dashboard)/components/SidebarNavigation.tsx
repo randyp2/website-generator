@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-    FiHome,
+    FiGrid,
     FiFolder,
     FiUpload,
     FiSliders,
@@ -90,7 +90,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
         {
             id: "home",
             label: "Dashboard",
-            icon: FiHome,
+            icon: FiGrid,
             path: "/dashboard-user",
         },
         {
@@ -128,8 +128,8 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-md group relative ${
                         isActive
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+                            ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-primary/25 hover:text-sidebar-primary-foreground"
                     }`}
                 >
                     <div
@@ -140,8 +140,8 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                         <Icon
                             className={`w-5 h-5 transition-all duration-200 ${
                                 isActive
-                                    ? "text-sidebar-accent-foreground"
-                                    : "text-sidebar-foreground/70 group-hover:text-sidebar-accent-foreground"
+                                    ? "text-sidebar-primary-foreground"
+                                    : "text-sidebar-foreground/70 group-hover:text-sidebar-primary-foreground"
                             }`}
                         />
                     </div>
@@ -151,15 +151,15 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                             <span
                                 className={`flex-1 text-sm font-medium relative z-10 transition-all duration-200 ${
                                     isActive
-                                        ? "text-sidebar-accent-foreground"
-                                        : "text-sidebar-foreground/70 group-hover:text-sidebar-accent-foreground"
+                                        ? "text-sidebar-primary-foreground"
+                                        : "text-sidebar-foreground/70 group-hover:text-sidebar-primary-foreground"
                                 }`}
                             >
                                 {item.label}
                             </span>
 
                             {item.badge && (
-                                <span className="rounded-sm bg-sidebar-primary px-2 py-0.5 text-xs font-bold text-sidebar-primary-foreground transition-all duration-200">
+                                <span className="rounded-sm bg-sidebar-accent px-2 py-0.5 text-xs font-bold text-sidebar-accent-foreground transition-all duration-200">
                                     {item.badge}
                                 </span>
                             )}
