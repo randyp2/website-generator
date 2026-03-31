@@ -14,6 +14,8 @@ type PortfolioToolbarProps = {
     setDisplayMode: (mode: DisplayMode) => void;
     showArchived: boolean;
     setShowArchived: (show: boolean) => void;
+    searchQuery: string;
+    setSearchQuery: (value: string) => void;
 };
 
 export const PortfolioToolbar: React.FC<PortfolioToolbarProps> = ({
@@ -23,6 +25,8 @@ export const PortfolioToolbar: React.FC<PortfolioToolbarProps> = ({
     setDisplayMode,
     showArchived,
     setShowArchived,
+    searchQuery,
+    setSearchQuery,
 }) => {
     const [showSortMenu, setShowSortMenu] = useState(false);
     const sortMenuRef = useRef<HTMLDivElement | null>(null);
@@ -43,11 +47,11 @@ export const PortfolioToolbar: React.FC<PortfolioToolbarProps> = ({
             <div className="relative" ref={sortMenuRef}>
                 <button
                     onClick={() => setShowSortMenu(!showSortMenu)}
-                    className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-blue-600 to-blue-500 border border-blue-400/20 rounded-lg hover:from-blue-500 hover:to-blue-400 transition-all shadow-lg cursor-pointer"
+                    className="flex cursor-pointer items-center gap-2 rounded-lg border border-primary/40 bg-primary px-4 py-2 text-primary-foreground shadow-lg shadow-primary/30 transition-all hover:bg-primary/90"
                 >
-                    <FiGrid className="w-4 h-4 text-white" />
-                    <span className="text-white text-sm font-medium">Display</span>
-                    <FiChevronDown className="w-4 h-4 text-white" />
+                    <FiGrid className="h-4 w-4 text-primary-foreground" />
+                    <span className="text-sm font-medium text-primary-foreground">Display</span>
+                    <FiChevronDown className="h-4 w-4 text-primary-foreground" />
                 </button>
 
                 <AnimatePresence>
@@ -64,7 +68,7 @@ export const PortfolioToolbar: React.FC<PortfolioToolbarProps> = ({
                                     onClick={() => { setDisplayMode("card"); setShowSortMenu(false); }}
                                     className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all cursor-pointer ${
                                         displayMode === "card"
-                                            ? "border-blue-500 bg-blue-500/10"
+                                            ? "border-primary bg-primary/15"
                                             : "border-white/10 bg-white/5 hover:border-white/20"
                                     }`}
                                 >
@@ -75,7 +79,7 @@ export const PortfolioToolbar: React.FC<PortfolioToolbarProps> = ({
                                     onClick={() => { setDisplayMode("list"); setShowSortMenu(false); }}
                                     className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all cursor-pointer ${
                                         displayMode === "list"
-                                            ? "border-blue-500 bg-blue-500/10"
+                                            ? "border-primary bg-primary/15"
                                             : "border-white/10 bg-white/5 hover:border-white/20"
                                     }`}
                                 >
@@ -106,7 +110,7 @@ export const PortfolioToolbar: React.FC<PortfolioToolbarProps> = ({
                                     </label>
                                     <button
                                         onClick={() => setShowArchived(!showArchived)}
-                                        className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${showArchived ? "bg-blue-500" : "bg-white/20"}`}
+                                        className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${showArchived ? "bg-primary" : "bg-white/20"}`}
                                     >
                                         <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${showArchived ? "translate-x-6" : "translate-x-0"}`} />
                                     </button>
@@ -120,13 +124,14 @@ export const PortfolioToolbar: React.FC<PortfolioToolbarProps> = ({
                 </AnimatePresence>
             </div>
 
-            <div className="relative flex-1 max-w-md">
+            <div className="relative min-w-0 flex-1">
                 <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60" />
                 <input
                     type="text"
-                    placeholder="Search portfolios..."
-                    disabled
-                    className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm placeholder-white/50 focus:outline-none focus:border-white/40 transition-colors cursor-not-allowed"
+                    placeholder="Search by title, URL, status, template..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm placeholder-white/50 focus:outline-none focus:border-white/40 transition-colors"
                 />
             </div>
         </div>

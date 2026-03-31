@@ -17,7 +17,7 @@ export default function DashboardMotionWrapper({ children }: { children: React.R
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className={isFullWidth ? "" : "max-w-7xl mx-auto"}
+      className={isFullWidth ? "" : "mx-auto w-full max-w-[92rem]"}
     >
       {children}
     </motion.div>

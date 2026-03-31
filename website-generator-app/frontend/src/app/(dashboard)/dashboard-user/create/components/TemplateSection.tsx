@@ -216,7 +216,7 @@ export const TemplateSection: React.FC<TemplateSectionProps> = ({
           </AnimatePresence>
 
           {/* Blank Canvas Visual */}
-          <div className="relative h-56 bg-linear-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+          <div className="relative h-64 bg-linear-to-br from-slate-50 to-slate-100 flex items-center justify-center">
             <motion.div
               whileHover={{ rotate: 90, scale: 1.1 }}
               transition={{ duration: 0.3 }}
@@ -323,7 +323,7 @@ export const TemplateSection: React.FC<TemplateSectionProps> = ({
               } shadow-lg hover:shadow-2xl transition-all h-full`}
             >
               {/* Template Preview */}
-              <div className="relative h-56 overflow-hidden bg-slate-50">
+              <div className="relative h-64 overflow-hidden bg-slate-50">
                 <TemplatePreviewRouter
                   template={template}
                   isHovered={hoveredTemplate === template.id}

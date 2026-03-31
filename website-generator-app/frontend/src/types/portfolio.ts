@@ -9,6 +9,7 @@ export interface Portfolio {
     status: string;
     template_id: string;
     last_step?: string | null;
+    slug?: string | null;
     style_chat_history?: PersistedStyleChatMessage[] | null;
     updated_at: Timestamp;
     created_at: Timestamp;

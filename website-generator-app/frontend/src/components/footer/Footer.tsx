@@ -1,3 +1,5 @@
+import BrandWordmark from "@/components/branding/BrandWordmark";
+
 export default function Footer() {
     const links = [
         { label: "Support", href: "#" },
@@ -6,14 +8,14 @@ export default function Footer() {
     ];
 
     return (
-        <footer className="bg-[#030506] border-t border-white/10 text-white">
+        <footer className="border-t border-sidebar-border bg-sidebar text-sidebar-foreground">
             <div className="relative max-w-6xl mx-auto px-6 py-12">
-                <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+                <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-sidebar-foreground/30 to-transparent" />
 
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
                     <div className="space-y-2">
-                        <div className="text-2xl font-bold">PortRN</div>
-                        <p className="text-sm text-white/70 max-w-md">
+                        <BrandWordmark className="text-2xl text-sidebar-foreground" />
+                        <p className="max-w-md text-sm text-sidebar-foreground/70">
                             AI-crafted portfolios, deployed in minutes.
                             Customize, preview, and launch without touching
                             code.
@@ -25,7 +27,7 @@ export default function Footer() {
                             <a
                                 key={link.label}
                                 href={link.href}
-                                className="text-white/70 hover:text-white transition-colors"
+                                className="text-sidebar-foreground/70 transition-colors hover:text-sidebar-foreground"
                             >
                                 {link.label}
                             </a>
@@ -33,11 +35,11 @@ export default function Footer() {
                     </div>
                 </div>
 
-                <div className="mt-10 border-t border-white/5 pt-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <span className="text-xs text-white/50">
-                        © 2025 PortRN. All rights reserved.
+                <div className="mt-10 flex flex-col items-start justify-between gap-4 border-t border-sidebar-border/50 pt-6 md:flex-row md:items-center">
+                    <span className="text-xs text-sidebar-foreground/50">
+                        © 2025 <BrandWordmark compact className="text-xs text-sidebar-foreground/70 align-middle" />. All rights reserved.
                     </span>
-                    <span className="text-xs text-white/50">
+                    <span className="text-xs text-sidebar-foreground/50">
                         Built for creators, designers, and developers.
                     </span>
                 </div>

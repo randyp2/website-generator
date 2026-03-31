@@ -22,11 +22,11 @@ export const PortfolioListView: React.FC<PortfolioListViewProps> = ({
     const router = useRouter();
 
     return (
-        <div className="h-full overflow-y-auto divide-y divide-white/10 [&>*:last-child]:border-b [&>*:last-child]:border-white/10">
+        <div className="h-full overflow-y-auto divide-y divide-white/10 [scrollbar-color:var(--primary)_var(--muted)] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb:hover]:bg-primary [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-primary/65 [&::-webkit-scrollbar-track]:bg-muted/60 [&::-webkit-scrollbar]:w-2 [&>*:last-child]:border-b [&>*:last-child]:border-white/10">
             {portfolios.map((portfolio) => (
                 <motion.div
                     key={portfolio.id}
-                    className="flex items-center justify-between px-8 py-5 hover:bg-white/5 transition-all cursor-pointer"
+                    className="flex items-center justify-between px-5 py-5 hover:bg-white/5 transition-all cursor-pointer md:px-6"
                 >
                     <div className="flex-1 text-white font-medium truncate flex items-center gap-2">
                         <span className="truncate">{portfolio.title}</span>

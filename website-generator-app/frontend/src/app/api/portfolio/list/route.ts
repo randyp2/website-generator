@@ -50,6 +50,8 @@ export async function GET() {
                       (portfolio.style_chat_history as unknown[] | null | undefined) ??
                       (portfolio.styleChatHistory as unknown[] | null | undefined) ??
                       null,
+                  slug:
+                      (portfolio.slug as string | null | undefined) ?? null,
                   created_at:
                       (portfolio.created_at as string | null | undefined) ??
                       (portfolio.createdAt as string | null | undefined) ??

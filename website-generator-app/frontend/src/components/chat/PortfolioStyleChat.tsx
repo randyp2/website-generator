@@ -309,7 +309,7 @@ export function PortfolioStyleChat({
     const renderComposer = () => (
         <div
             className={cn(
-                "overflow-hidden rounded-[2rem] border border-white/10 bg-[#1c1d22]/92 text-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur-2xl",
+                "overflow-hidden rounded-xl border border-white/10 bg-[#1c1d22]/92 text-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur-2xl",
                 "px-6 py-2.5 md:px-7 md:py-3",
             )}
         >
@@ -330,7 +330,7 @@ export function PortfolioStyleChat({
                     onClick={handleSend}
                     disabled={isSending || !prompt.trim()}
                     className={cn(
-                        "-mt-0.5 shrink-0 rounded-2xl bg-transparent text-white transition hover:bg-white/5 disabled:bg-transparent disabled:text-white/30",
+                        "-mt-0.5 shrink-0 rounded-xl bg-transparent text-white transition hover:bg-white/5 disabled:bg-transparent disabled:text-white/30",
                         "h-12 w-12",
                     )}
                     aria-label="Send message"
@@ -355,9 +355,9 @@ export function PortfolioStyleChat({
                         type="button"
                         onClick={onContinue}
                         disabled={isContinueDisabled}
-                        className="group relative inline-flex cursor-pointer items-center gap-2 overflow-hidden rounded-full bg-linear-to-br from-[#0b1733] via-[#123a82] to-[#1a56c7] px-3 py-1.5 text-xs font-semibold text-white shadow-md shadow-blue-900/30 transition hover:shadow-blue-700/35 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="group relative inline-flex cursor-pointer items-center gap-2 overflow-hidden rounded-xl border border-white/10 bg-linear-to-r from-primary via-[#fb923c] to-[#ea580c] px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-[0_14px_30px_rgba(245,158,11,0.28)] transition hover:-translate-y-px hover:shadow-[0_18px_36px_rgba(245,158,11,0.34)] disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                        <span className="pointer-events-none absolute inset-y-0 left-0 w-1/2 -translate-x-[170%] -skew-x-12 bg-linear-to-r from-transparent via-white/45 to-transparent opacity-0 transition duration-700 ease-out group-hover:translate-x-[320%] group-hover:opacity-100" />
+                        <span className="pointer-events-none absolute inset-y-0 left-0 w-1/2 -translate-x-[170%] -skew-x-12 bg-linear-to-r from-transparent via-white/35 to-transparent opacity-0 transition duration-700 ease-out group-hover:translate-x-[320%] group-hover:opacity-100" />
                         <span className="relative">{continueLabel}</span>
                         <ArrowRight className="relative h-3.5 w-3.5" />
                     </button>
@@ -389,7 +389,7 @@ export function PortfolioStyleChat({
                                 <div className="mb-4 flex items-center gap-3 text-white/90">
                                     <Sparkles className="h-9 w-9 text-white/80 drop-shadow-[0_0_10px_rgba(255,255,255,0.12)] md:h-11 md:w-11" />
                                     <span className="text-4xl font-medium tracking-tight md:text-6xl">
-                                        Hey {firstName},
+                                        Hey <span className="text-primary">{firstName}</span>,
                                     </span>
                                 </div>
                                 <p className="max-w-2xl text-base leading-7 text-white/68 md:text-lg">
