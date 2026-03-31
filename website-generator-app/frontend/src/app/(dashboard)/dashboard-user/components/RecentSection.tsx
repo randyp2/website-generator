@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
+import { useUser } from "@/context/UserContext";
 import { usePortfolios } from "../hooks/usePortfolios";
 import { normalizeStatus, getDateValue } from "../utils/portfolioUtils";
 import { PortfolioToolbar } from "./PortfolioToolbar";
@@ -9,6 +10,7 @@ import { PortfolioListView } from "./PortfolioListView";
 import { PortfolioCardView } from "./PortfolioCardView";
 import { DeletePortfolioOverlay } from "./DeletePortfolioOverlay";
 import { RenamePortfolioModal } from "./RenamePortfolioModal";
+import { DeployedPortfolioPreview } from "./DeployedPortfolioPreview";
 
 type SortBy = "name" | "date" | "status";
 type DisplayMode = "card" | "list";
@@ -17,6 +19,7 @@ export const RecentSection: React.FC = () => {
     const [sortBy, setSortBy] = useState<SortBy>("date");
     const [displayMode, setDisplayMode] = useState<DisplayMode>("list");
     const [showArchived, setShowArchived] = useState(true);
+    const { user } = useUser();
 
     const {
         portfolios,
@@ -50,6 +53,12 @@ export const RecentSection: React.FC = () => {
 
     return (
         <div className="space-y-4">
+            <DeployedPortfolioPreview
+                portfolios={portfolios}
+                isLoading={isLoading}
+                user={user}
+            />
+
             <PortfolioToolbar
                 sortBy={sortBy}
                 setSortBy={setSortBy}
