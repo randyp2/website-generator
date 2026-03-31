@@ -33,7 +33,9 @@ export default async function DashboardLayout({
 
   return (
     <UserProviderWrapper user = {{ id: user.id, username, email, avatar}}>
-      <div className="min-h-screen bg-black text-white relative">
+      <div className="relative min-h-dvh bg-black text-white">
+        {/* Keep dashboard fully black even during overscroll/bounce */}
+        <div className="pointer-events-none fixed inset-0 z-0 bg-black" />
         {/* DashboardLayoutClient handles sidebar and content with responsive margins */}
         <div className="relative z-10">
           <DashboardLayoutClient>{children}</DashboardLayoutClient>
