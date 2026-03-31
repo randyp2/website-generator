@@ -27,6 +27,19 @@ interface Portfolio {
   url?: string;
 }
 
+interface PortfolioListItem {
+  id: string;
+  title: string;
+  status?: string;
+  updated_at?: string;
+  created_at?: string;
+  url?: string | null;
+}
+
+interface PortfolioListResponse {
+  portfolios: PortfolioListItem[];
+}
+
 const PortfolioManager: React.FC = () => {
   const router = useRouter();
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -50,6 +63,10 @@ const PortfolioManager: React.FC = () => {
 
   // API call to fetch portfolios - Occurs on mount
   useEffect(() => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
 
     const handleFetchPortfolios = async () => {
       try {
@@ -62,15 +79,14 @@ const PortfolioManager: React.FC = () => {
 
         if (!response.ok ) throw new Error(`HTTP error! status: ${response.status}`);
         
-
-        const data = await response.json();
+        const data: PortfolioListResponse = await response.json();
 
         // Convert DB Rows to card format
-        const formattedPortfolios: Portfolio[] = data.portfolios.map((item: any, idx: number) => ({
+        const formattedPortfolios: Portfolio[] = data.portfolios.map((item, idx: number) => ({
           id: item.id,
           title: item.title,
           thumbnail: `gradient-${(idx % 4) + 1}`,
-          status: item.status,
+          status: item.status ?? "draft",
           lastEdited: new Date(item.updated_at ?? item.created_at).toLocaleDateString(), // Format as needed
           views: 0, // Placeholder - replace with actual views logic
           url: item.url ?? "unpublished",
@@ -87,7 +103,7 @@ const PortfolioManager: React.FC = () => {
     }
 
     handleFetchPortfolios();
-  }, [user?.id]);
+  }, [userId]);
 
   // Handler to open edit modal - triggered when user clicks Edit icon
   const handleEditClick = (portfolio: Portfolio) => {
@@ -127,7 +143,7 @@ const PortfolioManager: React.FC = () => {
         throw new Error(`Failed to update portfolio: ${response.status}`);
       }
 
-      const updatedData = await response.json();
+      await response.json();
 
       // Update local state to reflect changes immediately
       setPortfolios((prev) =>
