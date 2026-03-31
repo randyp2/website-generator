@@ -299,12 +299,12 @@ const PortfolioManager: React.FC = () => {
         </div>
 
         <motion.button
-          whileHover={{ scale: 1.02 }}
+          whileHover={{ y: -1 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => router.push("/dashboard/create")}
-          className="hover:cursor-pointer hidden md:flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-xl border border-white/20 hover:bg-white/15 hover:border-white/30 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
+          className="hover:cursor-pointer hidden md:inline-flex h-10 items-center gap-1.5 rounded-md border border-primary bg-primary px-3.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          <FiPlus className="w-5 h-5" />
+          <FiPlus className="h-4 w-4 text-primary-foreground" />
           New Portfolio
         </motion.button>
       </motion.div>
