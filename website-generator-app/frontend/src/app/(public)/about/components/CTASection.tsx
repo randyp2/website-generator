@@ -4,6 +4,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { FiArrowRight } from "react-icons/fi";
 import { useRouter } from "next/navigation";
+import BrandWordmark from "@/components/branding/BrandWordmark";
 
 export const CTASection: React.FC = () => {
     const router = useRouter();
@@ -18,7 +19,7 @@ export const CTASection: React.FC = () => {
                         </h2>
                         <p className="text-cyan-50 text-lg mb-8 max-w-2xl mx-auto">
                             Join thousands of professionals who have already
-                            created their portfolios with PortRN.
+                            created their portfolios with <BrandWordmark compact className="mx-1 text-lg text-white align-middle" />.
                         </p>
                         <motion.button
                             whileHover={{ scale: 1.05 }}

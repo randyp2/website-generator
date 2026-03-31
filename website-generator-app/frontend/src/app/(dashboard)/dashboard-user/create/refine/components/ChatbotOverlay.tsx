@@ -14,6 +14,7 @@ import {
 import type { UploadedFile } from "@/types/file";
 import { Message } from "@/types/preview";
 import { useSidebar } from "@/context/SidebarContext";
+import BrandWordmark from "@/components/branding/BrandWordmark";
 
 interface ChatbotOverlayProps {
     messages: Message[];
@@ -106,7 +107,8 @@ export const ChatbotOverlay: React.FC<ChatbotOverlayProps> = ({
                 </div>
                 <div>
                     <h2 className="text-base font-bold text-white">
-                        PortRN Chat
+                        <BrandWordmark compact className="mr-1 text-base text-white" />
+                        Chat
                     </h2>
                     <p className="text-xs text-white/40">
                         {messages.length === 0
@@ -129,7 +131,7 @@ export const ChatbotOverlay: React.FC<ChatbotOverlayProps> = ({
                             No messages yet
                         </h3>
                         <p className="text-sm text-white/40 max-w-sm">
-                            Ask PortRN to refine your portfolio. You can upload
+                            Ask <BrandWordmark compact className="mx-1 text-sm text-white/60" /> to refine your portfolio. You can upload
                             images or videos to include in your design.
                         </p>
                     </div>

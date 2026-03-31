@@ -23,6 +23,7 @@ import { IconType } from "react-icons";
 import { createClient } from "@/utils/supabase/client";
 import { signoutClient } from "@/lib/logout-client";
 import { useUser } from "@/context/UserContext";
+import BrandWordmark from "@/components/branding/BrandWordmark";
 
 interface NavItem {
     id: string;
@@ -127,8 +128,8 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-md group relative ${
                         isActive
-                            ? "bg-white/10 text-white"
-                            : "text-white/70 hover:bg-white/5 hover:text-white"
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
                     }`}
                 >
                     <div
@@ -139,8 +140,8 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                         <Icon
                             className={`w-5 h-5 transition-all duration-200 ${
                                 isActive
-                                    ? "text-white"
-                                    : "text-white/70 group-hover:text-white"
+                                    ? "text-sidebar-accent-foreground"
+                                    : "text-sidebar-foreground/70 group-hover:text-sidebar-accent-foreground"
                             }`}
                         />
                     </div>
@@ -150,15 +151,15 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                             <span
                                 className={`flex-1 text-sm font-medium relative z-10 transition-all duration-200 ${
                                     isActive
-                                        ? "text-white"
-                                        : "text-white/70 group-hover:text-white"
+                                        ? "text-sidebar-accent-foreground"
+                                        : "text-sidebar-foreground/70 group-hover:text-sidebar-accent-foreground"
                                 }`}
                             >
                                 {item.label}
                             </span>
 
                             {item.badge && (
-                                <span className="rounded-sm bg-blue-500/80 px-2 py-0.5 text-xs font-bold text-white transition-all duration-200">
+                                <span className="rounded-sm bg-sidebar-primary px-2 py-0.5 text-xs font-bold text-sidebar-primary-foreground transition-all duration-200">
                                     {item.badge}
                                 </span>
                             )}
@@ -173,20 +174,18 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
         <div className="flex flex-col h-full">
             {/* Logo / Brand */}
             <div
-                className={`border-b border-white/10 px-5 pt-5 pb-2 ${collapsed ? "px-3" : ""}`}
+                className={`border-b border-sidebar-border px-5 pt-5 pb-2 ${collapsed ? "px-3" : ""}`}
             >
                 {/* Product Name */}
                 {!collapsed && (
                     <div className="px-3 pb-3">
-                        <h2 className="text-base font-bold tracking-wide text-white">
-                            PortRN
-                        </h2>
+                        <BrandWordmark className="text-base text-sidebar-foreground" />
                     </div>
                 )}
 
                 {collapsed && (
                     <div className="flex justify-center pb-3">
-                        <div className="h-8 w-8 rounded-md border border-white/15 bg-white/5" />
+                        <div className="h-8 w-8 rounded-md border border-sidebar-border bg-sidebar-accent/30" />
                     </div>
                 )}
             </div>
@@ -199,13 +198,13 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
             </div>
 
             {/* Profile Menu */}
-            <div className="relative border-t border-white/10 p-4">
+            <div className="relative border-t border-sidebar-border p-4">
                 <motion.button
                     whileHover={{ scale: 1.01 }}
                     whileTap={{ scale: 0.98 }}
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     onClick={() => setShowProfileMenu(!showProfileMenu)}
-                    className={`hover:cursor-pointer w-full flex items-center gap-3 px-1 py-1.5 transition-colors hover:text-white ${
+                    className={`hover:cursor-pointer w-full flex items-center gap-3 px-1 py-1.5 transition-colors hover:text-sidebar-foreground ${
                         collapsed ? "justify-center" : ""
                     }`}
                 >
@@ -213,33 +212,33 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                         <img
                             src={avatar}
                             alt="User Avatar"
-                            className="h-8 w-8 rounded-full border border-white/20 object-cover"
+                            className="h-8 w-8 rounded-full border border-sidebar-border object-cover"
                         />
                     ) : (
-                        <div className="h-8 w-8 rounded-full border border-white/20 bg-white/10 flex items-center justify-center">
-                            <FiUser className="h-4 w-4 text-white/70" />
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full border border-sidebar-border bg-sidebar-accent/30">
+                            <FiUser className="h-4 w-4 text-sidebar-foreground/70" />
                         </div>
                     )}
 
                     {!collapsed && (
                         <>
                             <div className="min-w-0 flex-1 text-left">
-                                <p className="truncate text-sm font-medium text-white">
+                                <p className="truncate text-sm font-medium text-sidebar-foreground">
                                     {username || "Account"}
                                 </p>
-                                <p className="truncate text-xs text-white/60">
+                                <p className="truncate text-xs text-sidebar-foreground/60">
                                     {email}
                                 </p>
                             </div>
                             <FiChevronDown
-                                className={`h-4 w-4 text-white/70 transition-transform ${showProfileMenu ? "rotate-180" : ""}`}
+                                className={`h-4 w-4 text-sidebar-foreground/70 transition-transform ${showProfileMenu ? "rotate-180" : ""}`}
                             />
                         </>
                     )}
                 </motion.button>
 
                 {showProfileMenu && (
-                    <div className="absolute bottom-full left-4 right-4 mb-2 overflow-hidden rounded-lg border border-white/10 bg-[#111318] shadow-2xl z-50">
+                    <div className="absolute bottom-full left-4 right-4 z-50 mb-2 overflow-hidden rounded-lg border border-sidebar-border bg-card shadow-2xl">
                         {[
                             { icon: FiUser, label: "Sign Up" },
                             { icon: FiSettings, label: "Settings" },
@@ -249,9 +248,9 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                             <button
                                 key={item.label}
                                 onClick={() => setShowProfileMenu(false)}
-                                className="w-full flex items-center gap-3 px-4 py-3 text-left text-white/80 hover:bg-white/5 transition-colors"
+                                className="w-full flex items-center gap-3 px-4 py-3 text-left text-card-foreground/80 transition-colors hover:bg-sidebar-accent/40"
                             >
-                                <item.icon className="h-4 w-4 text-white/70" />
+                                <item.icon className="h-4 w-4 text-card-foreground/70" />
                                 <span className="text-sm">{item.label}</span>
                             </button>
                         ))}
@@ -262,7 +261,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                                 await signoutClient();
                                 router.push("/login");
                             }}
-                            className="w-full flex items-center gap-3 px-4 py-3 text-left text-red-300 hover:bg-red-500/10 transition-colors border-t border-white/10"
+                            className="w-full flex items-center gap-3 border-t border-sidebar-border px-4 py-3 text-left text-red-300 transition-colors hover:bg-red-500/10"
                         >
                             <FiLogOut className="h-4 w-4" />
                             <span className="text-sm">Sign Out</span>
@@ -281,16 +280,16 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                 whileTap={{ scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 onClick={() => setMobileOpen(true)}
-                className="md:hidden fixed top-4 left-4 z-50 p-3 bg-black/80 rounded-lg shadow-lg border border-white/10"
+                className="fixed top-4 left-4 z-50 rounded-lg border border-sidebar-border bg-sidebar/95 p-3 shadow-lg md:hidden"
             >
-                <FiMenu className="w-6 h-6 text-white" />
+                <FiMenu className="h-6 w-6 text-sidebar-foreground" />
             </motion.button>
 
             {/* Desktop Sidebar */}
             <motion.aside
                 animate={{ width: collapsed ? 72 : 248 }}
                 transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="hidden md:block fixed left-0 top-0 h-screen bg-black border-r border-white/10 z-40 shadow-2xl shadow-black/40"
+                className="fixed left-0 top-0 z-40 hidden h-screen border-r border-sidebar-border bg-sidebar shadow-2xl shadow-black/40 md:block"
             >
                 <SidebarContent />
             </motion.aside>
@@ -314,14 +313,14 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                             animate={{ x: 0 }}
                             exit={{ x: -248 }}
                             transition={{ duration: 0.3, ease: "easeOut" }}
-                            className="md:hidden fixed left-0 top-0 h-screen w-[248px] bg-black border-r border-white/10 z-50 shadow-2xl shadow-black/40"
+                            className="fixed left-0 top-0 z-50 h-screen w-[248px] border-r border-sidebar-border bg-sidebar shadow-2xl shadow-black/40 md:hidden"
                         >
                             {/* Close Button */}
                             <button
                                 onClick={() => setMobileOpen(false)}
-                                className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-lg transition-colors border border-white/10"
+                                className="absolute top-4 right-4 rounded-lg border border-sidebar-border p-2 transition-colors hover:bg-sidebar-accent/40"
                             >
-                                <FiX className="w-5 h-5 text-white/80" />
+                                <FiX className="h-5 w-5 text-sidebar-foreground/80" />
                             </button>
 
                             <SidebarContent />

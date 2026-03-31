@@ -28,7 +28,7 @@ export default function Navbar() {
         pointerEvents: isVisible ? "auto" : "none",
       }}
     >
-      <div className="bg-[#030506]/60 backdrop-blur-xl border-b border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.25)]">
+      <div className="border-b border-sidebar-border bg-sidebar/90 backdrop-blur-xl shadow-[0_10px_40px_rgba(0,0,0,0.35)]">
         <div className="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center">
           <NavbarClient />
         </div>

@@ -10,19 +10,19 @@ export const ActivityMetricsChart: React.FC = () => {
       label: "Views",
       value: 1240,
       icon: <FiEye className="w-4 h-4" />,
-      color: "from-blue-600 to-blue-500",
+      color: "from-chart-1 to-chart-2",
     },
     {
       label: "Edits",
       value: 89,
       icon: <FiEdit3 className="w-4 h-4" />,
-      color: "from-blue-600 to-blue-500",
+      color: "from-chart-2 to-chart-3",
     },
     {
       label: "Shares",
       value: 34,
       icon: <FiShare2 className="w-4 h-4" />,
-      color: "from-blue-600 to-blue-500",
+      color: "from-chart-4 to-chart-5",
     },
   ];
 
@@ -33,12 +33,12 @@ export const ActivityMetricsChart: React.FC = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.5, duration: 0.5 }}
-      className="relative bg-white/5 rounded-2xl p-6 border border-white/10 shadow-lg"
+      className="relative rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-lg"
     >
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-xl font-semibold">Activity Breakdown</h3>
-          <p className="text-sm text-white/60">Portfolio interactions this month</p>
+          <p className="text-sm text-muted-foreground">Portfolio interactions this month</p>
         </div>
       </div>
 
@@ -50,13 +50,13 @@ export const ActivityMetricsChart: React.FC = () => {
             return (
               <div key={item.label} className="flex items-center gap-3">
                 {/* Icon on the left */}
-                <div className="text-white/70">
+                <div className="text-card-foreground/70">
                   {item.icon}
                 </div>
 
                 {/* Bar container */}
                 <div className="flex-1 relative">
-                  <div className="w-full bg-white/5 rounded-lg h-14 overflow-hidden">
+                  <div className="h-14 w-full overflow-hidden rounded-lg bg-muted/40">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${percentage}%` }}
@@ -65,8 +65,8 @@ export const ActivityMetricsChart: React.FC = () => {
                     >
                       {/* Label and value inside the bar */}
                       <div className="absolute inset-0 flex items-center justify-between px-4">
-                        <span className="text-white font-medium text-sm">{item.label}</span>
-                        <span className="text-white font-bold">{item.value.toLocaleString()}</span>
+                        <span className="text-sm font-medium text-white">{item.label}</span>
+                        <span className="font-bold text-white">{item.value.toLocaleString()}</span>
                       </div>
                     </motion.div>
                   </div>
@@ -78,10 +78,10 @@ export const ActivityMetricsChart: React.FC = () => {
       </div>
 
       {/* Total Display */}
-      <div className="mt-6 pt-4 border-t border-white/10">
+      <div className="mt-6 border-t border-border pt-4">
         <div className="flex items-center justify-between">
-          <span className="text-white/60">Total Interactions</span>
-          <span className="text-2xl font-bold text-white">{total.toLocaleString()}</span>
+          <span className="text-muted-foreground">Total Interactions</span>
+          <span className="text-2xl font-bold text-card-foreground">{total.toLocaleString()}</span>
         </div>
       </div>
     </motion.div>

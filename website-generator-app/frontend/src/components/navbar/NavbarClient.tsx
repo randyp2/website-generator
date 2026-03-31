@@ -4,15 +4,17 @@ import { getNavbarItems } from "@/data/navLinks";
 import { signoutClient } from "@/lib/logout-client";
 import { NavBar } from "@/components/ui/tube-light-navbar";
 import { createClient } from "@/utils/supabase/client";
-import { Home, Info, LayoutDashboard, Sparkles, User2 } from "lucide-react";
+import { Home, Info, LayoutDashboard, Sparkles, User2, type LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 import { FiUser } from "react-icons/fi";
+import BrandWordmark from "@/components/branding/BrandWordmark";
+import type { User } from "@supabase/supabase-js";
 
 const NavbarClient: React.FC = () => {
-    const [user, setUser] = useState<any>(null);
+    const [user, setUser] = useState<User | null>(null);
     const router = useRouter();
     const supabase = createClient();
     const navLinks = getNavbarItems(); // Return links to display on navbar
@@ -23,7 +25,7 @@ const NavbarClient: React.FC = () => {
         "";
 
     const navItems = useMemo(() => {
-        const iconMap: Record<string, any> = {
+        const iconMap: Record<string, LucideIcon> = {
             Home,
             About: Info,
             Explore: LayoutDashboard,
@@ -74,9 +76,7 @@ const NavbarClient: React.FC = () => {
             <div className="flex justify-between items-center gap-6 pr-5 w-full">
                 {/* Left: Logo + Brand */}
                 <Link href="/" className="flex items-center gap-3">
-                    <span className="text-2xl font-bold text-white">
-                        PortRN
-                    </span>
+                    <BrandWordmark className="text-2xl text-foreground" />
                 </Link>
 
                 {/* Center: Nav links */}
@@ -99,7 +99,7 @@ const NavbarClient: React.FC = () => {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => router.push("/dashboard-user")}
-                            className="hover:cursor-pointer px-5 py-2.5 bg-linear-to-r from-cyan-500 via-sky-500 to-cyan-400 text-white rounded-lg font-semibold shadow-md shadow-cyan-400/30 hover:shadow-lg hover:shadow-cyan-400/50 transition-all"
+                            className="hover:cursor-pointer rounded-lg bg-primary px-5 py-2.5 font-semibold text-primary-foreground shadow-md shadow-primary/30 transition-all hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/40"
                         >
                             Continue to Dashboard
                         </motion.button>
@@ -110,7 +110,7 @@ const NavbarClient: React.FC = () => {
                                 await signoutClient(); // Sign out user from client side function since invoked by button and not form
                                 router.push("/"); // Redirect to home page
                             }}
-                            className="px-5 py-2.5 bg-white text-slate-900 rounded-lg font-semibold border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all"
+                            className="rounded-lg border border-border bg-secondary px-5 py-2.5 font-semibold text-secondary-foreground transition-all hover:bg-muted hover:shadow-md"
                         >
                             Logout
                         </motion.button>
@@ -121,7 +121,7 @@ const NavbarClient: React.FC = () => {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => router.push("/login")}
-                            className="hover:cursor-pointer flex items-center gap-2 px-5 py-2.5 bg-white text-slate-900 rounded-lg font-semibold border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all"
+                            className="hover:cursor-pointer flex items-center gap-2 rounded-lg border border-border bg-secondary px-5 py-2.5 font-semibold text-secondary-foreground transition-all hover:bg-muted hover:shadow-md"
                         >
                             <FiUser className="w-4 h-4" /> Login
                         </motion.button>
@@ -129,7 +129,7 @@ const NavbarClient: React.FC = () => {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => router.push("/dashboard")}
-                            className="hover:cursor-pointer w-35 px-6 py-3 bg-linear-to-r from-cyan-500 via-sky-500 to-cyan-400 text-white rounded-lg font-semibold shadow-md shadow-cyan-400/30 hover:shadow-lg hover:shadow-cyan-400/50 transition-all"
+                            className="hover:cursor-pointer w-35 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground shadow-md shadow-primary/30 transition-all hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/40"
                         >
                             Get Started
                         </motion.button>

@@ -1,4 +1,5 @@
 import { FiTrendingUp } from "react-icons/fi";
+import BrandWordmark from "@/components/branding/BrandWordmark";
 
 export default function MissionSection() {
     return (
@@ -18,7 +19,7 @@ export default function MissionSection() {
                         We believe everyone deserves a professional online
                         presence. Too many talented individuals struggle with
                         web design or can&apos;t afford expensive developers.
-                        PortRN democratizes professional web design, making it
+                        <BrandWordmark compact className="mx-1 text-lg text-slate-800 align-middle" /> democratizes professional web design, making it
                         accessible to everyone.
                     </p>
 
