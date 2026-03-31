@@ -14,6 +14,8 @@ type PortfolioToolbarProps = {
     setDisplayMode: (mode: DisplayMode) => void;
     showArchived: boolean;
     setShowArchived: (show: boolean) => void;
+    searchQuery: string;
+    setSearchQuery: (value: string) => void;
 };
 
 export const PortfolioToolbar: React.FC<PortfolioToolbarProps> = ({
@@ -23,6 +25,8 @@ export const PortfolioToolbar: React.FC<PortfolioToolbarProps> = ({
     setDisplayMode,
     showArchived,
     setShowArchived,
+    searchQuery,
+    setSearchQuery,
 }) => {
     const [showSortMenu, setShowSortMenu] = useState(false);
     const sortMenuRef = useRef<HTMLDivElement | null>(null);
@@ -120,13 +124,14 @@ export const PortfolioToolbar: React.FC<PortfolioToolbarProps> = ({
                 </AnimatePresence>
             </div>
 
-            <div className="relative flex-1 max-w-md">
+            <div className="relative min-w-0 flex-1">
                 <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60" />
                 <input
                     type="text"
-                    placeholder="Search portfolios..."
-                    disabled
-                    className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm placeholder-white/50 focus:outline-none focus:border-white/40 transition-colors cursor-not-allowed"
+                    placeholder="Search by title, URL, status, template..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm placeholder-white/50 focus:outline-none focus:border-white/40 transition-colors"
                 />
             </div>
         </div>

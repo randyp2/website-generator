@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useUser } from "@/context/UserContext";
 import { usePortfolios } from "../hooks/usePortfolios";
@@ -19,6 +19,7 @@ export const RecentSection: React.FC = () => {
     const [sortBy, setSortBy] = useState<SortBy>("date");
     const [displayMode, setDisplayMode] = useState<DisplayMode>("list");
     const [showArchived, setShowArchived] = useState(true);
+    const [searchQuery, setSearchQuery] = useState("");
     const { user } = useUser();
 
     const {
@@ -37,19 +38,36 @@ export const RecentSection: React.FC = () => {
         handleRename,
     } = usePortfolios();
 
-    const filteredAndSortedPortfolios = [...portfolios]
-        .filter((p) => showArchived || normalizeStatus(p.status) !== "archived")
-        .sort((a, b) => {
-            if (sortBy === "name") return a.title.localeCompare(b.title);
-            if (sortBy === "date") {
-                return (
-                    getDateValue(b.updated_at ?? b.created_at ?? null) -
-                    getDateValue(a.updated_at ?? a.created_at ?? null)
-                );
-            }
-            const statusOrder: Record<string, number> = { active: 1, draft: 2, archived: 3 };
-            return statusOrder[normalizeStatus(a.status)] - statusOrder[normalizeStatus(b.status)];
-        });
+    const filteredAndSortedPortfolios = useMemo(() => {
+        const normalizedQuery = searchQuery.trim().toLowerCase();
+
+        const matchesQuery = (fields: Array<string | null | undefined>) =>
+            fields.some((field) => (field ?? "").toLowerCase().includes(normalizedQuery));
+
+        return [...portfolios]
+            .filter((p) => showArchived || normalizeStatus(p.status) !== "archived")
+            .filter((p) => {
+                if (!normalizedQuery) return true;
+                return matchesQuery([
+                    p.title,
+                    p.status,
+                    p.slug,
+                    p.template_id,
+                    p.last_step,
+                ]);
+            })
+            .sort((a, b) => {
+                if (sortBy === "name") return a.title.localeCompare(b.title);
+                if (sortBy === "date") {
+                    return (
+                        getDateValue(b.updated_at ?? b.created_at ?? null) -
+                        getDateValue(a.updated_at ?? a.created_at ?? null)
+                    );
+                }
+                const statusOrder: Record<string, number> = { active: 1, draft: 2, archived: 3 };
+                return statusOrder[normalizeStatus(a.status)] - statusOrder[normalizeStatus(b.status)];
+            });
+    }, [portfolios, showArchived, searchQuery, sortBy]);
 
     return (
         <div className="space-y-4">
@@ -59,14 +77,19 @@ export const RecentSection: React.FC = () => {
                 user={user}
             />
 
-            <PortfolioToolbar
-                sortBy={sortBy}
-                setSortBy={setSortBy}
-                displayMode={displayMode}
-                setDisplayMode={setDisplayMode}
-                showArchived={showArchived}
-                setShowArchived={setShowArchived}
-            />
+            <div className="pt-3 md:pt-5 space-y-3">
+                <h3 className="text-lg md:text-xl font-semibold text-white">Created Portfolios</h3>
+                <PortfolioToolbar
+                    sortBy={sortBy}
+                    setSortBy={setSortBy}
+                    displayMode={displayMode}
+                    setDisplayMode={setDisplayMode}
+                    showArchived={showArchived}
+                    setShowArchived={setShowArchived}
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                />
+            </div>
 
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
