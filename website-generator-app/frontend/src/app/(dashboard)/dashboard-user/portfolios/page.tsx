@@ -21,7 +21,7 @@ interface Portfolio {
   id: string;
   title: string;
   thumbnail: string;
-  status: "draft";
+  status: string;
   lastEdited: string;
   views: number;
   url?: string;
@@ -178,14 +178,56 @@ const PortfolioManager: React.FC = () => {
         }
     }
 
-  const statusConfig = {
+  const statusConfig: Record<
+    string,
+    {
+      label: string;
+      bgColor: string;
+      textColor: string;
+      dotColor: string;
+    }
+  > = {
     draft: {
       label: "Draft",
-      color: "slate",
       bgColor: "bg-white/10",
       textColor: "text-white/80",
       dotColor: "bg-white/70",
     },
+    published: {
+      label: "Published",
+      bgColor: "bg-blue-500/20",
+      textColor: "text-blue-100",
+      dotColor: "bg-blue-300",
+    },
+    unpublished: {
+      label: "Unpublished",
+      bgColor: "bg-white/10",
+      textColor: "text-white/80",
+      dotColor: "bg-white/70",
+    },
+    archived: {
+      label: "Archived",
+      bgColor: "bg-zinc-500/20",
+      textColor: "text-zinc-200",
+      dotColor: "bg-zinc-300",
+    },
+  };
+
+  const fallbackStatus = statusConfig.draft;
+
+  const getStatus = (rawStatus?: string) => {
+    if (!rawStatus) return fallbackStatus;
+
+    const normalized = rawStatus.toLowerCase();
+    const matched = statusConfig[normalized];
+    if (matched) return matched;
+
+    return {
+      ...fallbackStatus,
+      label: rawStatus
+        .replace(/[-_]/g, " ")
+        .replace(/\b\w/g, (char) => char.toUpperCase()),
+    };
   };
 
   const getThumbnailGradient = (thumbnail: string) => {
@@ -246,7 +288,7 @@ const PortfolioManager: React.FC = () => {
       {/* Portfolio Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {portfolios.map((portfolio, index) => {
-          const status = statusConfig[portfolio.status];
+          const status = getStatus(portfolio.status);
 
           return (
             <motion.div
