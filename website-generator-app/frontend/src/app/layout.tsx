@@ -1,17 +1,22 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Manrope } from "next/font/google";
+import { Inter, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 
 
 
-const manropeSans = Manrope({
-  variable: "--font-manrope",
+const interSans = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const sourceSerif = Source_Serif_4({
+  variable: "--font-source-serif-4",
+  subsets: ["latin"],
+});
+
+const jetBrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
   subsets: ["latin"],
 });
 
@@ -88,7 +93,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${manropeSans.variable} ${geistMono.variable} font-sans overflow-x-hidden relative flex flex-col min-h-screen bg-linear-to-br from-white via-slate-50 to-cyan-100/20`}
+        className={`${interSans.variable} ${sourceSerif.variable} ${jetBrainsMono.variable} font-sans overflow-x-hidden relative flex flex-col min-h-screen bg-background text-foreground`}
       >
         {children}
         <Toaster />

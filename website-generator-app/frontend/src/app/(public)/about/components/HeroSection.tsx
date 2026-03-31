@@ -1,3 +1,5 @@
+import BrandWordmark from "@/components/branding/BrandWordmark";
+
 export default function HeroSection() {
     return (
         <section className="py-20 px-6">
@@ -11,7 +13,7 @@ export default function HeroSection() {
                     </h1>
 
                     <p className="text-xl text-slate-600 leading-relaxed mb-8">
-                        We built PortRN to help professionals showcase their
+                        We built <BrandWordmark compact className="mx-1 text-xl text-slate-700 align-middle" /> to help professionals showcase their
                         work without spending weeks on design and development.
                         Our AI understands what makes portfolios effective and
                         creates beautiful, responsive sites in minutes. Simply

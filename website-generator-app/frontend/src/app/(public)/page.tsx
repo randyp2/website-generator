@@ -33,7 +33,7 @@ const sections = [
 
 export default function LandingPage() {
     return (
-        <main className="min-h-screen bg-black text-white">
+        <main className="min-h-screen bg-background text-foreground">
             <HeroSection />
             {sections.map(({ key, Component }) => (
                 <Component key={key} />

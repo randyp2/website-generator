@@ -14,17 +14,17 @@ export const EngagementTrendChart: React.FC = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.4, duration: 0.5 }}
-      className="relative bg-white/5 rounded-2xl p-6 border border-white/10 shadow-lg"
+      className="relative rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-lg"
     >
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-xl font-semibold">Engagement Trend</h3>
-          <p className="text-sm text-white/60">Views and exports over time</p>
+          <p className="text-sm text-muted-foreground">Views and exports over time</p>
         </div>
       </div>
       <div className="mt-4 h-48 rounded-xl relative">
         {/* Y-axis labels */}
-        <div className="absolute left-0 top-0 bottom-6 flex flex-col justify-between text-[10px] text-white/40">
+        <div className="absolute bottom-6 left-0 top-0 flex flex-col justify-between text-[10px] text-muted-foreground/70">
           {yAxisLabels.reverse().map((label) => (
             <span key={label}>{label}</span>
           ))}
@@ -33,14 +33,14 @@ export const EngagementTrendChart: React.FC = () => {
         {/* Horizontal grid lines */}
         <div className="absolute left-8 right-2 top-0 bottom-6 flex flex-col justify-between">
           {[0, 1, 2, 3, 4].map((i) => (
-            <div key={i} className="w-full h-px bg-white/10" />
+            <div key={i} className="h-px w-full bg-border/70" />
           ))}
         </div>
 
         {/* Vertical grid lines */}
         <div className="absolute left-8 right-2 top-0 bottom-6 flex justify-between">
           {weeklyData.map((_, i) => (
-            <div key={i} className="w-px h-full bg-white/5" />
+            <div key={i} className="h-full w-px bg-border/40" />
           ))}
         </div>
 
@@ -50,12 +50,12 @@ export const EngagementTrendChart: React.FC = () => {
             {/* Line path */}
             <defs>
               <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#2563eb" />
-                <stop offset="100%" stopColor="#3b82f6" />
+                <stop offset="0%" stopColor="var(--chart-2)" />
+                <stop offset="100%" stopColor="var(--chart-1)" />
               </linearGradient>
               <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
-                <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+                <stop offset="0%" stopColor="var(--chart-1)" stopOpacity="0.3" />
+                <stop offset="100%" stopColor="var(--chart-1)" stopOpacity="0" />
               </linearGradient>
             </defs>
 
@@ -88,15 +88,15 @@ export const EngagementTrendChart: React.FC = () => {
                 cx={`${(i / (weeklyData.length - 1)) * 100}`}
                 cy={`${100 - (val / maxValue) * 100}`}
                 r="3"
-                fill="#3b82f6"
-                className="drop-shadow-[0_0_4px_rgba(59,130,246,0.6)]"
+                fill="var(--chart-1)"
+                className="drop-shadow-[0_0_6px_rgba(245,158,11,0.55)]"
               />
             ))}
           </svg>
         </div>
 
         {/* X-axis labels */}
-        <div className="absolute left-8 right-2 bottom-0 flex justify-between text-[10px] text-white/40">
+        <div className="absolute bottom-0 left-8 right-2 flex justify-between text-[10px] text-muted-foreground/70">
           {weeklyData.map((_, i) => (
             <span key={i}>{`W${i + 1}`}</span>
           ))}

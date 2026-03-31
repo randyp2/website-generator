@@ -38,7 +38,7 @@ export const metadata: Metadata = {
 
 const AboutPage: React.FC = () => {
   return (
-    <main className="min-h-screen pt-20">
+    <main className="min-h-screen bg-background pt-20 text-foreground">
       {/* Hero Section */}
       <HeroSection />
 
