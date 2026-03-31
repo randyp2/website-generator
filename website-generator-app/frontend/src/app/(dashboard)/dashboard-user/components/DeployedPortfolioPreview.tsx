@@ -44,7 +44,7 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
     if (!deployedPortfolio) {
         return (
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4 md:p-5">
-                <h3 className="text-base font-semibold text-white">Current Deployed Portfolio</h3>
+                <h3 className="text-lg md:text-xl font-semibold text-white">Current Deployed Portfolio</h3>
                 <p className="mt-2 text-sm text-white/65">
                     No active or published portfolio found yet. Publish one to show a live preview here.
                 </p>
@@ -70,7 +70,7 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
     return (
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_400px]">
             <div className="flex h-full flex-col gap-2">
-                <h3 className="text-base font-semibold text-white">Current Deployed Portfolio</h3>
+                <h3 className="text-lg md:text-xl font-semibold text-white">Current Deployed Portfolio</h3>
                 <article className="flex-1 overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 md:p-5">
                     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[480px_minmax(0,1fr)] lg:items-start">
                         <div className="overflow-hidden rounded-xl border border-white/10 bg-[#0b111c]">
@@ -114,7 +114,7 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
             </div>
 
             <div className="flex h-full w-full flex-col gap-2 xl:justify-self-end">
-                <h3 className="text-base font-semibold text-white">Portfolio Analytics</h3>
+                <h3 className="text-lg md:text-xl font-semibold text-white">Portfolio Analytics</h3>
                 <PublishedPortfolioAnalytics
                     portfolioTitle={deployedPortfolio.title ?? "Untitled Portfolio"}
                 />
