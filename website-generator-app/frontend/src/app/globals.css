@@ -398,6 +398,46 @@
 }
 
 @layer utilities {
+  .dashboard-user-shell {
+    /* Make dashboard cards/inputs/buttons more square with subtle rounding */
+    --radius-sm: 2px;
+    --radius-md: 3px;
+    --radius-lg: 4px;
+    --radius-xl: 6px;
+    --radius-2xl: 8px;
+    --radius-3xl: 10px;
+    --radius-4xl: 12px;
+  }
+
+  /* Force utility-class radii in dashboard pages to be less rounded */
+  .dashboard-user-shell .rounded-4xl,
+  .dashboard-user-shell .rounded-3xl,
+  .dashboard-user-shell .rounded-2xl {
+    border-radius: 0.5rem !important;
+  }
+
+  .dashboard-user-shell .rounded-xl {
+    border-radius: 0.375rem !important;
+  }
+
+  .dashboard-user-shell .rounded-lg {
+    border-radius: 0.3125rem !important;
+  }
+
+  .dashboard-user-shell .rounded-md {
+    border-radius: 0.25rem !important;
+  }
+
+  .dashboard-user-shell .rounded-t-2xl {
+    border-top-left-radius: 0.5rem !important;
+    border-top-right-radius: 0.5rem !important;
+  }
+
+  .dashboard-user-shell .rounded-b-2xl {
+    border-bottom-left-radius: 0.5rem !important;
+    border-bottom-right-radius: 0.5rem !important;
+  }
+
   .animate-marquee {
     animation: marquee var(--duration, 40s) linear infinite;
   }

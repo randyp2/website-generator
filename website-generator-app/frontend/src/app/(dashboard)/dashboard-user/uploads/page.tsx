@@ -305,7 +305,7 @@ const UploadsPage: React.FC = () => {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 px-4 py-8 md:px-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}

@@ -6,6 +6,9 @@ interface PortfolioExploreCardProps {
   portfolio: PortfolioCard;
 }
 
+const DEFAULT_CARD_PREVIEW_IMAGE =
+  "https://images.unsplash.com/photo-1545665277-5937489579f2?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+
 const getInitials = (name: string): string =>
   name
     .split(" ")
@@ -23,24 +26,12 @@ export function PortfolioExploreCard({ portfolio }: PortfolioExploreCardProps) {
   return (
     <article className="group overflow-hidden rounded-2xl border border-white/10 bg-[#070d18] transition-all hover:-translate-y-1.5 hover:border-cyan-300/40 hover:shadow-[0_30px_100px_-40px_rgba(6,182,212,0.6)]">
       {/* Preview area */}
-      <div className="relative h-44 border-b border-white/10 bg-gradient-to-br from-slate-800 to-slate-900 p-4">
-        <div className="absolute inset-0 opacity-30">
-          <div
-            className="h-full w-full"
-            style={{
-              backgroundImage:
-                "linear-gradient(to right, rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.15) 1px, transparent 1px)",
-              backgroundSize: "18px 18px",
-            }}
-          />
-        </div>
-        <div className="relative flex h-full items-end">
-          <div className="w-full rounded-xl border border-white/25 bg-black/25 p-3 backdrop-blur-sm">
-            <div className="mb-2 h-2.5 w-2/3 rounded-full bg-white/70" />
-            <div className="mb-2 h-2 w-11/12 rounded-full bg-white/45" />
-            <div className="h-2 w-5/12 rounded-full bg-white/35" />
-          </div>
-        </div>
+      <div className="relative h-44 overflow-hidden border-b border-white/10">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${DEFAULT_CARD_PREVIEW_IMAGE})` }}
+        />
+        <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-black/0" />
         {portfolio.templateId && (
           <div className="pointer-events-none absolute right-3 top-3 rounded-full border border-white/30 bg-black/30 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white/90">
             {portfolio.templateId}

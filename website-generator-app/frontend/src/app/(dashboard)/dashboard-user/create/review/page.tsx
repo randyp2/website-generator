@@ -82,14 +82,14 @@ const ReviewPage: React.FC = () => {
     const effectiveIsEditing = isManualTemplate || isEditing;
 
     return (
-        <div className="relative min-h-screen px-4 py-10 text-white sm:px-6 lg:px-8">
+        <div className="relative min-h-screen px-3 py-8 text-white sm:px-4 lg:px-6">
             <div className="relative">
             <ReviewPageHeader
                 isEditing={effectiveIsEditing}
                 onToggleEditing={() => setIsEditing((value) => !value)}
             />
 
-            <div className="max-w-5xl mx-auto">
+            <div className="mx-auto max-w-6xl">
                 {isParsingResume ? (
                     <ResumeShimmerSkeleton />
                 ) : parsingError && !parsedResumeData ? (

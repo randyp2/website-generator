@@ -51,7 +51,7 @@ const TemplateGallery: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen space-y-8 p-10">
+    <div className="relative min-h-screen space-y-6 px-4 py-8 md:px-6">
       <div className="relative z-10">
         <HeaderSection />
 
