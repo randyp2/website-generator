@@ -223,8 +223,14 @@ const PortfolioManager: React.FC = () => {
     },
     published: {
       label: "Published",
-      bgColor: "bg-blue-500/20",
-      textColor: "text-blue-100",
+      bgColor: "bg-green-500/20",
+      textColor: "text-green-100",
+      dotColor: "bg-green-500",
+    },
+    publish: {
+      label: "Published",
+      bgColor: "bg-green-500/20",
+      textColor: "text-green-100",
       dotColor: "bg-green-500",
     },
     unpublished: {
@@ -321,7 +327,7 @@ const PortfolioManager: React.FC = () => {
               }`}
             >
               {/* Card Container */}
-              <div className="bg-white/[0.06] backdrop-blur-xl rounded-2xl overflow-hidden border border-white/[0.12] hover:border-white/[0.25] shadow-lg hover:shadow-xl transition-all">
+              <div className="bg-white/[0.06] backdrop-blur-xl rounded-2xl overflow-visible border border-white/[0.12] hover:border-white/[0.25] shadow-lg hover:shadow-xl transition-all">
                 {/* Thumbnail image */}
                 <div className="relative h-48 overflow-hidden">
                   <img
@@ -441,7 +447,7 @@ const PortfolioManager: React.FC = () => {
                             initial={{ opacity: 0, scale: 0.95, y: -10 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                            className="absolute right-0 top-full mt-2 w-48 bg-[#1a1d21] rounded-xl shadow-2xl border border-white/10 py-2 z-[60]"
+                            className="absolute right-0 top-full mt-2 w-48 bg-[#1a1d21] rounded-xl shadow-2xl border border-white/10 py-2 z-[9999]"
                           >
                             {[
                               {
