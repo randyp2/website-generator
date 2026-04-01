@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 
@@ -81,6 +82,13 @@ const LandingWelcomeBack = ({
                     >
                         Sign in with a different account
                     </button>
+                    <span className="px-2 text-muted-foreground/60">|</span>
+                    <Link
+                        href="/explore"
+                        className="text-sm font-medium text-[#f59e0b] transition-colors hover:text-[#fbbf24]"
+                    >
+                        Browse portfolios
+                    </Link>
                 </p>
             </div>
         </div>

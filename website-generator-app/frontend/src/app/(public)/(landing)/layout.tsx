@@ -23,7 +23,7 @@ export default async function LandingLayout({
     return (
         <div className="flex min-h-screen">
             {/* Left: landing page content (scrollable) */}
-            <main className="hidden bg-black xl:block xl:w-[60%]">
+            <main className="hidden xl:block xl:w-[60%]">
                 {children}
             </main>
 
