@@ -39,8 +39,8 @@ build/
 ### VS Code ###
 .vscode/
 
-### Plan spec ###
-src/main/resources/ai/portfolio-plan-spec.md
+### Plan spec / AI prompts ###
+src/main/resources/ai/
 
 ### SQL dump ###
 supabase_schema.sql
