@@ -134,7 +134,9 @@ const PortfolioRenderer = ({ portfolio }: Props) => {
 
     return (
         <>
-            {/* Tailwind CSS — needed for the AI-generated Tailwind classes */}
+            {/* Tailwind CSS CDN — AI-generated sections use arbitrary classes
+                that aren't in the app's source, so the build-time Tailwind
+                compiler won't generate them. The CDN JIT engine does. */}
             <Script
                 src="https://cdn.tailwindcss.com"
                 strategy="beforeInteractive"
