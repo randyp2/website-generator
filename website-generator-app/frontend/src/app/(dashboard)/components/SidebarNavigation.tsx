@@ -179,7 +179,9 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                 {/* Product Name */}
                 {!collapsed && (
                     <div className="px-3 pb-3">
-                        <BrandWordmark className="text-base text-sidebar-foreground" />
+                        <Link href="/">
+                            <BrandWordmark className="text-base text-sidebar-foreground" />
+                        </Link>
                     </div>
                 )}
 
@@ -238,7 +240,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                 </motion.button>
 
                 {showProfileMenu && (
-                    <div className="absolute bottom-full left-4 right-4 z-50 mb-2 overflow-hidden rounded-lg border border-sidebar-border bg-card shadow-2xl">
+                    <div className="absolute bottom-full left-4 right-4 z-50 mb-2 overflow-hidden rounded-lg border border-sidebar-border bg-sidebar shadow-2xl">
                         {[
                             { icon: FiUser, label: "Sign Up" },
                             { icon: FiSettings, label: "Settings" },
@@ -248,9 +250,9 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                             <button
                                 key={item.label}
                                 onClick={() => setShowProfileMenu(false)}
-                                className="w-full flex items-center gap-3 px-4 py-3 text-left text-card-foreground/80 transition-colors hover:bg-sidebar-accent/40"
+                                className="w-full flex items-center gap-3 px-4 py-3 text-left text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent/40"
                             >
-                                <item.icon className="h-4 w-4 text-card-foreground/70" />
+                                <item.icon className="h-4 w-4 text-sidebar-foreground/70" />
                                 <span className="text-sm">{item.label}</span>
                             </button>
                         ))}
@@ -289,7 +291,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
             <motion.aside
                 animate={{ width: collapsed ? 72 : 248 }}
                 transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="fixed left-0 top-0 z-40 hidden h-screen border-r border-sidebar-border bg-sidebar shadow-2xl shadow-black/40 md:block"
+                className="fixed left-0 top-0 z-40 hidden h-screen bg-sidebar shadow-2xl shadow-black/40 md:block"
             >
                 <SidebarContent />
             </motion.aside>
@@ -313,7 +315,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                             animate={{ x: 0 }}
                             exit={{ x: -248 }}
                             transition={{ duration: 0.3, ease: "easeOut" }}
-                            className="fixed left-0 top-0 z-50 h-screen w-[248px] border-r border-sidebar-border bg-sidebar shadow-2xl shadow-black/40 md:hidden"
+                            className="fixed left-0 top-0 z-50 h-screen w-[248px] bg-sidebar shadow-2xl shadow-black/40 md:hidden"
                         >
                             {/* Close Button */}
                             <button
