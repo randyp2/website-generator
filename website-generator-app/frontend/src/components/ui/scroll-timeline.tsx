@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef } from "react";
-import { motion, useScroll, useTransform } from "motion/react";
+import { motion, useScroll, useTransform, type MotionValue } from "motion/react";
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -14,27 +14,35 @@ export interface TimelineStep {
 interface TimelineStepItemProps {
     step: TimelineStep;
     isLast: boolean;
-    lineHeight: ReturnType<typeof useTransform<number, string>>;
+    index: number;
+    totalSteps: number;
+    scrollProgress: MotionValue<number>;
 }
 
 const TimelineStepItem: React.FC<TimelineStepItemProps> = ({
     step,
     isLast,
-    lineHeight,
+    index,
+    totalSteps,
+    scrollProgress,
 }) => {
     const Icon = step.icon;
+    const segmentSize = totalSteps > 1 ? 0.5 / (totalSteps - 1) : 0;
+    const start = 0.15 + index * segmentSize;
+    const end = start + segmentSize;
+    const lineHeight = useTransform(scrollProgress, [start, end], ["0%", "100%"]);
 
     return (
         <div className="flex gap-6 flex-1">
             {/* Icon and Line Column */}
             <div className="flex flex-col items-center">
                 {/* Icon Box - Outer container with gradient border */}
-                <div className="relative w-12 h-12 rounded-xl p-[1px] bg-gradient-to-t from-black to-neutral-500 flex-shrink-0">
+                <div className="relative h-12 w-12 flex-shrink-0 rounded-xl bg-gradient-to-t from-border to-foreground/35 p-[1px]">
                     {/* Inner container with shiny top strip */}
-                    <div className="w-full h-full rounded-[10px] bg-neutral-900 flex items-center justify-center overflow-hidden relative">
+                    <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-[10px] bg-card">
                         {/* White strip at top for shiny effect */}
-                        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
-                        <Icon className="w-5 h-5 text-white" />
+                        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-foreground/30 to-transparent" />
+                        <Icon className="h-5 w-5 text-foreground/85 dark:text-foreground/90" />
                     </div>
                 </div>
 
@@ -42,10 +50,10 @@ const TimelineStepItem: React.FC<TimelineStepItemProps> = ({
                 {!isLast && (
                     <div className="relative w-0.5 flex-1 min-h-[120px] mt-4">
                         {/* Base line (dim) */}
-                        <div className="absolute inset-0 bg-white/10 rounded-full" />
+                        <div className="absolute inset-0 rounded-full bg-border" />
                         {/* Animated highlight line */}
                         <motion.div
-                            className="absolute top-0 left-0 w-full bg-gradient-to-b from-white to-blue-500 rounded-full"
+                            className="absolute top-0 left-0 w-full rounded-full bg-linear-to-b from-[#fbbf24] via-[#f59e0b] to-[#b45309]"
                             style={{ height: lineHeight }}
                         />
                     </div>
@@ -54,10 +62,10 @@ const TimelineStepItem: React.FC<TimelineStepItemProps> = ({
 
             {/* Text Content */}
             <div className="pt-2 flex-1">
-                <h3 className="text-lg font-semibold text-white mb-2">
+                <h3 className="mb-2 text-lg font-semibold text-foreground/85 dark:text-foreground/90">
                     {step.title}
                 </h3>
-                <p className="text-sm text-white/60 leading-relaxed">
+                <p className="text-sm leading-relaxed text-muted-foreground/90 dark:text-muted-foreground/90">
                     {step.description}
                 </p>
             </div>
@@ -81,14 +89,6 @@ export const ScrollTimeline: React.FC<ScrollTimelineProps> = ({
         offset: ["start end", "end start"],
     });
 
-    // Create line height transforms for each connection
-    const lineHeights = steps.slice(0, -1).map((_, index) => {
-        const segmentSize = 0.5 / (steps.length - 1);
-        const start = 0.15 + index * segmentSize;
-        const end = start + segmentSize;
-        return useTransform(scrollYProgress, [start, end], ["0%", "100%"]);
-    });
-
     return (
         <div
             ref={containerRef}
@@ -99,7 +99,9 @@ export const ScrollTimeline: React.FC<ScrollTimelineProps> = ({
                     key={index}
                     step={step}
                     isLast={index === steps.length - 1}
-                    lineHeight={lineHeights[index] || lineHeights[0]}
+                    index={index}
+                    totalSteps={steps.length}
+                    scrollProgress={scrollYProgress}
                 />
             ))}
         </div>

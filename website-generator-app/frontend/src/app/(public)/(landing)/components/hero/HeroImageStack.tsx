@@ -31,7 +31,7 @@ const heroImages = [
 ] as const;
 
 const HeroImageStack = (): JSX.Element => (
-    <div className="relative h-[380px] w-[520px] lg:h-[440px] lg:w-[620px] xl:h-[500px] xl:w-[680px] 2xl:h-[580px] 2xl:w-[780px]">
+    <div className="relative -mt-6 h-[380px] w-[520px] lg:h-[440px] lg:w-[620px] xl:h-[500px] xl:w-[680px] 2xl:h-[580px] 2xl:w-[780px]">
         {heroImages.map((image) => (
             <div
                 key={image.src}

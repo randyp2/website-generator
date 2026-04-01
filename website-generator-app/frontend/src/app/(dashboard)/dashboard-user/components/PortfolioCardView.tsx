@@ -30,23 +30,23 @@ export const PortfolioCardView: React.FC<PortfolioCardViewProps> = ({
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.3 }}
-                        className="bg-white/5 border border-white/10 rounded-xl p-3 hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer group"
+                        className="group cursor-pointer rounded-xl border border-border bg-card/80 p-3 transition-all hover:border-primary/30 hover:bg-card"
                     >
                         <div className="flex items-start justify-between mb-2">
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                    <h3 className="text-white font-semibold text-base truncate mb-1">
+                                    <h3 className="mb-1 truncate text-base font-semibold text-foreground">
                                         {portfolio.title}
                                     </h3>
                                     <button
                                         onClick={(e) => { e.stopPropagation(); onRename(portfolio); }}
                                         title="Rename"
-                                        className="w-7 h-7 rounded-md bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors cursor-pointer"
+                                        className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md bg-muted hover:bg-muted/80 transition-colors"
                                     >
-                                        <FiEdit3 className="w-3.5 h-3.5 text-white/80" />
+                                        <FiEdit3 className="h-3.5 w-3.5 text-muted-foreground" />
                                     </button>
                                 </div>
-                                <p className="text-white/60 text-xs">
+                                <p className="text-xs text-muted-foreground">
                                     {formatRelativeTime(portfolio.updated_at ?? portfolio.created_at ?? null)}
                                 </p>
                             </div>
@@ -56,23 +56,23 @@ export const PortfolioCardView: React.FC<PortfolioCardViewProps> = ({
                             <StatusIndicator status={normalizeStatus(portfolio.status)} />
                         </div>
 
-                        <div className="flex items-center gap-2 pt-2 border-t border-white/10">
-                            <button className="flex-1 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center gap-1.5 transition-colors text-white text-xs cursor-pointer">
+                        <div className="flex items-center gap-2 border-t border-border pt-2">
+                            <button className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-muted py-1.5 text-xs text-foreground transition-colors hover:bg-muted/80">
                                 <FiEye className="w-3.5 h-3.5" />
                                 View
                             </button>
                             <button
                                 onClick={(e) => { e.stopPropagation(); router.push(resolveResumePath(portfolio)); }}
-                                className="flex-1 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center gap-1.5 transition-colors text-white text-xs cursor-pointer"
+                                className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-muted py-1.5 text-xs text-foreground transition-colors hover:bg-muted/80"
                             >
                                 <FiEdit3 className="w-3.5 h-3.5" />
                                 Edit
                             </button>
                             <button
                                 onClick={(e) => { e.stopPropagation(); onDelete(portfolio); }}
-                                className="w-8 h-8 rounded-lg bg-white/10 hover:bg-red-500/20 flex items-center justify-center transition-colors group/delete cursor-pointer"
+                                className="group/delete flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-muted transition-colors hover:bg-red-500/10"
                             >
-                                <FiTrash2 className="w-3.5 h-3.5 text-white group-hover/delete:text-red-400" />
+                                <FiTrash2 className="h-3.5 w-3.5 text-foreground group-hover/delete:text-red-500" />
                             </button>
                         </div>
                     </motion.div>

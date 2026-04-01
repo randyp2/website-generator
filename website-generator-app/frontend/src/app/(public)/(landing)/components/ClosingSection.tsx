@@ -1,6 +1,7 @@
 "use client"
 
 import React from "react"
+import Link from "next/link"
 import Lenis from "@studio-freight/lenis"
 import { ZoomParallax } from "@/components/ui/zoom-parallax"
 import BrandWordmark from "@/components/branding/BrandWordmark"
@@ -50,29 +51,33 @@ const ClosingSection = () => {
   }, [])
 
   return (
-    <section className="relative min-h-screen bg-black text-foreground">
+    <section className="relative min-h-screen bg-muted/35 text-foreground dark:bg-background">
       <ZoomParallax images={images}>
         <div className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center px-6 text-center">
-          <p className="mb-4 whitespace-nowrap text-xs font-semibold uppercase tracking-[0.4em] text-foreground/70">
-            <BrandWordmark compact className="mr-2 text-xs text-foreground/90" />
+          <p className="mb-4 whitespace-nowrap text-xs font-semibold uppercase tracking-[0.4em] text-foreground/70 dark:text-foreground/60">
+            <BrandWordmark compact className="mr-2 text-xs text-foreground/80 dark:text-foreground/80" />
             AI Portfolio Builder
           </p>
-          <h1 className="text-4xl font-semibold leading-tight tracking-tight md:text-6xl">
+          <h1 className="text-4xl font-semibold leading-tight tracking-tight text-foreground/85 dark:text-foreground/90 md:text-6xl">
             Launch a portfolio that feels custom, polished, and ready in minutes.
           </h1>
-          <p className="mt-6 text-base text-foreground/75 md:text-lg">
+          <p className="mt-6 text-base text-foreground/70 dark:text-foreground/70 md:text-lg">
             Upload your resume, pick a style, and let our AI craft a portfolio
             site you can ship today.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-            <Button className="bg-primary px-6 py-2 text-primary-foreground hover:bg-primary/90">
-              Build my portfolio
+            <Button
+              asChild
+              className="bg-primary px-6 py-2 text-primary-foreground hover:bg-primary/90"
+            >
+              <Link href="/login">Create your portfolio</Link>
             </Button>
             <Button
+              asChild
               variant="link"
               className="px-4 py-2 text-foreground underline-offset-4 hover:text-foreground/80"
             >
-              See examples
+              <Link href="/explore">Browse portfolios</Link>
             </Button>
           </div>
         </div>

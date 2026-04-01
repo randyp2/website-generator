@@ -217,8 +217,8 @@ const PortfolioManager: React.FC = () => {
   > = {
     draft: {
       label: "Draft",
-      bgColor: "bg-white/10",
-      textColor: "text-white/80",
+      bgColor: "bg-muted",
+      textColor: "text-muted-foreground",
       dotColor: "bg-yellow-500",
     },
     published: {
@@ -235,9 +235,9 @@ const PortfolioManager: React.FC = () => {
     },
     unpublished: {
       label: "Unpublished",
-      bgColor: "bg-white/10",
-      textColor: "text-white/80",
-      dotColor: "bg-white/70",
+      bgColor: "bg-muted",
+      textColor: "text-muted-foreground",
+      dotColor: "bg-muted-foreground",
     },
     archived: {
       label: "Archived",
@@ -272,9 +272,9 @@ const PortfolioManager: React.FC = () => {
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full mx-auto"
+            className="mx-auto h-16 w-16 rounded-full border-4 border-border border-t-primary"
           />
-          <p className="mt-4 text-white/70 font-medium">Loading portfolios...</p>
+          <p className="mt-4 font-medium text-muted-foreground">Loading portfolios...</p>
         </div>
       </div>
     );
@@ -289,10 +289,10 @@ const PortfolioManager: React.FC = () => {
         className="flex items-center justify-between"
       >
         <div>
-          <h1 className="text-4xl font-bold text-white mb-2">
+          <h1 className="mb-2 text-4xl font-bold text-foreground">
             Your Portfolios
           </h1>
-          <p className="text-white/70">
+          <p className="text-muted-foreground">
             {portfolios.length} portfolio{portfolios.length !== 1 ? "s" : ""}{" "}
             created
           </p>
@@ -327,7 +327,7 @@ const PortfolioManager: React.FC = () => {
               }`}
             >
               {/* Card Container */}
-              <div className="bg-white/[0.06] backdrop-blur-xl rounded-2xl overflow-visible border border-white/[0.12] hover:border-white/[0.25] shadow-lg hover:shadow-xl transition-all">
+              <div className="overflow-visible rounded-2xl border border-border bg-card/80 backdrop-blur-xl shadow-lg transition-all hover:border-primary/30 hover:shadow-xl">
                 {/* Thumbnail image */}
                 <div className="relative h-48 overflow-hidden">
                   <img
@@ -335,8 +335,8 @@ const PortfolioManager: React.FC = () => {
                     alt={`${portfolio.title} preview`}
                     className="absolute inset-0 h-full w-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-linear-to-t from-black/45 via-black/10 to-white/5" />
-                  <div className="absolute -top-20 right-[-20%] h-40 w-40 rounded-full bg-white/10 blur-3xl" />
+                  <div className="absolute inset-0 bg-linear-to-t from-black/45 via-black/10 to-transparent" />
+                  <div className="absolute -top-20 right-[-20%] h-40 w-40 rounded-full bg-background/40 blur-3xl" />
 
                   {/* Status Badge */}
                   <div className="absolute top-3 left-3">
@@ -359,7 +359,7 @@ const PortfolioManager: React.FC = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center gap-3"
+                        className="absolute inset-0 flex items-center justify-center gap-3 bg-black/55 backdrop-blur-sm"
                       >
                         {/* UPDATED: Added onClick handlers to quick action icons */}
                         {[
@@ -372,11 +372,11 @@ const PortfolioManager: React.FC = () => {
                             whileHover={{ scale: 1.1, y: -2 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={action.onClick}
-                            className={`hover:cursor-pointer p-3 bg-white/10 hover:bg-white/20 rounded-xl shadow-lg hover:shadow-white/20 transition-all group/btn`}
+                            className="group/btn rounded-xl bg-background/80 p-3 shadow-lg transition-all hover:cursor-pointer hover:bg-background"
                             title={action.label}
                           >
                             <action.icon
-                              className={`w-5 h-5 text-white/80 group-hover/btn:text-white transition-colors`}
+                              className="h-5 w-5 text-foreground/80 transition-colors group-hover/btn:text-foreground"
                             />
                           </motion.button>
                         ))}
@@ -388,12 +388,12 @@ const PortfolioManager: React.FC = () => {
                 {/* Card Content */}
                 <div className="p-5">
                   {/* Title */}
-                  <h3 className="text-lg font-semibold text-white mb-1 truncate">
+                  <h3 className="mb-1 truncate text-lg font-semibold text-foreground">
                     {portfolio.title}
                   </h3>
 
                   {/* URL or Last Edited */}
-                  <div className="flex items-center gap-2 text-sm text-white/60 mb-4">
+                  <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
                     {portfolio.url ? (
                       <>
                         <FiGlobe className="w-4 h-4" />
@@ -405,8 +405,8 @@ const PortfolioManager: React.FC = () => {
                   </div>
 
                   {/* Stats */}
-                  <div className="flex items-center justify-between pt-4 border-t border-white/10">
-                    <div className="flex items-center gap-4 text-sm text-white/70">
+                  <div className="flex items-center justify-between border-t border-border pt-4">
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <FiEye className="w-4 h-4" />
                         <span>{portfolio.views}</span>
