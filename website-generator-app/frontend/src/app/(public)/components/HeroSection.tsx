@@ -1,120 +1,345 @@
-"use client"
+"use client";
 
-import {
-  BentoCell,
-  BentoGrid,
-  ContainerScale,
-  ContainerScroll,
-} from "@/components/ui/hero-gallery-scroll-animation"
-import { Button } from "@/components/ui/button"
-import { MobilePortfolioMockup } from "@/components/ui/phone-mockup"
-import LightRays from "@/components/LightRays"
-import BrandWordmark from "@/components/branding/BrandWordmark"
-import Image from "next/image"
+import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
+import React, { useState, useEffect } from "react";
 
-const IMAGES = [
-  {
-    src: "/images/hero/example1.png",
-    alt: "Neon city street at night",
-  },
-  {
-    src: "/images/hero/example4.png",
-    alt: "Tokyo alleyway with signage",
-  },
-  {
-    src: "/images/hero/example5.png",
-    alt: "Street crowd with bright lights",
-  },
-  {
-    src: "/images/hero/example3.png",
-    alt: "Tokyo crosswalk at dusk",
-  },
-  {
-    src: "/images/hero/example2.png",
-    alt: "Night street with glowing signs",
-  },
-]
+import { FcCheckmark } from "react-icons/fc";
+import { PortfolioMockup } from "./PortfolioMockup";
+import { RiAiGenerate2 } from "react-icons/ri";
 
-export default function HeroSection() {
+const trustBadges = [
+  {
+    label: "Free Generation",
+  },
+  {
+    label: "Ready in 5 Minutes",
+  },
+  {
+    label: "No Coding Required",
+  },
+];
+
+export const HeroSection: React.FC = () => {
+  const router = useRouter();
+  const [typewriterText, setTypewriterText] = useState("");
+  const [showCursor, setShowCursor] = useState(true);
+  const [typingComplete, setTypingComplete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  /* ---------- TYPEWRITER EFFECT LOGIC ---------- */
+  /**
+   * Write the incorrect text, delete it, then write the correct text
+   * - Manages phases of typing, deleting, and pauses for natural effect
+   */
+  // This effect intentionally runs once to preserve the staged typewriter sequence.
+  useEffect(() => {
+    // Texts for the typewriter effect
+    const incorrectText = "created manually";
+    const correctText = "beautifully automated";
+    let currentIndex = 0;
+    let currentPhase:
+      | "typing-wrong"
+      | "pause-wrong"
+      | "deleting"
+      | "pause-empty"
+      | "typing-correct"
+      | "done" = "typing-wrong";
+    let pauseTimeout: NodeJS.Timeout | null = null;
+
+    const typeInterval = setInterval(
+      () => {
+        // Phase 1: Type incorrect text
+        if (currentPhase === "typing-wrong") {
+          if (currentIndex <= incorrectText.length) {
+            setTypewriterText(incorrectText.slice(0, currentIndex));
+            currentIndex++;
+          } else {
+            currentPhase = "pause-wrong";
+            pauseTimeout = setTimeout(() => {
+              currentPhase = "deleting";
+              setIsDeleting(true);
+            }, 800); // Pause before deleting
+          }
+        }
+        // Phase 2: Delete incorrect text
+        else if (currentPhase === "deleting") {
+          if (currentIndex > 0) {
+            currentIndex--;
+            setTypewriterText(incorrectText.slice(0, currentIndex));
+          } else {
+            setIsDeleting(false);
+            currentPhase = "pause-empty";
+            pauseTimeout = setTimeout(() => {
+              currentPhase = "typing-correct";
+              currentIndex = 0;
+            }, 300); // Brief pause when empty
+          }
+        }
+        // Phase 3: Type correct text
+        else if (currentPhase === "typing-correct") {
+          if (currentIndex <= correctText.length) {
+            setTypewriterText(correctText.slice(0, currentIndex));
+            currentIndex++;
+          } else {
+            currentPhase = "done";
+            setTypingComplete(true);
+            setShowCursor(false); // Hide cursor immediately when done
+            clearInterval(typeInterval);
+          }
+        }
+      },
+      isDeleting ? 40 : 70
+    ); // Faster when deleting, varied speed for natural feel
+
+    return () => {
+      clearInterval(typeInterval);
+      if (pauseTimeout) clearTimeout(pauseTimeout);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- Run once on mount
+
+  // Cursor blink effect (only while typing)
+  useEffect(() => {
+    if (typingComplete) return; // Stop blinking when typing is complete
+
+    const cursorInterval = setInterval(() => {
+      setShowCursor((prev) => !prev);
+    }, 530); // Blink speed
+
+    return () => clearInterval(cursorInterval);
+  }, [typingComplete]); // Re-run when typingComplete changes
+
   return (
-    <section className="relative bg-background text-foreground">
-      {/* LightRays background */}
-      <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden opacity-90">
-        <LightRays
-          raysOrigin="top-center"
-          raysColor="#f59e0b"
-          raysSpeed={0.8}
-          lightSpread={0.8}
-          rayLength={1.5}
-          pulsating={false}
-          fadeDistance={1.0}
-          saturation={1.2}
-          followMouse
-          mouseInfluence={0.1}
-          noiseAmount={0.08}
-          distortion={0.08}
-        />
+    <section className="relative overflow-hidden bg-transparent px-6 pt-30 pb-20 text-foreground">
+      {/* Light circle blur background animation */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-0 h-96 w-96 rounded-full bg-primary/12 blur-3xl animate-float-slow" />
+        <div className="absolute -top-10 left-1/2 h-96 w-96 rounded-full bg-primary/8 blur-3xl animate-float-slower" />
       </div>
 
-      <ContainerScroll className="h-[320vh]">
-        <BentoGrid className="sticky left-0 top-0 z-0 h-screen w-full p-4 md:p-8">
-          {IMAGES.map((image, index) => (
-            <BentoCell
-              key={image.src}
-              className="relative overflow-hidden rounded-2xl border border-border shadow-[0_20px_60px_-30px_rgba(0,0,0,0.75)]"
-            >
-              {index === 1 ? (
-                <MobilePortfolioMockup variant="tech" />
-              ) : index === 2 ? (
-                <MobilePortfolioMockup variant="creative" />
-              ) : (
-                <Image
-                  src={image.src}
-                  alt={image.alt}
-                  fill
-                  sizes={
-                    index === 0
-                      ? "(min-width: 768px) 75vw, 100vw"  // First image: 6/8 cols desktop, full mobile
-                      : "(min-width: 768px) 37.5vw, 50vw" // Bottom images: 3/8 cols desktop
-                  }
-                  quality={90}
-                  priority={index === 0}
-                  className="object-center object-cover"
-                />
+      {/* Header content container */}
+      <div className="max-w-7xl mx-auto relative z-10 ">
+        {/* Header main detail section */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="text-center mb-12"
+        >
+          {/* Headline */}
+          <h1 className="mb-6 text-5xl font-bold leading-tight text-foreground md:text-7xl">
+            Your professional story,
+            <br />
+            <span className="bg-linear-to-r from-primary via-[#3f73ff] to-primary bg-clip-text text-transparent">
+              {typewriterText}
+              {showCursor && (
+                <span className="ml-1 inline-block h-[0.9em] w-1 animate-pulse bg-linear-to-r from-primary to-[#3f73ff] align-middle" />
               )}
-            </BentoCell>
-          ))}
-        </BentoGrid>
+            </span>
+          </h1>
 
-        <ContainerScale className="relative z-20 px-6 text-center">
-          <div className="mx-auto max-w-2xl">
-            <p className="mb-4 text-xs font-semibold uppercase tracking-[0.4em] text-foreground/70">
-              <BrandWordmark compact className="mr-2 text-xs text-foreground/90" />
-              AI Portfolio Builder
-            </p>
-            <h1 className="text-4xl font-semibold leading-tight tracking-tight md:text-6xl">
-              Launch a portfolio that feels custom, polished, and ready in
-              minutes.
-            </h1>
-            <p className="mt-6 text-base text-foreground/75 md:text-lg">
-              Upload your resume, pick a style, and let our AI craft a portfolio
-              site you can ship today. Scroll to see the motion-first hero in
-              action, then dive into the rest of the landing page.
-            </p>
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-              <Button className="bg-primary px-6 py-2 text-primary-foreground hover:bg-primary/90">
-                Build my portfolio
-              </Button>
-              <Button
-                variant="link"
-                className="px-4 py-2 text-foreground underline-offset-4 hover:text-foreground/80"
+          {/* Subheadline - Hidden until typing completes */}
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: typingComplete ? 1 : 0 }}
+            transition={{ duration: 0.6 }}
+            className="mx-auto mb-10 max-w-3xl text-xl leading-relaxed text-muted-foreground md:text-2xl"
+          >
+            Generate a portfolio that speaks for your craft. AI-crafted
+            portfolios with human polish — ready in minutes, customizable to
+            perfection.
+          </motion.p>
+
+          {/* Trust Badges - Hidden until typing completes */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: typingComplete ? 1 : 0 }}
+            transition={{ delay: typingComplete ? 0.2 : 0, duration: 0.6 }}
+            className="flex flex-wrap justify-center gap-2 mb-10"
+          >
+            {trustBadges.map((badge, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: typingComplete ? 1 : 0 }}
+                transition={{
+                  delay: typingComplete ? 0.3 + index * 0.1 : 0,
+                  duration: 0.4,
+                }}
+                className="flex flex-row items-center gap-2 px-4 py-2 text-sm font-medium text-muted-foreground"
               >
-                See examples
-              </Button>
+                <div>
+                  <FcCheckmark />
+                </div>
+                <div>{badge.label}</div>
+              </motion.div>
+            ))}
+          </motion.div>
+
+          {/* CTA Buttons - Hidden until typing completes */}
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: typingComplete ? 1 : 0 }}
+            transition={{ delay: typingComplete ? 0.6 : 0, duration: 0.6 }}
+            className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+          >
+            {/* Wrapper for button with pulsing glow effect */}
+            <motion.div
+              className="relative inline-block"
+              initial={{ opacity: 0 }}
+              animate={{
+                opacity: typingComplete ? 1 : 0,
+                scale: typingComplete ? [1, 1.03, 1] : 1,
+              }}
+              transition={{
+                opacity: { delay: typingComplete ? 0.7 : 0, duration: 0.4 },
+                scale: { duration: 2, repeat: Infinity, ease: "easeInOut" },
+              }}
+            >
+              {/* Animated glowing background - outside button */}
+              <motion.div
+                className="pointer-events-none absolute -inset-1 rounded-xl bg-linear-to-r from-primary via-[#3f73ff] to-primary blur-md"
+                style={{ transformOrigin: "center" }}
+                animate={{
+                  opacity: typingComplete ? [0.5, 1, 0.5] : 0,
+                  scale: typingComplete ? [1, 1.15, 1] : 1,
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+
+              <motion.button
+                whileHover="hover"
+                whileTap={{ scale: 0.95 }}
+                onClick={() => router.push("/dashboard")}
+                className="group relative flex cursor-pointer items-center gap-2 overflow-hidden rounded-xl bg-primary px-8 py-4 font-bold text-primary-foreground shadow-lg shadow-primary/25"
+              >
+                {/* Idle pulsating glow */}
+                <motion.div
+                  className="absolute inset-0 rounded-xl pointer-events-none"
+                  animate={{
+                    boxShadow: typingComplete
+                      ? [
+                          "0 0 20px rgba(14, 165, 233, 0.6), 0 0 40px rgba(6, 182, 212, 0.4)",
+                          "0 0 50px rgba(14, 165, 233, 1), 0 0 100px rgba(6, 182, 212, 0.8)",
+                          "0 0 20px rgba(14, 165, 233, 0.6), 0 0 40px rgba(6, 182, 212, 0.4)",
+                        ]
+                      : "0 0 0px rgba(0,0,0,0)",
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                />
+
+              {/* Shimmer shine effect - slides across on hover, returns on leave */}
+              <motion.div
+                className="absolute inset-0 w-16"
+                style={{
+                  background:
+                    "linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.6) 50%, transparent 100%)",
+                  transform: "translateX(-150%)",
+                }}
+                variants={{
+                  hover: { transform: "translateX(350%)" },
+                }}
+                transition={{ duration: 0.8, ease: "easeInOut" }}
+              />
+              <motion.div
+                className="absolute inset-0 w-16"
+                style={{
+                  background:
+                    "linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.6) 50%, transparent 100%)",
+                  transform: "translateX(-150%)",
+                }}
+                variants={{
+                  hover: { transform: "translateX(350%)" },
+                }}
+                transition={{ duration: 0.8, ease: "easeInOut" }}
+              />
+
+              {/* Button content wrapper with scale on hover */}
+              <motion.div
+                className="relative flex items-center gap-2 z-10"
+                variants={{
+                  hover: { scale: 1.05 },
+                }}
+                transition={{ type: "spring", stiffness: 400, damping: 15 }}
+              >
+                {/* Icon with rotation */}
+                <motion.div
+                  variants={{
+                    hover: { rotate: 360, scale: 1.2 },
+                  }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <RiAiGenerate2 className="w-5 h-5" />
+                </motion.div>
+
+                {/* Text with letter spacing */}
+                <motion.span
+                  variants={{
+                    hover: { letterSpacing: "0.05em" },
+                  }}
+                >
+                  Generate Now
+                </motion.span>
+              </motion.div>
+            </motion.button>
+            </motion.div>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => router.push("/explore")}
+              className="rounded-xl border border-border bg-card px-6 py-4 font-semibold text-card-foreground transition-colors hover:bg-muted"
+            >
+              Explore examples
+            </motion.button>
+          </motion.div>
+        </motion.div>
+
+        {/* Portfolio Preview Mockup - Hidden until typing completes */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: typingComplete ? 1 : 0 }}
+          transition={{ delay: typingComplete ? 1 : 0, duration: 0.8 }}
+        >
+          <PortfolioMockup />
+        </motion.div>
+
+        {/* Social Proof - Hidden until typing completes */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: typingComplete ? 1 : 0 }}
+          transition={{ delay: typingComplete ? 1.4 : 0, duration: 0.6 }}
+          className="mt-16 text-center"
+        >
+          <p className="text-slate-500 text-sm mb-4">
+            Trusted by professionals worldwide
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            <div className="flex -space-x-2">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div
+                  key={i}
+                  className="w-10 h-10 rounded-full bg-linear-to-br from-sky-200 to-cyan-300 border-2 border-white flex items-center justify-center text-xs font-bold text-sky-700"
+                >
+                  {String.fromCharCode(64 + i)}
+                </div>
+              ))}
+            </div>
+            <div className="text-left">
+              <div className="text-sm font-bold text-slate-900">10,000+</div>
+              <div className="text-xs text-slate-600">portfolios created</div>
             </div>
           </div>
-        </ContainerScale>
-      </ContainerScroll>
+        </motion.div>
+      </div>
     </section>
-  )
-}
+  );
+};

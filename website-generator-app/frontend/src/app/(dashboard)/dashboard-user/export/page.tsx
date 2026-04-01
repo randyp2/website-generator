@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FiGlobe,
@@ -21,16 +21,31 @@ interface PortfolioItem {
   updatedAt: string;
 }
 
-interface PortfolioListApiItem {
-  id: string;
-  title?: string | null;
-  status?: string | null;
-  slug?: string | null;
-  updated_at?: string;
-  updatedAt?: string;
-  created_at?: string;
-  createdAt?: string;
-}
+const MOCK_PORTFOLIOS: PortfolioItem[] = [
+  {
+    id: "mock-portfolio-001",
+    title: "Software Engineer Portfolio",
+    status: "publish",
+    slug: "john-doe-dev",
+    updatedAt: "2026-03-28T14:30:00Z",
+  },
+  {
+    id: "mock-portfolio-002",
+    title: "Product Design Showcase",
+    status: "draft",
+    slug: null,
+    updatedAt: "2026-03-25T11:00:00Z",
+  },
+  {
+    id: "mock-portfolio-003",
+    title: "Data Science Portfolio",
+    status: "draft",
+    slug: null,
+    updatedAt: "2026-03-22T08:15:00Z",
+  },
+];
+
+const TAKEN_SLUGS = new Set(["john-doe-dev", "jane-smith", "demo"]);
 
 const SLUG_REGEX = /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/;
 const BASE_URL = typeof window !== "undefined" ? window.location.origin : "";
@@ -39,7 +54,6 @@ const PublishPage: React.FC = () => {
   const [portfolios, setPortfolios] = useState<PortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Publish modal state
   const [selectedPortfolio, setSelectedPortfolio] = useState<PortfolioItem | null>(null);
   const [slugInput, setSlugInput] = useState("");
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
@@ -50,53 +64,31 @@ const PublishPage: React.FC = () => {
 
   const slugCheckTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Fetch all portfolios
+  // Load mock portfolios
   useEffect(() => {
-    const fetchPortfolios = async () => {
-      try {
-        const res = await fetch("/api/portfolio/list");
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-        const items: PortfolioItem[] = ((data.portfolios ?? []) as PortfolioListApiItem[]).map((p) => ({
-          id: p.id,
-          title: p.title ?? "Untitled",
-          status: p.status ?? "draft",
-          slug: p.slug ?? null,
-          updatedAt: p.updated_at ?? p.updatedAt ?? p.created_at ?? p.createdAt ?? "",
-        }));
-        setPortfolios(items);
-      } catch {
-        console.error("Failed to fetch portfolios");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPortfolios();
+    const timer = setTimeout(() => {
+      setPortfolios(MOCK_PORTFOLIOS);
+      setLoading(false);
+    }, 500);
+    return () => clearTimeout(timer);
   }, []);
 
   const published = portfolios.filter((p) => p.status === "publish");
   const drafts = portfolios.filter((p) => p.status !== "publish");
 
-  // Slug availability check
-  const checkSlugAvailability = useCallback((value: string) => {
+  // Local-only slug availability check against mock taken slugs
+  const checkSlugAvailability = (value: string) => {
     if (slugCheckTimeout.current) clearTimeout(slugCheckTimeout.current);
     if (!value || !SLUG_REGEX.test(value)) {
       setSlugAvailable(null);
       return;
     }
     setSlugChecking(true);
-    slugCheckTimeout.current = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/portfolio/slug-check?slug=${encodeURIComponent(value)}`);
-        const data = await res.json();
-        setSlugAvailable(data.available);
-      } catch {
-        setSlugAvailable(null);
-      } finally {
-        setSlugChecking(false);
-      }
+    slugCheckTimeout.current = setTimeout(() => {
+      setSlugAvailable(!TAKEN_SLUGS.has(value));
+      setSlugChecking(false);
     }, 400);
-  }, []);
+  };
 
   const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "");
@@ -126,52 +118,32 @@ const PublishPage: React.FC = () => {
     setPublishError(null);
   };
 
+  // Local-only publish
   const handlePublish = async () => {
     if (!selectedPortfolio) return;
     setPublishState("loading");
     setPublishError(null);
-    try {
-      const res = await fetch(`/api/portfolio/${selectedPortfolio.id}/publish`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug: slugInput || null }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Publish failed" }));
-        throw new Error(err.error || "Publish failed");
-      }
-      const data = await res.json();
-      // Update local state
-      setPortfolios((prev) =>
-        prev.map((p) =>
-          p.id === selectedPortfolio.id
-            ? { ...p, status: "publish", slug: data.slug }
-            : p
-        )
-      );
-      setPublishState("success");
-      setTimeout(() => closeModal(), 1500);
-    } catch (err: unknown) {
-      setPublishError(err instanceof Error ? err.message : "Publish failed");
-      setPublishState("error");
-      setTimeout(() => setPublishState("idle"), 3000);
-    }
+    // Simulate brief delay
+    await new Promise((r) => setTimeout(r, 600));
+    TAKEN_SLUGS.add(slugInput);
+    setPortfolios((prev) =>
+      prev.map((p) =>
+        p.id === selectedPortfolio.id
+          ? { ...p, status: "publish", slug: slugInput }
+          : p
+      )
+    );
+    setPublishState("success");
+    setTimeout(() => closeModal(), 1500);
   };
 
+  // Local-only unpublish
   const handleUnpublish = async (portfolioId: string) => {
-    try {
-      const res = await fetch(`/api/portfolio/${portfolioId}/unpublish`, { method: "POST" });
-      if (!res.ok) {
-        throw new Error("Failed to unpublish");
-      }
-      setPortfolios((prev) =>
-        prev.map((p) =>
-          p.id === portfolioId ? { ...p, status: "draft" } : p
-        )
-      );
-    } catch (error) {
-      console.error("Failed to unpublish", error);
-    }
+    setPortfolios((prev) =>
+      prev.map((p) =>
+        p.id === portfolioId ? { ...p, status: "draft" } : p
+      )
+    );
   };
 
   const handleCopyUrl = async (slug: string) => {

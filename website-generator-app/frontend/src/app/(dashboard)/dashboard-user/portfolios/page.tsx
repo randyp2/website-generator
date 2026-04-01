@@ -17,7 +17,6 @@ import {
   FiShare2,
 } from "react-icons/fi";
 import { useRouter } from "next/navigation";
-import { useUser } from "@/context/UserContext";
 import { DeletePortfolioOverlay } from "../components/DeletePortfolioOverlay";
 
 interface Portfolio {
@@ -33,21 +32,47 @@ interface Portfolio {
   url?: string;
 }
 
-interface PortfolioListItem {
-  id: string;
-  title: string;
-  status?: string;
-  updated_at?: string;
-  created_at?: string;
-  url?: string | null;
-}
-
-interface PortfolioListResponse {
-  portfolios: PortfolioListItem[];
-}
-
 const DEFAULT_PORTFOLIO_CARD_IMAGE =
   "https://images.unsplash.com/photo-1545665277-5937489579f2?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+
+const MOCK_PORTFOLIOS: Portfolio[] = [
+  {
+    id: "mock-portfolio-001",
+    title: "Software Engineer Portfolio",
+    thumbnail: DEFAULT_PORTFOLIO_CARD_IMAGE,
+    status: "published",
+    lastEdited: "3/28/2026",
+    views: 342,
+    likes: 28,
+    comments: 12,
+    shares: 8,
+    url: "portrn/john-doe-dev",
+  },
+  {
+    id: "mock-portfolio-002",
+    title: "Product Design Showcase",
+    thumbnail: DEFAULT_PORTFOLIO_CARD_IMAGE,
+    status: "draft",
+    lastEdited: "3/25/2026",
+    views: 0,
+    likes: 0,
+    comments: 0,
+    shares: 0,
+    url: "unpublished",
+  },
+  {
+    id: "mock-portfolio-003",
+    title: "Data Science Portfolio",
+    thumbnail: DEFAULT_PORTFOLIO_CARD_IMAGE,
+    status: "draft",
+    lastEdited: "3/22/2026",
+    views: 0,
+    likes: 0,
+    comments: 0,
+    shares: 0,
+    url: "unpublished",
+  },
+];
 
 const PortfolioManager: React.FC = () => {
   const router = useRouter();
@@ -56,66 +81,21 @@ const PortfolioManager: React.FC = () => {
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // NEW: State for edit modal - tracks which portfolio is being edited
   const [editingPortfolio, setEditingPortfolio] = useState<Portfolio | null>(null);
   const [editFormData, setEditFormData] = useState({ title: "", url: "" });
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
-  // State for delete confirmation modal
   const [deleteTarget, setDeleteTarget] = useState<Portfolio | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
-  // Extract user from context
-  const { user } = useUser();
-  const { id: userId } = user;
-
-
-  // API call to fetch portfolios - Occurs on mount
+  // Load mock portfolios on mount
   useEffect(() => {
-    if (!userId) {
+    const timer = setTimeout(() => {
+      setPortfolios(MOCK_PORTFOLIOS);
       setLoading(false);
-      return;
-    }
-
-    const handleFetchPortfolios = async () => {
-      try {
-        setLoading(true);
-
-        // Make api call to fetch portfolios
-        const response: Response = await fetch(`/api/portfolio/list?userId=${userId}`, {
-          method: "GET",
-        });
-
-        if (!response.ok ) throw new Error(`HTTP error! status: ${response.status}`);
-        
-        const data: PortfolioListResponse = await response.json();
-
-        // Convert DB Rows to card format
-        const formattedPortfolios: Portfolio[] = data.portfolios.map((item) => ({
-          id: item.id,
-          title: item.title,
-          thumbnail: DEFAULT_PORTFOLIO_CARD_IMAGE,
-          status: item.status ?? "draft",
-          lastEdited: new Date(item.updated_at ?? item.created_at).toLocaleDateString(), // Format as needed
-          views: 0, // Placeholder - replace with actual views logic
-          likes: 0, // Placeholder - replace with actual likes logic
-          comments: 0, // Placeholder - replace with actual comments logic
-          shares: 0, // Placeholder - replace with actual shares logic
-          url: item.url ?? "unpublished",
-        }));
-
-        setPortfolios(formattedPortfolios);
-
-      } catch (err) {
-        console.error("Error fetching portfolios:", err);
-        alert("Failed to fetch portfolios. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    handleFetchPortfolios();
-  }, [userId]);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Handler to open edit modal - triggered when user clicks Edit icon
   const handleEditClick = (portfolio: Portfolio) => {
@@ -133,78 +113,33 @@ const PortfolioManager: React.FC = () => {
     setEditFormData({ title: "", url: "" });
   };
 
-  // Handler to update portfolio - includes API call placeholder
+  // Local-only update
   const handleUpdatePortfolio = async () => {
     if (!editingPortfolio) return;
-
-    try {
-      setIsSaving(true);
-
-      const response = await fetch(`/api/portfolio/${editingPortfolio.id}/update`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: editFormData.title,
-          // Include other fields if neede
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to update portfolio: ${response.status}`);
-      }
-
-      await response.json();
-
-      // Update local state to reflect changes immediately
-      setPortfolios((prev) =>
-        prev.map((p) =>
-          p.id === editingPortfolio.id
-            ? {
-                ...p,
-                title: editFormData.title,
-                url: editFormData.url,
-                lastEdited: new Date().toLocaleDateString(),
-              }
-            : p
-        )
-      );
-
-      // Close modal and show success
-      handleCloseEdit();
-      alert("Portfolio updated successfully!");
-    } catch (error) {
-      console.error("Error updating portfolio:", error);
-      alert("Failed to update portfolio. Please try again.");
-    } finally {
-      setIsSaving(false);
-    }
+    setIsSaving(true);
+    setPortfolios((prev) =>
+      prev.map((p) =>
+        p.id === editingPortfolio.id
+          ? {
+              ...p,
+              title: editFormData.title,
+              url: editFormData.url,
+              lastEdited: new Date().toLocaleDateString(),
+            }
+          : p
+      )
+    );
+    handleCloseEdit();
+    setIsSaving(false);
   };
 
-    // Handler to delete portfolio
-    const handleDelete = async (portfolioId: string) => {
-        try {
-            setIsDeleting(true);
-            const res: Response = await fetch(`/api/portfolio/${portfolioId}/delete`, {
-                method: "DELETE",
-            });
-
-            if (!res.ok) {
-                throw new Error(`HTTP error: ${res.status}`);
-            }
-
-            // Update UI
-            setPortfolios(prev => prev.filter(p => p.id !== portfolioId));
-            setDeleteTarget(null);
-
-        } catch (error) {
-            console.error("Deletion failed: ", error);
-            alert("Failed to delete portfolio.");
-        } finally {
-            setIsDeleting(false);
-        }
-    }
+  // Local-only delete
+  const handleDelete = async (portfolioId: string) => {
+    setIsDeleting(true);
+    setPortfolios((prev) => prev.filter((p) => p.id !== portfolioId));
+    setDeleteTarget(null);
+    setIsDeleting(false);
+  };
 
   const statusConfig: Record<
     string,

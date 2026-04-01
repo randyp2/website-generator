@@ -3,9 +3,6 @@
 import { PortfolioStyleChat } from "@/components/chat/PortfolioStyleChat";
 import { useStyleChat } from "@/hooks/useStyleChat";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-    isPristineManualResumeTemplate,
-} from "@/utils/resume/manualResumeTemplate";
 
 const StyleDiscussionPage: React.FC = () => {
     const router = useRouter();
@@ -29,47 +26,9 @@ const StyleDiscussionPage: React.FC = () => {
     } = useStyleChat({ portfolioId, templateId });
 
     const handleContinueToResume = async () => {
-        if (!portfolioId) {
-            if (templateId) {
-                router.push(`/dashboard-user/create/upload?templateId=${templateId}`);
-                return;
-            }
-            router.push("/dashboard-user/create/upload");
-            return;
-        }
-
-        try {
-            await flushStyleHistorySync();
-            const resumeRes = await fetch(`/api/portfolio/${portfolioId}/resume`);
-            const resumeData = resumeRes.ok ? await resumeRes.json() : null;
-            const hasReviewableResume =
-                Boolean(resumeData?.parsedJson) &&
-                !isPristineManualResumeTemplate(resumeData?.parsedJson);
-
-            const nextStep = hasReviewableResume ? "review" : "upload";
-
-            await fetch(`/api/portfolio/${portfolioId}/update`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ last_step: nextStep }),
-            }).catch(() => null);
-
-            if (!hasReviewableResume) {
-                router.push(`/dashboard-user/create/upload?portfolioId=${portfolioId}`);
-                return;
-            }
-
-            router.push(`/dashboard-user/create/review?portfolioId=${portfolioId}`);
-        } catch {
-            if (portfolioId) {
-                await fetch(`/api/portfolio/${portfolioId}/update`, {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ last_step: "upload" }),
-                }).catch(() => null);
-            }
-            router.push(`/dashboard-user/create/upload?portfolioId=${portfolioId}`);
-        }
+        await flushStyleHistorySync();
+        const params = portfolioId ? `?portfolioId=${portfolioId}` : templateId ? `?templateId=${templateId}` : "";
+        router.push(`/dashboard-user/create/upload${params}`);
     };
 
     return (

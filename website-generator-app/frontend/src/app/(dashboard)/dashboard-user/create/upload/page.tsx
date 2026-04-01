@@ -31,8 +31,6 @@ const UploadPage: React.FC = () => {
      * Provides functions to update each piece of state.
      */
     const {
-        templateId,
-
         setTemplateId,
         setPortfolioId,
         setResumeFile,
@@ -55,48 +53,7 @@ const UploadPage: React.FC = () => {
         if (portfolioId) setPortfolioId(portfolioId);
     }, [searchParams, setTemplateId, setPortfolioId]);
 
-    useEffect(() => {
-        const portfolioId = searchParams.get("portfolioId");
-        if (!portfolioId) return;
-        fetch(`/api/portfolio/${portfolioId}/update`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ last_step: "upload" }),
-        }).catch(() => null);
-    }, [searchParams]);
-
-    useEffect(() => {
-        const portfolioId = searchParams.get("portfolioId");
-        if (!portfolioId) return;
-        if (templateId) return;
-
-        const loadTemplateId = async () => {
-            try {
-                const res = await fetch(`/api/portfolio/${portfolioId}/load`);
-                if (!res.ok) return;
-                const data = await res.json();
-                if (data?.templateId) {
-                    setTemplateId(data.templateId);
-                }
-            } catch {
-                return;
-            }
-        };
-
-        loadTemplateId();
-    }, [searchParams, templateId, setTemplateId]);
-
-    useEffect(() => {
-        const unsub = usePortfolioStore.subscribe((state, prevState) => {
-            console.log("Zustand updated:");
-            console.log("Previous:", prevState);
-            console.log("Current:", state);
-        });
-        return () => unsub(); // cleanup on unmount
-    }, []);
-
-    const getResumeSourceKey = (file: File) =>
-        `${file.name}::${file.size}::${file.type}::${file.lastModified}`;
+    // No backend calls - template/portfolio IDs come from query params and zustand store
 
     /**
      * STATE: Pending media files awaiting metadata input
@@ -397,158 +354,24 @@ const UploadPage: React.FC = () => {
         }
     };
 
-    /**
-     * Sends the uploaded resume to the backend for parsing
-     * This will extract structured data from the resume (name, email, skills, etc.)
-     */
-    const parseResume = async (file: File, sourceKey?: string) => {
-        const formData = new FormData();
-        formData.append("file", file);
+    // Navigate to review page (no backend upload needed for mock)
+    const handleContinue = () => {
+        const { portfolioId, resumeFile } = usePortfolioStore.getState();
 
-        const response = await fetch("/api/resume/parse", {
-            method: "POST",
-            body: formData,
-        });
-
-        if (!response.ok) {
-            throw new Error("Failed to parse resume");
+        if (!resumeFile) {
+            setParsedResumeData(createManualResumeTemplate());
+            setParsedResumeSourceKey(MANUAL_RESUME_SOURCE_KEY);
+            setParsingError(null);
         }
 
-        const data = await response.json();
-        console.log("Parsed resume data:", data);
-
-        // Store parsed data in Zustand store
-        if (data.success && data.data) {
-            setParsedResumeData(data.data);
-            setParsedResumeSourceKey(
-                sourceKey ?? getResumeSourceKey(file),
-            );
-            console.log("Resume data saved to store");
-        }
+        router.push(
+            `/dashboard-user/create/review?portfolioId=${portfolioId}`,
+        );
     };
 
-    /**
-     * Fire-and-forget parsing that runs in the background
-     * Updates Zustand state when complete/error occurs
-     */
-    const parseResumeInBackground = async (file: File, sourceKey: string) => {
-        try {
-            await parseResume(file, sourceKey);
-        } catch (error) {
-            console.error("Background resume parsing failed:", error);
-            setParsingError("Failed to parse resume. Please enter information manually.");
-        } finally {
-            setIsParsingResume(false);
-        }
-    };
-
-    // Handler to navigate to next page
-    const handleContinue = async () => {
-        //  --- Call API Route to update Supbase Database
-        // Extract current state values
-        try {
-            const { templateId, portfolioId, resumeFile, mediaFiles, videoFiles } =
-                usePortfolioStore.getState();
-
-            if (!templateId || !portfolioId) {
-                alert("Missing template or portfolio. Please go back and try again.");
-                return;
-            }
-
-            // -- Construct form data to send to API route
-            const formData = new FormData();
-            formData.append("templateId", templateId);
-            formData.append("portfolioId", portfolioId);
-            if (resumeFile) {
-                formData.append("resumeFile", resumeFile.file);
-            }
-
-            mediaFiles.forEach((mediaFile) => {
-                formData.append("mediaFiles", mediaFile.file);
-            });
-
-            videoFiles.forEach((videoFile) => {
-                formData.append("videoFiles", videoFile.file);
-            });
-
-            const mediaMeta = mediaFiles.map((mediaFile) => ({
-                title: mediaFile.title ?? "",
-                description: mediaFile.description ?? "",
-                sectionHint: mediaFile.sectionHint ?? "",
-            }));
-
-            const videoMeta = videoFiles.map((videoFile) => ({
-                title: videoFile.title ?? "",
-                description: videoFile.description ?? "",
-                sectionHint: videoFile.sectionHint ?? "",
-            }));
-
-            formData.append("mediaMeta", JSON.stringify(mediaMeta));
-            formData.append("videoMeta", JSON.stringify(videoMeta));
-
-            // -- Call the API route to create portfolio
-            const res = await fetch("/api/portfolio/create", {
-                method: "POST",
-                body: formData,
-            });
-
-            if (!res.ok) {
-                const error = await res.json();
-                console.error("API Error:", error);
-                alert("Upload failes: " + error.error);
-                return;
-            }
-
-            const data = await res.json();
-            console.log("UPLOADED RESPONSE: ", data);
-
-            const createdPortfolioId = data.portfolio?.id ?? data.portfolioId;
-
-            if (!createdPortfolioId) {
-                alert("Portfolio ID missing from response");
-                return;
-            }
-
-            // Save portfolio ID to Zustand store for later use
-            setPortfolioId(createdPortfolioId);
-
-            // -- Fire-and-forget resume parsing (don't await)
-            // Start parsing in background if not already parsed
-            if (resumeFile) {
-                const resumeSourceKey = getResumeSourceKey(resumeFile.file);
-                setIsParsingResume(true);
-                setParsingError(null);
-                // Fire and forget - don't await
-                parseResumeInBackground(resumeFile.file, resumeSourceKey);
-            } else {
-                setParsedResumeData(createManualResumeTemplate());
-                setParsedResumeSourceKey(MANUAL_RESUME_SOURCE_KEY);
-                setParsingError(null);
-            }
-
-            // -- Navigate IMMEDIATELY - don't wait for parsing
-            router.push(
-                `/dashboard-user/create/review?portfolioId=${createdPortfolioId}`,
-            );
-        } catch (error) {
-            console.error("Error during portfolio creation:", error);
-            alert(
-                "An error occurred while creating the portfolio. Please try again.",
-            );
-            return;
-        }
-    };
-
-    // Handler to skip upload and navigate to next page
+    // Skip upload and go to refine
     const handleSkip = () => {
         const { portfolioId } = usePortfolioStore.getState();
-        if (portfolioId) {
-            fetch(`/api/portfolio/${portfolioId}/update`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ last_step: "refine" }),
-            }).catch(() => null);
-        }
         router.push(`/dashboard-user/create/refine?portfolioId=${portfolioId}`);
     };
 

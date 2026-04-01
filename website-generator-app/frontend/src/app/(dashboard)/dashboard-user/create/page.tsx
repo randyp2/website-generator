@@ -18,36 +18,15 @@ const TemplateGallery: React.FC = () => {
     usePortfolioStore.getState().reset();
   }, []);
 
-  const handleContinue = async () => {
+  const handleContinue = () => {
     if (!selectedTemplate || isLoading) return;
 
     setIsLoading(true);
-    try {
-      const res = await fetch("/api/portfolio/draft", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId: selectedTemplate }),
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
-        alert(error?.error ?? "Failed to create draft");
-        return;
-      }
-
-      const data = await res.json();
-      const portfolioId = data?.portfolio?.id ?? null;
-
-      setTemplateId(selectedTemplate);
-      if (portfolioId) setPortfolioId(portfolioId);
-
-      router.push(`/dashboard-user/create/style?portfolioId=${portfolioId}`);
-    } catch (error) {
-      console.error("Draft creation failed:", error);
-      alert("Failed to create draft. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
+    const mockPortfolioId = `mock-draft-${Date.now()}`;
+    setTemplateId(selectedTemplate);
+    setPortfolioId(mockPortfolioId);
+    router.push(`/dashboard-user/create/style?portfolioId=${mockPortfolioId}`);
+    setIsLoading(false);
   };
 
   return (
