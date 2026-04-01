@@ -30,7 +30,7 @@ const sections = [
 
 export default function LandingPage() {
     return (
-        <div className="min-h-screen bg-black text-foreground">
+        <div className="min-h-screen bg-muted/35 text-foreground dark:bg-background">
             <div className="overflow-x-hidden">
                 <HeroSection />
                 {sections.map(({ key, Component }) => (

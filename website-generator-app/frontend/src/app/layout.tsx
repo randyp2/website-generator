@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
+import { AppThemeProvider } from "@/components/theme/AppThemeProvider";
 import { Toaster } from "@/components/ui/toaster";
 
 
@@ -95,8 +96,10 @@ export default function RootLayout({
       <body
         className={`${interSans.variable} ${sourceSerif.variable} ${jetBrainsMono.variable} font-sans overflow-x-hidden relative flex flex-col min-h-screen bg-background text-foreground`}
       >
-        {children}
-        <Toaster />
+        <AppThemeProvider>
+          {children}
+          <Toaster />
+        </AppThemeProvider>
       </body>
     </html>
   );

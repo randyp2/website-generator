@@ -1,8 +1,10 @@
 "use client";
 
 import type { JSX, ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useFormStatus } from "react-dom";
+import Link from "next/link";
+import { useTheme } from "next-themes";
 import {
     ArrowRight,
     Eye,
@@ -204,13 +206,21 @@ const SignupFields = (): JSX.Element => (
 const LandingAuthPanel = (): JSX.Element => {
     const [mode, setMode] = useState<Mode>("login");
     const [isVisible, setIsVisible] = useState<boolean>(false);
-    const [themeMode, setThemeMode] = useState<"light" | "dark">("dark");
+    const { resolvedTheme, setTheme } = useTheme();
+    const mounted = useSyncExternalStore(
+        () => () => {},
+        () => true,
+        () => false,
+    );
 
     useEffect(() => {
         const timer = window.setTimeout(() => setIsVisible(true), 180);
 
         return () => window.clearTimeout(timer);
     }, []);
+
+    const themeMode = mounted && resolvedTheme === "light" ? "light" : "dark";
+    const showResolvedTheme = mounted;
 
     return (
         <div
@@ -222,14 +232,14 @@ const LandingAuthPanel = (): JSX.Element => {
         >
             <div className="relative space-y-8 text-card-foreground">
                 <div className="flex flex-col items-end gap-3">
-                    <div className="inline-flex rounded-full border border-white/10 bg-background/70 p-1">
+                    <div className="inline-flex rounded-full border border-foreground bg-background/70 p-1">
                         <button
                             type="button"
-                            onClick={() => setThemeMode("light")}
+                            onClick={() => setTheme("light")}
                             aria-label="Switch to light mode"
                             className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:cursor-pointer ${
-                                themeMode === "light"
-                                    ? "bg-card text-foreground"
+                                showResolvedTheme && themeMode === "light"
+                                    ? "bg-primary text-primary-foreground"
                                     : "text-muted-foreground"
                             }`}
                         >
@@ -237,10 +247,10 @@ const LandingAuthPanel = (): JSX.Element => {
                         </button>
                         <button
                             type="button"
-                            onClick={() => setThemeMode("dark")}
+                            onClick={() => setTheme("dark")}
                             aria-label="Switch to dark mode"
                             className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:cursor-pointer ${
-                                themeMode === "dark"
+                                showResolvedTheme && themeMode === "dark"
                                     ? "bg-primary text-primary-foreground"
                                     : "text-muted-foreground"
                             }`}
@@ -249,9 +259,6 @@ const LandingAuthPanel = (): JSX.Element => {
                         </button>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                        {mode === "login"
-                            ? "Need an account?"
-                            : "Already have an account?"}{" "}
                         <button
                             type="button"
                             onClick={() =>
@@ -265,6 +272,13 @@ const LandingAuthPanel = (): JSX.Element => {
                         >
                             {mode === "login" ? "Sign up" : "Log in"}
                         </button>
+                        <span className="px-2 text-muted-foreground/60">|</span>
+                        <Link
+                            href="/explore"
+                            className="font-medium text-[#f59e0b] transition-colors hover:text-[#fbbf24]"
+                        >
+                            Browse portfolios
+                        </Link>
                     </p>
                 </div>
 
@@ -289,7 +303,7 @@ const LandingAuthPanel = (): JSX.Element => {
                             </h2>
                             <p className="max-w-md text-sm leading-6 text-muted-foreground">
                                 {mode === "login"
-                                    ? "Pick up where you left off and keep building a portfolio recruiters can trust."
+                                    ? ""
                                     : "Start with your resume, shape the design, and publish a recruiter-ready portfolio."}
                             </p>
                         </div>

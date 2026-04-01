@@ -11,7 +11,7 @@ const DashboardHome: React.FC = () => {
     return (
         <div className="relative px-4 md:px-6 pb-14 pt-6">
             {/* Content */}
-            <div className="relative z-10 pt-2 text-white">
+            <div className="relative z-10 pt-2 text-foreground">
                 <div className="space-y-6">
                     {/* Top Section: Recent Portfolios */}
                     <RecentSection />

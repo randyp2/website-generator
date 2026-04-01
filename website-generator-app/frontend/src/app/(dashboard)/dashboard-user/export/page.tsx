@@ -191,7 +191,7 @@ const PublishPage: React.FC = () => {
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="w-12 h-12 border-3 border-white/20 border-t-white rounded-full"
+          className="h-12 w-12 rounded-full border-3 border-border border-t-primary"
         />
       </div>
     );
@@ -201,31 +201,31 @@ const PublishPage: React.FC = () => {
     <div className="space-y-6 px-4 py-8 md:px-6">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-4xl font-bold text-white mb-2">Publish</h1>
-        <p className="text-white/60">Make your portfolios publicly accessible</p>
+        <h1 className="mb-2 text-4xl font-bold text-foreground">Publish</h1>
+        <p className="text-muted-foreground">Make your portfolios publicly accessible</p>
       </motion.div>
 
       {/* Published Portfolios */}
       {published.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <h2 className="text-lg font-semibold text-white mb-4">Live</h2>
+          <h2 className="mb-4 text-lg font-semibold text-foreground">Live</h2>
           <div className="space-y-3">
             {published.map((p) => (
               <div
                 key={p.id}
-                className="flex items-center justify-between p-4 bg-white/[0.06] border border-white/[0.12] rounded-xl"
+                className="flex items-center justify-between rounded-xl border border-border bg-card/80 p-4"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <div className="w-2 h-2 bg-emerald-400 rounded-full" />
-                    <h3 className="text-white font-medium truncate">{p.title}</h3>
+                    <h3 className="truncate font-medium text-foreground">{p.title}</h3>
                   </div>
                   {p.slug && (
                     <a
                       href={`${BASE_URL}/portfolio/${p.slug}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-white/40 hover:text-white/60 font-mono flex items-center gap-1 transition-colors"
+                      className="flex items-center gap-1 font-mono text-sm text-muted-foreground transition-colors hover:text-foreground"
                     >
                       /portfolio/{p.slug}
                       <FiExternalLink className="w-3 h-3" />
@@ -235,14 +235,14 @@ const PublishPage: React.FC = () => {
                 <div className="flex items-center gap-2 ml-4">
                   <button
                     onClick={() => p.slug && handleCopyUrl(p.slug)}
-                    className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/50 hover:text-white"
+                    className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                     title="Copy URL"
                   >
                     {copied ? <FiCheck className="w-4 h-4 text-emerald-400" /> : <FiCopy className="w-4 h-4" />}
                   </button>
                   <button
                     onClick={() => handleUnpublish(p.id)}
-                    className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/50 hover:text-red-400"
+                    className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-red-500"
                     title="Unpublish"
                   >
                     <FiEyeOff className="w-4 h-4" />
@@ -256,11 +256,11 @@ const PublishPage: React.FC = () => {
 
       {/* Draft Portfolios */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-        <h2 className="text-lg font-semibold text-white mb-4">
+        <h2 className="mb-4 text-lg font-semibold text-foreground">
           {published.length > 0 ? "Unpublished" : "Your Portfolios"}
         </h2>
         {drafts.length === 0 ? (
-          <div className="text-center py-12 text-white/40">
+          <div className="py-12 text-center text-muted-foreground">
             <FiGlobe className="w-10 h-10 mx-auto mb-3 opacity-50" />
             <p>No portfolios to publish yet</p>
           </div>
@@ -269,11 +269,11 @@ const PublishPage: React.FC = () => {
             {drafts.map((p) => (
               <div
                 key={p.id}
-                className="flex items-center justify-between p-4 bg-white/[0.04] border border-white/[0.08] rounded-xl hover:bg-white/[0.06] hover:border-white/[0.15] transition-all"
+                className="flex items-center justify-between rounded-xl border border-border bg-card/70 p-4 transition-all hover:border-primary/20 hover:bg-card"
               >
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-white font-medium truncate">{p.title}</h3>
-                  <p className="text-sm text-white/30">
+                  <h3 className="truncate font-medium text-foreground">{p.title}</h3>
+                  <p className="text-sm text-muted-foreground">
                     {p.slug ? `Previously at /portfolio/${p.slug}` : "Not yet published"}
                   </p>
                 </div>
@@ -281,7 +281,7 @@ const PublishPage: React.FC = () => {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => openPublishModal(p)}
-                  className="ml-4 px-4 py-2 bg-white/10 hover:bg-white/15 border border-white/20 hover:border-white/30 rounded-lg text-sm font-medium text-white transition-all flex items-center gap-2"
+                  className="ml-4 flex items-center gap-2 rounded-lg border border-border bg-muted px-4 py-2 text-sm font-medium text-foreground transition-all hover:border-primary/30 hover:bg-muted/80"
                 >
                   <FiGlobe className="w-4 h-4" />
                   Publish
@@ -299,7 +299,7 @@ const PublishPage: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
             onClick={closeModal}
           >
             <motion.div
@@ -307,20 +307,20 @@ const PublishPage: React.FC = () => {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-[#1a1d21] border border-white/10 rounded-2xl shadow-2xl max-w-md w-full p-6"
+              className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl"
             >
-              <h2 className="text-xl font-bold text-white mb-1">
+              <h2 className="mb-1 text-xl font-bold text-foreground">
                 Publish Portfolio
               </h2>
-              <p className="text-sm text-white/50 mb-6">{selectedPortfolio.title}</p>
+              <p className="mb-6 text-sm text-muted-foreground">{selectedPortfolio.title}</p>
 
               {/* Slug Input */}
               <div className="mb-5">
-                <label className="text-xs font-medium text-white/50 mb-2 block">
+                <label className="mb-2 block text-xs font-medium text-muted-foreground">
                   Choose your URL
                 </label>
-                <div className="flex items-center rounded-xl border border-white/20 bg-white/[0.06] overflow-hidden focus-within:border-white/30 transition-colors">
-                  <span className="text-xs text-white/30 px-3 py-3 bg-white/[0.04] border-r border-white/10 whitespace-nowrap font-mono">
+                <div className="flex items-center overflow-hidden rounded-xl border border-border bg-background transition-colors focus-within:border-primary">
+                  <span className="whitespace-nowrap border-r border-border bg-muted px-3 py-3 font-mono text-xs text-muted-foreground">
                     /portfolio/
                   </span>
                   <input
@@ -329,10 +329,10 @@ const PublishPage: React.FC = () => {
                     onChange={handleSlugChange}
                     placeholder="your-name"
                     autoFocus
-                    className="flex-1 px-3 py-3 text-sm text-white bg-transparent outline-none font-mono placeholder-white/20"
+                    className="flex-1 bg-transparent px-3 py-3 font-mono text-sm text-foreground outline-none placeholder:text-muted-foreground"
                   />
                   <div className="pr-3">
-                    {slugChecking && <FiLoader className="w-4 h-4 text-white/30 animate-spin" />}
+                    {slugChecking && <FiLoader className="h-4 w-4 animate-spin text-muted-foreground" />}
                     {!slugChecking && slugAvailable === true && slugInput !== selectedPortfolio.slug && (
                       <FiCheck className="w-4 h-4 text-emerald-400" />
                     )}
@@ -356,7 +356,7 @@ const PublishPage: React.FC = () => {
               <div className="flex gap-3">
                 <button
                   onClick={closeModal}
-                  className="flex-1 px-4 py-3 border border-white/20 text-white/70 rounded-xl font-medium hover:bg-white/5 transition-colors"
+                  className="flex-1 rounded-xl border border-border px-4 py-3 font-medium text-muted-foreground transition-colors hover:bg-muted"
                 >
                   Cancel
                 </button>
@@ -368,7 +368,7 @@ const PublishPage: React.FC = () => {
                   className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 ${
                     publishState === "success"
                       ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                      : "bg-white/10 hover:bg-white/15 border border-white/20 hover:border-white/30 text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                      : "border border-primary bg-primary text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
                   }`}
                 >
                   {publishState === "loading" ? (

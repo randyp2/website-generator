@@ -27,7 +27,7 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status }) => {
     return (
         <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${color} ${glow}`} />
-            <span className="text-white/80 text-sm">{label}</span>
+            <span className="text-sm text-muted-foreground">{label}</span>
         </div>
     );
 };
