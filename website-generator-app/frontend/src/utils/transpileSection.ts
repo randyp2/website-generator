@@ -272,7 +272,6 @@ export const transpileSection = (
         // We append a return statement so the wrapper function hands it back.
         const wrapped = `${transpiled}\nreturn ${varName};`;
 
-        // eslint-disable-next-line @typescript-eslint/no-implied-eval
         const factory = new Function(...scopeKeys, wrapped);
         const Component = factory(...scopeValues);
 
