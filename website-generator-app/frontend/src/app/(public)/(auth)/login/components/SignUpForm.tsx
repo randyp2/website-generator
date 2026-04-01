@@ -18,13 +18,11 @@ import { signup } from "@/lib/auth-actions";
 interface SignUpFormProps {
   state: AuthFormState;
   dispatch: React.Dispatch<AuthFormAction>;
-  onSubmit: (e: React.FormEvent) => void;
 }
 
 const SignUpForm: React.FC<SignUpFormProps> = ({
   state,
   dispatch,
-  onSubmit,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);

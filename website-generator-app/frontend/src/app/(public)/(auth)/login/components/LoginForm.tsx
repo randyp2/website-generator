@@ -10,10 +10,9 @@ import { login } from "@/lib/auth-actions";
 interface LoginFormProps {
   state: AuthFormState;
   dispatch: React.Dispatch<AuthFormAction>;
-  onSubmit: (e: React.FormEvent) => void;
 }
 
-const LoginForm: React.FC<LoginFormProps> = ({ state, dispatch, onSubmit }) => {
+const LoginForm: React.FC<LoginFormProps> = ({ state, dispatch }) => {
   const [showPassword, setShowPassword] = useState(false);
 
   return (

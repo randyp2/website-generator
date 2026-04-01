@@ -14,15 +14,23 @@ export interface TimelineStep {
 interface TimelineStepItemProps {
     step: TimelineStep;
     isLast: boolean;
-    lineHeight: ReturnType<typeof useTransform<number, string>>;
+    scrollYProgress: ReturnType<typeof useScroll>["scrollYProgress"];
+    index: number;
+    totalSteps: number;
 }
 
 const TimelineStepItem: React.FC<TimelineStepItemProps> = ({
     step,
     isLast,
-    lineHeight,
+    scrollYProgress,
+    index,
+    totalSteps,
 }) => {
     const Icon = step.icon;
+    const segmentSize = 0.5 / Math.max(totalSteps - 1, 1);
+    const start = 0.15 + index * segmentSize;
+    const end = start + segmentSize;
+    const lineHeight = useTransform(scrollYProgress, [start, end], ["0%", "100%"]);
 
     return (
         <div className="flex gap-6 flex-1">
@@ -81,14 +89,6 @@ export const ScrollTimeline: React.FC<ScrollTimelineProps> = ({
         offset: ["start end", "end start"],
     });
 
-    // Create line height transforms for each connection
-    const lineHeights = steps.slice(0, -1).map((_, index) => {
-        const segmentSize = 0.5 / (steps.length - 1);
-        const start = 0.15 + index * segmentSize;
-        const end = start + segmentSize;
-        return useTransform(scrollYProgress, [start, end], ["0%", "100%"]);
-    });
-
     return (
         <div
             ref={containerRef}
@@ -99,7 +99,9 @@ export const ScrollTimeline: React.FC<ScrollTimelineProps> = ({
                     key={index}
                     step={step}
                     isLast={index === steps.length - 1}
-                    lineHeight={lineHeights[index] || lineHeights[0]}
+                    scrollYProgress={scrollYProgress}
+                    index={index}
+                    totalSteps={steps.length}
                 />
             ))}
         </div>

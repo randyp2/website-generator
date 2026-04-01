@@ -90,7 +90,7 @@ const StepSkills: React.FC<StepSkillsProps> = ({
         ) : (
           <div className="flex flex-wrap gap-2">
             <AnimatePresence>
-              {state.skills.map((skill, index) => (
+              {state.skills.map((skill) => (
                 <motion.div
                   key={skill}
                   initial={{ opacity: 0, scale: 0.8, y: 10 }}
@@ -138,7 +138,7 @@ const StepSkills: React.FC<StepSkillsProps> = ({
           className="bg-linear-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-4"
         >
           <p className="text-xs text-emerald-900 leading-relaxed">
-            <span className="font-semibold">✨ Great job!</span> You've added{" "}
+            <span className="font-semibold">✨ Great job!</span> You&apos;ve added{" "}
             {state.skills.length} skills. Your portfolio will showcase a
             well-rounded skill set. Feel free to add more or move to the next
             step.

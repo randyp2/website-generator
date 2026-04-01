@@ -2,7 +2,6 @@
 
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { FileText } from 'lucide-react';
 
 export function VisualFeaturesSection() {
     return (
@@ -60,7 +59,7 @@ export function VisualFeaturesSection() {
                                                     </div>
                                                     <div className="bg-white/10 border border-white/20 rounded-lg rounded-tl-sm px-3 py-1.5 max-w-[85%] shadow-xl">
                                                         <p className="text-white/90 text-[10px] md:text-xs leading-relaxed">
-                                                            I've created a sleek portfolio with a dark theme, featuring your projects, skills, and experience.
+                                                            I&apos;ve created a sleek portfolio with a dark theme, featuring your projects, skills, and experience.
                                                         </p>
                                                     </div>
                                                 </div>
@@ -273,7 +272,7 @@ export function VisualFeaturesSection() {
 }
 
 // Visual Component 2: Template Selection
-const TemplateSelectionVisual = () => (
+export const TemplateSelectionVisual = () => (
     <div className="relative h-64">
         {/* Header - Top left */}
         <div className="absolute top-0 left-0 right-0 bg-black rounded-xl px-4 py-3 border border-white/10 shadow-2xl z-10 flex items-center justify-between">
@@ -325,7 +324,7 @@ const TemplateSelectionVisual = () => (
 );
 
 // Visual Component 3: Live Preview
-const LivePreviewVisual = () => (
+export const LivePreviewVisual = () => (
     <div className="relative h-64">
         {/* Mac Browser Window - Main element */}
         <div className="absolute top-0 left-0 right-0 bg-black rounded-xl shadow-2xl z-20 border border-white/10">

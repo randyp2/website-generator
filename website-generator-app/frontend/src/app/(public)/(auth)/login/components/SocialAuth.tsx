@@ -3,14 +3,9 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { FcGoogle } from "react-icons/fc";
-import { FaFacebook, FaGithub, FaApple } from "react-icons/fa";
 import { signInWithGoogle } from "@/lib/auth-actions";
 
-interface SocialAuthProps {
-  onSocialAuth: (provider: string) => void;
-}
-
-const SocialAuth: React.FC<SocialAuthProps> = ({ onSocialAuth }) => {
+const SocialAuth: React.FC = () => {
   const providers = [
     {
       name: "Google",
@@ -22,7 +17,7 @@ const SocialAuth: React.FC<SocialAuthProps> = ({ onSocialAuth }) => {
   return (
     <div className="px-8 pb-6">
       <div className="flex flex-col gap-3">
-        {providers.map((provider, index) => (
+        {providers.map((provider) => (
           <motion.form
             key={provider.name}
             action={provider.action}

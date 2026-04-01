@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { PanelLeft, MessageSquare, Monitor } from "lucide-react";
+import { PanelLeft, MessageSquare, Monitor, type LucideIcon } from "lucide-react";
 
 export type ChatLayoutMode = 'sidebar' | 'floating' | 'preview';
 
@@ -10,7 +10,7 @@ interface LayoutModeToggleProps {
     onChange: (mode: ChatLayoutMode) => void;
 }
 
-const modes: { value: ChatLayoutMode; icon: React.ElementType; tooltip: string }[] = [
+const modes: { value: ChatLayoutMode; icon: LucideIcon; tooltip: string }[] = [
     { value: 'sidebar', icon: PanelLeft, tooltip: 'Chat docked to left' },
     { value: 'floating', icon: MessageSquare, tooltip: 'Floating chat overlay' },
     { value: 'preview', icon: Monitor, tooltip: 'Full preview, no chat' },

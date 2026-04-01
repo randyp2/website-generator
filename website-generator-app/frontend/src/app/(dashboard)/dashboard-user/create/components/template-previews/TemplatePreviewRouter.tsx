@@ -1,3 +1,4 @@
+import type { IconType } from "react-icons";
 import React from "react";
 import { MinimalTechPreview } from "./templates/MinimalTechPreview";
 import { CreativeGradientPreview } from "./templates/CreativeGradientPreview";
@@ -13,7 +14,7 @@ interface Template {
   gradient: string;
   pattern: string;
   popular?: boolean;
-  icon: any;
+  icon: IconType;
   tags: string[];
   themeColors: {
     primary: string;
@@ -36,7 +37,6 @@ interface TemplatePreviewRouterProps {
 
 export const TemplatePreviewRouter: React.FC<TemplatePreviewRouterProps> = ({
   template,
-  isHovered,
 }) => {
   // Render the appropriate preview component based on template ID
   switch (template.id) {

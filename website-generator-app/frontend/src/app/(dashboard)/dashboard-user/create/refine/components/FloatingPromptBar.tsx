@@ -266,6 +266,7 @@ export const FloatingPromptBar: React.FC<FloatingPromptBarProps> = ({
                                             >
                                                 <div className="w-6 h-6 rounded overflow-hidden bg-[#0a0f14] flex items-center justify-center shrink-0">
                                                     {isImage && preview ? (
+                                                        // eslint-disable-next-line @next/next/no-img-element -- Uses object URLs for local upload previews.
                                                         <img
                                                             src={preview}
                                                             alt={file.name}

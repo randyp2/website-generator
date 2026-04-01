@@ -168,6 +168,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
                 }`}
             >
                 {avatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- Dynamic user avatars may come from arbitrary remote URLs.
                     <img
                         src={avatar}
                         alt="User Avatar"

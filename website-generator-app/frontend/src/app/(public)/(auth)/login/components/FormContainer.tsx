@@ -2,7 +2,6 @@
 
 import React, { useEffect, useReducer } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useRouter } from "next/navigation";
 
 import SocialAuth from "@/app/(public)/(auth)/login/components/SocialAuth";
 import type { AuthMode } from "@/features/authType";
@@ -19,40 +18,11 @@ const FormContainer: React.FC<FormContainerProps> = ({
   mode,
   onModeChange,
 }) => {
-  const router = useRouter();
   const [state, dispatch] = useReducer(authFormReducer, initialAuthFormState);
 
-
-  useEffect(() => {console.log(state);}, [state])
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Validation
-    if (mode === "register") {
-      if (state.password !== state.confirmPassword) {
-        alert("Passwords do not match!");
-        return;
-      }
-      if (!state.agreedToTerms) {
-        alert("Please agree to the Terms of Service");
-        return;
-      }
-    }
-
-    // TODO: Implement actual auth logic
-    console.log("Auth attempt:", { mode, ...state });
-
-    // Reset form and navigate
-    dispatch({ type: "RESET" });
-    router.push("/dashboard");
-  };
-
-  const handleSocialAuth = (provider: string) => {
-    // TODO: Implement social auth
-    console.log("Social auth:", provider);
-    router.push("/dashboard");
-  };
-
+  useEffect(() => {
+    console.log(state);
+  }, [state]);
   return (
     <div className="bg-[#1a1a1a]/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/10 overflow-hidden">
       {/* Mode Toggle */}
@@ -102,25 +72,15 @@ const FormContainer: React.FC<FormContainerProps> = ({
       </div>
 
       {/* Social Auth */}
-      <SocialAuth onSocialAuth={handleSocialAuth} />
+      <SocialAuth />
 
       {/* Form */}
       <div className="px-8 pb-8">
         <AnimatePresence mode="wait">
           {mode === "login" ? (
-            <LoginForm
-              key="login"
-              state={state}
-              dispatch={dispatch}
-              onSubmit={handleSubmit}
-            />
+            <LoginForm key="login" state={state} dispatch={dispatch} />
           ) : (
-            <SignUpForm
-              key="register"
-              state={state}
-              dispatch={dispatch}
-              onSubmit={handleSubmit}
-            />
+            <SignUpForm key="register" state={state} dispatch={dispatch} />
           )}
         </AnimatePresence>
       </div>
@@ -130,7 +90,7 @@ const FormContainer: React.FC<FormContainerProps> = ({
         <p className="text-sm text-gray-400">
           {mode === "login" ? (
             <>
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
               <button
                 onClick={() => onModeChange("register")}
                 className="font-semibold text-[#0084ff] hover:text-[#0066cc] transition-colors"

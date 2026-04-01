@@ -18,8 +18,8 @@ function TechPortfolio() {
         <span className="absolute right-[20%] top-[55%]">10010</span>
         <span className="absolute left-[8%] top-[80%]">::</span>
         <span className="absolute right-[12%] top-[75%]">{"=>"}</span>
-        <span className="absolute left-[25%] top-[25%]">/*</span>
-        <span className="absolute right-[25%] top-[70%]">*/</span>
+        <span className="absolute left-[25%] top-[25%]">{"/*"}</span>
+        <span className="absolute right-[25%] top-[70%]">{"*/"}</span>
         <span className="absolute left-[20%] top-[45%] text-[10px]">#</span>
         <span className="absolute right-[5%] top-[50%]">null</span>
       </div>
