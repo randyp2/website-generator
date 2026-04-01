@@ -1,10 +1,11 @@
 "use client";
 
+import { Suspense } from "react";
 import { PortfolioStyleChat } from "@/components/chat/PortfolioStyleChat";
 import { useStyleChat } from "@/hooks/useStyleChat";
 import { useRouter, useSearchParams } from "next/navigation";
 
-const StyleDiscussionPage: React.FC = () => {
+const StyleDiscussionPageContent: React.FC = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const templateId = searchParams.get("templateId");
@@ -50,6 +51,14 @@ const StyleDiscussionPage: React.FC = () => {
                 className="h-[calc(100vh-6.5rem)] w-full max-w-[94rem] md:h-[calc(100vh-7.5rem)]"
             />
         </main>
+    );
+};
+
+const StyleDiscussionPage: React.FC = () => {
+    return (
+        <Suspense fallback={null}>
+            <StyleDiscussionPageContent />
+        </Suspense>
     );
 };
 

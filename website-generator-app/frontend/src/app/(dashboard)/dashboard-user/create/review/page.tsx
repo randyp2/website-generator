@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { EducationSection } from "./components/EducationSection";
 import { ExperienceSection } from "./components/ExperienceSection";
@@ -16,7 +16,7 @@ import { useReviewToasts } from "./hooks/useReviewToasts";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
 import { MANUAL_RESUME_SOURCE_KEY } from "@/utils/resume/manualResumeTemplate";
 
-const ReviewPage: React.FC = () => {
+const ReviewPageContent: React.FC = () => {
     const searchParams = useSearchParams();
     const [isEditing, setIsEditing] = useState(false);
 
@@ -145,6 +145,14 @@ const ReviewPage: React.FC = () => {
             />
             </div>
         </div>
+    );
+};
+
+const ReviewPage: React.FC = () => {
+    return (
+        <Suspense fallback={null}>
+            <ReviewPageContent />
+        </Suspense>
     );
 };
 

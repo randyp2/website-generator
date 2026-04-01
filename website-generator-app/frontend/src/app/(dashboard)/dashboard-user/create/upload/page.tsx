@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FiArrowRight } from "react-icons/fi";
@@ -11,7 +11,7 @@ import { MediaUpload } from "./components/MediaUpload";
 import { VideoUpload } from "./components/VideoUpload";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
 
-const UploadPage: React.FC = () => {
+const UploadPageContent: React.FC = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -426,6 +426,14 @@ const UploadPage: React.FC = () => {
                 </AnimatePresence>
             </div>
         </div>
+    );
+};
+
+const UploadPage: React.FC = () => {
+    return (
+        <Suspense fallback={null}>
+            <UploadPageContent />
+        </Suspense>
     );
 };
 
