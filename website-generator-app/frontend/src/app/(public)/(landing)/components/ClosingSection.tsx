@@ -70,7 +70,7 @@ const ClosingSection = () => {
               asChild
               className="bg-primary px-6 py-2 text-primary-foreground hover:bg-primary/90"
             >
-              <Link href="/login">Create your portfolio</Link>
+              <Link href="/dashboard">Create your portfolio</Link>
             </Button>
             <Button
               asChild

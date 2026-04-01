@@ -261,7 +261,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                             onClick={async () => {
                                 setShowProfileMenu(false);
                                 await signoutClient();
-                                router.push("/login");
+                                router.push("/");
                             }}
                             className="w-full flex items-center gap-3 border-t border-sidebar-border px-4 py-3 text-left text-red-300 transition-colors hover:bg-red-500/10"
                         >

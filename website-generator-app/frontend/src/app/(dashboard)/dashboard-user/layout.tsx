@@ -14,14 +14,14 @@ export default async function DashboardLayout({
     data: { session },
   } = await supabase.auth.getSession();
 
-  // If no session exists, redirect to login page
+  // If no session exists, redirect to home page
   if (!session) {
-    redirect("/login");
+    redirect("/");
   }
 
   // Extract user info to display on dashboard
   const { data: { user }} = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/");
   
   const username: string =
     user.user_metadata?.full_name ??
