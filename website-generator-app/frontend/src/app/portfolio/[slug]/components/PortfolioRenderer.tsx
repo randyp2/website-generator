@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import Script from "next/script";
 import type { PublicPortfolioDTO, PublicSectionDTO } from "@/types/public-portfolio";
 import { transpileSection } from "@/utils/transpileSection";
@@ -80,6 +80,11 @@ const buildGoogleFontsUrl = (
  * Tailwind CSS is loaded via CDN script to style the AI-generated markup.
  */
 const PortfolioRenderer = ({ portfolio }: Props) => {
+    // Transpiled sections use browser APIs (window, document, canvas, etc.)
+    // so we only render them after mount to avoid SSR hydration mismatches.
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
+
     const theme = useMemo(
         () => normalizeTheme(portfolio.globalTheme),
         [portfolio.globalTheme],
@@ -99,11 +104,7 @@ const PortfolioRenderer = ({ portfolio }: Props) => {
         () => ({
             fontFamily: `${bodyFont}, sans-serif`,
             headingFontFamily: `${headingFont}, sans-serif`,
-            // Some sections reference `root` (e.g. document.getElementById("root")).
-            // Provide a safe no-op ref so they don't crash.
-            root: typeof document !== "undefined"
-                ? document.getElementById("portfolio-root")
-                : null,
+            root: document.getElementById("portfolio-root"),
         }),
         [bodyFont, headingFont],
     );
@@ -111,6 +112,8 @@ const PortfolioRenderer = ({ portfolio }: Props) => {
     // Sort sections by orderIndex, then transpile each one.
     // useMemo ensures we only re-transpile when sections actually change.
     const renderedSections = useMemo(() => {
+        if (!mounted) return null;
+
         const sorted = [...portfolio.sections].sort(
             (a, b) => a.orderIndex - b.orderIndex,
         );
@@ -127,7 +130,7 @@ const PortfolioRenderer = ({ portfolio }: Props) => {
                 </SectionErrorBoundary>
             );
         });
-    }, [portfolio.sections, themeScope]);
+    }, [mounted, portfolio.sections, themeScope]);
 
     return (
         <>
@@ -163,7 +166,13 @@ const PortfolioRenderer = ({ portfolio }: Props) => {
             {/* Portfolio content */}
             <div id="portfolio-root" className={`min-h-screen ${theme.background}`}>
                 <div className={theme.textPrimary}>
-                    <main>{renderedSections}</main>
+                    <main>
+                        {renderedSections ?? (
+                            <div className="flex items-center justify-center min-h-screen">
+                                <div className="w-10 h-10 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                            </div>
+                        )}
+                    </main>
                 </div>
             </div>
         </>
