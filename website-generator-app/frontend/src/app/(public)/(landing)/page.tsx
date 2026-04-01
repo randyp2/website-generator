@@ -2,7 +2,8 @@ import { Metadata } from "next";
 import { GallerySection } from "./components/GallerySection";
 import { BeamWorkflowSection } from "./components/BeamWorkflowSection";
 import { CTASection } from "./components/CTASection";
-import HeroSection from "./components/HeroSection";
+import ClosingSection from "./components/ClosingSection";
+import { HeroSection } from "./components/hero";
 import { ProcessSection } from "./components/ProcessSection";
 
 export const metadata: Metadata = {
@@ -33,11 +34,14 @@ const sections = [
 
 export default function LandingPage() {
     return (
-        <div className="min-h-screen bg-background text-foreground">
-            <HeroSection />
-            {sections.map(({ key, Component }) => (
-                <Component key={key} />
-            ))}
+        <div className="min-h-screen bg-black text-foreground">
+            <div className="overflow-x-hidden">
+                <HeroSection />
+                {sections.map(({ key, Component }) => (
+                    <Component key={key} />
+                ))}
+            </div>
+            <ClosingSection />
         </div>
     );
 }

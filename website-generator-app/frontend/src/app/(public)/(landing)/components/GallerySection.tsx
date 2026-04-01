@@ -34,7 +34,7 @@ const PORTFOLIOS_3 = [
 
 export const GallerySection: React.FC = () => {
     return (
-        <section className="relative bg-background py-8 md:py-12">
+        <section className="relative bg-black py-8 md:py-12">
             <ContainerStagger className="relative z-20 mx-auto -mb-8 max-w-4xl px-6 pt-10 text-center text-foreground md:-mb-12 md:pt-14">
                 <ContainerAnimated>
                     <h2 className="text-4xl font-bold tracking-tight md:text-5xl">
