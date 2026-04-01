@@ -239,8 +239,10 @@ const cache = new Map<string, React.ComponentType<{ content: unknown; data: unkn
 export const transpileSection = (
     reactSource: string,
     index: number,
+    extraScope?: Record<string, unknown>,
 ): React.ComponentType<{ content: unknown; data: unknown }> => {
-    const cacheKey = `${index}::${reactSource}`;
+    const extraKey = extraScope ? JSON.stringify(extraScope) : "";
+    const cacheKey = `${index}::${reactSource}::${extraKey}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;
 
@@ -265,8 +267,11 @@ export const transpileSection = (
 
         // 3. Build a function that receives the scope as arguments and returns the component
         const varName = `__Section${index}`;
-        const scopeKeys = Object.keys(SECTION_SCOPE);
-        const scopeValues = scopeKeys.map((k) => SECTION_SCOPE[k]);
+        const mergedScope = extraScope
+            ? { ...SECTION_SCOPE, ...extraScope }
+            : SECTION_SCOPE;
+        const scopeKeys = Object.keys(mergedScope);
+        const scopeValues = scopeKeys.map((k) => mergedScope[k]);
 
         // The transpiled code assigns the component to `varName`.
         // We append a return statement so the wrapper function hands it back.

@@ -93,6 +93,21 @@ const PortfolioRenderer = ({ portfolio }: Props) => {
     const bodyFont = theme.fonts?.body || "Inter";
     const headingFont = theme.fonts?.heading || bodyFont;
 
+    // Theme-dependent variables that AI-generated sections may reference.
+    // These mirror the globals the backend HTML export sets on `window`.
+    const themeScope = useMemo(
+        () => ({
+            fontFamily: `${bodyFont}, sans-serif`,
+            headingFontFamily: `${headingFont}, sans-serif`,
+            // Some sections reference `root` (e.g. document.getElementById("root")).
+            // Provide a safe no-op ref so they don't crash.
+            root: typeof document !== "undefined"
+                ? document.getElementById("portfolio-root")
+                : null,
+        }),
+        [bodyFont, headingFont],
+    );
+
     // Sort sections by orderIndex, then transpile each one.
     // useMemo ensures we only re-transpile when sections actually change.
     const renderedSections = useMemo(() => {
@@ -101,7 +116,7 @@ const PortfolioRenderer = ({ portfolio }: Props) => {
         );
 
         return sorted.map((section: PublicSectionDTO, index: number) => {
-            const Component = transpileSection(section.reactSource, index);
+            const Component = transpileSection(section.reactSource, index, themeScope);
 
             return (
                 <SectionErrorBoundary key={section.sectionKey} sectionIndex={index}>
@@ -112,7 +127,7 @@ const PortfolioRenderer = ({ portfolio }: Props) => {
                 </SectionErrorBoundary>
             );
         });
-    }, [portfolio.sections]);
+    }, [portfolio.sections, themeScope]);
 
     return (
         <>
@@ -146,7 +161,7 @@ const PortfolioRenderer = ({ portfolio }: Props) => {
             />
 
             {/* Portfolio content */}
-            <div className={`min-h-screen ${theme.background}`}>
+            <div id="portfolio-root" className={`min-h-screen ${theme.background}`}>
                 <div className={theme.textPrimary}>
                     <main>{renderedSections}</main>
                 </div>
