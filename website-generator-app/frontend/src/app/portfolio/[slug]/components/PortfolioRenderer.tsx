@@ -104,9 +104,9 @@ const PortfolioRenderer = ({ portfolio }: Props) => {
         () => ({
             fontFamily: `${bodyFont}, sans-serif`,
             headingFontFamily: `${headingFont}, sans-serif`,
-            root: document.getElementById("portfolio-root"),
+            root: mounted ? document.getElementById("portfolio-root") : null,
         }),
-        [bodyFont, headingFont],
+        [mounted, bodyFont, headingFont],
     );
 
     // Sort sections by orderIndex, then transpile each one.
