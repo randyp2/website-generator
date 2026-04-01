@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
-import { FiLogOut, FiLayout, FiUser, FiZap } from "react-icons/fi";
+import { FiLogOut, FiLayout, FiUser } from "react-icons/fi";
 import BrandWordmark from "@/components/branding/BrandWordmark";
 import type { User } from "@supabase/supabase-js";
 import ThemeToggle from "@/components/theme/ThemeToggle";
@@ -91,9 +91,6 @@ const NavbarClient: React.FC = () => {
             <div className="flex justify-between items-center gap-6 pr-5 w-full">
                 {/* Left: Logo + Brand */}
                 <Link href="/" className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/25">
-                        <FiZap className="h-5 w-5 text-white" />
-                    </div>
                     <BrandWordmark className="text-2xl text-foreground" />
                 </Link>
 

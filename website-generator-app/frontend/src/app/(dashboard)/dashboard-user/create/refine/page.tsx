@@ -1,215 +1,32 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React from "react";
+
 import { Preview } from "./components/Preview";
-import { FloatingPromptBar } from "./components/FloatingPromptBar";
-import { ChatHistoryOverlay } from "./components/ChatHistoryOverlay";
-import { SidebarChatPanel } from "./components/SidebarChatPanel";
-import { useInitialPortfolioGeneration } from "./hooks/useInitialPortfolioGeneration";
 import { GenerationOverlay } from "./components/loaders/GenerationOverlay";
-import { useRefineChat } from "./hooks/useRefineChat";
-import { useRefinePortfolioHydration } from "./hooks/useRefinePortfolioHydration";
-import { useRefineUploads } from "./hooks/useRefineUploads";
-import { normalizeMessages } from "./lib/message-helpers";
-import { usePortfolioStore } from "@/stores/usePortfolioStore";
-import { downloadPortfolioHtml } from "@/utils/downloadHtml";
 
-// ============================================================================
-// MAIN COMPONENT
-// ============================================================================
+const MOCK_GENERATION_PHASE = "PROCESSING" as const;
+const MOCK_TOTAL_SECTIONS = 6;
+
 const AIRefinementPage: React.FC = () => {
-    // Zustand store - All portfolio creation state
-    const {
-        portfolioId,
-        templateId,
-        parsedResumeData,
-        stylePreferences,
-        aiPrompt,
-        sections,
-        setSections,
-        appendSections,
-        globalTheme,
-        setGlobalTheme,
-        messages,
-        setMessages,
-        mediaFiles,
-        videoFiles,
-        addMediaFiles,
-        addVideoFiles,
-        removeMediaFile,
-        removeVideoFile,
-        chatLayoutMode,
-        setChatLayoutMode,
-    } = usePortfolioStore();
+  return (
+    <div className="relative h-screen overflow-hidden">
+      <Preview
+        sections={null}
+        generationPhase={MOCK_GENERATION_PHASE}
+        totalSections={MOCK_TOTAL_SECTIONS}
+        layoutMode="preview"
+      />
 
-    // Messages & AI response
-    const [isDownloading, setIsDownloading] = useState(false);
-
-    const { isHydrating, hasResolvedInitialPortfolioLoad } =
-        useRefinePortfolioHydration();
-    const { generationPhase, totalSections } = useInitialPortfolioGeneration({
-        portfolioId,
-        templateId,
-        parsedResumeData,
-        aiPrompt,
-        stylePreferences,
-        sections,
-        isHydrating,
-        hasResolvedInitialPortfolioLoad,
-        setSections,
-        appendSections,
-        setGlobalTheme,
-        setMessages,
-    });
-    const {
-        isGenerating,
-        currentPlan,
-        isPlanApproved,
-        sendMessage,
-        handleApprovePlan,
-        handleKeepChatting,
-    } = useRefineChat({
-        portfolioId,
-        sections,
-        mediaFilesCount: mediaFiles.length,
-        videoFilesCount: videoFiles.length,
-        setSections,
-        setGlobalTheme,
-        setMessages,
-        removeMediaFile,
-        removeVideoFile,
-    });
-
-    const { uploadedFiles, handleFileSelect, removeFile } = useRefineUploads({
-        mediaFiles,
-        videoFiles,
-        addMediaFiles,
-        addVideoFiles,
-        removeMediaFile,
-        removeVideoFile,
-    });
-    const normalizedMessages = useMemo(() => normalizeMessages(messages), [messages]);
-
-    // ========================================================================
-    // VERSION ACTIVATED HANDLER
-    // ========================================================================
-    const handleVersionActivated = async () => {
-        if (!portfolioId) return;
-
-        try {
-            const response = await fetch(`/api/portfolio/${portfolioId}/load`);
-            const data = await response.json();
-
-            if (response.ok) {
-                setSections(Array.isArray(data?.sections) ? data.sections : []);
-                if (data?.globalTheme) {
-                    setGlobalTheme(data.globalTheme);
-                }
-            }
-        } catch (error) {
-            console.error("Failed to reload portfolio after version change:", error);
-        }
-    };
-
-    // ========================================================================
-    // DOWNLOAD HTML
-    // ========================================================================
-    const handleDownloadHtml = async () => {
-        if (!portfolioId || !sections || sections.length === 0) {
-            throw new Error("No portfolio to download");
-        }
-
-        setIsDownloading(true);
-        try {
-            await downloadPortfolioHtml(
-                portfolioId,
-                sections,
-                globalTheme,
-                "My Portfolio"
-            );
-        } finally {
-            setIsDownloading(false);
-        }
-    };
-
-    // ========================================================================
-    // RENDER
-    // ========================================================================
-    return (
-        <div className="h-screen flex flex-col overflow-hidden relative">
-            {/* ================================================ */}
-            {/* LAYER 1: SANDBOX - FULL SCREEN (BASE, z-0) */}
-            {/* ================================================ */}
-            <Preview
-                sections={sections}
-                globalTheme={globalTheme}
-                generationPhase={generationPhase}
-                totalSections={totalSections}
-                layoutMode={chatLayoutMode}
-                onLayoutModeChange={setChatLayoutMode}
-                sidebarContent={
-                    chatLayoutMode === 'sidebar' ? (
-                        <div className="relative h-full">
-                            <SidebarChatPanel
-                                messages={normalizedMessages}
-                                isGenerating={isGenerating || isHydrating}
-                                uploadedFiles={uploadedFiles}
-                                onSendMessage={sendMessage}
-                                onFileSelect={handleFileSelect}
-                                onRemoveFile={removeFile}
-                                showPlanActions={Boolean(currentPlan) && !isPlanApproved}
-                                onApprovePlan={handleApprovePlan}
-                                onKeepChatting={handleKeepChatting}
-                                portfolioId={portfolioId}
-                                onVersionActivated={handleVersionActivated}
-                                onDownload={handleDownloadHtml}
-                                isDownloading={isDownloading}
-                                layoutMode={chatLayoutMode}
-                                onLayoutModeChange={setChatLayoutMode}
-                            />
-                            <GenerationOverlay phase={generationPhase} />
-                        </div>
-                    ) : null
-                }
-            />
-
-            {/* ================================================ */}
-            {/* LAYER 2: CHAT HISTORY OVERLAY - CENTER (z-40) */}
-            {/* Only visible in floating mode */}
-            {/* ================================================ */}
-            {chatLayoutMode === 'floating' && (
-                <ChatHistoryOverlay
-                    messages={normalizedMessages}
-                    isGenerating={isGenerating || isHydrating}
-                />
-            )}
-
-            {/* ================================================ */}
-            {/* LAYER 3: FLOATING PROMPT BAR - BOTTOM (z-50) */}
-            {/* Only visible in floating mode */}
-            {/* ================================================ */}
-            {chatLayoutMode === 'floating' && (
-                <FloatingPromptBar
-                    uploadedFiles={uploadedFiles}
-                    onSendMessage={sendMessage}
-                    onFileSelect={handleFileSelect}
-                    onRemoveFile={removeFile}
-                    isGenerating={isGenerating || isHydrating}
-                    showPlanActions={Boolean(currentPlan) && !isPlanApproved}
-                    onApprovePlan={handleApprovePlan}
-                    onKeepChatting={handleKeepChatting}
-                    portfolioId={portfolioId}
-                    onVersionActivated={handleVersionActivated}
-                    onDownload={handleDownloadHtml}
-                    isDownloading={isDownloading}
-                    layoutMode={chatLayoutMode}
-                    onLayoutModeChange={setChatLayoutMode}
-                />
-            )}
-
-            {/* Preview mode: no chat UI rendered */}
+      <div className="pointer-events-none absolute left-1/2 top-6 z-20 w-full max-w-xl -translate-x-1/2 px-4">
+        <div className="refine-mock-notice rounded-2xl px-4 py-3 text-center text-sm">
+          Refine is currently a nonfunctional mockup. This screen intentionally stays in an infinite loading state and does not generate a portfolio.
         </div>
-    );
+      </div>
+
+      <GenerationOverlay phase={MOCK_GENERATION_PHASE} />
+    </div>
+  );
 };
 
 export default AIRefinementPage;

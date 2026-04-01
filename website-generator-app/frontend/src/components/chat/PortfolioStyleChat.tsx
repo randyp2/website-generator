@@ -1,7 +1,6 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { createClient } from "@/utils/supabase/client";
 import type { Message } from "@/types/preview";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
@@ -63,7 +62,7 @@ const SuggestionChip = ({ label, onClick }: SuggestionChipProps) => (
     <button
         type="button"
         onClick={onClick}
-        className="rounded-full border border-white/15 bg-white/[0.06] px-3 py-1.5 text-sm text-white/80 transition hover:bg-white/[0.12] hover:text-white"
+        className="style-chat-suggestion rounded-full px-3 py-1.5 text-sm transition"
     >
         {label}
     </button>
@@ -81,13 +80,15 @@ const AiMessageContent = ({ message, onSuggestionClick, onLayoutSelect }: AiMess
             components={{
                 p: ({ children }) => <p className="my-1">{children}</p>,
                 strong: ({ children }) => (
-                    <strong className="font-semibold text-white">{children}</strong>
+                    <strong className="style-chat-ai-strong font-semibold">
+                        {children}
+                    </strong>
                 ),
                 ul: ({ children }) => (
                     <ul className="my-1.5 list-disc space-y-0.5 pl-4">{children}</ul>
                 ),
                 li: ({ children }) => (
-                    <li className="text-white/80">{children}</li>
+                    <li className="style-chat-ai-list">{children}</li>
                 ),
             }}
         >
@@ -95,7 +96,7 @@ const AiMessageContent = ({ message, onSuggestionClick, onLayoutSelect }: AiMess
         </ReactMarkdown>
 
         {message.designTip && (
-            <div className="flex items-start gap-2 rounded-lg border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-sm text-blue-200/90">
+            <div className="style-chat-design-tip flex items-start gap-2 rounded-lg px-3 py-2 text-sm">
                 <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-400" />
                 <span>{message.designTip}</span>
             </div>
@@ -158,7 +159,9 @@ const StyleSummaryCard = ({ content, stylePreferences }: StyleSummaryCardProps) 
                 components={{
                     p: ({ children }) => <p className="my-1">{children}</p>,
                     strong: ({ children }) => (
-                        <strong className="font-semibold text-white">{children}</strong>
+                        <strong className="style-chat-ai-strong font-semibold">
+                            {children}
+                        </strong>
                     ),
                 }}
             >
@@ -166,13 +169,15 @@ const StyleSummaryCard = ({ content, stylePreferences }: StyleSummaryCardProps) 
             </ReactMarkdown>
 
             {entries.length > 0 && (
-                <div className="grid grid-cols-2 gap-x-6 gap-y-2 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3">
+                <div className="style-chat-summary-grid grid grid-cols-2 gap-x-6 gap-y-2 rounded-lg px-4 py-3">
                     {entries.map(([key, value]) => (
                         <div key={key} className="min-w-0">
-                            <span className="text-xs text-white/40">
+                            <span className="style-chat-summary-label text-xs">
                                 {STYLE_PREF_LABELS[key]}
                             </span>
-                            <p className="truncate text-sm text-white/80">{value}</p>
+                            <p className="style-chat-summary-value truncate text-sm">
+                                {value}
+                            </p>
                         </div>
                     ))}
                 </div>
@@ -201,7 +206,7 @@ export function PortfolioStyleChat({
     className,
 }: PortfolioStyleChatProps) {
     const [prompt, setPrompt] = useState("");
-    const [firstName, setFirstName] = useState("there");
+    const [firstName] = useState("there");
     const [composerDockStyle, setComposerDockStyle] = useState<{
         left: number;
         width: number;
@@ -223,37 +228,6 @@ export function PortfolioStyleChat({
         textareaRef.current.style.height = "auto";
         textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }, [prompt]);
-
-    useEffect(() => {
-        let isMounted = true;
-
-        const loadUser = async () => {
-            const supabase = createClient();
-            const {
-                data: { user },
-            } = await supabase.auth.getUser();
-
-            if (!isMounted || !user) return;
-
-            const rawName =
-                user.user_metadata?.full_name ??
-                user.user_metadata?.name ??
-                (user.email ? user.email.split("@")[0] : null);
-
-            if (!rawName) return;
-
-            const normalizedFirstName = String(rawName).trim().split(/\s+/)[0];
-            if (normalizedFirstName) {
-                setFirstName(normalizedFirstName.toLowerCase());
-            }
-        };
-
-        void loadUser();
-
-        return () => {
-            isMounted = false;
-        };
-    }, []);
 
     useEffect(() => {
         const updateComposerDockStyle = () => {
@@ -309,7 +283,7 @@ export function PortfolioStyleChat({
     const renderComposer = () => (
         <div
             className={cn(
-                "overflow-hidden rounded-xl border border-white/10 bg-[#1c1d22]/92 text-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur-2xl",
+                "style-chat-composer overflow-hidden rounded-[1.25rem]",
                 "px-6 py-2.5 md:px-7 md:py-3",
             )}
         >
@@ -321,7 +295,7 @@ export function PortfolioStyleChat({
                     onKeyDown={handleKeyDown}
                     placeholder="Describe the general idea for your portfolio..."
                     className={cn(
-                        "resize-none border-0 bg-transparent px-0 text-white placeholder:text-white/55 shadow-none focus-visible:ring-0",
+                        "style-chat-input resize-none border-0 bg-transparent px-0 shadow-none focus-visible:ring-0",
                         "min-h-[32px] max-h-20 py-1.5 text-base leading-6 md:text-lg",
                     )}
                 />
@@ -330,7 +304,7 @@ export function PortfolioStyleChat({
                     onClick={handleSend}
                     disabled={isSending || !prompt.trim()}
                     className={cn(
-                        "-mt-0.5 shrink-0 rounded-xl bg-transparent text-white transition hover:bg-white/5 disabled:bg-transparent disabled:text-white/30",
+                        "style-chat-send -mt-0.5 shrink-0 rounded-xl bg-transparent transition hover:bg-white/5 disabled:bg-transparent",
                         "h-12 w-12",
                     )}
                     aria-label="Send message"
@@ -339,13 +313,13 @@ export function PortfolioStyleChat({
                 </Button>
             </div>
 
-            <div className="mt-0.5 flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-2 text-white/70">
+            <div className="style-chat-composer-divider mt-0.5 flex flex-wrap items-center justify-between gap-2 border-t pt-2 text-white/70">
                 <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-2 rounded-full bg-white/[0.06] px-3 py-1.5">
+                    <div className="style-chat-chip flex items-center gap-2 rounded-full px-3 py-1.5">
                         <Plus className="h-3.5 w-3.5" />
                         <span className="text-xs">Add references</span>
                     </div>
-                    <div className="flex items-center gap-2 rounded-full bg-white/[0.06] px-3 py-1.5">
+                    <div className="style-chat-chip flex items-center gap-2 rounded-full px-3 py-1.5">
                         <MessageSquareText className="h-3.5 w-3.5" />
                         <span className="text-xs">General idea</span>
                     </div>
@@ -370,7 +344,7 @@ export function PortfolioStyleChat({
         <section
             ref={sectionRef}
             className={cn(
-                "relative mx-auto flex h-[calc(100vh-10rem)] w-full max-w-6xl flex-col",
+                "style-chat-shell relative mx-auto flex h-[calc(100vh-10rem)] w-full max-w-6xl flex-col",
                 className,
             )}
         >
@@ -382,17 +356,20 @@ export function PortfolioStyleChat({
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -18 }}
                         transition={{ duration: 0.28, ease: "easeOut" }}
-                        className="flex flex-1 items-center px-6 py-8 md:px-10"
+                        className="style-chat-layer flex flex-1 items-center px-6 py-8 md:px-10"
                     >
                         <div className="mx-auto flex w-full max-w-[1120px] flex-col items-center">
-                            <div className="mb-5 w-full max-w-4xl text-left">
-                                <div className="mb-4 flex items-center gap-3 text-white/90">
-                                    <Sparkles className="h-9 w-9 text-white/80 drop-shadow-[0_0_10px_rgba(255,255,255,0.12)] md:h-11 md:w-11" />
-                                    <span className="text-4xl font-medium tracking-tight md:text-6xl">
+                            <div className="style-chat-notice mb-8 w-full max-w-5xl rounded-2xl px-5 py-4 text-sm md:text-base">
+                                Style chat is currently a nonfunctional mockup. The 10 questions and assistant replies are predetermined, and no backend processing happens here.
+                            </div>
+                            <div className="mb-8 w-full max-w-[62rem] px-2 text-left">
+                                <div className="style-chat-hero-title mb-4 flex items-center gap-3">
+                                    <Sparkles className="h-9 w-9 text-primary/65 drop-shadow-[0_0_12px_rgba(77,134,255,0.16)] md:h-11 md:w-11 dark:text-white/80 dark:drop-shadow-[0_0_10px_rgba(255,255,255,0.12)]" />
+                                    <span className="text-5xl font-medium tracking-tight md:text-7xl">
                                         Hey <span className="text-primary">{firstName}</span>,
                                     </span>
                                 </div>
-                                <p className="max-w-2xl text-base leading-7 text-white/68 md:text-lg">
+                                <p className="style-chat-hero-copy max-w-2xl text-base leading-7 md:text-lg">
                                     Let&apos;s make your portfolio impossible to ignore.
                                 </p>
                             </div>
@@ -440,10 +417,13 @@ export function PortfolioStyleChat({
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -18 }}
                         transition={{ duration: 0.28, ease: "easeOut" }}
-                        className="relative flex min-h-0 flex-1 flex-col"
+                        className="style-chat-layer relative flex min-h-0 flex-1 flex-col"
                     >
-                        <div className="flex-1 overflow-y-auto px-4 pb-36 pt-6 md:px-10 md:pb-40 md:pt-10 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-white/20">
+                        <div className="style-chat-scrollbar flex-1 overflow-y-auto px-4 pb-36 pt-6 md:px-10 md:pb-40 md:pt-10">
                             <div className="mx-auto flex w-full max-w-4xl flex-col space-y-5">
+                                <div className="style-chat-notice rounded-2xl px-4 py-3 text-sm">
+                                    Nonfunctional mockup: this chat uses scripted questions and fixed responses only.
+                                </div>
                                 {messages.map((message) => (
                                     <div
                                         key={message.id}
@@ -458,8 +438,8 @@ export function PortfolioStyleChat({
                                             className={cn(
                                                 "py-3 text-[15px] leading-relaxed",
                                                 message.role === "user"
-                                                    ? "max-w-[88%] rounded-2xl bg-linear-to-r from-blue-600 to-blue-500 px-4 text-white md:max-w-[80%]"
-                                                    : "text-white/90",
+                                                    ? "style-chat-user-bubble max-w-[88%] rounded-2xl px-4 md:max-w-[80%]"
+                                                    : "style-chat-ai-text",
                                                 message.role === "ai" && message.previewType
                                                     ? "max-w-full"
                                                     : message.role === "ai"
@@ -484,7 +464,7 @@ export function PortfolioStyleChat({
                                                 message.content
                                             )}
                                         </div>
-                                        <span className="mt-1 text-xs text-white/40">
+                                        <span className="style-chat-timestamp mt-1 text-xs">
                                             {formatTimestamp(message.timestamp)}
                                         </span>
                                     </div>
@@ -510,7 +490,7 @@ export function PortfolioStyleChat({
                                 )}
 
                                 {isSending && (
-                                    <div className="text-xs text-white/50">
+                                    <div className="style-chat-timestamp text-xs">
                                         Generating response...
                                     </div>
                                 )}

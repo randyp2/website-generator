@@ -18,15 +18,15 @@ type DeployedPortfolioPreviewProps = {
 };
 
 const PreviewSkeleton: React.FC = () => (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 md:p-5">
+    <div className="overflow-hidden rounded-2xl border border-border bg-card p-4 md:p-5 dark:border-white/10 dark:bg-white/5">
         <div className="animate-pulse space-y-3">
-            <div className="h-5 w-48 rounded bg-white/10" />
-            <div className="h-40 rounded-xl bg-white/10" />
+            <div className="h-5 w-48 rounded bg-muted" />
+            <div className="h-40 rounded-xl bg-muted" />
             <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                <div className="h-10 rounded bg-white/10" />
-                <div className="h-10 rounded bg-white/10" />
-                <div className="h-10 rounded bg-white/10" />
-                <div className="h-10 rounded bg-white/10" />
+                <div className="h-10 rounded bg-muted" />
+                <div className="h-10 rounded bg-muted" />
+                <div className="h-10 rounded bg-muted" />
+                <div className="h-10 rounded bg-muted" />
             </div>
         </div>
     </div>
@@ -43,9 +43,9 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
 
     if (!deployedPortfolio) {
         return (
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 md:p-5">
-                <h3 className="text-lg md:text-xl font-semibold text-white">Current Deployed Portfolio</h3>
-                <p className="mt-2 text-sm text-white/65">
+            <div className="rounded-2xl border border-border bg-card p-4 md:p-5 dark:border-white/10 dark:bg-white/5">
+                <h3 className="text-lg md:text-xl font-semibold text-foreground">Current Deployed Portfolio</h3>
+                <p className="mt-2 text-sm text-muted-foreground">
                     No active or published portfolio found yet. Publish one to show a live preview here.
                 </p>
             </div>
@@ -67,8 +67,8 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
     return (
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_370px]">
             <div className="flex h-full flex-col gap-2">
-                <h3 className="text-lg md:text-xl font-semibold text-white">Current Deployed Portfolio</h3>
-                <article className="flex-1 overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 md:p-5">
+                <h3 className="text-lg md:text-xl font-semibold text-foreground">Current Deployed Portfolio</h3>
+                <article className="flex-1 overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-lg md:p-5 dark:border-white/10 dark:bg-white/5">
                     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[480px_minmax(0,1fr)] lg:items-start">
                         <div className="overflow-hidden rounded-xl border border-white/10 bg-[#0b111c]">
                             <div className="flex items-center gap-2 border-b border-white/10 bg-white/5 px-3 py-2">
@@ -98,27 +98,27 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
                             <dl className="flex flex-col gap-5">
                                 {metadata.map((item) => (
                                     <div key={item.label} className="space-y-1">
-                                        <dt className="text-sm font-semibold text-white/65">{item.label}</dt>
-                                        <dd className="break-words text-sm text-white/90">{item.value}</dd>
+                                        <dt className="text-sm font-semibold text-muted-foreground">{item.label}</dt>
+                                        <dd className="break-words text-sm text-foreground dark:text-white/90">{item.value}</dd>
                                     </div>
                                 ))}
                             </dl>
                         </div>
                     </div>
 
-                    <div className="mt-5 border-t border-white/10 pt-4">
-                        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-white/85">
+                    <div className="mt-5 border-t border-border pt-4 dark:border-white/10">
+                        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-foreground/90 dark:text-white/85">
                             <p className="flex items-center gap-1">
-                                <span className="text-[11px] font-semibold uppercase tracking-wide text-white/45">URL:</span>
-                                <span className="break-all text-white/90">{browserUrl}</span>
+                                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">URL:</span>
+                                <span className="break-all text-foreground dark:text-white/90">{browserUrl}</span>
                             </p>
                             <p className="flex items-center gap-1">
-                                <span className="text-[11px] font-semibold uppercase tracking-wide text-white/45">Public route:</span>
-                                <span className="break-all text-white/90">{publicRoute}</span>
+                                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Public route:</span>
+                                <span className="break-all text-foreground dark:text-white/90">{publicRoute}</span>
                             </p>
                             <p className="flex items-center gap-1">
-                                <span className="text-[11px] font-semibold uppercase tracking-wide text-white/45">Last updated:</span>
-                                <span className="text-white/90">{lastUpdated}</span>
+                                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Last updated:</span>
+                                <span className="text-foreground dark:text-white/90">{lastUpdated}</span>
                             </p>
                         </div>
                     </div>
@@ -126,7 +126,7 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
             </div>
 
             <div className="flex h-full w-full flex-col gap-2 xl:justify-self-end">
-                <h3 className="text-lg md:text-xl font-semibold text-white">Portfolio Analytics</h3>
+                <h3 className="text-lg md:text-xl font-semibold text-foreground">Portfolio Analytics</h3>
                 <PublishedPortfolioAnalytics />
             </div>
         </section>

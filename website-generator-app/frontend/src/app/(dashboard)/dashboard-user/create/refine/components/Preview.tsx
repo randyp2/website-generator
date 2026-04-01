@@ -257,8 +257,8 @@ export const Preview: React.FC<PreviewProps> = ({
 
     if (!isMounted) {
         return (
-            <div className="absolute inset-0 h-full w-full flex items-center justify-center bg-slate-900">
-                <div className="text-slate-400">Loading editor...</div>
+            <div className="refine-preview-loading absolute inset-0 h-full w-full flex items-center justify-center">
+                <div className="refine-preview-loading-text">Loading editor...</div>
             </div>
         );
     }

@@ -136,18 +136,18 @@ export const ComponentDragLoader = (): React.JSX.Element => {
   return (
     <div className="w-full max-w-2xl mx-auto">
       {/* Browser Frame */}
-      <div className="rounded-xl border border-border bg-card shadow-2xl overflow-hidden">
+      <div className="refine-loader-shell rounded-xl">
         {/* Browser Header */}
-        <div className="flex items-center gap-2 px-4 py-3 bg-muted/50 border-b border-border">
+        <div className="refine-loader-browser flex items-center gap-2 px-4 py-3">
           <div className="flex gap-1.5">
             <div className="w-3 h-3 rounded-full bg-red-400/80" />
             <div className="w-3 h-3 rounded-full bg-amber-400/80" />
             <div className="w-3 h-3 rounded-full bg-emerald-400/80" />
           </div>
           <div className="flex-1 flex justify-center">
-            <div className="flex items-center gap-2 px-4 py-1.5 bg-background/80 rounded-lg border border-border/50 min-w-[200px]">
+            <div className="refine-loader-address flex min-w-[200px] items-center gap-2 rounded-lg px-4 py-1.5">
               <div className="w-3 h-3 rounded-full bg-violet-500/60" />
-              <span className="text-xs text-muted-foreground font-mono">preview.v0.dev</span>
+              <span className="refine-loader-address-text font-mono text-xs">preview.v0.dev</span>
             </div>
           </div>
           <div className="w-16" />
@@ -156,18 +156,18 @@ export const ComponentDragLoader = (): React.JSX.Element => {
         {/* Main Content Area */}
         <div className="flex min-h-[400px]">
           {/* Component Sidebar */}
-          <div className="w-32 bg-zinc-900 border-r border-zinc-800 p-3 relative">
-            <div className="text-xs text-zinc-500 font-medium mb-3">Components</div>
+          <div className="refine-loader-sidebar relative w-32 p-3">
+            <div className="refine-loader-sidebar-label mb-3 text-xs font-medium">Components</div>
             <div className="space-y-2">
               {components.map((component, index) => (
                 <div
                   key={component.id}
-                  className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-all duration-300 ${
+                  className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-all duration-300 ${
                     component.placed
-                      ? "opacity-30 bg-zinc-800/50"
+                      ? "refine-loader-sidebar-item-muted"
                       : index === activeIndex && isDragging
                         ? "opacity-0"
-                        : "bg-zinc-800 text-zinc-300"
+                        : "refine-loader-sidebar-item"
                   }`}
                 >
                   {component.icon}
@@ -178,18 +178,9 @@ export const ComponentDragLoader = (): React.JSX.Element => {
           </div>
 
           {/* Preview Canvas */}
-          <div className="flex-1 bg-zinc-950 relative overflow-hidden">
+          <div className="refine-loader-canvas relative flex-1 overflow-hidden">
             {/* Grid Background */}
-            <div
-              className="absolute inset-0 opacity-20"
-              style={{
-                backgroundImage: `
-                  linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
-                  linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px)
-                `,
-                backgroundSize: "20px 20px",
-              }}
-            />
+            <div className="refine-loader-grid absolute inset-0" />
 
             {/* Placed Components */}
             {components.map(
@@ -198,7 +189,7 @@ export const ComponentDragLoader = (): React.JSX.Element => {
                 component.placedPosition && (
                   <div
                     key={component.id}
-                    className="absolute bg-zinc-800/80 border border-zinc-700 rounded-md flex items-center justify-center animate-in fade-in zoom-in-95 duration-300"
+                    className="refine-loader-block absolute flex items-center justify-center rounded-md animate-in fade-in zoom-in-95 duration-300"
                     style={{
                       left: component.placedPosition.x,
                       top: component.placedPosition.y,
@@ -206,7 +197,7 @@ export const ComponentDragLoader = (): React.JSX.Element => {
                       height: component.placedPosition.height,
                     }}
                   >
-                    <div className="flex items-center gap-1.5 text-zinc-500">
+                    <div className="flex items-center gap-1.5">
                       {componentsList[index].icon}
                       <span className="text-xs font-mono">{component.name}</span>
                     </div>
@@ -217,7 +208,7 @@ export const ComponentDragLoader = (): React.JSX.Element => {
             {/* Drop Target Indicator */}
             {isDragging && activeIndex < components.length && placedPositions[activeIndex] && (
               <div
-                className="absolute border-2 border-dashed border-violet-500/50 rounded-md animate-pulse"
+                className="absolute animate-pulse rounded-md border-2 border-dashed border-violet-500/45 dark:border-violet-500/50"
                 style={{
                   left: placedPositions[activeIndex].x,
                   top: placedPositions[activeIndex].y,
@@ -253,7 +244,7 @@ export const ComponentDragLoader = (): React.JSX.Element => {
             {/* Empty State */}
             {components.every((c) => !c.placed) && !isDragging && (
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center text-zinc-600">
+                <div className="refine-loader-empty text-center">
                   <LayoutGrid className="w-8 h-8 mx-auto mb-2 opacity-50" />
                   <p className="text-xs font-mono">Drop components here</p>
                 </div>
@@ -263,10 +254,10 @@ export const ComponentDragLoader = (): React.JSX.Element => {
         </div>
 
         {/* Status Bar */}
-        <div className="flex items-center justify-between px-4 py-2 bg-zinc-900 border-t border-zinc-800">
+        <div className="refine-loader-statusbar flex items-center justify-between px-4 py-2">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-violet-500 animate-pulse" />
-            <span className="text-xs text-zinc-400 font-mono">
+            <span className="refine-loader-status-text font-mono text-xs">
               {activeIndex >= components.length
                 ? "Layout complete"
                 : `Placing ${activeComponent?.name}...`}

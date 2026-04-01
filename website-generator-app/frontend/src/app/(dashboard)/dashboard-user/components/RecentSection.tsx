@@ -78,7 +78,7 @@ export const RecentSection: React.FC = () => {
             />
 
             <div className="pt-3 md:pt-5 space-y-3">
-                <h3 className="text-lg md:text-xl font-semibold text-white">Created Portfolios</h3>
+                <h3 className="text-lg md:text-xl font-semibold text-foreground">Created Portfolios</h3>
                 <PortfolioToolbar
                     sortBy={sortBy}
                     setSortBy={setSortBy}
@@ -95,14 +95,14 @@ export const RecentSection: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8, duration: 0.5 }}
-                className="bg-white/5 rounded-2xl border border-white/10 h-[500px]"
+                className="h-[500px] rounded-2xl border border-border bg-card shadow-lg dark:bg-white/5 dark:border-white/10"
             >
                 {isLoading ? (
-                    <div className="h-full flex items-center justify-center text-white/60">
+                    <div className="h-full flex items-center justify-center text-muted-foreground">
                         Loading portfolios...
                     </div>
                 ) : filteredAndSortedPortfolios.length === 0 ? (
-                    <div className="h-full flex items-center justify-center text-white/60">
+                    <div className="h-full flex items-center justify-center text-muted-foreground">
                         No portfolios yet.
                     </div>
                 ) : displayMode === "list" ? (

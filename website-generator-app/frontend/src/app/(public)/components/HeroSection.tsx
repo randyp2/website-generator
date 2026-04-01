@@ -130,10 +130,10 @@ export const HeroSection: React.FC = () => {
           <h1 className="mb-6 text-5xl font-bold leading-tight text-foreground md:text-7xl">
             Your professional story,
             <br />
-            <span className="bg-linear-to-r from-primary via-[#3f73ff] to-primary bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-primary via-[#1420a0] to-primary bg-clip-text text-transparent">
               {typewriterText}
               {showCursor && (
-                <span className="ml-1 inline-block h-[0.9em] w-1 animate-pulse bg-linear-to-r from-primary to-[#3f73ff] align-middle" />
+                <span className="ml-1 inline-block h-[0.9em] w-1 animate-pulse bg-linear-to-r from-primary to-[#1420a0] align-middle" />
               )}
             </span>
           </h1>
@@ -199,7 +199,7 @@ export const HeroSection: React.FC = () => {
             >
               {/* Animated glowing background - outside button */}
               <motion.div
-                className="pointer-events-none absolute -inset-1 rounded-xl bg-linear-to-r from-primary via-[#3f73ff] to-primary blur-md"
+                className="pointer-events-none absolute -inset-1 rounded-xl bg-linear-to-r from-primary via-[#1420a0] to-primary blur-md"
                 style={{ transformOrigin: "center" }}
                 animate={{
                   opacity: typingComplete ? [0.5, 1, 0.5] : 0,
@@ -327,7 +327,7 @@ export const HeroSection: React.FC = () => {
               {[1, 2, 3, 4, 5].map((i) => (
                 <div
                   key={i}
-                  className="w-10 h-10 rounded-full bg-linear-to-br from-sky-200 to-cyan-300 border-2 border-white flex items-center justify-center text-xs font-bold text-sky-700"
+                  className="w-10 h-10 rounded-full bg-linear-to-br from-[#d8ddff] to-[#a5b2ff] border-2 border-white flex items-center justify-center text-xs font-bold text-[#050a72]"
                 >
                   {String.fromCharCode(64 + i)}
                 </div>

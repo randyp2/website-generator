@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { createMockVersions } from "@/lib/mock-portfolios";
 import type { Version } from "@/types/version";
 
 interface UseVersionsReturn {
@@ -28,22 +29,18 @@ export function useVersions(portfolioId: string | null): UseVersionsReturn {
         setError(null);
 
         try {
-            const response = await fetch(`/api/portfolio/${portfolioId}/versions`);
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data?.error ?? "Failed to fetch versions");
-            }
-
-            // Sort oldest to newest for timeline display (oldest at top)
-            const sortedVersions = (data.versions ?? []).sort(
+            await new Promise((resolve) => window.setTimeout(resolve, 250));
+            const sortedVersions = createMockVersions(portfolioId).sort(
                 (a: Version, b: Version) =>
-                    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                    new Date(a.created_at).getTime() -
+                    new Date(b.created_at).getTime(),
             );
-
             setVersions(sortedVersions);
         } catch (err) {
-            const message = err instanceof Error ? err.message : "Failed to fetch versions";
+            const message =
+                err instanceof Error
+                    ? err.message
+                    : "Failed to load mock versions";
             setError(message);
             console.error("Fetch versions error:", err);
         } finally {
@@ -52,7 +49,7 @@ export function useVersions(portfolioId: string | null): UseVersionsReturn {
     }, [portfolioId]);
 
     useEffect(() => {
-        fetchVersions();
+        void fetchVersions();
     }, [fetchVersions]);
 
     const activateVersion = useCallback(
@@ -61,24 +58,13 @@ export function useVersions(portfolioId: string | null): UseVersionsReturn {
 
             setIsActivating(true);
             try {
-                const response = await fetch(
-                    `/api/portfolio/${portfolioId}/versions/${versionId}/activate`,
-                    { method: "POST" }
-                );
-
-                if (!response.ok) {
-                    const data = await response.json();
-                    throw new Error(data?.error ?? "Failed to activate version");
-                }
-
-                // Update local state to reflect the new active version
+                await new Promise((resolve) => window.setTimeout(resolve, 300));
                 setVersions((prev) =>
-                    prev.map((v) => ({
-                        ...v,
-                        is_active: v.id === versionId,
-                    }))
+                    prev.map((version) => ({
+                        ...version,
+                        is_active: version.id === versionId,
+                    })),
                 );
-
                 return true;
             } catch (err) {
                 console.error("Activate version error:", err);
@@ -87,7 +73,7 @@ export function useVersions(portfolioId: string | null): UseVersionsReturn {
                 setIsActivating(false);
             }
         },
-        [portfolioId]
+        [portfolioId],
     );
 
     return {

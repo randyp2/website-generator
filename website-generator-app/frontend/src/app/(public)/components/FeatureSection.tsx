@@ -147,17 +147,17 @@ const AIProcessingVisual: React.FC = () => (
                             <motion.div
                                 animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
                                 transition={{ duration: 1, repeat: Infinity, delay: 0 }}
-                                className="w-2 h-2 bg-cyan-500 rounded-full"
+                                className="w-2 h-2 rounded-full bg-primary"
                             />
                             <motion.div
                                 animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
                                 transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
-                                className="w-2 h-2 bg-cyan-500 rounded-full"
+                                className="w-2 h-2 rounded-full bg-primary"
                             />
                             <motion.div
                                 animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
                                 transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
-                                className="w-2 h-2 bg-cyan-500 rounded-full"
+                                className="w-2 h-2 rounded-full bg-primary"
                             />
                         </div>
                         <span className="text-xs text-muted-foreground">Analyzing your projects...</span>
@@ -208,7 +208,7 @@ const AIProcessingVisual: React.FC = () => (
 
 // Visual Component for Step 3 - Customization
 const CustomizationVisual: React.FC = () => (
-    <div className="relative bg-linear-to-br from-cyan-50 to-teal-50 rounded-2xl p-6 h-full min-h-[300px]">
+    <div className="relative rounded-2xl bg-linear-to-br from-[#eef1ff] to-[#dbe3ff] p-6 h-full min-h-[300px]">
         {/* Mini Portfolio Preview */}
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -233,7 +233,7 @@ const CustomizationVisual: React.FC = () => (
             {/* Mock Portfolio Content */}
             <div className="p-4 space-y-3">
                 <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-linear-to-br from-cyan-400 to-teal-400 rounded-full flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-linear-to-br from-[#2f44d4] to-[#050a72] flex items-center justify-center">
                         <FiUser className="w-6 h-6 text-white" />
                     </div>
                     <div className="flex-1">
@@ -249,10 +249,10 @@ const CustomizationVisual: React.FC = () => (
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                    <div className="h-6 bg-linear-to-r from-cyan-500 to-teal-500 rounded px-3 flex items-center text-xs text-white">
+                    <div className="h-6 rounded bg-linear-to-r from-[#2f44d4] to-[#050a72] px-3 flex items-center text-xs text-white">
                         Project 1
                     </div>
-                    <div className="h-6 bg-linear-to-r from-cyan-500 to-teal-500 rounded px-3 flex items-center text-xs text-white">
+                    <div className="h-6 rounded bg-linear-to-r from-[#2f44d4] to-[#050a72] px-3 flex items-center text-xs text-white">
                         Project 2
                     </div>
                 </div>
@@ -271,7 +271,7 @@ const CustomizationVisual: React.FC = () => (
             <div className="flex gap-2">
                 <motion.div
                     whileHover={{ scale: 1.2 }}
-                    className="w-6 h-6 rounded-full bg-linear-to-br from-cyan-500 to-teal-500 border-2 border-white shadow-md cursor-pointer"
+                    className="h-6 w-6 cursor-pointer rounded-full border-2 border-white bg-linear-to-br from-[#2f44d4] to-[#050a72] shadow-md"
                 />
                 <motion.div
                     whileHover={{ scale: 1.2 }}
@@ -300,7 +300,7 @@ const CustomizationVisual: React.FC = () => (
 
 // Visual Component for Step 4 - Deploy
 const DeployVisual: React.FC = () => (
-    <div className="relative bg-linear-to-br from-cyan-50 to-teal-50 rounded-2xl p-8 h-full min-h-[300px] flex flex-col items-center justify-center">
+    <div className="relative rounded-2xl bg-linear-to-br from-[#eef1ff] to-[#dbe3ff] p-8 h-full min-h-[300px] flex flex-col items-center justify-center">
         <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             whileInView={{ scale: 1, opacity: 1 }}
@@ -312,7 +312,7 @@ const DeployVisual: React.FC = () => (
             <motion.div
                 animate={{ y: [0, -10, 0] }}
                 transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                className="w-20 h-20 bg-linear-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center text-white mb-6 mx-auto shadow-xl"
+                className="mb-6 mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-linear-to-br from-[#2f44d4] to-[#050a72] text-white shadow-xl"
             >
                 <FiZap className="w-10 h-10" />
             </motion.div>
@@ -336,7 +336,7 @@ const DeployVisual: React.FC = () => (
             <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="bg-linear-to-r from-blue-500 to-cyan-500 text-white px-6 py-2.5 rounded-lg font-semibold text-sm shadow-lg flex items-center gap-2 mx-auto"
+                className="mx-auto flex items-center gap-2 rounded-lg bg-linear-to-r from-[#2f44d4] to-[#050a72] px-6 py-2.5 text-sm font-semibold text-white shadow-lg"
             >
                 <FiSend className="w-4 h-4" />
                 Deploy Now
@@ -372,7 +372,7 @@ const DeployVisual: React.FC = () => (
                     repeat: Infinity,
                     ease: "easeInOut",
                 }}
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-blue-400 rounded-full blur-3xl"
+                className="absolute top-1/2 left-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#2f44d4] blur-3xl"
             />
         </div>
     </div>
@@ -488,8 +488,9 @@ export const FeatureSection: React.FC = () => {
                 <div className="space-y-20">
                     {steps.map((step, index) => (
                         <div key={index} className="relative">
+                            <div className="pointer-events-none absolute -inset-x-6 -inset-y-8 hidden rounded-[2rem] bg-linear-to-br from-[#050a72]/14 via-[#050a72]/6 to-transparent blur-2xl dark:block" />
                             {/* Main Content Grid */}
-                            <div className="grid lg:grid-cols-2 gap-8">
+                            <div className="relative grid gap-8 lg:grid-cols-2">
                                 {/* Left Side - Visual Component */}
                                 <div className={`${index % 2 === 0 ? 'lg:order-1' : 'lg:order-2'} h-[500px]`}>
                                     <div className="h-full">
@@ -502,7 +503,7 @@ export const FeatureSection: React.FC = () => {
                                     {/* Step Number & Title */}
                                     <div className="relative shrink-0">
                                         {/* Large Background Step Number - More visible */}
-                                        <div className="mb-4 bg-linear-to-br from-primary to-[#3f73ff] bg-clip-text text-[180px] leading-none text-transparent opacity-20">
+                                        <div className="mb-4 bg-linear-to-br from-[#9eb6ff] to-[#4d68ff] bg-clip-text text-[180px] leading-none text-transparent opacity-30 dark:from-[#c8d4ff] dark:to-[#6b83ff] dark:opacity-24">
                                             {step.step}
                                         </div>
 
@@ -520,10 +521,10 @@ export const FeatureSection: React.FC = () => {
                                     <div className="grow min-h-20"></div>
 
                                     {/* Highlights */}
-                                    <div className="shrink-0 space-y-4 rounded-2xl border border-border bg-card p-6 shadow-md">
+                                    <div className="shrink-0 space-y-4 rounded-2xl border border-border bg-card p-6 shadow-md dark:border-[#050a72]/40 dark:bg-linear-to-br dark:from-[#07103a]/92 dark:via-[#08112b]/90 dark:to-[#050915]/96 dark:shadow-[0_24px_60px_rgba(5,10,114,0.22)]">
                                         {step.highlights.map((highlight, hIndex) => (
                                             <div key={hIndex} className="flex items-center gap-3">
-                                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary dark:bg-[#050a72]/28 dark:text-[#d8ddff]">
                                                     {highlight.icon}
                                                 </div>
                                                 <span className="font-medium text-card-foreground">
@@ -537,9 +538,9 @@ export const FeatureSection: React.FC = () => {
 
                             {/* Why it's better - Centered below both columns */}
                             <div className="mt-8 lg:mx-auto lg:max-w-4xl">
-                                <div className="rounded-2xl border border-primary/15 bg-linear-to-br from-card to-muted p-6 shadow-md">
+                                <div className="rounded-2xl border border-primary/15 bg-linear-to-br from-card to-muted p-6 shadow-md dark:border-[#050a72]/35 dark:from-[#07103a]/90 dark:via-[#0a1332]/88 dark:to-[#050915]/95 dark:shadow-[0_20px_52px_rgba(5,10,114,0.2)]">
                                     <div className="flex items-start gap-3">
-                                        <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                                        <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground dark:bg-[#050a72]">
                                             <span className="text-xs font-bold">!</span>
                                         </div>
                                         <div>

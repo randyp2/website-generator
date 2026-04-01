@@ -22,24 +22,24 @@ export const PortfolioListView: React.FC<PortfolioListViewProps> = ({
     const router = useRouter();
 
     return (
-        <div className="h-full overflow-y-auto divide-y divide-white/10 [scrollbar-color:var(--primary)_var(--muted)] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb:hover]:bg-primary [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-primary/65 [&::-webkit-scrollbar-track]:bg-muted/60 [&::-webkit-scrollbar]:w-2 [&>*:last-child]:border-b [&>*:last-child]:border-white/10">
+        <div className="h-full divide-y divide-border overflow-y-auto [scrollbar-color:var(--primary)_var(--muted)] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb:hover]:bg-primary [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-primary/65 [&::-webkit-scrollbar-track]:bg-muted/60 [&::-webkit-scrollbar]:w-2 [&>*:last-child]:border-b [&>*:last-child]:border-border dark:divide-white/10 dark:[&>*:last-child]:border-white/10">
             {portfolios.map((portfolio) => (
                 <motion.div
                     key={portfolio.id}
-                    className="flex items-center justify-between px-5 py-5 hover:bg-white/5 transition-all cursor-pointer md:px-6"
+                    className="flex cursor-pointer items-center justify-between px-5 py-5 transition-all hover:bg-muted/40 md:px-6 dark:hover:bg-white/5"
                 >
-                    <div className="flex-1 text-white font-medium truncate flex items-center gap-2">
+                    <div className="flex flex-1 items-center gap-2 truncate font-medium text-foreground dark:text-white">
                         <span className="truncate">{portfolio.title}</span>
                         <button
                             onClick={(e) => { e.stopPropagation(); onRename(portfolio); }}
                             title="Rename"
-                            className="w-7 h-7 rounded-md bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors cursor-pointer"
+                            className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md bg-muted hover:bg-muted/80 transition-colors dark:bg-white/10 dark:hover:bg-white/20"
                         >
-                            <FiEdit3 className="w-3.5 h-3.5 text-white/80" />
+                            <FiEdit3 className="h-3.5 w-3.5 text-muted-foreground dark:text-white/80" />
                         </button>
                     </div>
 
-                    <div className="flex-1 text-center text-white/70 text-sm">
+                    <div className="flex-1 text-center text-sm text-muted-foreground">
                         {formatRelativeTime(portfolio.updated_at ?? portfolio.created_at ?? null)}
                     </div>
 
@@ -48,20 +48,20 @@ export const PortfolioListView: React.FC<PortfolioListViewProps> = ({
                     </div>
 
                     <div className="flex items-center justify-end gap-2">
-                        <button className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
-                            <FiEye className="w-4 h-4 text-white" />
+                        <button className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted transition-colors hover:bg-muted/80 dark:bg-white/10 dark:hover:bg-white/20">
+                            <FiEye className="h-4 w-4 text-foreground dark:text-white" />
                         </button>
                         <button
                             onClick={(e) => { e.stopPropagation(); router.push(resolveResumePath(portfolio)); }}
-                            className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors cursor-pointer"
+                            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-muted transition-colors hover:bg-muted/80 dark:bg-white/10 dark:hover:bg-white/20"
                         >
-                            <FiEdit3 className="w-4 h-4 text-white" />
+                            <FiEdit3 className="h-4 w-4 text-foreground dark:text-white" />
                         </button>
                         <button
                             onClick={(e) => { e.stopPropagation(); onDelete(portfolio); }}
-                            className="w-8 h-8 rounded-lg bg-white/10 hover:bg-red-500/20 flex items-center justify-center transition-colors group cursor-pointer"
+                            className="group flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-muted transition-colors hover:bg-red-500/10 dark:bg-white/10 dark:hover:bg-red-500/20"
                         >
-                            <FiTrash2 className="w-4 h-4 text-white group-hover:text-red-400" />
+                            <FiTrash2 className="h-4 w-4 text-foreground group-hover:text-red-500 dark:text-white dark:group-hover:text-red-400" />
                         </button>
                     </div>
                 </motion.div>
