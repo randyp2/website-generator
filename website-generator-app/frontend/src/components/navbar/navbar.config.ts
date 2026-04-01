@@ -39,7 +39,7 @@ const productGroups = {
     {
       title: "How It Works",
       description: "Understand the workflow from resume upload to published portfolio.",
-      href: "/about",
+      href: "/dashboard",
     },
     {
       title: "Explore Portfolios",
@@ -49,7 +49,7 @@ const productGroups = {
     {
       title: "Sign In",
       description: "Access saved portfolios and continue previous work.",
-      href: "/login",
+      href: "/dashboard",
     },
   ] satisfies NavLeafItem[],
 }
@@ -61,7 +61,6 @@ export const navbarNavigation: NavbarNavigation = {
       items: [
         { href: "/", label: "Home" },
         { href: "/explore", label: "Explore" },
-        { href: "/about", label: "About" },
       ],
     },
     {
@@ -98,7 +97,7 @@ export const navbarNavigation: NavbarNavigation = {
       ],
     },
     {
-      href: "/about",
+      href: "/dashboard",
       label: "Resources",
       gridCols: 1,
       categories: [
@@ -110,6 +109,5 @@ export const navbarNavigation: NavbarNavigation = {
       ],
     },
     { href: "/explore", label: "Explore" },
-    { href: "/about", label: "About" },
   ],
 }

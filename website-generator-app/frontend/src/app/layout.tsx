@@ -73,11 +73,10 @@ export const metadata: Metadata = {
     __html: JSON.stringify({
       "@context": "https://schema.org",
       "@type": "SiteNavigationElement",
-      "name": ["Home", "About", "Pricing", "Contact"],
+      "name": ["Home", "Pricing", "Contact"],
       "url": [
         // Modify laters
         "https://yourdomain.com/",
-        "https://yourdomain.com/about",
         "https://yourdomain.com/pricing",
         "https://yourdomain.com/contact"
       ]

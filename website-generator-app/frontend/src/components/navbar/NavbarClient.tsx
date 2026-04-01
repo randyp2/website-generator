@@ -301,14 +301,14 @@ const NavbarClient: React.FC = () => {
           <>
             <motion.div {...actionButtonMotion} className="max-sm:hidden">
               <Link
-                href="/login"
+                href="/dashboard"
                 className={cn(
                   buttonVariants({ variant: "secondary", size: "sm" }),
                   "rounded-full px-4",
                 )}
               >
                 <LogIn className="mr-2 size-4" />
-                Login
+                Dashboard
               </Link>
             </motion.div>
             <motion.div {...actionButtonMotion}>

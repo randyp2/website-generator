@@ -203,7 +203,11 @@ const SignupFields = (): JSX.Element => (
     </form>
 );
 
-const LandingAuthPanel = (): JSX.Element => {
+const LandingAuthPanel = ({
+    backAction,
+}: {
+    backAction?: ReactNode;
+}): JSX.Element => {
     const [mode, setMode] = useState<Mode>("login");
     const [isVisible, setIsVisible] = useState<boolean>(false);
     const { resolvedTheme, setTheme } = useTheme();
@@ -232,7 +236,9 @@ const LandingAuthPanel = (): JSX.Element => {
         >
             <div className="relative space-y-8 text-card-foreground">
                 <div className="flex flex-col items-end gap-3">
-                    <div className="inline-flex rounded-full border border-foreground bg-background/70 p-1">
+                    <div className="flex w-full items-center justify-between">
+                        {backAction ?? <div />}
+                        <div className="inline-flex rounded-full border border-foreground bg-background/70 p-1">
                         <button
                             type="button"
                             onClick={() => setTheme("light")}
@@ -257,6 +263,7 @@ const LandingAuthPanel = (): JSX.Element => {
                         >
                             <Moon className="h-3.5 w-3.5" />
                         </button>
+                        </div>
                     </div>
                     <p className="text-sm text-muted-foreground">
                         <button
