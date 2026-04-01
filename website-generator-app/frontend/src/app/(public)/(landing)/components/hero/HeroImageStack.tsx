@@ -31,7 +31,7 @@ const heroImages = [
 ] as const;
 
 const HeroImageStack = (): JSX.Element => (
-    <div className="relative h-[500px] w-[680px] sm:h-[580px] sm:w-[780px]">
+    <div className="relative h-[380px] w-[520px] lg:h-[440px] lg:w-[620px] xl:h-[500px] xl:w-[680px] 2xl:h-[580px] 2xl:w-[780px]">
         {heroImages.map((image) => (
             <div
                 key={image.src}
@@ -60,9 +60,6 @@ const HeroImageStack = (): JSX.Element => (
                 <LikeHeartBadge />
             </div>
         </div>
-
-        {/* Ambient glow */}
-        <div className="pointer-events-none absolute inset-0 -z-10 scale-110 rounded-full bg-primary/15 blur-[80px]" />
     </div>
 );
 

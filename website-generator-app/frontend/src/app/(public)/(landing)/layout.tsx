@@ -8,12 +8,12 @@ export default function LandingLayout({
     return (
         <div className="flex min-h-screen">
             {/* Left: landing page content (scrollable) */}
-            <main className="w-full bg-black lg:w-[60%]">
+            <main className="hidden bg-black xl:block xl:w-[60%]">
                 {children}
             </main>
 
             {/* Right: auth panel (sticky) */}
-            <aside className="hidden lg:flex lg:w-[40%] sticky top-0 h-screen overflow-y-auto items-center justify-center bg-background border-l border-white/10 px-12 py-8">
+            <aside className="flex w-full overflow-y-auto items-start justify-center bg-background px-6 pt-10 pb-8 sm:px-8 lg:px-12 xl:sticky xl:top-0 xl:h-screen xl:w-[40%] xl:border-l xl:border-white/10 xl:pt-12">
                 <LandingAuthPanel />
             </aside>
         </div>

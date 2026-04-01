@@ -10,6 +10,8 @@ interface CursorData {
     color: string;
     x: number;
     y: number;
+    maxOffsetX: number;
+    maxOffsetY: number;
     rotation: string;
 }
 
@@ -27,8 +29,10 @@ const CURSORS: readonly CursorData[] = [
         name: "HR",
         role: "Recruiter",
         color: "#3b82f6",
-        x: 20,
+        x: 18,
         y: 70,
+        maxOffsetX: 6,
+        maxOffsetY: 6,
         rotation: "rotate-[-8deg]",
     },
     {
@@ -38,6 +42,8 @@ const CURSORS: readonly CursorData[] = [
         color: "#ec4899",
         x: 40,
         y: 45,
+        maxOffsetX: 7,
+        maxOffsetY: 7,
         rotation: "rotate-[6deg]",
     },
     {
@@ -47,6 +53,8 @@ const CURSORS: readonly CursorData[] = [
         color: "#f59e0b",
         x: 72,
         y: 68,
+        maxOffsetX: 6,
+        maxOffsetY: 6,
         rotation: "rotate-[10deg]",
     },
 ] as const;
@@ -88,29 +96,26 @@ const AnimatedCursor = ({ cursor }: AnimatedCursorProps): JSX.Element => {
             entranceDelay,
         );
 
-        const moveInterval = window.setInterval(
-            () => {
-                setPosition((previousPosition) => ({
-                    x: clamp(
-                        previousPosition.x + (Math.random() - 0.5) * 8,
-                        0,
-                        92,
-                    ),
-                    y: clamp(
-                        previousPosition.y + (Math.random() - 0.5) * 6,
-                        0,
-                        88,
-                    ),
-                }));
-            },
-            2000 + Math.random() * 1000,
-        );
+        const moveInterval = window.setInterval(() => {
+            setPosition((previousPosition) => ({
+                x: clamp(
+                    previousPosition.x + (Math.random() - 0.5) * 4,
+                    cursor.x - cursor.maxOffsetX,
+                    cursor.x + cursor.maxOffsetX,
+                ),
+                y: clamp(
+                    previousPosition.y + (Math.random() - 0.5) * 4,
+                    cursor.y - cursor.maxOffsetY,
+                    cursor.y + cursor.maxOffsetY,
+                ),
+            }));
+        }, 1800 + Number.parseInt(cursor.id, 10) * 220);
 
         return () => {
             window.clearTimeout(entranceTimer);
             window.clearInterval(moveInterval);
         };
-    }, [cursor.id]);
+    }, [cursor]);
 
     return (
         <div
