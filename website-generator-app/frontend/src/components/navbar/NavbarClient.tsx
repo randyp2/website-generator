@@ -137,6 +137,7 @@ const NavbarClient: React.FC = () => {
                             aria-label="Open account menu"
                         >
                             {avatarUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element -- User avatars may come from arbitrary remote URLs.
                                 <img
                                     src={avatarUrl}
                                     alt={`${displayName} profile`}

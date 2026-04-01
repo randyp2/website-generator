@@ -1,6 +1,3 @@
-import type { JSX } from "react";
-
-
 /* ------- NAVBAR LINKS AND PATHS ------- */
 // Define interface/shape for NavbarMenu array
 interface NavbarItem {

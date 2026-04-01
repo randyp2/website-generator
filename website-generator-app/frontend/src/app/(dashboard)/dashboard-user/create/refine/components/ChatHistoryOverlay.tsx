@@ -17,7 +17,6 @@ interface ChatHistoryOverlayProps {
 
 export const ChatHistoryOverlay: React.FC<ChatHistoryOverlayProps> = ({
     messages,
-    isGenerating,
 }) => {
     const defaultSize = { width: 800, height: 600 };
     const minimizedSize = { width: 220, height: 56 };
@@ -42,7 +41,6 @@ export const ChatHistoryOverlay: React.FC<ChatHistoryOverlayProps> = ({
     const [isResizing, setIsResizing] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [isTransitioning, setIsTransitioning] = useState(false);
-    const [mounted, setMounted] = useState(false);
     const normalSizeRef = useRef(defaultSize);
     const normalPositionRef = useRef(initialPosition);
     const transitionTimeoutRef = useRef<number | null>(null);
@@ -56,10 +54,7 @@ export const ChatHistoryOverlay: React.FC<ChatHistoryOverlayProps> = ({
         mouseY: number;
     } | null>(null);
 
-    // Fix hydration error by only rendering Draggable on client
-    useEffect(() => {
-        setMounted(true);
-    }, []);
+    const mounted = typeof window !== "undefined";
 
     const getMinimizedPosition = (targetSize: {
         width: number;

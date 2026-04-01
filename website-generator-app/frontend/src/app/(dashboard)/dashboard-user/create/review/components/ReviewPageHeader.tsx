@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { FiEdit3, FiSave } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 
+const MotionButton = motion.create(Button);
+
 interface ReviewPageHeaderProps {
     isEditing: boolean;
     onToggleEditing: () => void;
@@ -14,8 +16,6 @@ export const ReviewPageHeader: React.FC<ReviewPageHeaderProps> = ({
     isEditing,
     onToggleEditing,
 }) => {
-    const MotionButton = motion.create(Button);
-
     return (
         <motion.div
             initial={{ opacity: 0, y: -20 }}

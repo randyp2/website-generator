@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
@@ -66,25 +67,6 @@ export const metadata: Metadata = {
 
 };
 
-<script
-  type="application/ld+json" // Not executable script tag
-
-  dangerouslySetInnerHTML={{
-    __html: JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "SiteNavigationElement",
-      "name": ["Home", "Pricing", "Contact"],
-      "url": [
-        // Modify laters
-        "https://yourdomain.com/",
-        "https://yourdomain.com/pricing",
-        "https://yourdomain.com/contact"
-      ]
-    }),
-  }}
-/>
-
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -101,6 +83,22 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <Script
+            id="site-nav-structured-data"
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "SiteNavigationElement",
+                name: ["Home", "Pricing", "Contact"],
+                url: [
+                  "https://yourdomain.com/",
+                  "https://yourdomain.com/pricing",
+                  "https://yourdomain.com/contact",
+                ],
+              }),
+            }}
+          />
           {children}
           <Toaster />
         </ThemeProvider>

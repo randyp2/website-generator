@@ -370,6 +370,7 @@ export const ChatbotOverlay: React.FC<ChatbotOverlayProps> = ({
                                                         >
                                                             <div className="w-12 h-12 rounded-lg overflow-hidden bg-[#1a1d21] flex items-center justify-center shrink-0">
                                                                 {isImage ? (
+                                                                    // eslint-disable-next-line @next/next/no-img-element -- Uses object URLs for local upload previews.
                                                                     <img
                                                                         src={
                                                                             preview

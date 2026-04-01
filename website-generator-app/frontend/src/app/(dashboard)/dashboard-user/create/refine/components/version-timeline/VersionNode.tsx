@@ -15,9 +15,7 @@ interface VersionNodeProps {
 export const VersionNode: React.FC<VersionNodeProps> = ({
     version,
     index,
-    total,
     onActivate,
-    isActivating,
 }) => {
     const [isHovered, setIsHovered] = useState(false);
 

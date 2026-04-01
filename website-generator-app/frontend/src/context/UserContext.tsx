@@ -6,7 +6,7 @@ export interface UserData {
   id: string;
   username: string;
   email: string;
-  avatar: any;
+  avatar: string | null;
 }
 
 interface UserContextType {

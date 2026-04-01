@@ -44,8 +44,7 @@ export async function updateSession(request: NextRequest) {
     const code = searchParams.get("code");
 
     if (code) {
-        const { data, error } =
-            await supabase.auth.exchangeCodeForSession(code);
+        await supabase.auth.exchangeCodeForSession(code);
 
         const nextUrl = new URL(request.url);
         nextUrl.searchParams.delete("code"); // Remove the oauth code from URL

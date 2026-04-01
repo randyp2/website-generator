@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { FiPlus, FiZap } from "react-icons/fi";
+import { FiPlus } from "react-icons/fi";
 import React from "react";
 import { useUser } from "@/context/UserContext";
 

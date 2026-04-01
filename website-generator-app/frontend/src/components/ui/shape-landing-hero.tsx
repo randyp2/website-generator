@@ -41,7 +41,7 @@ function PromptBubble({
                     y: [0, 15, 0],
                 }}
                 transition={{
-                    duration: 10 + Math.random() * 4,
+                    duration: 10 + delay * 4,
                     repeat: Number.POSITIVE_INFINITY,
                     ease: "easeInOut",
                 }}

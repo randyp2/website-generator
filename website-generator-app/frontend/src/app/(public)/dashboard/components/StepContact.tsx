@@ -112,7 +112,7 @@ const StepContact: React.FC<StepContactProps> = ({ state, updateField }) => {
       >
         <p className="text-xs text-sky-900 leading-relaxed">
           <span className="font-semibold">🔒 Privacy Note:</span> All contact
-          fields are optional. Only add information you're comfortable sharing
+          fields are optional. Only add information you&apos;re comfortable sharing
           publicly on your portfolio.
         </p>
       </motion.div>

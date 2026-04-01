@@ -63,6 +63,7 @@ export function PortfolioExploreCard({ portfolio }: PortfolioExploreCardProps) {
         {/* Owner */}
         <div className="mb-4 flex items-center gap-2">
           {portfolio.ownerAvatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- Public avatars may be arbitrary remote URLs.
             <img
               src={portfolio.ownerAvatarUrl}
               alt={portfolio.ownerName ?? ""}

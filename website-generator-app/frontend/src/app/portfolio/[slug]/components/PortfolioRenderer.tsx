@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo } from "react";
 import Script from "next/script";
 import type { PublicPortfolioDTO, PublicSectionDTO } from "@/types/public-portfolio";
 import { transpileSection } from "@/utils/transpileSection";
@@ -82,8 +82,7 @@ const buildGoogleFontsUrl = (
 const PortfolioRenderer = ({ portfolio }: Props) => {
     // Transpiled sections use browser APIs (window, document, canvas, etc.)
     // so we only render them after mount to avoid SSR hydration mismatches.
-    const [mounted, setMounted] = useState(false);
-    useEffect(() => setMounted(true), []);
+    const mounted = typeof document !== "undefined";
 
     const theme = useMemo(
         () => normalizeTheme(portfolio.globalTheme),

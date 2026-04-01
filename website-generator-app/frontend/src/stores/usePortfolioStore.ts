@@ -93,7 +93,7 @@ export interface PortfolioCreateState {
     updateExperience: (
         index: number,
         field: keyof ParsedExperience,
-        value: any,
+        value: ParsedExperience[keyof ParsedExperience],
     ) => void;
     updateExperienceBullet: (
         expIndex: number,
@@ -107,14 +107,14 @@ export interface PortfolioCreateState {
     updateEducation: (
         index: number,
         field: keyof ParsedEducation,
-        value: any,
+        value: ParsedEducation[keyof ParsedEducation],
     ) => void;
 
     // Project management
     updateProject: (
         index: number,
         field: keyof ParsedProject,
-        value: any,
+        value: ParsedProject[keyof ParsedProject],
     ) => void;
 
     // Style preferences management
@@ -400,13 +400,15 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             updateExperience: (
                 index: number,
                 field: keyof ParsedExperience,
-                value: any,
+                value: ParsedExperience[keyof ParsedExperience],
             ) => {
                 const current = get().parsedResumeData;
                 if (current) {
-                    const updatedExperiences = current.experiences.map(
+                const updatedExperiences = current.experiences.map(
                         (exp, i) =>
-                            i === index ? { ...exp, [field]: value } : exp,
+                            i === index
+                                ? ({ ...exp, [field]: value } as ParsedExperience)
+                                : exp,
                     );
                     set({
                         parsedResumeData: {
@@ -489,13 +491,15 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             updateEducation: (
                 index: number,
                 field: keyof ParsedEducation,
-                value: any,
+                value: ParsedEducation[keyof ParsedEducation],
             ) => {
                 const current = get().parsedResumeData;
                 if (current) {
-                    const updatedEducations = current.educations.map(
+                const updatedEducations = current.educations.map(
                         (edu, i) =>
-                            i === index ? { ...edu, [field]: value } : edu,
+                            i === index
+                                ? ({ ...edu, [field]: value } as ParsedEducation)
+                                : edu,
                     );
                     set({
                         parsedResumeData: {
@@ -510,12 +514,14 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             updateProject: (
                 index: number,
                 field: keyof ParsedProject,
-                value: any,
+                value: ParsedProject[keyof ParsedProject],
             ) => {
                 const current = get().parsedResumeData;
                 if (current) {
                     const updatedProjects = current.projects.map((proj, i) =>
-                        i === index ? { ...proj, [field]: value } : proj,
+                        i === index
+                            ? ({ ...proj, [field]: value } as ParsedProject)
+                            : proj,
                     );
                     set({
                         parsedResumeData: {
@@ -637,7 +643,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                           type: state.resumeFile.type,
                           title: state.resumeFile.title,
                           description: state.resumeFile.description,
-                          file: null as any, // File object will be null after refresh
+                          file: null as unknown as File, // File object will be null after refresh
                       }
                     : null,
                 mediaFiles: state.mediaFiles.map((f) => ({
@@ -647,7 +653,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                     type: f.type,
                     title: f.title,
                     description: f.description,
-                    file: null as any,
+                    file: null as unknown as File,
                 })),
                 videoFiles: state.videoFiles.map((f) => ({
                     id: f.id,
@@ -656,7 +662,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                     type: f.type,
                     title: f.title,
                     description: f.description,
-                    file: null as any,
+                    file: null as unknown as File,
                 })),
             }),
         },

@@ -265,6 +265,7 @@ const PortfolioManager: React.FC = () => {
               <div className="bg-white/[0.06] backdrop-blur-xl rounded-2xl overflow-visible border border-white/[0.12] hover:border-white/[0.25] shadow-lg hover:shadow-xl transition-all">
                 {/* Thumbnail image */}
                 <div className="relative h-48 overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- Portfolio thumbnails may be arbitrary generated preview URLs. */}
                   <img
                     src={portfolio.thumbnail || DEFAULT_PORTFOLIO_CARD_IMAGE}
                     alt={`${portfolio.title} preview`}

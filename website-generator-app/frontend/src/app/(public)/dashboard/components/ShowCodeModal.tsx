@@ -168,7 +168,7 @@ export const ShowCodeModal: React.FC<ShowCodeModalProps> = ({
                     console.log("Resend code");
                   }}
                 >
-                  Didn't receive a code? Resend
+                  Didn&apos;t receive a code? Resend
                 </button>
               </div>
             </form>
