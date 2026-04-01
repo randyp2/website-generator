@@ -290,81 +290,91 @@
 
 :root {
   --radius: 0.625rem;
-  --background: #0f0f0f;
-  --foreground: #e5e5e5;
-  --card: #262626;
-  --card-foreground: #e5e5e5;
-  --popover: #262626;
-  --popover-foreground: #e5e5e5;
-  --primary: #f59e0b;
-  --primary-foreground: #000000;
-  --secondary: #262626;
-  --secondary-foreground: #e5e5e5;
-  --muted: #1f1f1f;
-  --muted-foreground: #a3a3a3;
-  --accent: #92400e;
-  --accent-foreground: #fde68a;
+  --background: #ffffff;
+  --foreground: #1a1a1a;
+  --card: #ffffff;
+  --card-foreground: #1a1a1a;
+  --popover: #f5f5f7;
+  --popover-foreground: #1a1a1a;
+  --primary: #0073ff;
+  --primary-foreground: #ffffff;
+  --secondary: #ffffff;
+  --secondary-foreground: #1a1a1a;
+  --muted: #e5e5ea;
+  --muted-foreground: #6b6b6b;
+  --accent: #0073ff;
+  --accent-foreground: #1a1a1a;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #404040;
-  --input: #404040;
-  --ring: #f59e0b;
-  --chart-1: #fbbf24;
-  --chart-2: #d97706;
-  --chart-3: #92400e;
-  --chart-4: #b45309;
-  --chart-5: #92400e;
-  --sidebar: #0f0f0f;
-  --sidebar-foreground: #e5e5e5;
-  --sidebar-primary: #f59e0b;
+  --border: #ededed;
+  --input: #ededed;
+  --ring: #3f73ff;
+  --chart-1: #0073ff;
+  --chart-2: #3f73ff;
+  --chart-3: #6b6b6b;
+  --chart-4: #a7c4ff;
+  --chart-5: #1a1a1a;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1a1a1a;
+  --sidebar-primary: #0073ff;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #92400e;
-  --sidebar-accent-foreground: #fde68a;
-  --sidebar-border: #404040;
-  --sidebar-ring: #f59e0b;
+  --sidebar-accent: #0073ff;
+  --sidebar-accent-foreground: #1a1a1a;
+  --sidebar-border: #ededed;
+  --sidebar-ring: #3f73ff;
 }
 
 .dark {
-  --background: #0f0f0f;
-  --foreground: #e5e5e5;
-  --card: #262626;
-  --card-foreground: #e5e5e5;
-  --popover: #262626;
-  --popover-foreground: #e5e5e5;
-  --primary: #f59e0b;
-  --primary-foreground: #000000;
-  --secondary: #262626;
-  --secondary-foreground: #e5e5e5;
-  --muted: #1f1f1f;
-  --muted-foreground: #a3a3a3;
-  --accent: #92400e;
-  --accent-foreground: #fde68a;
+  --background: #0d0d0f;
+  --foreground: #ffffff;
+  --card: #1a1a1a;
+  --card-foreground: #ffffff;
+  --popover: #1a1a1a;
+  --popover-foreground: #ffffff;
+  --primary: #0073ff;
+  --primary-foreground: #ffffff;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #ffffff;
+  --muted: #2c2c2e;
+  --muted-foreground: #98989d;
+  --accent: #0073ff;
+  --accent-foreground: #ffffff;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #404040;
-  --input: #404040;
-  --ring: #f59e0b;
-  --chart-1: #fbbf24;
-  --chart-2: #d97706;
-  --chart-3: #92400e;
-  --chart-4: #b45309;
-  --chart-5: #92400e;
-  --sidebar: #0f0f0f;
-  --sidebar-foreground: #e5e5e5;
-  --sidebar-primary: #f59e0b;
+  --border: #38383a;
+  --input: #38383a;
+  --ring: #0073ff;
+  --chart-1: #0073ff;
+  --chart-2: #3f73ff;
+  --chart-3: #98989d;
+  --chart-4: #1f4ea3;
+  --chart-5: #ffffff;
+  --sidebar: #0d0d0f;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #0073ff;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #92400e;
-  --sidebar-accent-foreground: #fde68a;
-  --sidebar-border: #404040;
-  --sidebar-ring: #f59e0b;
+  --sidebar-accent: #0073ff;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #38383a;
+  --sidebar-ring: #0073ff;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
   body {
     @apply bg-background text-foreground;
+    transition:
+      background-color 0.25s ease,
+      color 0.25s ease,
+      border-color 0.25s ease;
   }
 }
 
@@ -398,6 +408,108 @@
 }
 
 @layer utilities {
+  .landing-rebrand {
+    --background: #f6f8fc;
+    --foreground: #0f1728;
+    --card: rgba(255, 255, 255, 0.84);
+    --card-foreground: #0f1728;
+    --popover: rgba(255, 255, 255, 0.92);
+    --popover-foreground: #0f1728;
+    --secondary: color-mix(in srgb, var(--primary) 8%, #eef4ff);
+    --secondary-foreground: #10203d;
+    --muted: color-mix(in srgb, var(--primary) 8%, #edf3ff);
+    --muted-foreground: #52627f;
+    --accent: color-mix(in srgb, var(--ring) 72%, #ffffff 28%);
+    --accent-foreground: #ffffff;
+    --border: rgba(15, 23, 40, 0.08);
+    --input: rgba(15, 23, 40, 0.08);
+    --sidebar-border: rgba(15, 23, 40, 0.08);
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background: linear-gradient(180deg, #fbfdff 0%, #f3f7ff 58%, #edf3fb 100%);
+  }
+
+  html.dark .landing-rebrand {
+    --background: color-mix(in srgb, var(--primary) 6%, #03050a);
+    --foreground: #f4f8ff;
+    --card: color-mix(in srgb, var(--primary) 9%, #09101d);
+    --card-foreground: #f4f8ff;
+    --popover: color-mix(in srgb, var(--primary) 8%, #09111f);
+    --popover-foreground: #f4f8ff;
+    --secondary: color-mix(in srgb, var(--primary) 8%, #0d1628);
+    --secondary-foreground: #f4f8ff;
+    --muted: color-mix(in srgb, var(--primary) 10%, #0d1526);
+    --muted-foreground: color-mix(in srgb, #ffffff 74%, var(--ring) 26%);
+    --accent: color-mix(in srgb, var(--ring) 78%, #ffffff 22%);
+    --accent-foreground: #ffffff;
+    --border: color-mix(in srgb, var(--ring) 16%, transparent);
+    --input: color-mix(in srgb, var(--ring) 14%, transparent);
+    --sidebar-border: color-mix(in srgb, var(--ring) 16%, transparent);
+    background: linear-gradient(180deg, #000000 0%, #03050b 58%, #010203 100%);
+  }
+
+  .landing-rebrand::before {
+    content: "";
+    position: absolute;
+    inset: -12% -18%;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 1;
+    background:
+      radial-gradient(
+        32rem 20rem at 18% 10%,
+        color-mix(in srgb, var(--ring) 18%, transparent) 0%,
+        transparent 70%
+      ),
+      radial-gradient(
+        24rem 18rem at 80% 42%,
+        color-mix(in srgb, var(--primary) 10%, transparent) 0%,
+        transparent 74%
+      );
+    filter: blur(44px);
+    transform: translate3d(0, 0, 0);
+  }
+
+  html:not(.dark) .landing-rebrand::before {
+    background: none;
+    filter: none;
+  }
+
+  .landing-rebrand::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(
+        75% 55% at 50% 0%,
+        transparent 0%,
+        transparent 48%,
+        rgba(0, 0, 0, 0.28) 82%,
+        rgba(0, 0, 0, 0.58) 100%
+      ),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.015), rgba(0, 0, 0, 0.24));
+  }
+
+  html:not(.dark) .landing-rebrand::after {
+    background: none;
+  }
+
+  .landing-rebrand > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .landing-rebrand-silk {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 1;
+  }
+
   .dashboard-user-shell {
     /* Make dashboard cards/inputs/buttons more square with subtle rounding */
     --radius-sm: 2px;

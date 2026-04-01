@@ -76,14 +76,14 @@ export const PortfolioMockup: React.FC = () => {
                                         {step.num}
                                     </motion.div>
                                 </div>
-                                <span className="text-xs font-medium text-slate-600 whitespace-nowrap relative z-10">
+                                <span className="relative z-10 whitespace-nowrap text-xs font-medium text-muted-foreground">
                                     {step.label}
                                 </span>
                             </motion.div>
 
                             {/* Connecting line with animated glow */}
                             {i < 3 && (
-                                <div className="relative mx-4 w-24 h-0.5 bg-slate-200">
+                                <div className="relative mx-4 h-0.5 w-24 bg-border">
                                     <motion.div
                                         initial={{ scaleX: 0 }}
                                         animate={{
@@ -112,17 +112,17 @@ export const PortfolioMockup: React.FC = () => {
                         initial={{ opacity: 0, y: 40 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 1.2, duration: 0.8 }}
-                        className="hidden xl:block relative bg-white/90 backdrop-blur-xl border-2 border-slate-200 rounded-3xl shadow-2xl overflow-hidden mx-12"
+                        className="relative mx-12 hidden overflow-hidden rounded-3xl border-2 border-border bg-card/90 shadow-2xl backdrop-blur-xl xl:block"
                     >
                         {/* Browser Chrome */}
-                        <div className="bg-linear-to-r from-slate-100 to-slate-50 px-4 py-2.5 border-b border-slate-200 flex items-center gap-2">
+                        <div className="flex items-center gap-2 border-b border-border bg-muted px-4 py-2.5">
                             <div className="flex gap-2">
                                 <div className="w-3 h-3 rounded-full bg-red-400"></div>
                                 <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
                                 <div className="w-3 h-3 rounded-full bg-green-400"></div>
                             </div>
                             <div className="flex-1 mx-4">
-                                <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-slate-200 text-xs text-slate-500">
+                                <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground">
                                     <FiGlobe className="w-3 h-3" />
                                     <span>sarahjohnson.marketing</span>
                                 </div>
@@ -130,23 +130,23 @@ export const PortfolioMockup: React.FC = () => {
                         </div>
 
                         {/* Portfolio Content Preview - Compact & Professional */}
-                        <div className="relative bg-linear-to-br from-slate-50 via-white to-slate-50 min-h-[380px]">
+                        <div className="relative min-h-[380px] bg-linear-to-br from-card via-background to-card">
                             {/* Navbar preview */}
                             <motion.nav
                                 initial={{ opacity: 0, y: -20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 1.4, duration: 0.6 }}
-                                className="sticky top-0 bg-white/60 backdrop-blur-xl border-b border-slate-100/50 px-12 py-2.5 z-10"
+                                className="sticky top-0 z-10 border-b border-border/70 bg-background/60 px-12 py-2.5 backdrop-blur-xl"
                             >
                                 <div className="flex items-center justify-between max-w-6xl mx-auto">
                                     {/* Minimal Logo */}
                                     <div className="flex items-center gap-2">
-                                        <div className="w-7 h-7 rounded-full bg-slate-900 flex items-center justify-center">
+                                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground">
                                             <span className="text-white font-light text-xs tracking-wide">
                                                 SJ
                                             </span>
                                         </div>
-                                        <span className="font-light text-slate-900 text-sm tracking-wide">
+                                        <span className="text-sm font-light tracking-wide text-foreground">
                                             Sarah Johnson
                                         </span>
                                     </div>
@@ -159,7 +159,7 @@ export const PortfolioMockup: React.FC = () => {
                                                 initial={{ opacity: 0, y: -10 }}
                                                 animate={{ opacity: 1, y: 0 }}
                                                 transition={{ delay: 1.6 + i * 0.1 }}
-                                                className="text-xs font-light text-slate-600 hover:text-slate-900 cursor-pointer transition-colors tracking-wide"
+                                                className="cursor-pointer text-xs font-light tracking-wide text-muted-foreground transition-colors hover:text-foreground"
                                             >
                                                 {link}
                                             </motion.a>
@@ -187,15 +187,15 @@ export const PortfolioMockup: React.FC = () => {
                                             transition={{ delay: 2, duration: 0.6 }}
                                             className="space-y-2"
                                         >
-                                            <div className="inline-flex items-center gap-2 text-[10px] font-light text-slate-500 tracking-widest uppercase">
-                                                <div className="w-6 h-px bg-slate-300" />
+                                            <div className="inline-flex items-center gap-2 text-[10px] font-light uppercase tracking-widest text-muted-foreground">
+                                                <div className="h-px w-6 bg-border" />
                                                 Digital Marketing
                                             </div>
-                                            <h1 className="text-2xl font-light text-slate-900 leading-tight tracking-tight">
+                                            <h1 className="text-2xl font-light leading-tight tracking-tight text-foreground">
                                                 Creating <span className="font-normal">meaningful</span>{" "}
                                                 brand experiences
                                             </h1>
-                                            <p className="text-xs text-slate-600 font-light leading-relaxed max-w-lg">
+                                            <p className="max-w-lg text-xs font-light leading-relaxed text-muted-foreground">
                                                 Specializing in data-driven campaigns that connect
                                                 brands with their audiences.
                                             </p>
@@ -214,18 +214,18 @@ export const PortfolioMockup: React.FC = () => {
                                                 { label: "Success", value: "98%" },
                                             ].map((stat, i) => (
                                                 <div key={i} className="flex items-baseline gap-1.5">
-                                                    <div className="text-xl font-light text-slate-900">
+                                                    <div className="text-xl font-light text-foreground">
                                                         {stat.value}
                                                     </div>
-                                                    <div className="text-[10px] font-light text-slate-500 tracking-wide">
+                                                    <div className="text-[10px] font-light tracking-wide text-muted-foreground">
                                                         {stat.label}
                                                     </div>
                                                 </div>
                                             ))}
 
-                                            <div className="h-6 w-px bg-slate-200 mx-2" />
+                                            <div className="mx-2 h-6 w-px bg-border" />
 
-                                            <button className="px-4 py-1.5 bg-slate-900 text-white text-[10px] font-light tracking-wide hover:bg-slate-800 transition-colors">
+                                            <button className="bg-foreground px-4 py-1.5 text-[10px] font-light tracking-wide text-background transition-colors hover:opacity-90">
                                                 View Work
                                             </button>
                                         </motion.div>
@@ -441,7 +441,7 @@ export const PortfolioMockup: React.FC = () => {
                                             AI
                                         </div>
                                         <div className="bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-slate-700 flex-1 shadow-sm border border-slate-100">
-                                            Hi! I'm here to build your portfolio. What's your field?
+                                            Hi! I&apos;m here to build your portfolio. What&apos;s your field?
                                         </div>
                                     </div>
 
@@ -453,7 +453,7 @@ export const PortfolioMockup: React.FC = () => {
                                         className="flex items-start gap-2 justify-end"
                                     >
                                         <div className="bg-linear-to-r from-cyan-100/90 to-sky-100/90 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-slate-700 max-w-[200px] shadow-sm border border-cyan-200/50">
-                                            I'm a marketing major looking to showcase my campaigns
+                                            I&apos;m a marketing major looking to showcase my campaigns
                                         </div>
                                         <div className="w-7 h-7 rounded-full bg-slate-300 flex items-center justify-center text-white text-xs font-bold shrink-0">
                                             ME

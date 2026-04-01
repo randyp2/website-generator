@@ -29,11 +29,10 @@ export const useReviewPortfolioSync = ({
     setPortfolioId,
     setParsedResumeData,
     setParsedResumeSourceKey,
-    setTemplateId,
     setIsParsingResume,
     setParsingError,
-    templateId,
 }: UseReviewPortfolioSyncParams) => {
+    // Sync portfolioId from URL search params
     useEffect(() => {
         if (searchPortfolioId && searchPortfolioId !== portfolioId) {
             setParsedResumeData(null);
@@ -50,59 +49,21 @@ export const useReviewPortfolioSync = ({
         setPortfolioId,
     ]);
 
-    useEffect(() => {
-        if (!portfolioId) return;
-
-        fetch(`/api/portfolio/${portfolioId}/update`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ last_step: "review" }),
-        }).catch(() => null);
-    }, [portfolioId]);
-
+    // If no parsed resume data exists, provide the manual template (no API call)
     useEffect(() => {
         if (!portfolioId || parsedResumeData || isParsingResume) return;
 
-        const loadResume = async () => {
-            setIsParsingResume(true);
-            setParsingError(null);
+        setIsParsingResume(true);
+        setParsingError(null);
 
-            try {
-                const resumeRes = await fetch(`/api/portfolio/${portfolioId}/resume`);
-                if (resumeRes.ok) {
-                    const data = await resumeRes.json();
-                    if (data?.parsedJson) {
-                        setParsedResumeData(data.parsedJson);
-                        setParsedResumeSourceKey(null);
-                    } else {
-                        setParsedResumeData(createManualResumeTemplate());
-                        setParsedResumeSourceKey(MANUAL_RESUME_SOURCE_KEY);
-                    }
-                } else {
-                    setParsedResumeData(createManualResumeTemplate());
-                    setParsedResumeSourceKey(MANUAL_RESUME_SOURCE_KEY);
-                }
+        // Simulate brief loading, then provide manual template
+        const timer = setTimeout(() => {
+            setParsedResumeData(createManualResumeTemplate());
+            setParsedResumeSourceKey(MANUAL_RESUME_SOURCE_KEY);
+            setIsParsingResume(false);
+        }, 500);
 
-                if (!templateId) {
-                    const loadRes = await fetch(`/api/portfolio/${portfolioId}/load`);
-                    if (loadRes.ok) {
-                        const loadData = await loadRes.json();
-                        if (loadData?.templateId) {
-                            setTemplateId(loadData.templateId);
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error("Failed to load resume data:", error);
-                setParsedResumeData(createManualResumeTemplate());
-                setParsedResumeSourceKey(MANUAL_RESUME_SOURCE_KEY);
-                setParsingError("We couldn't load a resume, so we opened a manual starter template instead.");
-            } finally {
-                setIsParsingResume(false);
-            }
-        };
-
-        void loadResume();
+        return () => clearTimeout(timer);
     }, [
         isParsingResume,
         parsedResumeData,
@@ -111,7 +72,5 @@ export const useReviewPortfolioSync = ({
         setParsedResumeData,
         setParsedResumeSourceKey,
         setParsingError,
-        setTemplateId,
-        templateId,
     ]);
 };

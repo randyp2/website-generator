@@ -1,11 +1,43 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useUser } from "@/context/UserContext";
 import { Portfolio } from "@/types/portfolio";
+import type { UUID } from "node:crypto";
+
+const MOCK_PORTFOLIOS: Portfolio[] = [
+    {
+        id: "mock-portfolio-001" as UUID,
+        title: "Software Engineer Portfolio",
+        status: "publish",
+        template_id: "developer-dark",
+        last_step: "refine",
+        slug: "john-doe-dev",
+        updated_at: "2026-03-28T14:30:00Z",
+        created_at: "2026-03-15T09:00:00Z",
+    },
+    {
+        id: "mock-portfolio-002" as UUID,
+        title: "Product Design Showcase",
+        status: "draft",
+        template_id: "creative-minimal",
+        last_step: "review",
+        slug: null,
+        updated_at: "2026-03-25T11:00:00Z",
+        created_at: "2026-03-20T16:45:00Z",
+    },
+    {
+        id: "mock-portfolio-003" as UUID,
+        title: "Data Science Portfolio",
+        status: "draft",
+        template_id: "developer-dark",
+        last_step: "upload",
+        slug: null,
+        updated_at: "2026-03-22T08:15:00Z",
+        created_at: "2026-03-18T12:30:00Z",
+    },
+];
 
 export const usePortfolios = () => {
-    const { user } = useUser();
     const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [deleteTarget, setDeleteTarget] = useState<Portfolio | null>(null);
@@ -15,46 +47,18 @@ export const usePortfolios = () => {
     const [isRenaming, setIsRenaming] = useState(false);
 
     useEffect(() => {
-        const loadPortfolios = async () => {
-            if (!user?.id) return;
-            setIsLoading(true);
-            try {
-                const response = await fetch(`/api/portfolio/list?userId=${user.id}`);
-                if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
-                const data = await response.json();
-                const rows: Portfolio[] = Array.isArray(data?.portfolios)
-                    ? data.portfolios.map((item: Portfolio) => ({
-                          ...item,
-                          title: item.title ?? "Untitled Portfolio",
-                      }))
-                    : [];
-                setPortfolios(rows);
-            } catch (error) {
-                console.error("Failed to load portfolios:", error);
-                setPortfolios([]);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        loadPortfolios();
-    }, [user?.id]);
+        const timer = setTimeout(() => {
+            setPortfolios(MOCK_PORTFOLIOS);
+            setIsLoading(false);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, []);
 
     const handleDelete = async (portfolioId: string) => {
-        try {
-            setIsDeleting(true);
-            const res = await fetch(`/api/portfolio/${portfolioId}/delete`, {
-                method: "DELETE",
-            });
-            if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
-            setPortfolios((prev) => prev.filter((p) => p.id !== portfolioId));
-            setDeleteTarget(null);
-        } catch (error) {
-            console.error("Deletion failed:", error);
-            alert("Failed to delete portfolio.");
-        } finally {
-            setIsDeleting(false);
-        }
+        setIsDeleting(true);
+        setPortfolios((prev) => prev.filter((p) => p.id !== portfolioId));
+        setDeleteTarget(null);
+        setIsDeleting(false);
     };
 
     const openRename = (portfolio: Portfolio) => {
@@ -66,26 +70,14 @@ export const usePortfolios = () => {
         if (!renameTarget) return;
         const trimmed = renameTitle.trim();
         if (!trimmed) return;
-        try {
-            setIsRenaming(true);
-            const res = await fetch(`/api/portfolio/${renameTarget.id}/update`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ title: trimmed }),
-            });
-            if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
-            setPortfolios((prev) =>
-                prev.map((p) =>
-                    p.id === renameTarget.id ? { ...p, title: trimmed } : p,
-                ),
-            );
-            setRenameTarget(null);
-        } catch (error) {
-            console.error("Rename failed:", error);
-            alert("Failed to rename portfolio.");
-        } finally {
-            setIsRenaming(false);
-        }
+        setIsRenaming(true);
+        setPortfolios((prev) =>
+            prev.map((p) =>
+                p.id === renameTarget.id ? { ...p, title: trimmed } : p,
+            ),
+        );
+        setRenameTarget(null);
+        setIsRenaming(false);
     };
 
     return {
