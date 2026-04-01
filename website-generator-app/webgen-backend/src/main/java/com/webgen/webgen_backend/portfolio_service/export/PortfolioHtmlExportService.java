@@ -117,10 +117,11 @@ public class PortfolioHtmlExportService {
                 ""
         );
 
-        // Remove TypeScript type annotations from function parameters
-        // e.g., ({ content, data }: Props) => ({ content, data }) =>
+        // Remove a narrow TypeScript annotation pattern from function parameters
+        // e.g., ({ content, data }: { ... }) => ({ content, data }) =>
+        // NOTE: Avoid broad ": <word>" stripping because it corrupts JS ternaries
+        // such as "... ? foo : null" during HTML export.
         transformed = transformed.replaceAll(":\\s*\\{[^}]*\\}\\s*\\)", ")");
-        transformed = transformed.replaceAll(":\\s*\\w+\\s*(?=[,)])", "");
 
         // Remove interface/type declarations
         transformed = transformed.replaceAll("(?ms)^(interface|type)\\s+\\w+\\s*\\{.*?\\}\\s*$", "");
