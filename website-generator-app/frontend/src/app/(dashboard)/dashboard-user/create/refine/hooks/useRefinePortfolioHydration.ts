@@ -2,13 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { createMockPortfolioSnapshot } from "@/lib/mock-portfolios";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
-
-interface LoadedPortfolioResponse {
-    templateId?: string | null;
-    sections?: unknown;
-    globalTheme?: unknown;
-}
 
 export const useRefinePortfolioHydration = (): {
     isHydrating: boolean;
@@ -54,31 +49,23 @@ export const useRefinePortfolioHydration = (): {
             setMessages([]);
         }
 
-        fetch(`/api/portfolio/${portfolioIdParam}/update`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ last_step: "refine" }),
-        }).catch(() => null);
-
         const loadPortfolio = async (): Promise<void> => {
             setIsHydrating(true);
             setHasResolvedInitialPortfolioLoad(false);
 
             try {
-                const response = await fetch(`/api/portfolio/${portfolioIdParam}/load`);
-                const data = (await response.json()) as LoadedPortfolioResponse;
-
-                if (!response.ok) {
-                    console.error("Load portfolio error:", data);
-                    return;
-                }
+                await new Promise((resolve) => window.setTimeout(resolve, 250));
+                const data = createMockPortfolioSnapshot({
+                    portfolioId: portfolioIdParam,
+                    templateId: "developer-dark",
+                });
 
                 setPortfolioId(portfolioIdParam);
                 setTemplateId(data.templateId ?? null);
-                setSections(Array.isArray(data.sections) ? data.sections : []);
+                setSections(data.sections);
                 setGlobalTheme(data.globalTheme ?? null);
             } catch (error: unknown) {
-                console.error("Failed to load portfolio:", error);
+                console.error("Failed to load mock portfolio:", error);
             } finally {
                 setIsHydrating(false);
                 setHasResolvedInitialPortfolioLoad(true);

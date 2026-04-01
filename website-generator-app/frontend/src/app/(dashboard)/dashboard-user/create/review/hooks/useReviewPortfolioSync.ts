@@ -53,17 +53,10 @@ export const useReviewPortfolioSync = ({
     useEffect(() => {
         if (!portfolioId || parsedResumeData || isParsingResume) return;
 
-        setIsParsingResume(true);
         setParsingError(null);
-
-        // Simulate brief loading, then provide manual template
-        const timer = setTimeout(() => {
-            setParsedResumeData(createManualResumeTemplate());
-            setParsedResumeSourceKey(MANUAL_RESUME_SOURCE_KEY);
-            setIsParsingResume(false);
-        }, 500);
-
-        return () => clearTimeout(timer);
+        setParsedResumeData(createManualResumeTemplate());
+        setParsedResumeSourceKey(MANUAL_RESUME_SOURCE_KEY);
+        setIsParsingResume(false);
     }, [
         isParsingResume,
         parsedResumeData,

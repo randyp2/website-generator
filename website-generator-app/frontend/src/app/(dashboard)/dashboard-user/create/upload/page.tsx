@@ -7,14 +7,9 @@ import { FiArrowRight } from "react-icons/fi";
 import { HeaderSection } from "./components/HeaderSection";
 import { ResumeUpload } from "./components/ResumeUpload";
 import { UploadedFile } from "@/types/file";
-import { formatFileSize } from "@/utils/fileHelpers";
 import { MediaUpload } from "./components/MediaUpload";
 import { VideoUpload } from "./components/VideoUpload";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
-import {
-    createManualResumeTemplate,
-    MANUAL_RESUME_SOURCE_KEY,
-} from "@/utils/resume/manualResumeTemplate";
 
 const UploadPage: React.FC = () => {
     const router = useRouter();
@@ -33,16 +28,9 @@ const UploadPage: React.FC = () => {
     const {
         setTemplateId,
         setPortfolioId,
-        setResumeFile,
-        setParsedResumeData,
-        setParsedResumeSourceKey,
-        setIsParsingResume,
-        setParsingError,
         addMediaFiles,
-        removeMediaFile,
         updateMediaFileSectionHint,
         addVideoFiles,
-        removeVideoFile,
         updateVideoFileSectionHint,
     } = usePortfolioStore();
 
@@ -94,7 +82,7 @@ const UploadPage: React.FC = () => {
      * three different types of uploads and routes them to the appropriate state.
      *
      * Behavior by type:
-     * - "resume": Directly sets the resume file (only accepts first file) and parses it
+     * - "resume": Disabled in mock mode
      * - "media": Adds files to pendingMediaFiles for metadata collection
      * - "video": Adds files to pendingVideoFiles for metadata collection
      *
@@ -116,6 +104,11 @@ const UploadPage: React.FC = () => {
         const files = e.target.files;
         if (!files) return;
 
+        if (type === "resume") {
+            e.target.value = "";
+            return;
+        }
+
         // Convert FileList to array and create UploadedFile objects
         const fileArray = Array.from(files).map((file) => ({
             file,
@@ -126,17 +119,7 @@ const UploadPage: React.FC = () => {
             description: "",
         }));
 
-        if (type === "resume") {
-            // Resume: directly set the first file (single file upload)
-            // Parsing is deferred to handleContinue for immediate navigation
-            const resumeUpload = fileArray[0];
-            setParsedResumeData(null);
-            setParsedResumeSourceKey(null);
-            setParsingError(null);
-            setIsParsingResume(false);
-
-            setResumeFile(resumeUpload);
-        } else if (type === "media") {
+        if (type === "media") {
             // Media: route to pending state for metadata input
             setPendingMediaFiles(fileArray);
         } else if (type === "video") {
@@ -146,40 +129,6 @@ const UploadPage: React.FC = () => {
 
         // Reset input to allow uploading the same file again if needed
         e.target.value = "";
-    };
-
-    /**
-     * HANDLER: Remove a file from the confirmed files list
-     *
-     * Deletes a file from the appropriate state array based on the file type.
-     * This function is called when the user clicks the delete (X) button on
-     * a file in the confirmed files list.
-     *
-     * Behavior by type:
-     * - "resume": Removes the single resume file (sets to null)
-     * - "media": Removes a specific media file at the given index
-     * - "video": Removes a specific video file at the given index
-     *
-     * Uses the filter method to create a new array without the specified file,
-     * which maintains immutability and triggers React re-renders.
-     *
-     * @param type - Category of file to remove: "resume", "media", or "video"
-     * @param index - (Optional) Array index of the file to remove (required for media/video)
-     * @returns void
-     */
-    const removeFile = (type: "resume" | "media" | "video", index?: number) => {
-        if (type === "resume") {
-            // Resume: clear the single file
-            setResumeFile(null);
-            setParsedResumeData(null);
-            setParsedResumeSourceKey(null);
-        } else if (type === "media" && index !== undefined) {
-            // Media: filter out the file at the specified index
-            removeMediaFile(index);
-        } else if (type === "video" && index !== undefined) {
-            // Video: filter out the file at the specified index
-            removeVideoFile(index);
-        }
     };
 
     /**
@@ -354,42 +303,32 @@ const UploadPage: React.FC = () => {
         }
     };
 
-    // Navigate to review page (no backend upload needed for mock)
+    // Navigate to review page. Review already seeds a manual mock resume template.
     const handleContinue = () => {
-        const { portfolioId, resumeFile } = usePortfolioStore.getState();
-
-        if (!resumeFile) {
-            setParsedResumeData(createManualResumeTemplate());
-            setParsedResumeSourceKey(MANUAL_RESUME_SOURCE_KEY);
-            setParsingError(null);
-        }
+        const { portfolioId } = usePortfolioStore.getState();
 
         router.push(
             `/dashboard-user/create/review?portfolioId=${portfolioId}`,
         );
     };
 
-    // Skip upload and go to refine
+    // Skip the disabled resume step and continue to review
     const handleSkip = () => {
         const { portfolioId } = usePortfolioStore.getState();
-        router.push(`/dashboard-user/create/refine?portfolioId=${portfolioId}`);
+        router.push(`/dashboard-user/create/review?portfolioId=${portfolioId}`);
     };
 
     return (
-        <div className="relative min-h-screen px-4 py-8 pb-32 md:px-6">
+        <div className="upload-flow-page relative min-h-screen px-4 py-8 pb-32 md:px-6">
             {/* Content */}
             <div className="relative z-10">
                 {/* Header */}
                 <HeaderSection />
 
                 {/* Two Column Layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-280px)] min-h-[800px]">
+                <div className="grid grid-cols-1 gap-6 h-[calc(100vh-280px)] min-h-[800px] lg:grid-cols-2">
                     {/* Left Column - Resume Upload (Full Height) */}
-                    <ResumeUpload
-                        handleFileUpload={handleFileUpload}
-                        formatFileSize={formatFileSize}
-                        removeFile={removeFile}
-                    />
+                    <ResumeUpload />
 
                     {/* Right Column - Media and Video Uploads Stacked */}
                     <div className="flex flex-col gap-6 h-full">
@@ -456,9 +395,9 @@ const UploadPage: React.FC = () => {
                                     damping: 30,
                                 }}
                                 onClick={handleSkip}
-                                className="hover:cursor-pointer px-6 py-3 bg-white/5 backdrop-blur-xl border border-white/20 text-white/90 rounded-full font-semibold shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                                className="upload-ghost-button hover:cursor-pointer rounded-full px-6 py-3 font-semibold"
                             >
-                                Skip for now
+                                Skip resume
                             </motion.button>
 
                             {/* Continue Button */}
@@ -477,7 +416,7 @@ const UploadPage: React.FC = () => {
                                     damping: 30,
                                 }}
                                 onClick={handleContinue}
-                                className="hover:cursor-pointer px-8 py-4 bg-white/10 backdrop-blur-xl border border-white/20 text-white rounded-full font-bold shadow-[0_0_30px_rgba(255,255,255,0.15)] flex items-center gap-3"
+                                className="upload-primary-button hover:cursor-pointer flex items-center gap-3 rounded-full px-8 py-4 font-bold"
                             >
                                 Continue to revise/edit
                                 <FiArrowRight className="w-5 h-5" />

@@ -60,10 +60,10 @@ export const GenerationOverlay = ({ phase }: GenerationOverlayProps) => {
                     initial={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.6, ease: "easeOut" }}
-                    className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-zinc-950"
+                    className="refine-mock-overlay absolute inset-0 z-10 flex flex-col items-center justify-center"
                 >
                     {getLoader(phase)}
-                    <p className="mt-6 text-sm text-zinc-400 font-mono animate-pulse">
+                    <p className="refine-mock-status mt-6 font-mono text-sm animate-pulse">
                         {STATUS_LABELS[phase]}
                     </p>
                 </motion.div>
