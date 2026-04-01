@@ -163,15 +163,6 @@ const stripImports = (source: string): string =>
 const stripUseClient = (source: string): string =>
     source.replace(/^['"]use client['"];?\s*$/gm, "");
 
-/** Remove TypeScript type annotations and interface/type declarations. */
-const stripTypeScript = (source: string): string =>
-    source
-        // Remove interface / type blocks
-        .replace(/^(interface|type)\s+\w+\s*\{[\s\S]*?\}\s*$/gm, "")
-        // Remove inline param type annotations: ({ foo }: Props) => ({ foo })
-        .replace(/:\s*\{[^}]*\}\s*\)/g, ")")
-        .replace(/:\s*\w+\s*(?=[,)])/g, "");
-
 /**
  * Ensure the source has a default export and normalise it to a
  * variable assignment (`const __Component = ...`) so the eval wrapper
@@ -251,18 +242,19 @@ export const transpileSection = (
         let code = reactSource;
         code = stripImports(code);
         code = stripUseClient(code);
-        code = stripTypeScript(code);
         code = normalizeExport(code, index);
 
         // Clean up excessive blank lines
         code = code.replace(/\n{3,}/g, "\n\n").trim();
 
-        // 2. Transpile JSX → JS via Babel
+        // 2. Transpile JSX + TypeScript → JS via Babel.
+        //    The "typescript" preset handles TS annotations natively,
+        //    avoiding the fragile regex stripping that broke ternaries.
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const Babel = require("@babel/standalone");
         const transpiled: string = Babel.transform(code, {
-            presets: ["react"],
-            filename: `Section${index}.jsx`,
+            presets: ["react", "typescript"],
+            filename: `Section${index}.tsx`,
         }).code;
 
         // 3. Build a function that receives the scope as arguments and returns the component
