@@ -62,7 +62,7 @@ public class JWTFilter extends OncePerRequestFilter {
         }
 
         token = authHeader.substring(7); // Extract JWT token
-        System.out.println("Token: " + token.substring(0, 20) + "...");
+//        System.out.println("Token: " + token.substring(0, 20) + "...");
 
         try {
 
@@ -74,12 +74,12 @@ public class JWTFilter extends OncePerRequestFilter {
 
             // Extract supabase user ID
             String userId = jwtService.extractUserId(token);
-            System.out.println("User id: " + userId);
+//            System.out.println("User id: " + userId);
 
             // If context is not already authenticated create authenticated object
             //  else skip to ensure no double authorization happens
             if (SecurityContextHolder.getContext().getAuthentication() == null) {
-                System.out.println("Creating UPAToken");
+//                System.out.println("Creating UPAToken");
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(
                                 userId,                                                             // principal (who the user is)
@@ -94,17 +94,17 @@ public class JWTFilter extends OncePerRequestFilter {
 
                 // Adding token to chain so other filters and controllers can see user as authenticated
                 SecurityContextHolder.getContext().setAuthentication(authToken);
-
-                System.out.println("Authentication Set: " +
-                        SecurityContextHolder.getContext().getAuthentication());
-                System.out.println("Authorities Set: " +
-                        SecurityContextHolder.getContext().getAuthentication().getAuthorities());
+//
+//                System.out.println("Authentication Set: " +
+//                        SecurityContextHolder.getContext().getAuthentication());
+//                System.out.println("Authorities Set: " +
+//                        SecurityContextHolder.getContext().getAuthentication().getAuthorities());
             }
         } catch (Exception e) {
             System.out.println("JWT verification failed: " + e.getMessage());
         }
 
-        System.out.println("Request URL: " + request.getRequestURI());
+//        System.out.println("Request URL: " + request.getRequestURI());
 
 
         // Continue Spring Security filter chain

@@ -32,6 +32,7 @@ export const HeroSection: React.FC = () => {
    * Write the incorrect text, delete it, then write the correct text
    * - Manages phases of typing, deleting, and pauses for natural effect
    */
+  // This effect intentionally runs once to preserve the staged typewriter sequence.
   useEffect(() => {
     // Texts for the typewriter effect
     const incorrectText = "created manually";
@@ -95,7 +96,7 @@ export const HeroSection: React.FC = () => {
       clearInterval(typeInterval);
       if (pauseTimeout) clearTimeout(pauseTimeout);
     };
-  }, []); // Run once on mount
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- Run once on mount
 
   // Cursor blink effect (only while typing)
   useEffect(() => {
@@ -109,11 +110,11 @@ export const HeroSection: React.FC = () => {
   }, [typingComplete]); // Re-run when typingComplete changes
 
   return (
-    <section className="relative pt-30 pb-20 px-6 overflow-hidden bg-gray-100">
+    <section className="relative overflow-hidden bg-transparent px-6 pt-30 pb-20 text-foreground">
       {/* Light circle blur background animation */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-0 w-96 h-96 bg-cyan-200 rounded-full blur-2xl opacity-30 animate-float-slow" />
-        <div className="absolute -top-10 left-1/2 w-96 h-96 bg-teal-200 rounded-full blur-2xl opacity-20 animate-float-slower" />
+        <div className="absolute top-20 left-0 h-96 w-96 rounded-full bg-primary/12 blur-3xl animate-float-slow" />
+        <div className="absolute -top-10 left-1/2 h-96 w-96 rounded-full bg-primary/8 blur-3xl animate-float-slower" />
       </div>
 
       {/* Header content container */}
@@ -126,13 +127,13 @@ export const HeroSection: React.FC = () => {
           className="text-center mb-12"
         >
           {/* Headline */}
-          <h1 className="text-5xl md:text-7xl font-bold text-slate-900 mb-6 leading-tight">
+          <h1 className="mb-6 text-5xl font-bold leading-tight text-foreground md:text-7xl">
             Your professional story,
             <br />
-            <span className="bg-linear-to-r from-sky-600 via-cyan-600 to-teal-600 bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-primary via-[#1420a0] to-primary bg-clip-text text-transparent">
               {typewriterText}
               {showCursor && (
-                <span className="inline-block w-1 h-[0.9em] bg-linear-to-r from-sky-600 to-cyan-600 ml-1 align-middle animate-pulse" />
+                <span className="ml-1 inline-block h-[0.9em] w-1 animate-pulse bg-linear-to-r from-primary to-[#1420a0] align-middle" />
               )}
             </span>
           </h1>
@@ -142,7 +143,7 @@ export const HeroSection: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: typingComplete ? 1 : 0 }}
             transition={{ duration: 0.6 }}
-            className="text-xl md:text-2xl text-slate-600 mb-10 max-w-3xl mx-auto leading-relaxed"
+            className="mx-auto mb-10 max-w-3xl text-xl leading-relaxed text-muted-foreground md:text-2xl"
           >
             Generate a portfolio that speaks for your craft. AI-crafted
             portfolios with human polish — ready in minutes, customizable to
@@ -165,7 +166,7 @@ export const HeroSection: React.FC = () => {
                   delay: typingComplete ? 0.3 + index * 0.1 : 0,
                   duration: 0.4,
                 }}
-                className="px-4 py-2  text-slate-700  text-sm font-medium  flex flex-row items-center gap-2"
+                className="flex flex-row items-center gap-2 px-4 py-2 text-sm font-medium text-muted-foreground"
               >
                 <div>
                   <FcCheckmark />
@@ -198,7 +199,7 @@ export const HeroSection: React.FC = () => {
             >
               {/* Animated glowing background - outside button */}
               <motion.div
-                className="absolute -inset-1 rounded-xl bg-linear-to-r from-sky-600 via-cyan-600 to-sky-600 blur-md pointer-events-none"
+                className="pointer-events-none absolute -inset-1 rounded-xl bg-linear-to-r from-primary via-[#1420a0] to-primary blur-md"
                 style={{ transformOrigin: "center" }}
                 animate={{
                   opacity: typingComplete ? [0.5, 1, 0.5] : 0,
@@ -215,7 +216,7 @@ export const HeroSection: React.FC = () => {
                 whileHover="hover"
                 whileTap={{ scale: 0.95 }}
                 onClick={() => router.push("/dashboard")}
-                className="group relative px-8 py-4 bg-linear-to-r from-sky-500 to-cyan-500 text-white rounded-xl font-bold flex items-center gap-2 overflow-hidden cursor-pointer shadow-lg shadow-sky-400/40"
+                className="group relative flex cursor-pointer items-center gap-2 overflow-hidden rounded-xl bg-primary px-8 py-4 font-bold text-primary-foreground shadow-lg shadow-primary/25"
               >
                 {/* Idle pulsating glow */}
                 <motion.div
@@ -291,6 +292,14 @@ export const HeroSection: React.FC = () => {
               </motion.div>
             </motion.button>
             </motion.div>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => router.push("/explore")}
+              className="rounded-xl border border-border bg-card px-6 py-4 font-semibold text-card-foreground transition-colors hover:bg-muted"
+            >
+              Explore examples
+            </motion.button>
           </motion.div>
         </motion.div>
 
@@ -318,7 +327,7 @@ export const HeroSection: React.FC = () => {
               {[1, 2, 3, 4, 5].map((i) => (
                 <div
                   key={i}
-                  className="w-10 h-10 rounded-full bg-linear-to-br from-sky-200 to-cyan-300 border-2 border-white flex items-center justify-center text-xs font-bold text-sky-700"
+                  className="w-10 h-10 rounded-full bg-linear-to-br from-[#d8ddff] to-[#a5b2ff] border-2 border-white flex items-center justify-center text-xs font-bold text-[#050a72]"
                 >
                   {String.fromCharCode(64 + i)}
                 </div>

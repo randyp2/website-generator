@@ -19,26 +19,46 @@ interface VideoUploadProps {
     index: number,
     description: string
   ) => void;
+  updatePendingFileSectionHint: (
+    type: "media" | "video",
+    index: number,
+    sectionHint: string
+  ) => void;
   cancelPendingFiles: (type: "media" | "video") => void;
   confirmPendingFiles: (type: "media" | "video") => void;
   handleFileUpload: (
     e: React.ChangeEvent<HTMLInputElement>,
     type: "resume" | "media" | "video"
   ) => void;
+  updateFileSectionHint: (
+    type: "media" | "video",
+    index: number,
+    sectionHint: string
+  ) => void;
 }
 export const VideoUpload: React.FC<VideoUploadProps> = ({
   pendingVideoFiles,
   updatePendingFileTitle,
   updatePendingFileDescription,
+  updatePendingFileSectionHint,
   cancelPendingFiles,
   confirmPendingFiles,
   handleFileUpload,
+  updateFileSectionHint,
 }) => {
 
-   const videoFiles = usePortfolioStore(s => s.mediaFiles);
+   const videoFiles = usePortfolioStore(s => s.videoFiles);
     const updateFileTitle = usePortfolioStore(s => s.updateVideoFileTitle);
     const updateFileDescription = usePortfolioStore(s => s.updateVideoFileDescription);
     const removeFile = usePortfolioStore(s => s.removeVideoFile);
+    const sectionHintOptions = [
+      "hero",
+      "about",
+      "projects",
+      "gallery",
+      "contact",
+      "other",
+    ];
 
   /**
    * STATE: Currently editing video file index
@@ -59,22 +79,22 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 0.3 }}
-      className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200 flex-1 flex flex-col overflow-hidden"
+      transition={{ type: "spring", stiffness: 400, damping: 30, delay: 0.3 }}
+      className="upload-panel relative rounded-2xl p-6 flex-1 flex flex-col"
     >
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 bg-purple-100 rounded-lg">
-          <FiVideo className="w-5 h-5 text-purple-600" />
+      <div className="flex items-center gap-3 mb-4 relative z-10">
+        <div className="upload-panel-icon rounded-lg p-2">
+          <FiVideo className="w-5 h-5" />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Video Clips</h2>
-          <p className="text-sm text-slate-500">MP3, MP4, MOV format</p>
+          <h2 className="upload-panel-title text-xl font-bold">Video Clips</h2>
+          <p className="upload-panel-subtitle text-sm">MP3, MP4, MOV format</p>
         </div>
       </div>
 
       {/* Base Upload Card - Show when no files uploaded and no pending */}
       {videoFiles.length === 0 && pendingVideoFiles.length === 0 && (
-        <label className="flex-1 flex items-center justify-center">
+        <label className="flex-1 flex items-center justify-center relative z-10">
           <input
             type="file"
             accept=".mp3,.mp4,.mov"
@@ -83,14 +103,15 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
             className="hidden"
           />
           <motion.div
-            whileHover={{ scale: 1.01 }}
-            className="border-2 border-dashed border-slate-300 rounded-xl p-8 w-full text-center cursor-pointer hover:border-purple-400 hover:bg-purple-50/50 transition-all"
+            whileHover={{ scale: 1.01, borderColor: "rgba(59, 104, 255, 0.28)", backgroundColor: "rgba(255, 255, 255, 0.98)" }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className="upload-dropzone w-full cursor-pointer rounded-xl p-8 text-center"
           >
-            <FiUpload className="w-12 h-12 text-slate-400 mx-auto mb-3" />
-            <p className="text-slate-700 font-semibold mb-1">
+            <FiUpload className="upload-panel-subtitle w-12 h-12 mx-auto mb-3" />
+            <p className="upload-dropzone-title font-semibold mb-1">
               Click to upload video clips
             </p>
-            <p className="text-sm text-slate-500">
+            <p className="upload-dropzone-copy text-sm">
               Supports MP3, MP4, and MOV files (multiple allowed)
             </p>
           </motion.div>
@@ -99,9 +120,9 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
 
       {/* Title Entry Form - Show when files are pending */}
       {pendingVideoFiles.length > 0 && (
-        <div className="flex flex-col flex-1 min-h-0">
-          <div className="mb-3 pb-2 border-b border-purple-200">
-            <p className="text-sm font-semibold text-slate-700">
+        <div className="flex flex-col flex-1 min-h-0 relative z-10">
+          <div className="upload-divider mb-3 pb-2 border-b">
+            <p className="upload-panel-title text-sm font-semibold">
               Add details for your videos
             </p>
           </div>
@@ -111,21 +132,22 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
                 key={index}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="p-4 bg-purple-50/50 rounded-xl border border-purple-200 space-y-3"
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                className="upload-muted-card p-4 rounded-xl space-y-3"
               >
                 <div className="flex items-start gap-3">
-                  <FiVideo className="w-4 h-4 text-purple-600 mt-1" />
+                  <FiVideo className="upload-panel-subtitle w-4 h-4 mt-1" />
                   <div className="flex-1">
-                    <p className="font-medium text-slate-900 text-sm truncate">
+                    <p className="upload-panel-title font-medium text-sm truncate">
                       {file.name}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="upload-meta text-xs">
                       {formatFileSize(file.size)}
                     </p>
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  <label className="upload-label block text-xs font-semibold mb-1.5">
                     Title
                   </label>
                   <input
@@ -135,11 +157,11 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
                     onChange={(e) =>
                       updatePendingFileTitle("video", index, e.target.value)
                     }
-                    className="w-full px-3 py-2 text-sm bg-white border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="upload-field w-full rounded-lg px-3 py-2 text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  <label className="upload-label block text-xs font-semibold mb-1.5">
                     Description
                   </label>
                   <textarea
@@ -153,35 +175,84 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
                       )
                     }
                     rows={2}
-                    className="w-full px-3 py-2 text-sm bg-white border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                    className="upload-field w-full resize-none rounded-lg px-3 py-2 text-sm"
                   />
+                </div>
+                <div>
+                  <label className="upload-label block text-xs font-semibold mb-1.5">
+                    Section Hint
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <select
+                      value={file.sectionHint || ""}
+                      onChange={(e) =>
+                        updatePendingFileSectionHint(
+                          "video",
+                          index,
+                          e.target.value
+                        )
+                      }
+                      className="upload-field w-full rounded-lg px-3 py-2 text-sm"
+                    >
+                      <option value="">Select a section</option>
+                      {sectionHintOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      placeholder="Custom hint (optional)"
+                      value={
+                        file.sectionHint &&
+                        !sectionHintOptions.includes(file.sectionHint)
+                          ? file.sectionHint
+                          : ""
+                      }
+                      onChange={(e) =>
+                        updatePendingFileSectionHint(
+                          "video",
+                          index,
+                          e.target.value
+                        )
+                      }
+                      className="upload-field w-full rounded-lg px-3 py-2 text-sm"
+                    />
+                  </div>
                 </div>
               </motion.div>
             ))}
           </div>
           <div className="flex gap-3">
-            <button
+            <motion.button
+              whileHover={{ scale: 1.02, backgroundColor: "rgba(255, 255, 255, 0.1)" }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
               onClick={() => cancelPendingFiles("video")}
-              className="flex-1 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg font-semibold hover:bg-slate-200 transition-colors"
+              className="upload-ghost-button flex-1 rounded-lg px-4 py-2 font-semibold"
             >
               Cancel
-            </button>
-            <button
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02, backgroundColor: "rgba(255, 255, 255, 0.15)", boxShadow: "0 0 20px rgba(255, 255, 255, 0.2)" }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
               onClick={() => confirmPendingFiles("video")}
-              className="flex-1 px-4 py-2 bg-purple-500 text-white rounded-lg font-semibold hover:bg-purple-600 transition-colors"
+              className="upload-primary-button flex-1 rounded-lg px-4 py-2 font-semibold"
             >
               Confirm
-            </button>
+            </motion.button>
           </div>
         </div>
       )}
 
       {/* List View - Show when files are stored */}
       {videoFiles.length > 0 && pendingVideoFiles.length === 0 && (
-        <div className="flex flex-col flex-1 min-h-0">
-          <div className="flex items-center justify-between mb-3 pb-2 border-b border-purple-200">
-            <p className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-              <FiCheck className="w-4 h-4 text-purple-600" />
+        <div className="flex flex-col flex-1 min-h-0 relative z-10">
+          <div className="upload-divider flex items-center justify-between mb-3 pb-2 border-b">
+            <p className="upload-panel-title text-sm font-semibold flex items-center gap-2">
+              <FiCheck className="w-4 h-4 text-primary" />
               {videoFiles.length} {videoFiles.length === 1 ? "Video" : "Videos"}{" "}
               Stored
             </p>
@@ -193,9 +264,14 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
                 onChange={(e) => handleFileUpload(e, "video")}
                 className="hidden"
               />
-              <div className="px-3 py-1.5 bg-purple-500 text-white text-xs rounded-lg font-semibold hover:bg-purple-600 transition-colors">
+              <motion.div
+                whileHover={{ scale: 1.05, backgroundColor: "rgba(255, 255, 255, 0.15)", boxShadow: "0 0 15px rgba(255, 255, 255, 0.2)" }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                className="upload-ghost-button rounded-lg px-3 py-1.5 text-xs font-semibold"
+              >
                 + Add More
-              </div>
+              </motion.div>
             </label>
           </div>
           <div className="space-y-2 overflow-y-auto flex-1 pr-2">
@@ -204,23 +280,27 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
                 key={index}
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-purple-50 rounded-lg border border-purple-200 overflow-hidden"
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                className="upload-muted-card rounded-lg overflow-hidden"
               >
                 {editingVideoIndex === index ? (
                   <div className="p-3 space-y-2">
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs font-semibold text-slate-700">
+                      <p className="upload-panel-title text-xs font-semibold">
                         Edit Details
                       </p>
-                      <button
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
                         onClick={() => setEditingVideoIndex(null)}
-                        className="text-xs text-purple-600 hover:text-purple-700 font-semibold"
+                        className="upload-panel-subtitle text-xs font-semibold hover:text-primary"
                       >
                         Done
-                      </button>
+                      </motion.button>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">
+                      <label className="upload-label block text-xs font-medium mb-1">
                         Title
                       </label>
                       <input
@@ -230,11 +310,11 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
                         onChange={(e) =>
                           updateFileTitle(index, e.target.value)
                         }
-                        className="w-full px-2 py-1.5 text-sm bg-white border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        className="upload-field w-full rounded-lg px-2 py-1.5 text-sm"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">
+                      <label className="upload-label block text-xs font-medium mb-1">
                         Description
                       </label>
                       <textarea
@@ -244,43 +324,92 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
                           updateFileDescription(index, e.target.value)
                         }
                         rows={2}
-                        className="w-full px-2 py-1.5 text-sm bg-white border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                        className="upload-field w-full resize-none rounded-lg px-2 py-1.5 text-sm"
                       />
                     </div>
-                    <p className="text-xs text-slate-500 truncate">
+                    <div>
+                      <label className="upload-label block text-xs font-medium mb-1">
+                        Section Hint
+                      </label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <select
+                          value={file.sectionHint || ""}
+                          onChange={(e) =>
+                            updateFileSectionHint(
+                              "video",
+                              index,
+                              e.target.value
+                            )
+                          }
+                          className="upload-field w-full rounded-lg px-2 py-1.5 text-sm"
+                        >
+                          <option value="">Select a section</option>
+                          {sectionHintOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="text"
+                          placeholder="Custom hint (optional)"
+                          value={
+                            file.sectionHint &&
+                            !sectionHintOptions.includes(file.sectionHint)
+                              ? file.sectionHint
+                              : ""
+                          }
+                          onChange={(e) =>
+                            updateFileSectionHint(
+                              "video",
+                              index,
+                              e.target.value
+                            )
+                          }
+                          className="upload-field w-full rounded-lg px-2 py-1.5 text-sm"
+                        />
+                      </div>
+                    </div>
+                    <p className="upload-meta text-xs truncate">
                       {file.name} • {formatFileSize(file.size)}
                     </p>
                   </div>
                 ) : (
                   <div className="p-3 flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-slate-900 text-sm">
+                      <p className="upload-panel-title font-semibold text-sm">
                         {file.title || "Untitled"}
                       </p>
                       {file.description && (
-                        <p className="text-xs text-slate-600 mt-0.5 line-clamp-1">
+                        <p className="upload-panel-subtitle text-xs mt-0.5 line-clamp-1">
                           {file.description}
                         </p>
                       )}
-                      <p className="text-xs text-slate-500 mt-1 truncate">
+                      <p className="upload-meta text-xs mt-1 truncate">
                         {file.name} • {formatFileSize(file.size)}
                       </p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <button
+                      <motion.button
+                        whileHover={{ scale: 1.1, backgroundColor: "rgba(255, 255, 255, 0.15)" }}
+                        whileTap={{ scale: 0.9 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
                         onClick={() => setEditingVideoIndex(index)}
-                        className="p-1.5 hover:bg-purple-100 rounded-lg transition-colors group"
+                        className="p-1.5 rounded-lg group"
                         title="Edit details"
                       >
-                        <FiEdit2 className="w-3.5 h-3.5 text-slate-600 group-hover:text-purple-600" />
-                      </button>
-                      <button
+                        <FiEdit2 className="upload-panel-subtitle w-3.5 h-3.5 group-hover:text-primary" />
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.1, backgroundColor: "rgba(239, 68, 68, 0.15)" }}
+                        whileTap={{ scale: 0.9 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
                         onClick={() => removeFile(index)}
-                        className="p-1.5 hover:bg-red-100 rounded-lg transition-colors group"
+                        className="p-1.5 rounded-lg group"
                         title="Delete video"
                       >
-                        <FiX className="w-4 h-4 text-slate-600 group-hover:text-red-600" />
-                      </button>
+                        <FiX className="upload-panel-subtitle w-4 h-4 group-hover:text-red-500" />
+                      </motion.button>
                     </div>
                   </div>
                 )}

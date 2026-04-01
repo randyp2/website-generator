@@ -6,18 +6,18 @@ import { FiUpload, FiCpu, FiEye, FiDownload, FiFileText, FiZap, FiCheckCircle, F
 
 // Visual Component for Step 1 - Upload Interface with Drag Animation
 const UploadVisual: React.FC = () => (
-    <div className="relative bg-linear-to-br from-slate-50 to-slate-100 rounded-2xl p-8 border-2 border-dashed border-slate-300 h-full min-h-[350px] flex flex-col items-center justify-center overflow-hidden">
+    <div className="relative flex h-full min-h-[350px] flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-border bg-linear-to-br from-card to-muted p-8">
         {/* Drop Zone Content */}
         <div className="text-center relative z-10">
-            <div className="w-20 h-20 bg-linear-to-br from-cyan-500 to-teal-500 rounded-2xl flex items-center justify-center text-white mb-6 mx-auto shadow-xl">
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-xl shadow-primary/20">
                 <FiUpload className="w-10 h-10" />
             </div>
-            <p className="text-slate-700 font-semibold mb-2 text-lg">Drop your resume here</p>
-            <p className="text-slate-500 text-sm mb-4">or click to browse</p>
+            <p className="mb-2 text-lg font-semibold text-card-foreground">Drop your resume here</p>
+            <p className="mb-4 text-sm text-muted-foreground">or click to browse</p>
             <div className="flex gap-2 justify-center flex-wrap">
-                <span className="px-3 py-1 bg-white rounded-full text-xs text-slate-600 border border-slate-200">PDF</span>
-                <span className="px-3 py-1 bg-white rounded-full text-xs text-slate-600 border border-slate-200">DOCX</span>
-                <span className="px-3 py-1 bg-white rounded-full text-xs text-slate-600 border border-slate-200">TXT</span>
+                <span className="rounded-full border border-border bg-background px-3 py-1 text-xs text-muted-foreground">PDF</span>
+                <span className="rounded-full border border-border bg-background px-3 py-1 text-xs text-muted-foreground">DOCX</span>
+                <span className="rounded-full border border-border bg-background px-3 py-1 text-xs text-muted-foreground">TXT</span>
             </div>
         </div>
 
@@ -33,12 +33,12 @@ const UploadVisual: React.FC = () => (
                     repeat: Infinity,
                     ease: "easeInOut"
                 }}
-                className="bg-white rounded-lg shadow-2xl p-4 border-2 border-cyan-200"
+                className="rounded-lg border-2 border-primary/20 bg-background p-4 shadow-2xl"
             >
-                <FiFileText className="w-8 h-8 text-cyan-600 mb-2" />
+                <FiFileText className="mb-2 h-8 w-8 text-primary" />
                 <div className="text-left">
-                    <p className="text-xs font-semibold text-slate-700">resume.pdf</p>
-                    <p className="text-xs text-slate-500">2.4 MB</p>
+                    <p className="text-xs font-semibold text-card-foreground">resume.pdf</p>
+                    <p className="text-xs text-muted-foreground">2.4 MB</p>
                 </div>
             </motion.div>
         </div>
@@ -62,19 +62,19 @@ const UploadVisual: React.FC = () => (
 
 // Visual Component for Step 2 - AI Chat/Prompting Interface
 const AIProcessingVisual: React.FC = () => (
-    <div className="relative bg-linear-to-br from-cyan-50 to-teal-50 rounded-2xl p-6 h-full min-h-[400px] overflow-hidden">
+    <div className="relative h-full min-h-[400px] overflow-hidden rounded-2xl bg-linear-to-br from-card to-muted p-6">
         {/* Chat Interface Container */}
-        <div className="bg-white rounded-xl shadow-lg h-full flex flex-col overflow-hidden border border-cyan-100">
+        <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-background shadow-lg">
             {/* Chat Header */}
-            <div className="bg-linear-to-r from-cyan-500 to-teal-500 px-4 py-3 flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+            <div className="flex items-center gap-3 bg-primary px-4 py-3 text-primary-foreground">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
                     <FiCpu className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex-1">
-                    <h4 className="text-white font-semibold text-sm">AI Portfolio Assistant</h4>
+                    <h4 className="text-sm font-semibold">AI Portfolio Assistant</h4>
                     <div className="flex items-center gap-1.5">
                         <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                        <span className="text-white/80 text-xs">Active</span>
+                        <span className="text-xs text-primary-foreground/80">Active</span>
                     </div>
                 </div>
             </div>
@@ -89,7 +89,7 @@ const AIProcessingVisual: React.FC = () => (
                     transition={{ delay: 0.3, duration: 0.4 }}
                     className="flex justify-end"
                 >
-                    <div className="bg-linear-to-br from-cyan-500 to-teal-500 text-white rounded-2xl rounded-tr-sm px-4 py-2.5 max-w-[80%] shadow-md">
+                    <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-primary px-4 py-2.5 text-primary-foreground shadow-md">
                         <p className="text-xs leading-relaxed">
                             Make my bio more professional and highlight my leadership skills
                         </p>
@@ -104,16 +104,16 @@ const AIProcessingVisual: React.FC = () => (
                     transition={{ delay: 0.5, duration: 0.4 }}
                     className="flex justify-start"
                 >
-                    <div className="bg-slate-100 text-slate-700 rounded-2xl rounded-tl-sm px-4 py-2.5 max-w-[85%] shadow-sm border border-slate-200">
+                    <div className="max-w-[85%] rounded-2xl rounded-tl-sm border border-border bg-muted px-4 py-2.5 text-card-foreground shadow-sm">
                         <div className="flex items-start gap-2 mb-2">
-                            <FiZap className="w-3.5 h-3.5 text-cyan-600 mt-0.5 shrink-0" />
+                            <FiZap className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
                             <p className="text-xs leading-relaxed">
-                                I've enhanced your bio to emphasize strategic leadership and team management. Here's the updated version:
+                                I&apos;ve enhanced your bio to emphasize strategic leadership and team management. Here&apos;s the updated version:
                             </p>
                         </div>
-                        <div className="bg-white rounded-lg p-2.5 text-xs border border-slate-200">
-                            <p className="text-slate-600 italic leading-relaxed">
-                                "Visionary leader with 8+ years driving cross-functional teams..."
+                        <div className="rounded-lg border border-border bg-background p-2.5 text-xs">
+                            <p className="italic leading-relaxed text-muted-foreground">
+                                &quot;Visionary leader with 8+ years driving cross-functional teams...&quot;
                             </p>
                         </div>
                     </div>
@@ -127,7 +127,7 @@ const AIProcessingVisual: React.FC = () => (
                     transition={{ delay: 0.7, duration: 0.4 }}
                     className="flex justify-end"
                 >
-                    <div className="bg-linear-to-br from-cyan-500 to-teal-500 text-white rounded-2xl rounded-tr-sm px-4 py-2.5 max-w-[80%] shadow-md">
+                    <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-primary px-4 py-2.5 text-primary-foreground shadow-md">
                         <p className="text-xs leading-relaxed">
                             Perfect! Can you suggest better project descriptions?
                         </p>
@@ -142,25 +142,25 @@ const AIProcessingVisual: React.FC = () => (
                     transition={{ delay: 0.9, duration: 0.4 }}
                     className="flex justify-start"
                 >
-                    <div className="bg-slate-100 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm border border-slate-200 flex items-center gap-2">
+                    <div className="flex items-center gap-2 rounded-2xl rounded-tl-sm border border-border bg-muted px-4 py-3 shadow-sm">
                         <div className="flex gap-1">
                             <motion.div
                                 animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
                                 transition={{ duration: 1, repeat: Infinity, delay: 0 }}
-                                className="w-2 h-2 bg-cyan-500 rounded-full"
+                                className="w-2 h-2 rounded-full bg-primary"
                             />
                             <motion.div
                                 animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
                                 transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
-                                className="w-2 h-2 bg-cyan-500 rounded-full"
+                                className="w-2 h-2 rounded-full bg-primary"
                             />
                             <motion.div
                                 animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
                                 transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
-                                className="w-2 h-2 bg-cyan-500 rounded-full"
+                                className="w-2 h-2 rounded-full bg-primary"
                             />
                         </div>
-                        <span className="text-xs text-slate-500">Analyzing your projects...</span>
+                        <span className="text-xs text-muted-foreground">Analyzing your projects...</span>
                     </div>
                 </motion.div>
             </div>
@@ -171,16 +171,16 @@ const AIProcessingVisual: React.FC = () => (
                 whileInView={{ y: 0, opacity: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: 1.1, duration: 0.4 }}
-                className="border-t border-slate-200 p-3 bg-slate-50"
+                className="border-t border-border bg-card p-3"
             >
-                <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border border-slate-200">
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2">
                     <input
                         type="text"
                         placeholder="Ask AI to refine your portfolio..."
-                        className="flex-1 text-xs text-slate-600 placeholder-slate-400 outline-none bg-transparent"
+                        className="flex-1 bg-transparent text-xs text-card-foreground placeholder:text-muted-foreground outline-none"
                         disabled
                     />
-                    <div className="w-7 h-7 bg-linear-to-br from-cyan-500 to-teal-500 rounded-lg flex items-center justify-center shadow-sm">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary shadow-sm">
                         <FiSend className="w-3.5 h-3.5 text-white" />
                     </div>
                 </div>
@@ -193,13 +193,13 @@ const AIProcessingVisual: React.FC = () => (
             whileInView={{ x: 0, opacity: 1 }}
             viewport={{ once: true }}
             transition={{ delay: 1.3, duration: 0.5 }}
-            className="absolute -left-2 top-1/4 bg-white rounded-lg shadow-xl p-2.5 border border-cyan-200 max-w-[140px]"
+            className="absolute -left-2 top-1/4 max-w-[140px] rounded-lg border border-border bg-background p-2.5 shadow-xl"
         >
             <div className="flex items-start gap-2">
-                <FiCheckCircle className="w-3.5 h-3.5 text-green-500 mt-0.5 shrink-0" />
+                <FiCheckCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-green-500" />
                 <div>
-                    <p className="text-xs font-semibold text-slate-700">Smart Suggestions</p>
-                    <p className="text-xs text-slate-500 mt-0.5">AI-powered refinements</p>
+                    <p className="text-xs font-semibold text-card-foreground">Smart Suggestions</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">AI-powered refinements</p>
                 </div>
             </div>
         </motion.div>
@@ -208,7 +208,7 @@ const AIProcessingVisual: React.FC = () => (
 
 // Visual Component for Step 3 - Customization
 const CustomizationVisual: React.FC = () => (
-    <div className="relative bg-linear-to-br from-cyan-50 to-teal-50 rounded-2xl p-6 h-full min-h-[300px]">
+    <div className="relative rounded-2xl bg-linear-to-br from-[#eef1ff] to-[#dbe3ff] p-6 h-full min-h-[300px]">
         {/* Mini Portfolio Preview */}
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -233,7 +233,7 @@ const CustomizationVisual: React.FC = () => (
             {/* Mock Portfolio Content */}
             <div className="p-4 space-y-3">
                 <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-linear-to-br from-cyan-400 to-teal-400 rounded-full flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-linear-to-br from-[#2f44d4] to-[#050a72] flex items-center justify-center">
                         <FiUser className="w-6 h-6 text-white" />
                     </div>
                     <div className="flex-1">
@@ -249,10 +249,10 @@ const CustomizationVisual: React.FC = () => (
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                    <div className="h-6 bg-linear-to-r from-cyan-500 to-teal-500 rounded px-3 flex items-center text-xs text-white">
+                    <div className="h-6 rounded bg-linear-to-r from-[#2f44d4] to-[#050a72] px-3 flex items-center text-xs text-white">
                         Project 1
                     </div>
-                    <div className="h-6 bg-linear-to-r from-cyan-500 to-teal-500 rounded px-3 flex items-center text-xs text-white">
+                    <div className="h-6 rounded bg-linear-to-r from-[#2f44d4] to-[#050a72] px-3 flex items-center text-xs text-white">
                         Project 2
                     </div>
                 </div>
@@ -271,7 +271,7 @@ const CustomizationVisual: React.FC = () => (
             <div className="flex gap-2">
                 <motion.div
                     whileHover={{ scale: 1.2 }}
-                    className="w-6 h-6 rounded-full bg-linear-to-br from-cyan-500 to-teal-500 border-2 border-white shadow-md cursor-pointer"
+                    className="h-6 w-6 cursor-pointer rounded-full border-2 border-white bg-linear-to-br from-[#2f44d4] to-[#050a72] shadow-md"
                 />
                 <motion.div
                     whileHover={{ scale: 1.2 }}
@@ -300,7 +300,7 @@ const CustomizationVisual: React.FC = () => (
 
 // Visual Component for Step 4 - Deploy
 const DeployVisual: React.FC = () => (
-    <div className="relative bg-linear-to-br from-cyan-50 to-teal-50 rounded-2xl p-8 h-full min-h-[300px] flex flex-col items-center justify-center">
+    <div className="relative rounded-2xl bg-linear-to-br from-[#eef1ff] to-[#dbe3ff] p-8 h-full min-h-[300px] flex flex-col items-center justify-center">
         <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             whileInView={{ scale: 1, opacity: 1 }}
@@ -312,7 +312,7 @@ const DeployVisual: React.FC = () => (
             <motion.div
                 animate={{ y: [0, -10, 0] }}
                 transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                className="w-20 h-20 bg-linear-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center text-white mb-6 mx-auto shadow-xl"
+                className="mb-6 mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-linear-to-br from-[#2f44d4] to-[#050a72] text-white shadow-xl"
             >
                 <FiZap className="w-10 h-10" />
             </motion.div>
@@ -336,7 +336,7 @@ const DeployVisual: React.FC = () => (
             <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="bg-linear-to-r from-blue-500 to-cyan-500 text-white px-6 py-2.5 rounded-lg font-semibold text-sm shadow-lg flex items-center gap-2 mx-auto"
+                className="mx-auto flex items-center gap-2 rounded-lg bg-linear-to-r from-[#2f44d4] to-[#050a72] px-6 py-2.5 text-sm font-semibold text-white shadow-lg"
             >
                 <FiSend className="w-4 h-4" />
                 Deploy Now
@@ -372,7 +372,7 @@ const DeployVisual: React.FC = () => (
                     repeat: Infinity,
                     ease: "easeInOut",
                 }}
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-blue-400 rounded-full blur-3xl"
+                className="absolute top-1/2 left-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#2f44d4] blur-3xl"
             />
         </div>
     </div>
@@ -471,14 +471,14 @@ const steps = [
 
 export const FeatureSection: React.FC = () => {
     return (
-        <section className="py-20 px-6 bg-linear-to-b from-white to-slate-50">
+        <section className="bg-transparent px-6 py-20 text-foreground">
             <div className="max-w-7xl mx-auto">
                 {/* Section Header */}
                 <div className="text-center mb-16">
-                    <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4">
+                    <h2 className="mb-4 text-4xl font-bold text-foreground md:text-5xl">
                         How It Works
                     </h2>
-                    <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                    <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
                         Four simple steps to create your professional portfolio.
                         No coding, no complexity—just results.
                     </p>
@@ -488,8 +488,9 @@ export const FeatureSection: React.FC = () => {
                 <div className="space-y-20">
                     {steps.map((step, index) => (
                         <div key={index} className="relative">
+                            <div className="pointer-events-none absolute -inset-x-6 -inset-y-8 hidden rounded-[2rem] bg-linear-to-br from-[#050a72]/14 via-[#050a72]/6 to-transparent blur-2xl dark:block" />
                             {/* Main Content Grid */}
-                            <div className="grid lg:grid-cols-2 gap-8">
+                            <div className="relative grid gap-8 lg:grid-cols-2">
                                 {/* Left Side - Visual Component */}
                                 <div className={`${index % 2 === 0 ? 'lg:order-1' : 'lg:order-2'} h-[500px]`}>
                                     <div className="h-full">
@@ -502,15 +503,15 @@ export const FeatureSection: React.FC = () => {
                                     {/* Step Number & Title */}
                                     <div className="relative shrink-0">
                                         {/* Large Background Step Number - More visible */}
-                                        <div className="text-[180px] font-black text-transparent bg-clip-text bg-linear-to-br from-cyan-400 to-teal-500 opacity-20 leading-none mb-4">
+                                        <div className="mb-4 bg-linear-to-br from-[#9eb6ff] to-[#4d68ff] bg-clip-text text-[180px] leading-none text-transparent opacity-30 dark:from-[#c8d4ff] dark:to-[#6b83ff] dark:opacity-24">
                                             {step.step}
                                         </div>
 
                                         <div className="absolute top-8 left-0 right-0">
-                                            <h3 className="text-3xl lg:text-4xl font-bold text-slate-900 mb-4">
+                                            <h3 className="mb-4 text-3xl font-bold text-foreground lg:text-4xl">
                                                 {step.title}
                                             </h3>
-                                            <p className="text-lg text-slate-600">
+                                            <p className="text-lg text-muted-foreground">
                                                 {step.description}
                                             </p>
                                         </div>
@@ -520,13 +521,13 @@ export const FeatureSection: React.FC = () => {
                                     <div className="grow min-h-20"></div>
 
                                     {/* Highlights */}
-                                    <div className="bg-white rounded-2xl p-6 shadow-md border border-slate-100 space-y-4 shrink-0">
+                                    <div className="shrink-0 space-y-4 rounded-2xl border border-border bg-card p-6 shadow-md dark:border-[#050a72]/40 dark:bg-linear-to-br dark:from-[#07103a]/92 dark:via-[#08112b]/90 dark:to-[#050915]/96 dark:shadow-[0_24px_60px_rgba(5,10,114,0.22)]">
                                         {step.highlights.map((highlight, hIndex) => (
                                             <div key={hIndex} className="flex items-center gap-3">
-                                                <div className="w-8 h-8 bg-linear-to-br from-cyan-50 to-teal-50 rounded-lg flex items-center justify-center text-cyan-600 shrink-0">
+                                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary dark:bg-[#050a72]/28 dark:text-[#d8ddff]">
                                                     {highlight.icon}
                                                 </div>
-                                                <span className="text-slate-700 font-medium">
+                                                <span className="font-medium text-card-foreground">
                                                     {highlight.text}
                                                 </span>
                                             </div>
@@ -537,16 +538,16 @@ export const FeatureSection: React.FC = () => {
 
                             {/* Why it's better - Centered below both columns */}
                             <div className="mt-8 lg:mx-auto lg:max-w-4xl">
-                                <div className="bg-linear-to-br from-cyan-50 to-teal-50 rounded-2xl p-6 border border-cyan-100 shadow-md">
+                                <div className="rounded-2xl border border-primary/15 bg-linear-to-br from-card to-muted p-6 shadow-md dark:border-[#050a72]/35 dark:from-[#07103a]/90 dark:via-[#0a1332]/88 dark:to-[#050915]/95 dark:shadow-[0_20px_52px_rgba(5,10,114,0.2)]">
                                     <div className="flex items-start gap-3">
-                                        <div className="w-6 h-6 bg-linear-to-br from-cyan-500 to-teal-500 rounded-full flex items-center justify-center text-white shrink-0 mt-0.5">
+                                        <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground dark:bg-[#050a72]">
                                             <span className="text-xs font-bold">!</span>
                                         </div>
                                         <div>
-                                            <p className="text-sm font-bold text-cyan-700 mb-1.5">
+                                            <p className="mb-1.5 text-sm font-bold text-primary">
                                                 WHY IT MATTERS
                                             </p>
-                                            <p className="text-slate-700 leading-relaxed">
+                                            <p className="leading-relaxed text-card-foreground">
                                                 {step.why}
                                             </p>
                                         </div>
@@ -562,7 +563,7 @@ export const FeatureSection: React.FC = () => {
                                         whileInView={{ scaleY: 1 }}
                                         viewport={{ once: true }}
                                         transition={{ delay: 0.5, duration: 0.8 }}
-                                        className="w-0.5 h-12 bg-linear-to-b from-cyan-300 via-teal-300 to-transparent origin-top"
+                                        className="h-12 w-0.5 origin-top bg-linear-to-b from-primary/60 via-primary/30 to-transparent"
                                     />
                                 </div>
                             )}

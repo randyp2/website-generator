@@ -1,0 +1,1 @@
+export { MobilePortfolioMockup } from "./MobilePortfolioMockup"

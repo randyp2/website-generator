@@ -1,0 +1,43 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16 # Version of postgres to use
+    container_name: portrn-postgres
+    restart: always # Restart if container crashes
+    environment:
+      POSTGRES_USER: portrn
+      POSTGRES_PASSWORD: portrn
+      POSTGRES_DB: portrn_dev
+    ports:
+      - "5433:5432" # Expose port 5433 and reroute it to 5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # persist db data between restarts
+
+  redis:
+    image: redis:7 # Version of redis
+    container_name: portrn-redis
+    restart: always # Restart if container crashes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data # persist db
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: portrn-rabbitmq
+    restart: always
+    ports:
+      - "5672:5672" # app connection
+      - "15672:15672" # dashboard UI
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:
+

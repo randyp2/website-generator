@@ -1,16 +1,24 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
+import { Toaster } from "@/components/ui/toaster";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 
 
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const interSans = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const sourceSerif = Source_Serif_4({
+  variable: "--font-source-serif-4",
+  subsets: ["latin"],
+});
+
+const jetBrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
   subsets: ["latin"],
 });
 
@@ -59,37 +67,41 @@ export const metadata: Metadata = {
 
 };
 
-<script
-  type="application/ld+json" // Not executable script tag
-
-  dangerouslySetInnerHTML={{
-    __html: JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "SiteNavigationElement",
-      "name": ["Home", "About", "Pricing", "Contact"],
-      "url": [
-        // Modify laters
-        "https://yourdomain.com/",
-        "https://yourdomain.com/about",
-        "https://yourdomain.com/pricing",
-        "https://yourdomain.com/contact"
-      ]
-    }),
-  }}
-/>
-
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} overflow-x-hidden relative flex flex-col min-h-screen bg-linear-to-br from-white via-slate-50 to-cyan-100/20`}
+        className={`${interSans.variable} ${sourceSerif.variable} ${jetBrainsMono.variable} font-sans overflow-x-hidden relative flex flex-col min-h-screen bg-background text-foreground`}
       >
-        {children}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <Script
+            id="site-nav-structured-data"
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "SiteNavigationElement",
+                name: ["Home", "Pricing", "Contact"],
+                url: [
+                  "https://yourdomain.com/",
+                  "https://yourdomain.com/pricing",
+                  "https://yourdomain.com/contact",
+                ],
+              }),
+            }}
+          />
+          {children}
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -1,0 +1,38 @@
+package com.webgen.webgen_backend.controller;
+
+import com.webgen.webgen_backend.entity.Portfolio;
+import com.webgen.webgen_backend.repository.PortfolioRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/api/debug")
+@RequiredArgsConstructor
+public class DebugController {
+
+    private final PortfolioRepository portfolioRepository;
+
+    @PostMapping("/create")
+    public Portfolio create() {
+        Portfolio p = new Portfolio();
+        p.setId(UUID.randomUUID());
+        p.setUserId(UUID.randomUUID());
+        p.setTitle("Test portfolio");
+        p.setLastStep("template");
+        p.setStyleChatHistory(new ArrayList<>());
+
+        return portfolioRepository.save(p); // Insert
+    }
+
+    @GetMapping("/all")
+    public List<Portfolio> getAll() {
+        return portfolioRepository.findAll();
+    }
+}

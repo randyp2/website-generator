@@ -18,13 +18,11 @@ import { signup } from "@/lib/auth-actions";
 interface SignUpFormProps {
   state: AuthFormState;
   dispatch: React.Dispatch<AuthFormAction>;
-  onSubmit: (e: React.FormEvent) => void;
 }
 
 const SignUpForm: React.FC<SignUpFormProps> = ({
   state,
   dispatch,
-  onSubmit,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -40,40 +38,40 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
     >
       {/* Full Name */}
       <div>
-        <label className="block text-sm font-semibold text-slate-700 mb-2">
+        <label className="block text-sm font-semibold text-gray-300 mb-2">
           Full Name
         </label>
         <div className="relative">
-          <FiUser className="absolute left-4 top-1/4 -translate-y-1/2 text-slate-400 w-5 h-5" />
+          <FiUser className="absolute left-4 top-1/4 -translate-y-1/2 text-gray-500 w-5 h-5" />
           <input
             type="text"
-            name="first-name" 
+            name="first-name"
             placeholder="First Name"
             required
-            className="w-full bg-white border-2 border-slate-200 rounded-xl pl-12 pr-4 py-3 text-slate-900 focus:outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-400/10 transition-all"
+            className="w-full bg-[#0a0a0a]/50 border-2 border-white/10 rounded-xl pl-12 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#0084ff] focus:ring-4 focus:ring-[#0084ff]/10 transition-all"
           />
-          <FiUser className="absolute left-4 top-3/4 -translate-y-1/2 text-slate-400 w-5 h-5" />
+          <FiUser className="absolute left-4 top-3/4 -translate-y-1/2 text-gray-500 w-5 h-5" />
           <input
             type="text"
-            name="last-name" 
+            name="last-name"
             placeholder="Last Name"
             required
-            className="w-full bg-white border-2 border-slate-200 rounded-xl pl-12 pr-4 py-3 mt-3 text-slate-900 focus:outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-400/10 transition-all"
+            className="w-full bg-[#0a0a0a]/50 border-2 border-white/10 rounded-xl pl-12 pr-4 py-3 mt-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#0084ff] focus:ring-4 focus:ring-[#0084ff]/10 transition-all"
           />
         </div>
       </div>
 
       {/* Email */}
       <div>
-        <label className="block text-sm font-semibold text-slate-700 mb-2">
+        <label className="block text-sm font-semibold text-gray-300 mb-2">
           Email Address
         </label>
         <div className="relative">
-          <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+          <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
           <input
             type="email"
             name="email"
-            className="w-full bg-white border-2 border-slate-200 rounded-xl pl-12 pr-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-400/10 transition-all"
+            className="w-full bg-[#0a0a0a]/50 border-2 border-white/10 rounded-xl pl-12 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#0084ff] focus:ring-4 focus:ring-[#0084ff]/10 transition-all"
             placeholder="you@example.com"
             required
           />
@@ -82,11 +80,11 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
 
       {/* Password */}
       <div>
-        <label className="block text-sm font-semibold text-slate-700 mb-2">
+        <label className="block text-sm font-semibold text-gray-300 mb-2">
           Password
         </label>
         <div className="relative">
-          <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+          <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
           <input
             type={showPassword ? "text" : "password"}
             name="password"
@@ -98,14 +96,14 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
                 payload: e.target.value,
               })
             }
-            className="w-full bg-white border-2 border-slate-200 rounded-xl pl-12 pr-12 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-400/10 transition-all"
+            className="w-full bg-[#0a0a0a]/50 border-2 border-white/10 rounded-xl pl-12 pr-12 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#0084ff] focus:ring-4 focus:ring-[#0084ff]/10 transition-all"
             placeholder="••••••••"
             required
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
           >
             {showPassword ? (
               <FiEyeOff className="w-5 h-5" />
@@ -118,11 +116,11 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
 
       {/* Confirm Password */}
       <div>
-        <label className="block text-sm font-semibold text-slate-700 mb-2">
+        <label className="block text-sm font-semibold text-gray-300 mb-2">
           Confirm Password
         </label>
         <div className="relative">
-          <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+          <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
           <input
             type={showConfirmPassword ? "text" : "password"}
             value={state.confirmPassword}
@@ -133,14 +131,14 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
                 payload: e.target.value,
               })
             }
-            className="w-full bg-white border-2 border-slate-200 rounded-xl pl-12 pr-12 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-400/10 transition-all"
+            className="w-full bg-[#0a0a0a]/50 border-2 border-white/10 rounded-xl pl-12 pr-12 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#0084ff] focus:ring-4 focus:ring-[#0084ff]/10 transition-all"
             placeholder="••••••••"
             required
           />
           <button
             type="button"
             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
           >
             {showConfirmPassword ? (
               <FiEyeOff className="w-5 h-5" />
@@ -159,25 +157,25 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
               type="checkbox"
               checked={state.agreedToTerms}
               onChange={() => dispatch({ type: "TOGGLE_TERMS" })}
-              className="w-5 h-5 text-sky-600 border-2 border-slate-300 rounded focus:ring-sky-500 focus:ring-2"
+              className="w-5 h-5 text-[#0084ff] border-2 border-gray-600 bg-[#0a0a0a]/50 rounded focus:ring-[#0084ff] focus:ring-2"
               required
             />
             {state.agreedToTerms && (
               <FiCheck className="w-3 h-3 text-white absolute pointer-events-none" />
             )}
           </div>
-          <span className="text-sm text-slate-600 leading-relaxed">
+          <span className="text-sm text-gray-400 leading-relaxed">
             I agree to the{" "}
             <a
               href="#"
-              className="text-sky-600 hover:text-sky-700 font-medium"
+              className="text-[#0084ff] hover:text-[#0066cc] font-medium"
             >
               Terms of Service
             </a>{" "}
             and{" "}
             <a
               href="#"
-              className="text-sky-600 hover:text-sky-700 font-medium"
+              className="text-[#0084ff] hover:text-[#0066cc] font-medium"
             >
               Privacy Policy
             </a>
@@ -190,7 +188,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         type="submit"
-        className="w-full px-6 py-3.5 bg-linear-to-r from-sky-500 to-cyan-500 text-white rounded-xl font-bold shadow-lg shadow-sky-400/30 hover:shadow-xl hover:shadow-sky-500/40 transition-all flex items-center justify-center gap-2 mt-6"
+        className="w-full px-6 py-3.5 bg-[#0084ff] hover:bg-[#0066cc] text-white rounded-xl font-bold shadow-lg shadow-[#0084ff]/30 hover:shadow-xl hover:shadow-[#0084ff]/40 transition-all flex items-center justify-center gap-2 mt-6"
       >
         Create Account
         <FiArrowRight className="w-5 h-5" />

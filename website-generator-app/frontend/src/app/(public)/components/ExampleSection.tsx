@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import router from "next/router";
 import React from "react";
 import { FiArrowRight, FiZap } from "react-icons/fi";
 
@@ -32,13 +31,13 @@ export const ExampleSection: React.FC = () => {
     const router = useRouter(); 
     
     return (
-        <section className="py-20 px-6 bg-gray-100">
+        <section className="bg-transparent px-6 py-20 text-foreground">
             <div className="max-w-6xl mx-auto">
                 <div className="text-center mb-16">
-                    <h2 className="text-4xl font-bold text-slate-900 mb-4">
+                    <h2 className="mb-4 text-4xl font-bold text-foreground">
                         Portfolio Examples
                     </h2>
-                    <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                    <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
                         See what our AI can create for you — each portfolio is unique,
                         professional, and ready to impress.
                     </p>
@@ -54,24 +53,25 @@ export const ExampleSection: React.FC = () => {
                                 y: -12,
                                 rotate: index % 2 === 0 ? 2 : -2,
                             }}
-                            className="group relative bg-white rounded-2xl overflow-hidden shadow-lg border border-slate-100 hover:shadow-2xl hover:border-cyan-200 transition-shadow cursor-pointer"
+                            className="group relative cursor-pointer overflow-hidden rounded-2xl border border-border bg-card shadow-lg transition-shadow hover:border-primary/30 hover:shadow-2xl dark:border-[#050a72]/35 dark:bg-linear-to-br dark:from-[#081038]/92 dark:via-[#09122f]/88 dark:to-[#050915]/96 dark:shadow-[0_24px_60px_rgba(5,10,114,0.24)]"
                         >
+                            <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-linear-to-b from-[#050a72]/18 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 dark:block" />
                             <div
                                 className={`h-48 bg-linear-to-br ${example.gradient} flex items-center justify-center relative`}
                             >
-                                <div className="absolute inset-0 bg-white/30 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <span className="text-slate-700 font-semibold flex items-center gap-2">
+                                <div className="absolute inset-0 flex items-center justify-center bg-background/35 opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 dark:bg-[#050915]/52">
+                                    <span className="flex items-center gap-2 font-semibold text-foreground">
                                         View Portfolio <FiArrowRight />
                                     </span>
                                 </div>
                             </div>
                             <div className="p-6">
-                                <h3 className="text-xl font-semibold text-slate-900 mb-1">
+                                <h3 className="mb-1 text-xl font-semibold text-card-foreground">
                                     {example.name}
                                 </h3>
-                                <p className="text-slate-600 text-sm mb-3">{example.role}</p>
-                                <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-full text-xs font-medium text-slate-700">
-                                    <FiZap className="w-3 h-3 text-cyan-500" />
+                                <p className="mb-3 text-sm text-muted-foreground">{example.role}</p>
+                                <div className="inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs font-medium text-card-foreground dark:bg-[#050a72]/20 dark:text-[#dfe8ff]">
+                                    <FiZap className="h-3 w-3 text-primary dark:text-[#d8ddff]" />
                                     {example.theme}
                                 </div>
                             </div>
@@ -83,8 +83,8 @@ export const ExampleSection: React.FC = () => {
                     <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => router.push("/examples")}
-                        className="px-8 py-3 bg-white text-slate-700 rounded-xl font-semibold border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all hover:cursor-pointer"
+                        onClick={() => router.push("/explore")}
+                        className="rounded-xl border border-border bg-card px-8 py-3 font-semibold text-card-foreground transition-all hover:cursor-pointer hover:border-primary/30 hover:shadow-md dark:border-[#050a72]/35 dark:bg-linear-to-br dark:from-[#081038]/92 dark:to-[#050915]/96 dark:shadow-[0_20px_44px_rgba(5,10,114,0.18)]"
                     >
                         View All Examples
                     </motion.button>

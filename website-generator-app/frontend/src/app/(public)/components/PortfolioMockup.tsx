@@ -57,7 +57,7 @@ export const PortfolioMockup: React.FC = () => {
                                         initial={{ opacity: 0, scale: 0.8 }}
                                         animate={{ opacity: 1, scale: 1 }}
                                         exit={{ opacity: 0, scale: 0.8 }}
-                                        className="absolute -inset-3 bg-linear-to-r from-cyan-400/30 to-sky-400/30 rounded-full blur-2xl"
+                                        className="absolute -inset-3 rounded-full bg-linear-to-r from-[#050a72]/28 to-[#1420a0]/28 blur-2xl"
                                     />
                                 )}
 
@@ -67,23 +67,23 @@ export const PortfolioMockup: React.FC = () => {
                                             scale: activeStep === i ? 1.1 : 1,
                                             boxShadow:
                                                 activeStep === i
-                                                    ? "0 0 20px rgba(6, 182, 212, 0.5)"
+                                                    ? "0 0 20px rgba(5, 10, 114, 0.5)"
                                                     : "0 4px 6px rgba(0, 0, 0, 0.1)",
                                         }}
                                         transition={{ duration: 0.3 }}
-                                        className="w-12 h-12 rounded-full bg-linear-to-br from-cyan-500 to-sky-500 flex items-center justify-center text-white font-bold relative z-10"
+                                        className="relative z-10 flex h-12 w-12 items-center justify-center rounded-full bg-linear-to-br from-[#1420a0] to-[#050a72] font-bold text-white"
                                     >
                                         {step.num}
                                     </motion.div>
                                 </div>
-                                <span className="text-xs font-medium text-slate-600 whitespace-nowrap relative z-10">
+                                <span className="relative z-10 whitespace-nowrap text-xs font-medium text-muted-foreground">
                                     {step.label}
                                 </span>
                             </motion.div>
 
                             {/* Connecting line with animated glow */}
                             {i < 3 && (
-                                <div className="relative mx-4 w-24 h-0.5 bg-slate-200">
+                                <div className="relative mx-4 h-0.5 w-24 bg-border">
                                     <motion.div
                                         initial={{ scaleX: 0 }}
                                         animate={{
@@ -91,11 +91,11 @@ export const PortfolioMockup: React.FC = () => {
                                             opacity: activeStep === i ? 1 : activeStep > i ? 0.6 : 0,
                                         }}
                                         transition={{ duration: 0.5 }}
-                                        className="absolute inset-0 bg-linear-to-r from-cyan-400 to-sky-400 origin-left"
+                                        className="absolute inset-0 origin-left bg-linear-to-r from-[#1420a0] to-[#050a72]"
                                         style={{
                                             boxShadow:
                                                 activeStep === i
-                                                    ? "0 0 10px rgba(6, 182, 212, 0.8)"
+                                                    ? "0 0 10px rgba(5, 10, 114, 0.8)"
                                                     : "none",
                                         }}
                                     />
@@ -112,17 +112,17 @@ export const PortfolioMockup: React.FC = () => {
                         initial={{ opacity: 0, y: 40 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 1.2, duration: 0.8 }}
-                        className="hidden xl:block relative bg-white/90 backdrop-blur-xl border-2 border-slate-200 rounded-3xl shadow-2xl overflow-hidden mx-12"
+                        className="relative mx-12 hidden overflow-hidden rounded-3xl border-2 border-border bg-card/90 shadow-2xl backdrop-blur-xl xl:block"
                     >
                         {/* Browser Chrome */}
-                        <div className="bg-linear-to-r from-slate-100 to-slate-50 px-4 py-2.5 border-b border-slate-200 flex items-center gap-2">
+                        <div className="flex items-center gap-2 border-b border-border bg-muted px-4 py-2.5">
                             <div className="flex gap-2">
                                 <div className="w-3 h-3 rounded-full bg-red-400"></div>
                                 <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
                                 <div className="w-3 h-3 rounded-full bg-green-400"></div>
                             </div>
                             <div className="flex-1 mx-4">
-                                <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-slate-200 text-xs text-slate-500">
+                                <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground">
                                     <FiGlobe className="w-3 h-3" />
                                     <span>sarahjohnson.marketing</span>
                                 </div>
@@ -130,23 +130,23 @@ export const PortfolioMockup: React.FC = () => {
                         </div>
 
                         {/* Portfolio Content Preview - Compact & Professional */}
-                        <div className="relative bg-linear-to-br from-slate-50 via-white to-slate-50 min-h-[380px]">
+                        <div className="relative min-h-[380px] bg-linear-to-br from-card via-background to-card">
                             {/* Navbar preview */}
                             <motion.nav
                                 initial={{ opacity: 0, y: -20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 1.4, duration: 0.6 }}
-                                className="sticky top-0 bg-white/60 backdrop-blur-xl border-b border-slate-100/50 px-12 py-2.5 z-10"
+                                className="sticky top-0 z-10 border-b border-border/70 bg-background/60 px-12 py-2.5 backdrop-blur-xl"
                             >
                                 <div className="flex items-center justify-between max-w-6xl mx-auto">
                                     {/* Minimal Logo */}
                                     <div className="flex items-center gap-2">
-                                        <div className="w-7 h-7 rounded-full bg-slate-900 flex items-center justify-center">
+                                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground">
                                             <span className="text-white font-light text-xs tracking-wide">
                                                 SJ
                                             </span>
                                         </div>
-                                        <span className="font-light text-slate-900 text-sm tracking-wide">
+                                        <span className="text-sm font-light tracking-wide text-foreground">
                                             Sarah Johnson
                                         </span>
                                     </div>
@@ -159,7 +159,7 @@ export const PortfolioMockup: React.FC = () => {
                                                 initial={{ opacity: 0, y: -10 }}
                                                 animate={{ opacity: 1, y: 0 }}
                                                 transition={{ delay: 1.6 + i * 0.1 }}
-                                                className="text-xs font-light text-slate-600 hover:text-slate-900 cursor-pointer transition-colors tracking-wide"
+                                                className="cursor-pointer text-xs font-light tracking-wide text-muted-foreground transition-colors hover:text-foreground"
                                             >
                                                 {link}
                                             </motion.a>
@@ -187,15 +187,15 @@ export const PortfolioMockup: React.FC = () => {
                                             transition={{ delay: 2, duration: 0.6 }}
                                             className="space-y-2"
                                         >
-                                            <div className="inline-flex items-center gap-2 text-[10px] font-light text-slate-500 tracking-widest uppercase">
-                                                <div className="w-6 h-px bg-slate-300" />
+                                            <div className="inline-flex items-center gap-2 text-[10px] font-light uppercase tracking-widest text-muted-foreground">
+                                                <div className="h-px w-6 bg-border" />
                                                 Digital Marketing
                                             </div>
-                                            <h1 className="text-2xl font-light text-slate-900 leading-tight tracking-tight">
+                                            <h1 className="text-2xl font-light leading-tight tracking-tight text-foreground">
                                                 Creating <span className="font-normal">meaningful</span>{" "}
                                                 brand experiences
                                             </h1>
-                                            <p className="text-xs text-slate-600 font-light leading-relaxed max-w-lg">
+                                            <p className="max-w-lg text-xs font-light leading-relaxed text-muted-foreground">
                                                 Specializing in data-driven campaigns that connect
                                                 brands with their audiences.
                                             </p>
@@ -214,18 +214,18 @@ export const PortfolioMockup: React.FC = () => {
                                                 { label: "Success", value: "98%" },
                                             ].map((stat, i) => (
                                                 <div key={i} className="flex items-baseline gap-1.5">
-                                                    <div className="text-xl font-light text-slate-900">
+                                                    <div className="text-xl font-light text-foreground">
                                                         {stat.value}
                                                     </div>
-                                                    <div className="text-[10px] font-light text-slate-500 tracking-wide">
+                                                    <div className="text-[10px] font-light tracking-wide text-muted-foreground">
                                                         {stat.label}
                                                     </div>
                                                 </div>
                                             ))}
 
-                                            <div className="h-6 w-px bg-slate-200 mx-2" />
+                                            <div className="mx-2 h-6 w-px bg-border" />
 
-                                            <button className="px-4 py-1.5 bg-slate-900 text-white text-[10px] font-light tracking-wide hover:bg-slate-800 transition-colors">
+                                            <button className="bg-foreground px-4 py-1.5 text-[10px] font-light tracking-wide text-background transition-colors hover:opacity-90">
                                                 View Work
                                             </button>
                                         </motion.div>
@@ -345,7 +345,7 @@ export const PortfolioMockup: React.FC = () => {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 3.4, duration: 0.6 }}
-                            className="bg-linear-to-r from-purple-50 via-pink-50 to-blue-50 px-6 py-3 border-t border-slate-200 grid grid-cols-3 gap-4"
+                            className="grid grid-cols-3 gap-4 border-t border-slate-200 bg-linear-to-r from-[#f7f8ff] via-[#eef1ff] to-[#edf2ff] px-6 py-3"
                         >
                             <div className="flex items-center gap-2 text-sm justify-center">
                                 <FiCheck className="w-4 h-4 text-emerald-500" />
@@ -397,7 +397,7 @@ export const PortfolioMockup: React.FC = () => {
                                         strokeDashoffset="0"
                                         style={{
                                             filter:
-                                                "drop-shadow(0 0 12px rgba(6, 182, 212, 0.8)) drop-shadow(0 0 20px rgba(6, 182, 212, 0.5))",
+                                                "drop-shadow(0 0 12px rgba(5, 10, 114, 0.8)) drop-shadow(0 0 20px rgba(5, 10, 114, 0.5))",
                                         }}
                                     >
                                         <animate
@@ -416,17 +416,17 @@ export const PortfolioMockup: React.FC = () => {
                                             x2="100%"
                                             y2="100%"
                                         >
-                                            <stop offset="0%" stopColor="#06b6d4" stopOpacity="1" />
-                                            <stop offset="50%" stopColor="#0ea5e9" stopOpacity="1" />
-                                            <stop offset="100%" stopColor="#06b6d4" stopOpacity="1" />
+                                            <stop offset="0%" stopColor="#050a72" stopOpacity="1" />
+                                            <stop offset="50%" stopColor="#1420a0" stopOpacity="1" />
+                                            <stop offset="100%" stopColor="#050a72" stopOpacity="1" />
                                         </linearGradient>
                                     </defs>
                                 </svg>
                             )}
 
-                            <div className="relative bg-white/80 backdrop-blur-md rounded-2xl shadow-2xl border border-cyan-200/50 overflow-hidden">
+                            <div className="relative overflow-hidden rounded-2xl border border-[#bcc7ff]/60 bg-white/85 shadow-2xl backdrop-blur-md">
                                 {/* Header */}
-                                <div className="bg-linear-to-r from-cyan-500/90 to-sky-500/90 backdrop-blur-sm px-4 py-2.5 flex items-center gap-2">
+                                <div className="flex items-center gap-2 bg-linear-to-r from-[#1420a0]/92 to-[#050a72]/92 px-4 py-2.5 backdrop-blur-sm">
                                     <FiUpload className="w-4 h-4 text-white" />
                                     <span className="text-white font-semibold text-xs">
                                         Step 1: Your Input
@@ -437,11 +437,11 @@ export const PortfolioMockup: React.FC = () => {
                                 <div className="p-4 space-y-2.5 bg-linear-to-br from-slate-50/80 to-white/80 backdrop-blur-sm">
                                     {/* Message 1 - AI */}
                                     <div className="flex items-start gap-2">
-                                        <div className="w-7 h-7 rounded-full bg-linear-to-br from-cyan-400 to-sky-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-[#1420a0] to-[#050a72] text-xs font-bold text-white">
                                             AI
                                         </div>
                                         <div className="bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-slate-700 flex-1 shadow-sm border border-slate-100">
-                                            Hi! I'm here to build your portfolio. What's your field?
+                                            Hi! I&apos;m here to build your portfolio. What&apos;s your field?
                                         </div>
                                     </div>
 
@@ -452,8 +452,8 @@ export const PortfolioMockup: React.FC = () => {
                                         transition={{ delay: 1.6 }}
                                         className="flex items-start gap-2 justify-end"
                                     >
-                                        <div className="bg-linear-to-r from-cyan-100/90 to-sky-100/90 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-slate-700 max-w-[200px] shadow-sm border border-cyan-200/50">
-                                            I'm a marketing major looking to showcase my campaigns
+                                        <div className="max-w-[200px] rounded-lg border border-[#c9d2ff]/70 bg-linear-to-r from-[#eef1ff]/95 to-[#e3e9ff]/95 px-3 py-2 text-xs text-slate-700 shadow-sm backdrop-blur-sm">
+                                            I&apos;m a marketing major looking to showcase my campaigns
                                         </div>
                                         <div className="w-7 h-7 rounded-full bg-slate-300 flex items-center justify-center text-white text-xs font-bold shrink-0">
                                             ME
@@ -467,7 +467,7 @@ export const PortfolioMockup: React.FC = () => {
                                         transition={{ delay: 1.8 }}
                                         className="flex items-start gap-2"
                                     >
-                                        <div className="w-7 h-7 rounded-full bg-linear-to-br from-cyan-400 to-sky-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-[#1420a0] to-[#050a72] text-xs font-bold text-white">
                                             AI
                                         </div>
                                         <div className="bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-slate-700 flex-1 shadow-sm border border-slate-100">
@@ -482,7 +482,7 @@ export const PortfolioMockup: React.FC = () => {
                                         transition={{ delay: 2 }}
                                         className="flex items-start gap-2 justify-end"
                                     >
-                                        <div className="bg-linear-to-r from-cyan-100/90 to-sky-100/90 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-slate-700 max-w-[200px] shadow-sm border border-cyan-200/50">
+                                        <div className="max-w-[200px] rounded-lg border border-[#c9d2ff]/70 bg-linear-to-r from-[#eef1ff]/95 to-[#e3e9ff]/95 px-3 py-2 text-xs text-slate-700 shadow-sm backdrop-blur-sm">
                                             Yes, uploading now!
                                         </div>
                                         <div className="w-7 h-7 rounded-full bg-slate-300 flex items-center justify-center text-white text-xs font-bold shrink-0">
@@ -495,22 +495,22 @@ export const PortfolioMockup: React.FC = () => {
                                         initial={{ opacity: 0, scale: 0.9 }}
                                         animate={{ opacity: 1, scale: 1 }}
                                         transition={{ delay: 2.2 }}
-                                        className="border-2 border-dashed border-cyan-300/60 rounded-lg p-3 bg-white/70 backdrop-blur-sm"
+                                        className="rounded-lg border-2 border-dashed border-[#9aa9ff]/60 bg-white/70 p-3 backdrop-blur-sm"
                                     >
                                         <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 rounded-lg bg-cyan-100/80 flex items-center justify-center shrink-0">
-                                                <FiUpload className="w-4 h-4 text-cyan-600" />
+                                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#e3e9ff]/90">
+                                                <FiUpload className="h-4 w-4 text-[#050a72]" />
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="text-xs font-semibold text-slate-700 mb-1">
                                                     Marketing_Resume.pdf
                                                 </div>
-                                                <div className="w-full bg-cyan-200/60 rounded-full h-1">
+                                                <div className="h-1 w-full rounded-full bg-[#cfd8ff]/80">
                                                     <motion.div
                                                         initial={{ width: 0 }}
                                                         animate={{ width: "100%" }}
                                                         transition={{ delay: 2.4, duration: 1 }}
-                                                        className="bg-cyan-500 h-1 rounded-full"
+                                                        className="h-1 rounded-full bg-[#050a72]"
                                                     />
                                                 </div>
                                             </div>
@@ -548,7 +548,7 @@ export const PortfolioMockup: React.FC = () => {
                                         strokeDashoffset="0"
                                         style={{
                                             filter:
-                                                "drop-shadow(0 0 12px rgba(6, 182, 212, 0.8)) drop-shadow(0 0 20px rgba(6, 182, 212, 0.5))",
+                                                "drop-shadow(0 0 12px rgba(5, 10, 114, 0.8)) drop-shadow(0 0 20px rgba(5, 10, 114, 0.5))",
                                         }}
                                     >
                                         <animate
@@ -567,15 +567,15 @@ export const PortfolioMockup: React.FC = () => {
                                             x2="100%"
                                             y2="100%"
                                         >
-                                            <stop offset="0%" stopColor="#06b6d4" stopOpacity="1" />
-                                            <stop offset="50%" stopColor="#0ea5e9" stopOpacity="1" />
-                                            <stop offset="100%" stopColor="#06b6d4" stopOpacity="1" />
+                                            <stop offset="0%" stopColor="#050a72" stopOpacity="1" />
+                                            <stop offset="50%" stopColor="#1420a0" stopOpacity="1" />
+                                            <stop offset="100%" stopColor="#050a72" stopOpacity="1" />
                                         </linearGradient>
                                     </defs>
                                 </svg>
                             )}
 
-                            <div className="relative bg-linear-to-br from-cyan-400 via-sky-500 to-blue-600/10  backdrop-blur-md rounded-2xl shadow-2xl p-5 overflow-hidden">
+                            <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-[#1a2abb] via-[#050a72] to-[#030724] p-5 shadow-2xl backdrop-blur-md">
                                 {/* Static background */}
                                 <div className="absolute inset-0 opacity-20">
                                     <div className="absolute top-0 left-0 w-full h-full bg-linear-to-br from-white/30 to-transparent" />
@@ -673,7 +673,7 @@ export const PortfolioMockup: React.FC = () => {
                                         strokeDashoffset="0"
                                         style={{
                                             filter:
-                                                "drop-shadow(0 0 12px rgba(6, 182, 212, 0.8)) drop-shadow(0 0 20px rgba(6, 182, 212, 0.5))",
+                                                "drop-shadow(0 0 12px rgba(5, 10, 114, 0.8)) drop-shadow(0 0 20px rgba(5, 10, 114, 0.5))",
                                         }}
                                     >
                                         <animate
@@ -692,17 +692,17 @@ export const PortfolioMockup: React.FC = () => {
                                             x2="100%"
                                             y2="100%"
                                         >
-                                            <stop offset="0%" stopColor="#06b6d4" stopOpacity="1" />
-                                            <stop offset="50%" stopColor="#0ea5e9" stopOpacity="1" />
-                                            <stop offset="100%" stopColor="#06b6d4" stopOpacity="1" />
+                                            <stop offset="0%" stopColor="#050a72" stopOpacity="1" />
+                                            <stop offset="50%" stopColor="#1420a0" stopOpacity="1" />
+                                            <stop offset="100%" stopColor="#050a72" stopOpacity="1" />
                                         </linearGradient>
                                     </defs>
                                 </svg>
                             )}
 
-                            <div className="relative bg-white/80 backdrop-blur-md rounded-2xl shadow-2xl border border-cyan-200/50 overflow-hidden">
+                            <div className="relative overflow-hidden rounded-2xl border border-[#bcc7ff]/60 bg-white/85 shadow-2xl backdrop-blur-md">
                                 {/* Header */}
-                                <div className="bg-linear-to-r from-cyan-500/90 to-sky-500/90 backdrop-blur-sm px-4 py-2.5 flex items-center gap-2">
+                                <div className="flex items-center gap-2 bg-linear-to-r from-[#1420a0]/92 to-[#050a72]/92 px-4 py-2.5 backdrop-blur-sm">
                                     <FiEdit3 className="w-4 h-4 text-white" />
                                     <span className="text-white font-semibold text-xs">
                                         Step 3: Customize
@@ -717,7 +717,7 @@ export const PortfolioMockup: React.FC = () => {
                                                 Theme Color
                                             </span>
                                             <div className="flex gap-1.5">
-                                                {["bg-cyan-500", "bg-purple-500", "bg-emerald-500"].map(
+                                                {["bg-[#050a72]", "bg-[#6b46ff]", "bg-emerald-500"].map(
                                                     (color, i) => (
                                                         <motion.div
                                                             key={i}
@@ -748,7 +748,7 @@ export const PortfolioMockup: React.FC = () => {
                                             <motion.button
                                                 whileHover={{ scale: 1.02 }}
                                                 whileTap={{ scale: 0.98 }}
-                                                className="w-full px-4 py-2 bg-linear-to-r from-cyan-500 to-sky-500 text-white rounded-lg text-xs font-semibold shadow-md"
+                                                className="w-full rounded-lg bg-linear-to-r from-[#1420a0] to-[#050a72] px-4 py-2 text-xs font-semibold text-white shadow-md"
                                             >
                                                 Apply Changes
                                             </motion.button>
@@ -786,7 +786,7 @@ export const PortfolioMockup: React.FC = () => {
                                         strokeDashoffset="0"
                                         style={{
                                             filter:
-                                                "drop-shadow(0 0 12px rgba(6, 182, 212, 0.8)) drop-shadow(0 0 20px rgba(16, 185, 129, 0.5))",
+                                                "drop-shadow(0 0 12px rgba(5, 10, 114, 0.8)) drop-shadow(0 0 20px rgba(5, 10, 114, 0.45))",
                                         }}
                                     >
                                         <animate
@@ -805,15 +805,15 @@ export const PortfolioMockup: React.FC = () => {
                                             x2="100%"
                                             y2="100%"
                                         >
-                                            <stop offset="0%" stopColor="#06b6d4" stopOpacity="1" />
-                                            <stop offset="50%" stopColor="#10b981" stopOpacity="1" />
-                                            <stop offset="100%" stopColor="#06b6d4" stopOpacity="1" />
+                                            <stop offset="0%" stopColor="#050a72" stopOpacity="1" />
+                                            <stop offset="50%" stopColor="#1420a0" stopOpacity="1" />
+                                            <stop offset="100%" stopColor="#050a72" stopOpacity="1" />
                                         </linearGradient>
                                     </defs>
                                 </svg>
                             )}
 
-                            <div className="relative bg-linear-to-br from-cyan-400 via-sky-500 to-blue-600/10 backdrop-blur-md rounded-2xl shadow-2xl p-5 overflow-hidden">
+                            <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-[#1a2abb] via-[#050a72] to-[#030724] p-5 shadow-2xl backdrop-blur-md">
                                 <div className="relative z-10 flex flex-col items-center gap-3">
                                     <motion.div
                                         animate={
@@ -848,7 +848,7 @@ export const PortfolioMockup: React.FC = () => {
                                         <motion.button
                                             whileHover={{ scale: 1.05, y: -2 }}
                                             whileTap={{ scale: 0.95 }}
-                                            className="px-5 py-2 bg-white text-cyan-600 rounded-lg font-semibold text-xs shadow-lg"
+                                            className="rounded-lg bg-white px-5 py-2 text-xs font-semibold text-[#050a72] shadow-lg"
                                         >
                                             Deploy Now
                                         </motion.button>

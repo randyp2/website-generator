@@ -6,6 +6,7 @@ import { ExampleSection } from "./components/ExampleSection";
 import { CTASection } from "./components/CTASection";
 import { Metadata } from "next";
 import AboutSection from "./components/AboutSection";
+import { LandingBackground } from "./components/LandingBackground";
 
 export const metadata: Metadata = {
   title: "AI Portfolio Generator – Build Stunning Portfolios Instantly",
@@ -27,10 +28,9 @@ export const metadata: Metadata = {
 };
 
 export default function LandingPage() {
-
-
   return (
-    <main className="min-h-screen pt-15">
+    <main className="landing-rebrand min-h-screen pt-15 text-foreground">
+      <LandingBackground />
       
       {/* Hero Section */}
       <HeroSection />
@@ -47,8 +47,6 @@ export default function LandingPage() {
       {/* Final CTA Section */}
       <CTASection />
 
-      {/* Footer */}
-      
     </main>
   );
 };

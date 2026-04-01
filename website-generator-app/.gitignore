@@ -24,11 +24,8 @@ dist-ssr
 *.sw?
 .DS_Store
 
-# pnpm store
-.pnpm-store/
-
-# AI agent / dev notes
+# .md files for AGENTS and documentation 
 AGENTS.md
 
-# Claude Code local config
-.claude/
+.pnpm-store/
+**/.pnpm-store/

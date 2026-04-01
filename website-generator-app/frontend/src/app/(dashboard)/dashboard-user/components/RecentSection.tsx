@@ -1,116 +1,142 @@
 "use client";
 
+import React, { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import React from "react";
-import { FiEdit3, FiEye, FiFolder } from "react-icons/fi";
+import { useUser } from "@/context/UserContext";
+import { usePortfolios } from "../hooks/usePortfolios";
+import { normalizeStatus, getDateValue } from "../utils/portfolioUtils";
+import { PortfolioToolbar } from "./PortfolioToolbar";
+import { PortfolioListView } from "./PortfolioListView";
+import { PortfolioCardView } from "./PortfolioCardView";
+import { DeletePortfolioOverlay } from "./DeletePortfolioOverlay";
+import { RenamePortfolioModal } from "./RenamePortfolioModal";
+import { DeployedPortfolioPreview } from "./DeployedPortfolioPreview";
+
+type SortBy = "name" | "date" | "status";
+type DisplayMode = "card" | "list";
 
 export const RecentSection: React.FC = () => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.8, duration: 0.5 }}
-      className="bg-white/80 backdrop-blur-xl rounded-2xl p-8 border border-white/40 shadow-lg"
-    >
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-linear-to-br from-sky-100 to-cyan-200 flex items-center justify-center">
-            <FiFolder className="w-5 h-5 text-cyan-600" />
-          </div>
-          <h2 className="text-2xl font-bold text-slate-900">
-            Recent Portfolios
-          </h2>
+    const [sortBy, setSortBy] = useState<SortBy>("date");
+    const [displayMode, setDisplayMode] = useState<DisplayMode>("list");
+    const [showArchived, setShowArchived] = useState(true);
+    const [searchQuery, setSearchQuery] = useState("");
+    const { user } = useUser();
+
+    const {
+        portfolios,
+        isLoading,
+        deleteTarget,
+        setDeleteTarget,
+        isDeleting,
+        handleDelete,
+        renameTarget,
+        setRenameTarget,
+        renameTitle,
+        setRenameTitle,
+        isRenaming,
+        openRename,
+        handleRename,
+    } = usePortfolios();
+
+    const filteredAndSortedPortfolios = useMemo(() => {
+        const normalizedQuery = searchQuery.trim().toLowerCase();
+
+        const matchesQuery = (fields: Array<string | null | undefined>) =>
+            fields.some((field) => (field ?? "").toLowerCase().includes(normalizedQuery));
+
+        return [...portfolios]
+            .filter((p) => showArchived || normalizeStatus(p.status) !== "archived")
+            .filter((p) => {
+                if (!normalizedQuery) return true;
+                return matchesQuery([
+                    p.title,
+                    p.status,
+                    p.slug,
+                    p.template_id,
+                    p.last_step,
+                ]);
+            })
+            .sort((a, b) => {
+                if (sortBy === "name") return a.title.localeCompare(b.title);
+                if (sortBy === "date") {
+                    return (
+                        getDateValue(b.updated_at ?? b.created_at ?? null) -
+                        getDateValue(a.updated_at ?? a.created_at ?? null)
+                    );
+                }
+                const statusOrder: Record<string, number> = { active: 1, draft: 2, archived: 3 };
+                return statusOrder[normalizeStatus(a.status)] - statusOrder[normalizeStatus(b.status)];
+            });
+    }, [portfolios, showArchived, searchQuery, sortBy]);
+
+    return (
+        <div className="space-y-4">
+            <DeployedPortfolioPreview
+                portfolios={portfolios}
+                isLoading={isLoading}
+                user={user}
+            />
+
+            <div className="pt-3 md:pt-5 space-y-3">
+                <h3 className="text-lg md:text-xl font-semibold text-foreground">Created Portfolios</h3>
+                <PortfolioToolbar
+                    sortBy={sortBy}
+                    setSortBy={setSortBy}
+                    displayMode={displayMode}
+                    setDisplayMode={setDisplayMode}
+                    showArchived={showArchived}
+                    setShowArchived={setShowArchived}
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                />
+            </div>
+
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8, duration: 0.5 }}
+                className="h-[500px] rounded-2xl border border-border bg-card shadow-lg dark:bg-white/5 dark:border-white/10"
+            >
+                {isLoading ? (
+                    <div className="h-full flex items-center justify-center text-muted-foreground">
+                        Loading portfolios...
+                    </div>
+                ) : filteredAndSortedPortfolios.length === 0 ? (
+                    <div className="h-full flex items-center justify-center text-muted-foreground">
+                        No portfolios yet.
+                    </div>
+                ) : displayMode === "list" ? (
+                    <PortfolioListView
+                        portfolios={filteredAndSortedPortfolios}
+                        onRename={openRename}
+                        onDelete={setDeleteTarget}
+                    />
+                ) : (
+                    <PortfolioCardView
+                        portfolios={filteredAndSortedPortfolios}
+                        onRename={openRename}
+                        onDelete={setDeleteTarget}
+                    />
+                )}
+            </motion.div>
+
+            <DeletePortfolioOverlay
+                isOpen={Boolean(deleteTarget)}
+                portfolioTitle={deleteTarget?.title}
+                onCancel={() => setDeleteTarget(null)}
+                onConfirm={() => deleteTarget && handleDelete(deleteTarget.id)}
+                isDeleting={isDeleting}
+            />
+
+            {renameTarget && (
+                <RenamePortfolioModal
+                    renameTitle={renameTitle}
+                    isRenaming={isRenaming}
+                    onTitleChange={setRenameTitle}
+                    onConfirm={handleRename}
+                    onCancel={() => setRenameTarget(null)}
+                />
+            )}
         </div>
-        <button className="text-sky-600 hover:text-sky-700 font-medium text-sm hover:underline transition-all">
-          View All
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Portfolio Placeholder Card 1 */}
-        <motion.div
-          whileHover={{ scale: 1.02, y: -4 }}
-          className="group relative overflow-hidden rounded-xl border-2 border-slate-200 hover:border-sky-300 hover:shadow-xl transition-shadow cursor-pointer bg-white"
-        >
-          {/* Portfolio Preview Area */}
-          <div className="h-48 bg-linear-to-br from-sky-50 via-cyan-50 to-teal-50 relative overflow-hidden">
-            <div className="absolute inset-0 bg-slate-200 animate-pulse"></div>
-            <div className="absolute bottom-4 right-4 flex gap-2">
-              <div className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg">
-                <FiEye className="w-4 h-4 text-sky-600" />
-              </div>
-              <div className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg">
-                <FiEdit3 className="w-4 h-4 text-slate-600" />
-              </div>
-            </div>
-          </div>
-          {/* Portfolio Info */}
-          <div className="p-4">
-            <div className="h-5 bg-slate-200 rounded-md mb-2 w-3/4 animate-pulse"></div>
-            <div className="h-3 bg-slate-100 rounded-md mb-3 w-full animate-pulse"></div>
-            <div className="flex items-center justify-between text-xs text-slate-500">
-              <span className="h-3 bg-slate-100 rounded w-20 animate-pulse"></span>
-              <span className="h-3 bg-slate-100 rounded w-16 animate-pulse"></span>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Portfolio Placeholder Card 2 */}
-        <motion.div
-          whileHover={{ scale: 1.02, y: -4 }}
-          className="group relative overflow-hidden rounded-xl border-2 border-slate-200 hover:border-sky-300 hover:shadow-xl transition-shadow cursor-pointer bg-white"
-        >
-          {/* Portfolio Preview Area */}
-          <div className="h-48 bg-linear-to-br from-violet-50 via-purple-50 to-fuchsia-50 relative overflow-hidden">
-            <div className="absolute inset-0 bg-slate-200 animate-pulse"></div>
-            <div className="absolute bottom-4 right-4 flex gap-2">
-              <div className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg">
-                <FiEye className="w-4 h-4 text-violet-600" />
-              </div>
-              <div className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg">
-                <FiEdit3 className="w-4 h-4 text-slate-600" />
-              </div>
-            </div>
-          </div>
-          {/* Portfolio Info */}
-          <div className="p-4">
-            <div className="h-5 bg-slate-200 rounded-md mb-2 w-2/3 animate-pulse"></div>
-            <div className="h-3 bg-slate-100 rounded-md mb-3 w-full animate-pulse"></div>
-            <div className="flex items-center justify-between text-xs text-slate-500">
-              <span className="h-3 bg-slate-100 rounded w-20 animate-pulse"></span>
-              <span className="h-3 bg-slate-100 rounded w-16 animate-pulse"></span>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Portfolio Placeholder Card 3 */}
-        <motion.div
-          whileHover={{ scale: 1.02, y: -4 }}
-          className="group relative overflow-hidden rounded-xl border-2 border-slate-200 hover:border-sky-300 hover:shadow-xl transition-shadow cursor-pointer bg-white"
-        >
-          {/* Portfolio Preview Area */}
-          <div className="h-48 bg-linear-to-br from-amber-50 via-orange-50 to-red-50 relative overflow-hidden">
-            <div className="absolute inset-0 bg-slate-200 animate-pulse"></div>
-            <div className="absolute bottom-4 right-4 flex gap-2">
-              <div className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg">
-                <FiEye className="w-4 h-4 text-orange-600" />
-              </div>
-              <div className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg">
-                <FiEdit3 className="w-4 h-4 text-slate-600" />
-              </div>
-            </div>
-          </div>
-          {/* Portfolio Info */}
-          <div className="p-4">
-            <div className="h-5 bg-slate-200 rounded-md mb-2 w-4/5 animate-pulse"></div>
-            <div className="h-3 bg-slate-100 rounded-md mb-3 w-full animate-pulse"></div>
-            <div className="flex items-center justify-between text-xs text-slate-500">
-              <span className="h-3 bg-slate-100 rounded w-20 animate-pulse"></span>
-              <span className="h-3 bg-slate-100 rounded w-16 animate-pulse"></span>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    </motion.div>
-  );
+    );
 };

@@ -3,6 +3,7 @@ package com.webgen.webgen_backend.config;
 import ch.qos.logback.classic.spi.ConfiguratorRank;
 import com.webgen.webgen_backend.filter.JWTFilter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -23,6 +24,10 @@ public class SecurityConfig {
     @Autowired
     private JWTFilter jwtFilter;
 
+    // Inject allowed origins from properties file
+    @Value("${cors.allowed.origins}")
+    private String allowedOrigins;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
@@ -31,9 +36,13 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(customizer -> customizer.disable()) // Disable CSRF for stateless
                 .authorizeHttpRequests(request -> request
-
-                        .requestMatchers("/api/generate/ping", "/api/generate")
-                        .permitAll() // Endpoints that don't need auth
+                        .requestMatchers(HttpMethod.GET, "/api/generate/ping").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/generate").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/debug/all").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/debug/create").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/public/**").permitAll()
+//                        .requestMatchers("/api/generate/ping", "/api/generate", "/api/debug/create", "/api/debug/all")
+//                        .permitAll() // Endpoints that don't need auth
                         .anyRequest().authenticated())
                 .httpBasic(http2 -> http2.disable()) // Enable REST access
                 .sessionManagement(
@@ -46,7 +55,12 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.addAllowedOrigin("http://localhost:3000"); // Frontend origin
+
+
+        // Split comma-separated origins
+        for (String origin : allowedOrigins.split(",")) {
+            config.addAllowedOrigin(origin.trim());
+        }
         config.addAllowedHeader("*"); // Allow all headers (i.e. JWT's)
         config.addAllowedMethod("*"); // Allow all http methods
         config.setAllowCredentials(true); // allow cookies, auth, etc.

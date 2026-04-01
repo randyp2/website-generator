@@ -1,0 +1,18 @@
+{
+  "name": "webgen-jsx-validator",
+  "version": "1.0.0",
+  "description": "JSX validation script for webgen-backend",
+  "private": true,
+  "scripts": {
+    "test": "node validate-jsx.test.js"
+  },
+  "dependencies": {
+    "@babel/core": "^7.23.0",
+    "@babel/parser": "^7.23.0",
+    "@babel/plugin-transform-modules-commonjs": "^7.23.0",
+    "@babel/preset-react": "^7.22.0",
+    "@babel/traverse": "^7.23.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}
