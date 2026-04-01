@@ -232,7 +232,13 @@ export const transpileSection = (
     index: number,
     extraScope?: Record<string, unknown>,
 ): React.ComponentType<{ content: unknown; data: unknown }> => {
-    const extraKey = extraScope ? JSON.stringify(extraScope) : "";
+    // Build a cache key from serialisable extra-scope values only (skip DOM nodes).
+    const extraKey = extraScope
+        ? Object.entries(extraScope)
+              .filter(([, v]) => typeof v !== "object" || v === null)
+              .map(([k, v]) => `${k}=${v}`)
+              .join("&")
+        : "";
     const cacheKey = `${index}::${reactSource}::${extraKey}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;
