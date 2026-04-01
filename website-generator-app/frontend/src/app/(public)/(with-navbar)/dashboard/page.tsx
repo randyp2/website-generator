@@ -2,10 +2,10 @@
 
 import React, { useEffect, useReducer, useState } from "react";
 import { motion } from "framer-motion";
-import FormContainer from "@/app/(public)/dashboard/components/FormContainer";
+import FormContainer from "@/app/(public)/(with-navbar)/dashboard/components/FormContainer";
 
 import { formReducer } from "@/webgenForm/useFormReducer";
-import PreviewContainer from "@/app/(public)/dashboard/components/PreviewContainer";
+import PreviewContainer from "@/app/(public)/(with-navbar)/dashboard/components/PreviewContainer";
 import { initialState } from "@/webgenForm/formType";
 import { getPublicBackendUrlOrNull } from "@/lib/public-env";
 

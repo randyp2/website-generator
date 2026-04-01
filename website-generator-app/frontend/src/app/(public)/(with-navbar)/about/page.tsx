@@ -5,7 +5,7 @@ import StatsSection from "./components/StatsSection";
 import FeatureSection from "./components/FeatureSection";
 import ProcessSection from "./components/ProcessSection";
 import MissionSection from "./components/MissionSection";
-import { CTASection } from "../components/CTASection";
+import { CTASection } from "@/app/(public)/(landing)/components/CTASection";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {

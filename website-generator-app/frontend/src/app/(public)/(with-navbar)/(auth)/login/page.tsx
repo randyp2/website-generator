@@ -4,8 +4,8 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { AuthMode } from "@/features/authType";
 
-import AnimatedBackground from "@/app/(public)/(auth)/login/components/AnimatedBackground";
-import FormContainer from "@/app/(public)/(auth)/login/components/FormContainer";
+import AnimatedBackground from "@/app/(public)/(with-navbar)/(auth)/login/components/AnimatedBackground";
+import FormContainer from "@/app/(public)/(with-navbar)/(auth)/login/components/FormContainer";
 import Link from "next/link";
 
 

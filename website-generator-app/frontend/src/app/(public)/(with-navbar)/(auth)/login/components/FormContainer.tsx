@@ -4,11 +4,11 @@ import React, { useEffect, useReducer } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 
-import SocialAuth from "@/app/(public)/(auth)/login/components/SocialAuth";
+import SocialAuth from "@/app/(public)/(with-navbar)/(auth)/login/components/SocialAuth";
 import type { AuthMode } from "@/features/authType";
 import { authFormReducer, initialAuthFormState } from "@/features/useAuthReducer";
-import LoginForm from "@/app/(public)/(auth)/login/components/LoginForm";
-import SignUpForm from "@/app/(public)/(auth)/login/components/SignUpForm";
+import LoginForm from "@/app/(public)/(with-navbar)/(auth)/login/components/LoginForm";
+import SignUpForm from "@/app/(public)/(with-navbar)/(auth)/login/components/SignUpForm";
 
 interface FormContainerProps {
   mode: AuthMode;

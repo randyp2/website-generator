@@ -1,5 +1,3 @@
-import Footer from "@/components/footer/Footer";
-import Navbar from "@/components/navbar/Navbar";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -47,16 +45,5 @@ export default function PublicLayout({
 }: {
     children: React.ReactNode;
 }) {
-    return (
-        <>
-            {/* Shared public navigation */}
-            <Navbar />
-
-            {/* Page content */}
-            <main className="flex-1">{children}</main>
-
-            {/* Shared public footer */}
-            <Footer />
-        </>
-    );
+    return <>{children}</>;
 }
