@@ -1,7 +1,5 @@
 import { Metadata } from "next";
-import { GallerySection } from "./components/GallerySection";
 import { BeamWorkflowSection } from "./components/BeamWorkflowSection";
-import { CTASection } from "./components/CTASection";
 import ClosingSection from "./components/ClosingSection";
 import { HeroSection } from "./components/hero";
 import { ProcessSection } from "./components/ProcessSection";
@@ -28,8 +26,6 @@ export const metadata: Metadata = {
 const sections = [
     { key: "process", Component: ProcessSection },
     { key: "beam-workflow", Component: BeamWorkflowSection },
-    { key: "gallery", Component: GallerySection },
-    { key: "cta", Component: CTASection },
 ];
 
 export default function LandingPage() {
