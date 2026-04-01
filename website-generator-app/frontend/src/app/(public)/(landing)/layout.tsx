@@ -8,7 +8,7 @@ export default function LandingLayout({
     return (
         <div className="flex min-h-screen">
             {/* Left: landing page content (scrollable) */}
-            <main className="w-full lg:w-[60%] overflow-y-auto">
+            <main className="w-full bg-black lg:w-[60%]">
                 {children}
             </main>
 

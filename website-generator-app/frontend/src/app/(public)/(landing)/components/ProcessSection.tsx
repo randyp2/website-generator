@@ -28,7 +28,7 @@ const PROCESS_STEPS: TimelineStep[] = [
 
 export const ProcessSection: React.FC = () => {
     return (
-        <section className="relative overflow-visible bg-background px-6 py-20 text-foreground">
+        <section className="relative overflow-visible bg-black px-6 py-20 text-foreground">
             <div className="max-w-7xl mx-auto relative z-10">
                 {/* Header */}
                 <div className="text-center">

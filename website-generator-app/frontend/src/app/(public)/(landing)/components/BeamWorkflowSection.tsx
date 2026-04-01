@@ -6,7 +6,7 @@ import { AnimatedBeamDemo } from "@/components/ui/animated-beam-demo";
 
 export const BeamWorkflowSection: React.FC = () => {
     return (
-        <section className="relative bg-background px-6 py-20 text-foreground">
+        <section className="relative bg-black px-6 py-20 text-foreground">
             <div className="mx-auto max-w-7xl">
                 <div className="mx-auto mb-12 max-w-3xl text-center">
                     <span className="inline-flex rounded-full border border-border bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground">
