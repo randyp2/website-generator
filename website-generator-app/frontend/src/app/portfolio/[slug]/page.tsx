@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { fetchPublicPortfolio } from "@/lib/api/publicPortfolio";
 import type { Metadata } from "next";
-import PortfolioIframe from "./components/PortfolioIframe";
+import PortfolioRenderer from "./components/PortfolioRenderer";
 
 interface Props {
     params: Promise<{ slug: string }>;
@@ -47,9 +47,7 @@ const PortfolioPage = async ({ params }: Props) => {
         notFound();
     }
 
-    const htmlUrl: string = `/api/public/portfolio/${encodeURIComponent(slug)}/html`;
-
-    return <PortfolioIframe htmlUrl={htmlUrl} title={portfolio.title} />;
+    return <PortfolioRenderer portfolio={portfolio} />;
 };
 
 export default PortfolioPage;

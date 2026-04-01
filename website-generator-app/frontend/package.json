@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@babel/standalone": "^7.29.2",
     "@codesandbox/sandpack-react": "^2.20.0",
     "@codesandbox/sandpack-themes": "^2.0.21",
     "@jaames/iro": "^5.5.2",
@@ -45,6 +46,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.2",
+    "@types/babel__standalone": "^7.1.9",
     "@types/node": "^20.19.37",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
