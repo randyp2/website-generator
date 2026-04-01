@@ -1,82 +1,111 @@
-import { ExternalLink } from "lucide-react";
-import Link from "next/link";
-import type { PortfolioCard } from "./ExplorePageClient";
+import { ArrowUpRight, CalendarDays, Layers3, Link2 } from "lucide-react"
+import Link from "next/link"
+
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardFooter } from "@/components/ui/card"
+
+import { PortfolioCardOwner } from "./PortfolioCardOwner"
+import { PortfolioCardPreview } from "./PortfolioCardPreview"
+import type { PortfolioCard } from "./explore.types"
+import {
+  formatPublishedDate,
+  formatPublishedMonth,
+  getPortfolioSummary,
+  getTemplateLabel,
+} from "./explore.utils"
 
 interface PortfolioExploreCardProps {
-  portfolio: PortfolioCard;
+  portfolio: PortfolioCard
 }
 
-const DEFAULT_CARD_PREVIEW_IMAGE =
-  "https://images.unsplash.com/photo-1545665277-5937489579f2?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+export const PortfolioExploreCard = ({
+  portfolio,
+}: PortfolioExploreCardProps) => {
+  const href = `/portfolio/${portfolio.slug}`
+  const templateLabel = getTemplateLabel(portfolio.templateId)
+  const publishedLabel = formatPublishedDate(portfolio.publishedAt)
 
-const getInitials = (name: string): string =>
-  name
-    .split(" ")
-    .map((part) => part[0] ?? "")
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
-const formatDate = (iso: string): string => {
-  const date = new Date(iso);
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-};
-
-export function PortfolioExploreCard({ portfolio }: PortfolioExploreCardProps) {
   return (
-    <article className="group overflow-hidden rounded-2xl border border-white/10 bg-[#070d18] transition-all hover:-translate-y-1.5 hover:border-cyan-300/40 hover:shadow-[0_30px_100px_-40px_rgba(6,182,212,0.6)]">
-      {/* Preview area */}
-      <div className="relative h-44 overflow-hidden border-b border-white/10">
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${DEFAULT_CARD_PREVIEW_IMAGE})` }}
-        />
-        <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-black/0" />
-        {portfolio.templateId && (
-          <div className="pointer-events-none absolute right-3 top-3 rounded-full border border-white/30 bg-black/30 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white/90">
-            {portfolio.templateId}
+    <Card className="group overflow-hidden rounded-[1.75rem] border-border bg-card shadow-[0_30px_120px_-60px_rgba(8,145,178,0.35)] transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/30">
+      <div className="relative p-4 pb-0">
+        <PortfolioCardPreview portfolio={portfolio} />
+        <div className="pointer-events-none absolute inset-x-8 bottom-4 h-20 bg-gradient-to-t from-card via-card/70 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+        <div className="absolute inset-x-8 bottom-8 flex translate-y-2 items-center gap-2 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+          <Button asChild size="sm" className="rounded-full">
+            <Link href={href}>
+              Open portfolio
+              <ArrowUpRight className="h-4 w-4" />
+            </Link>
+          </Button>
+          <div className="rounded-full border border-border bg-background/80 px-3 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur">
+            /{portfolio.slug}
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Content */}
-      <div className="p-4">
-        <div className="mb-3">
-          <h3 className="truncate text-base font-semibold text-white">
+      <CardContent className="space-y-5 p-5 pt-5">
+        <PortfolioCardOwner
+          ownerAvatarUrl={portfolio.ownerAvatarUrl}
+          ownerName={portfolio.ownerName}
+        />
+
+        <div className="space-y-2">
+          <h3 className="line-clamp-2 text-xl font-semibold tracking-tight text-foreground">
             {portfolio.title}
           </h3>
-          <p className="mt-1 text-xs text-slate-400">
-            {formatDate(portfolio.publishedAt)}
+          <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
+            {getPortfolioSummary(portfolio)}
           </p>
         </div>
 
-        {/* Owner */}
-        <div className="mb-4 flex items-center gap-2">
-          {portfolio.ownerAvatarUrl ? (
-            <img
-              src={portfolio.ownerAvatarUrl}
-              alt={portfolio.ownerName ?? ""}
-              className="h-8 w-8 rounded-full object-cover"
-            />
-          ) : (
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-cyan-400/20 text-xs font-bold text-cyan-100">
-              {portfolio.ownerName ? getInitials(portfolio.ownerName) : "?"}
-            </span>
-          )}
-          <p className="truncate text-sm font-medium text-slate-100">
-            {portfolio.ownerName ?? "Anonymous"}
-          </p>
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="secondary" className="rounded-full px-3 py-1 text-[11px]">
+            {templateLabel}
+          </Badge>
+          <Badge variant="outline" className="rounded-full border-border px-3 py-1 text-[11px] text-muted-foreground">
+            Published {formatPublishedMonth(portfolio.publishedAt)}
+          </Badge>
+          <Badge variant="outline" className="rounded-full border-border px-3 py-1 text-[11px] text-muted-foreground">
+            Live showcase
+          </Badge>
         </div>
 
-        {/* Action */}
-        <Link
-          href={`/portfolio/${portfolio.slug}`}
-          className="inline-flex w-full items-center justify-center gap-1 rounded-lg border border-cyan-300/40 bg-cyan-400/20 px-3 py-2 text-xs font-semibold text-cyan-100 transition-colors hover:bg-cyan-400/30"
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-2xl border border-border bg-background/50 p-3">
+            <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+              <CalendarDays className="h-3.5 w-3.5" />
+              Updated
+            </div>
+            <p className="text-sm font-medium text-foreground">{publishedLabel}</p>
+          </div>
+          <div className="rounded-2xl border border-border bg-background/50 p-3">
+            <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+              <Layers3 className="h-3.5 w-3.5" />
+              Route
+            </div>
+            <p className="truncate text-sm font-medium text-foreground">/{portfolio.slug}</p>
+          </div>
+        </div>
+      </CardContent>
+
+      <CardFooter className="flex items-center gap-3 border-t border-border px-5 pb-5 pt-0">
+        <Button asChild className="h-11 flex-1 rounded-full">
+          <Link href={href}>
+            View portfolio
+            <ArrowUpRight className="h-4 w-4" />
+          </Link>
+        </Button>
+        <Button
+          asChild
+          variant="outline"
+          className="h-11 rounded-full border-border bg-background/50 px-4"
         >
-          View Portfolio
-          <ExternalLink className="h-3.5 w-3.5" />
-        </Link>
-      </div>
-    </article>
-  );
+          <Link href={href}>
+            <Link2 className="h-4 w-4" />
+          </Link>
+        </Button>
+      </CardFooter>
+    </Card>
+  )
 }

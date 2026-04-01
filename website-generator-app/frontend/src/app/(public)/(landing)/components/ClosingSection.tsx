@@ -51,17 +51,17 @@ const ClosingSection = () => {
   }, [])
 
   return (
-    <section className="relative min-h-screen bg-black text-foreground">
+    <section className="relative min-h-screen text-foreground">
       <ZoomParallax images={images}>
         <div className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center px-6 text-center">
-          <p className="mb-4 whitespace-nowrap text-xs font-semibold uppercase tracking-[0.4em] text-white/60">
-            <BrandWordmark compact className="mr-2 text-xs text-white/80" />
+          <p className="mb-4 whitespace-nowrap text-xs font-semibold uppercase tracking-[0.4em] text-muted-foreground">
+            <BrandWordmark compact className="mr-2 text-xs text-foreground/80" />
             AI Portfolio Builder
           </p>
-          <h1 className="text-4xl font-semibold leading-tight tracking-tight text-white/90 md:text-6xl">
+          <h1 className="text-4xl font-semibold leading-tight tracking-tight text-foreground md:text-6xl">
             Launch a portfolio that feels custom, polished, and ready in minutes.
           </h1>
-          <p className="mt-6 text-base text-white/70 md:text-lg">
+          <p className="mt-6 text-base text-muted-foreground md:text-lg">
             Upload your resume, pick a style, and let our AI craft a portfolio
             site you can ship today.
           </p>

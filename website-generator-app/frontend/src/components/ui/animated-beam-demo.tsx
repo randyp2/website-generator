@@ -40,7 +40,7 @@ export function AnimatedBeamDemo() {
         pathOpacity: 0.35,
         gradientStartColor: "#fbbf24",
         gradientStopColor: "#b45309",
-        duration: 1.8,
+        duration: 3.5,
     } as const;
 
     return (

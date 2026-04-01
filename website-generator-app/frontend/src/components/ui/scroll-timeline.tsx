@@ -42,7 +42,7 @@ const TimelineStepItem: React.FC<TimelineStepItemProps> = ({
                     <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-[10px] bg-card">
                         {/* White strip at top for shiny effect */}
                         <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-foreground/30 to-transparent" />
-                        <Icon className="h-5 w-5 text-white/90" />
+                        <Icon className="h-5 w-5 text-foreground" />
                     </div>
                 </div>
 
@@ -62,10 +62,10 @@ const TimelineStepItem: React.FC<TimelineStepItemProps> = ({
 
             {/* Text Content */}
             <div className="pt-2 flex-1">
-                <h3 className="mb-2 text-lg font-semibold text-white/90">
+                <h3 className="mb-2 text-lg font-semibold text-foreground">
                     {step.title}
                 </h3>
-                <p className="text-sm leading-relaxed text-white/60">
+                <p className="text-sm leading-relaxed text-muted-foreground">
                     {step.description}
                 </p>
             </div>

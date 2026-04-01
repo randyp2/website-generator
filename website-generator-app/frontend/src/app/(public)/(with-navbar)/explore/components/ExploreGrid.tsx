@@ -1,14 +1,15 @@
-import { motion } from "framer-motion";
-import { PortfolioExploreCard } from "./PortfolioExploreCard";
-import type { PortfolioCard } from "./ExplorePageClient";
+import { motion } from "framer-motion"
+
+import { PortfolioExploreCard } from "./PortfolioExploreCard"
+import type { PortfolioCard } from "./explore.types"
 
 interface ExploreGridProps {
-  items: PortfolioCard[];
+  items: PortfolioCard[]
 }
 
-export function ExploreGrid({ items }: ExploreGridProps) {
+export const ExploreGrid = ({ items }: ExploreGridProps) => {
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
       {items.map((portfolio, index) => (
         <motion.div
           key={portfolio.slug}
@@ -20,5 +21,5 @@ export function ExploreGrid({ items }: ExploreGridProps) {
         </motion.div>
       ))}
     </div>
-  );
+  )
 }

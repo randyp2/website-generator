@@ -28,7 +28,7 @@ const PROCESS_STEPS: TimelineStep[] = [
 
 export const ProcessSection: React.FC = () => {
     return (
-        <section className="relative overflow-visible bg-black px-6 py-20 text-foreground">
+        <section className="relative overflow-visible px-6 py-20 text-foreground">
             <div className="max-w-7xl mx-auto relative z-10">
                 {/* Header */}
                 <div className="text-center">
@@ -40,7 +40,7 @@ export const ProcessSection: React.FC = () => {
                     </div>
 
                     {/* Main Heading */}
-                    <h2 className="mb-4 text-4xl font-bold text-white/90 md:text-5xl">
+                    <h2 className="mb-4 text-4xl font-bold text-foreground md:text-5xl">
                         The simplest way to build your portfolio
                     </h2>
                 </div>
