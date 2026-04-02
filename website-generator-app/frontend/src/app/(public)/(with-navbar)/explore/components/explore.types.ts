@@ -5,6 +5,7 @@ export interface PortfolioCard {
   ownerName: string | null
   ownerAvatarUrl: string | null
   publishedAt: string
+  screenshotUrl: string | null
 }
 
 export interface PageResponse {

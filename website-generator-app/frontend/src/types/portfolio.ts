@@ -11,6 +11,7 @@ export interface Portfolio {
     last_step?: string | null;
     slug?: string | null;
     style_chat_history?: PersistedStyleChatMessage[] | null;
+    screenshot_url?: string | null;
     updated_at: Timestamp;
     created_at: Timestamp;
 }
