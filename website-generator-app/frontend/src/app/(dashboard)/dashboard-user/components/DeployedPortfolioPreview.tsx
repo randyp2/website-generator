@@ -83,7 +83,7 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
                             <div className="relative h-72">
                                 <div
                                     className="absolute inset-0 bg-cover bg-center"
-                                    style={{ backgroundImage: `url(${DEFAULT_DEPLOYED_PORTFOLIO_IMAGE})` }}
+                                    style={{ backgroundImage: `url(${deployedPortfolio.screenshot_url ?? DEFAULT_DEPLOYED_PORTFOLIO_IMAGE})` }}
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/10" />
                                 <div className="absolute inset-x-0 bottom-0 p-3">

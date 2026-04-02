@@ -86,6 +86,7 @@ public class PublicPortfolioServiceImpl implements PublicPortfolioService {
         dto.setOwnerName(ownerName);
         dto.setOwnerAvatarUrl(ownerAvatarUrl);
         dto.setPublishedAt(portfolio.getUpdatedAt());
+        dto.setScreenshotUrl(portfolio.getScreenshotUrl());
 
         return Optional.of(dto);
     }
@@ -132,6 +133,7 @@ public class PublicPortfolioServiceImpl implements PublicPortfolioService {
             card.setSlug(portfolio.getSlug());
             card.setTemplateId(portfolio.getTemplateId());
             card.setPublishedAt(portfolio.getUpdatedAt());
+            card.setScreenshotUrl(portfolio.getScreenshotUrl());
 
             profileRepository.findById(portfolio.getUserId()).ifPresent(profile -> {
                 card.setOwnerName(profile.getFullName());

@@ -16,4 +16,5 @@ public class PublicPortfolioDTO {
     private String ownerName;
     private String ownerAvatarUrl;
     private OffsetDateTime publishedAt;
+    private String screenshotUrl;
 }
