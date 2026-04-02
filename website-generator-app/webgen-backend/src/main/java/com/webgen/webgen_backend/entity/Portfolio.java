@@ -66,6 +66,9 @@ public class Portfolio {
     @Column(name = "last_step", nullable = false)
     private String lastStep;
 
+    @Column(name = "screenshot_url")
+    private String screenshotUrl;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "style_chat_history", nullable = false)
     private List<StyleChatMessage> styleChatHistory;
