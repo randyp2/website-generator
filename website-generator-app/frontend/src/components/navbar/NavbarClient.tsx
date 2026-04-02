@@ -8,7 +8,6 @@ import {
   Inbox,
   LayoutDashboard,
   LogIn,
-  Search,
   Sparkles,
   UserCircle2,
 } from "lucide-react"
@@ -157,8 +156,8 @@ const NavbarClient: React.FC = () => {
   }, [supabase])
 
   return (
-    <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
-      <div className="flex min-w-0 items-center gap-2 md:-ml-2">
+    <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 md:grid-cols-[200px_minmax(0,1fr)_200px] md:gap-4">
+      <div className="flex min-w-0 items-center gap-2 md:-ml-4 md:justify-start">
         <MobileNav nav={navbarNavigation.mobile} />
 
         <Link href="/" className="inline-flex items-center">
@@ -166,7 +165,7 @@ const NavbarClient: React.FC = () => {
         </Link>
       </div>
 
-      <div className="flex justify-center">
+      <div className="flex justify-center md:justify-self-center">
       <NavigationMenu className="hidden md:flex">
         <NavigationMenuList>
           {navbarNavigation.desktop.map((item) => {
@@ -177,15 +176,15 @@ const NavbarClient: React.FC = () => {
                 <NavigationMenuItem key={item.label}>
                   <NavigationMenuTrigger
                     className={cn(
-                      "h-10 rounded-full bg-transparent px-4 text-sm font-medium",
-                      active && "bg-accent/60 text-accent-foreground",
+                      "h-10 rounded-none bg-transparent px-4 text-sm font-medium text-white shadow-none hover:bg-transparent hover:text-white/80 focus:bg-transparent data-[active]:bg-transparent data-[state=open]:bg-transparent",
+                      active && "text-white",
                     )}
                   >
                     {item.label}
                   </NavigationMenuTrigger>
                   <NavigationMenuContent
                     className={cn(
-                      "z-50 rounded-2xl border border-border/70 bg-popover/95 p-4 pb-1 shadow-2xl backdrop-blur md:w-[420px]",
+                      "z-50 p-4 pb-1 md:w-[420px]",
                       item.gridCols === 1 && "columns-1 lg:w-[420px]",
                       item.gridCols === 2 && "columns-2 gap-4 lg:w-[620px]",
                       item.gridCols === 3 && "columns-3 gap-4 lg:w-[760px]",
@@ -205,8 +204,8 @@ const NavbarClient: React.FC = () => {
                   <Link
                     href={item.href}
                     className={cn(
-                      "inline-flex h-10 items-center rounded-full px-4 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
-                      active && "bg-accent/60 text-accent-foreground",
+                      "inline-flex h-10 items-center rounded-none px-4 text-sm font-medium text-white transition-colors hover:bg-transparent hover:text-white/80",
+                      active ? "text-white" : "text-white",
                     )}
                   >
                     {item.label}
@@ -219,21 +218,14 @@ const NavbarClient: React.FC = () => {
       </NavigationMenu>
       </div>
 
-      <div className="ml-auto flex items-center gap-2 pl-2 md:pl-6">
-        <ThemeModeToggle />
+      <div className="ml-auto flex items-center gap-2 pl-2 md:justify-self-end md:pl-0">
+        <ThemeModeToggle
+          collapsed
+          className="size-9 border-border/70 bg-background/80 text-foreground hover:bg-background/80 hover:text-foreground"
+        />
         {user ? (
           <>
             <div className="hidden items-center gap-2 md:flex">
-              <div className="relative">
-                <Search className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2" />
-                <input
-                  type="text"
-                  aria-label="Search"
-                  placeholder="Search"
-                  readOnly
-                  className="h-10 w-40 rounded-full border border-border/70 bg-background/80 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground/80 outline-none"
-                />
-              </div>
               <Button
                 type="button"
                 variant="ghost"
@@ -259,9 +251,9 @@ const NavbarClient: React.FC = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="size-8 rounded-md bg-transparent p-0 hover:bg-accent/30 focus-visible:ring-0 focus-visible:ring-offset-0 md:ml-1"
+                    className="size-9 rounded-md bg-background/80 p-0 hover:bg-background/80 focus-visible:ring-0 focus-visible:ring-offset-0 md:ml-1"
                   >
-                    <Avatar className="size-8">
+                    <Avatar className="size-9">
                       <AvatarImage src={avatarUrl ?? undefined} alt={user.email ?? "User avatar"} />
                       <AvatarFallback className="bg-primary/15 text-xs font-semibold text-primary">
                         {userInitials}

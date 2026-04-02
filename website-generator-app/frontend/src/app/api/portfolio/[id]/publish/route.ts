@@ -20,14 +20,17 @@ export const POST = async (
     const body = await req.json();
     const backendUrl = getBackendUrl();
 
-    const res = await fetch(`${backendUrl}/api/v1/portfolio/${portfolioId}/publish`, {
-        method: "POST",
-        headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            "Content-Type": "application/json",
+    const res: Response = await fetch(
+        `${backendUrl}/api/v1/portfolio/${portfolioId}/publish`,
+        {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${session.access_token}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ slug: body?.slug ?? null }),
         },
-        body: JSON.stringify({ slug: body?.slug ?? null }),
-    });
+    );
 
     if (!res.ok) {
         const errorText = await res.text();
