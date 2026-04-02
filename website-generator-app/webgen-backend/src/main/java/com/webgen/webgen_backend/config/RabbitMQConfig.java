@@ -29,6 +29,12 @@ public class RabbitMQConfig {
     public static final String SECTION_QUEUE = "portfolio.section.queue";
     public static final String SECTION_ROUTING_KEY = "portfolio.section";
 
+    // Screenshot queue
+    public static final String SCREENSHOT_QUEUE = "portfolio.screenshot.queue";
+    public static final String SCREENSHOT_ROUTING_KEY = "portfolio.screenshot";
+    public static final String SCREENSHOT_DLQ = "portfolio.screenshot.dlq";
+    public static final String SCREENSHOT_DLQ_ROUTING_KEY = "portfolio.screenshot.dead";
+
     // Exchange for DLQ
     public static final String DLX = "portfolio.dlx";
     // Dead letter queue for retries/inspections
@@ -74,6 +80,32 @@ public class RabbitMQConfig {
     }
 
 
+
+    /* ======== SCREENSHOT QUEUE ======== */
+    @Bean
+    public Queue screenshotQueue() {
+        return QueueBuilder.durable(SCREENSHOT_QUEUE)
+                .withArgument("x-dead-letter-exchange", DLX)
+                .withArgument("x-dead-letter-routing-key", SCREENSHOT_DLQ_ROUTING_KEY)
+                .build();
+    }
+
+    @Bean
+    public Binding screenshotBinding(Queue screenshotQueue, DirectExchange exchange) {
+        return BindingBuilder.bind(screenshotQueue).to(exchange).with(SCREENSHOT_ROUTING_KEY);
+    }
+
+    @Bean
+    public Queue screenshotDeadLetterQueue() {
+        return QueueBuilder.durable(SCREENSHOT_DLQ)
+                .withArgument("x-message-ttl", 86400000) // 24 hours
+                .build();
+    }
+
+    @Bean
+    public Binding screenshotDlqBinding(Queue screenshotDeadLetterQueue, DirectExchange deadLetterExchange) {
+        return BindingBuilder.bind(screenshotDeadLetterQueue).to(deadLetterExchange).with(SCREENSHOT_DLQ_ROUTING_KEY);
+    }
 
     /* ======== DEAD LETTER QUEUE ======== */
     // Configure dead letter queue
