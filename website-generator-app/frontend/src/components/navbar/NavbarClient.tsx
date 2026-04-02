@@ -293,19 +293,19 @@ const NavbarClient: React.FC = () => {
           <>
             <motion.div {...actionButtonMotion} className="max-sm:hidden">
               <Link
-                href="/dashboard"
+                href="/"
                 className={cn(
                   buttonVariants({ variant: "secondary", size: "sm" }),
                   "rounded-full px-4",
                 )}
               >
                 <LogIn className="mr-2 size-4" />
-                Dashboard
+                Sign In
               </Link>
             </motion.div>
             <motion.div {...actionButtonMotion}>
               <Link
-                href="/dashboard"
+                href="/"
                 className={cn(buttonVariants({ size: "sm" }), "rounded-full px-4")}
               >
                 <Sparkles className="mr-2 size-4" />
