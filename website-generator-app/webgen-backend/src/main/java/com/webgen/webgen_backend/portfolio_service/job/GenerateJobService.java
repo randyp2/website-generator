@@ -78,8 +78,6 @@ public class GenerateJobService {
         return jobId;
     }
 
-
-
     /**
      * Fan out section generation messages to the section queue.
      * Called by the orchestrator
