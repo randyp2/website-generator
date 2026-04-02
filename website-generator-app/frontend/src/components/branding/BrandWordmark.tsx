@@ -30,7 +30,12 @@ export default function BrandWordmark({
                     rnChipClassName,
                 )}
             >
-                <span className={cn("font-extrabold text-primary-foreground", rnTextClassName)}>
+                <span
+                    className={cn(
+                        "font-extrabold text-white dark:text-primary-foreground",
+                        rnTextClassName,
+                    )}
+                >
                     RN
                 </span>
             </span>
