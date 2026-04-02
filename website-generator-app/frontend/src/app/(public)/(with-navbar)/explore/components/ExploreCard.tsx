@@ -21,7 +21,7 @@ interface ExploreCardProps {
 }
 
 export const ExploreCard = ({ portfolio }: ExploreCardProps) => {
-  const href = `/portfolio/${portfolio.slug}`
+  const href = `/explore/${portfolio.slug}`
   const templateLabel = getTemplateLabel(portfolio.templateId)
   const summary = getPortfolioSummary(portfolio)
   const metrics = getPortfolioMetrics(portfolio)
