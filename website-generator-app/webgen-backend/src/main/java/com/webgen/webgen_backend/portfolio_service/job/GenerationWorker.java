@@ -1,21 +1,15 @@
 package com.webgen.webgen_backend.portfolio_service.job;
 
-import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.webgen.webgen_backend.config.RabbitMQConfig;
 import com.webgen.webgen_backend.portfolio_service.builder.BuilderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.handler.annotation.Header;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.dto.portfolio.JobStatusDTO;
-import com.webgen.webgen_backend.dto.portfolio.PortfolioGenerateRequestDTO;
 import com.webgen.webgen_backend.portfolio_service.PortfolioAiService;
 
 import java.io.IOException;
