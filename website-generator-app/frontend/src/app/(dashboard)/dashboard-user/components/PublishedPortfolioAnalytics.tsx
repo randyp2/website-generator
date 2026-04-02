@@ -54,8 +54,8 @@ export const PublishedPortfolioAnalytics: React.FC = () => {
     const recentComments = COMMENT_PLACEHOLDERS.slice(0, RECENT_COMMENT_LIMIT);
 
     return (
-        <section className="flex-1 rounded-2xl border border-white/10 bg-white/5 p-4 md:p-5">
-            <div className="mb-5 grid grid-cols-2 overflow-hidden rounded-2xl bg-white/[0.02]">
+        <section className="flex-1 rounded-2xl border border-border bg-card/80 p-4 md:p-5">
+            <div className="mb-5 grid grid-cols-2 overflow-hidden rounded-2xl border border-border/70 bg-background/50">
                 {ANALYTICS_PLACEHOLDER_ITEMS.map((item, index) => {
                     const isLeftColumn = index % 2 === 0;
                     const isTopRow = index < 2;
@@ -65,43 +65,45 @@ export const PublishedPortfolioAnalytics: React.FC = () => {
                             key={item.label}
                             className={[
                                 "relative overflow-hidden p-4 md:p-5",
-                                !isLeftColumn ? "border-l border-white/10" : "",
-                                !isTopRow ? "border-t border-white/10" : "",
+                                !isLeftColumn ? "border-l border-border/70" : "",
+                                !isTopRow ? "border-t border-border/70" : "",
                             ]
                                 .filter(Boolean)
                                 .join(" ")}
                         >
-                            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-orange-500/12 via-transparent to-amber-400/8" />
-                            <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-orange-400/12 blur-2xl" />
+                            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-orange-400/18 via-orange-200/8 to-transparent dark:from-orange-500/12 dark:via-transparent dark:to-amber-400/8" />
+                            <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-orange-300/25 blur-2xl dark:bg-orange-400/12" />
                             <div className="flex items-center justify-between">
-                                <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-white/50">
+                                <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
                                     {item.label}
                                 </p>
-                                <item.icon className="h-5 w-5 text-orange-200/90 md:h-6 md:w-6" />
+                                <item.icon className="h-5 w-5 text-orange-500 md:h-6 md:w-6 dark:text-orange-200/90" />
                             </div>
-                            <p className="mt-2 text-2xl font-semibold tracking-tight text-white/95 md:text-[1.7rem]">
+                            <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground md:text-[1.7rem]">
                                 {item.value}
                             </p>
-                            <p className="mt-1 text-sm font-medium text-emerald-300/90">{item.delta}</p>
+                            <p className="mt-1 text-sm font-medium text-emerald-600 dark:text-emerald-300/90">
+                                {item.delta}
+                            </p>
                         </div>
                     );
                 })}
             </div>
 
-            <div className="border-t border-white/10 pt-4">
-                <h4 className="text-sm font-semibold text-white">Recent Comments</h4>
-                <ul className="mt-2 max-h-[128px] space-y-2 overflow-y-auto pr-1 [scrollbar-color:rgba(255,255,255,0.35)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/30 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1.5">
+            <div className="border-t border-border pt-4">
+                <h4 className="text-sm font-semibold text-foreground">Recent Comments</h4>
+                <ul className="mt-2 max-h-[128px] space-y-2 overflow-y-auto pr-1 [scrollbar-color:rgba(148,163,184,0.45)_transparent] [scrollbar-width:thin] dark:[scrollbar-color:rgba(255,255,255,0.35)_transparent] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300/70 dark:[&::-webkit-scrollbar-thumb]:bg-white/30 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1.5">
                     {recentComments.map((comment) => (
                         <li key={comment.id} className="flex items-start gap-2.5 py-1">
-                            <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/12 text-[11px] font-semibold text-white/85">
+                            <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-orange-100 text-[11px] font-semibold text-orange-700 dark:bg-white/12 dark:text-white/85">
                                 {getAuthorInitial(comment.author)}
                             </span>
                             <div className="min-w-0 flex-1">
                                 <div className="flex items-center justify-between gap-2">
-                                    <p className="truncate text-xs font-semibold text-white/85">{comment.author}</p>
-                                    <p className="shrink-0 text-[11px] text-white/45">{comment.time}</p>
+                                    <p className="truncate text-xs font-semibold text-foreground">{comment.author}</p>
+                                    <p className="shrink-0 text-[11px] text-muted-foreground">{comment.time}</p>
                                 </div>
-                                <p className="mt-0.5 text-xs leading-4 text-white/70">{comment.text}</p>
+                                <p className="mt-0.5 text-xs leading-4 text-muted-foreground">{comment.text}</p>
                             </div>
                         </li>
                     ))}

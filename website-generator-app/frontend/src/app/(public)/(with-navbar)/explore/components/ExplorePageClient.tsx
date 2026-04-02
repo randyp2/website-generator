@@ -1,173 +1,260 @@
-"use client";
+"use client"
 
 import { Search } from "lucide-react"
-import {
-  startTransition,
-  useCallback,
-  useDeferredValue,
-  useEffect,
-  useRef,
-  useState,
-} from "react"
+import { startTransition, useCallback, useDeferredValue, useEffect, useRef, useState } from "react"
 
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from "@/components/ui/navigation-menu"
+import { cn } from "@/lib/utils"
 
+import { ExploreCard } from "./ExploreCard"
 import { ExploreEmptyState } from "./ExploreEmptyState"
-import { ExploreGrid } from "./ExploreGrid"
-import type { ExploreFilter, PageResponse, PortfolioCard } from "./explore.types"
+import type { PageResponse, PortfolioCard } from "./explore.types"
 import { matchesPortfolioFilter } from "./explore.utils"
 
-const FILTER_OPTIONS: Array<{ id: ExploreFilter; label: string }> = [
-  { id: "all", label: "All portfolios" },
-  { id: "templated", label: "Template based" },
-  { id: "recent", label: "Recently published" },
-]
+type ShowcaseMajor = "Design" | "Product" | "Research"
+type ShowcaseIndustry = "SaaS" | "Ecommerce" | "AI"
+type ShowcaseExperience = "Student" | "Mid-Level" | "Senior"
+
+const NAV_SECTIONS = [
+  {
+    id: "major",
+    label: "Majors",
+    options: ["All", "Design", "Product", "Research"] as const,
+    description: "Browse by discipline and craft focus.",
+  },
+  {
+    id: "industry",
+    label: "Industries",
+    options: ["All", "SaaS", "Ecommerce", "AI"] as const,
+    description: "See portfolios grouped by target industry.",
+  },
+  {
+    id: "experience",
+    label: "Experience",
+    options: ["All", "Student", "Mid-Level", "Senior"] as const,
+    description: "Compare emerging talent and established professionals.",
+  },
+] as const
+
+const navTriggerClassName =
+  "h-10 rounded-none bg-transparent px-4 text-sm font-medium text-foreground shadow-none hover:bg-transparent hover:text-foreground/75 focus:bg-transparent focus:text-foreground/75 data-[active]:bg-transparent data-[state=open]:bg-transparent"
+
+const PAGE_SIZE = 12
 
 export const ExplorePageClient = () => {
   const [portfolios, setPortfolios] = useState<PortfolioCard[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [page, setPage] = useState(0)
   const [isLast, setIsLast] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
-  const [activeFilter, setActiveFilter] = useState<ExploreFilter>("all")
-  const observerRef = useRef<HTMLDivElement | null>(null)
+  const [activeMajor, setActiveMajor] = useState<ShowcaseMajor | "All">("All")
+  const [activeIndustry, setActiveIndustry] = useState<ShowcaseIndustry | "All">("All")
+  const [activeExperience, setActiveExperience] = useState<ShowcaseExperience | "All">("All")
   const deferredSearchQuery = useDeferredValue(searchQuery)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
+  const pageRef = useRef(0)
 
-  const fetchPage = useCallback(async (pageNum: number) => {
-    const res = await fetch(`/api/public/portfolio?page=${pageNum}&size=12`)
-    if (!res.ok) return null
-    return (await res.json()) as PageResponse
+  const fetchPage = useCallback(async (pageNumber: number) => {
+    setIsLoading(true)
+    try {
+      const res = await fetch(`/api/public/portfolio?page=${pageNumber}&size=${PAGE_SIZE}`)
+      if (!res.ok) return
+      const data: PageResponse = await res.json()
+      setPortfolios((prev) =>
+        pageNumber === 0 ? data.content : [...prev, ...data.content],
+      )
+      setIsLast(data.last)
+    } finally {
+      setIsLoading(false)
+    }
   }, [])
 
   useEffect(() => {
-    const load = async () => {
-      const data = await fetchPage(0)
-      if (data) {
-        setPortfolios(data.content)
-        setIsLast(data.last)
-      }
-      setLoading(false)
-    }
-    load()
+    fetchPage(0)
   }, [fetchPage])
 
-  const loadMore = useCallback(async () => {
-    if (loadingMore || isLast) return
-    setLoadingMore(true)
-    const nextPage = page + 1
-    const data = await fetchPage(nextPage)
-    if (data) {
-      setPortfolios((prev) => [...prev, ...data.content])
-      setPage(nextPage)
-      setIsLast(data.last)
-    }
-    setLoadingMore(false)
-  }, [loadingMore, isLast, page, fetchPage])
-
   useEffect(() => {
-    const el = observerRef.current
-    if (!el) return
+    const sentinel = sentinelRef.current
+    if (!sentinel || isLast || isLoading) return
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) loadMore()
+        if (entries[0]?.isIntersecting) {
+          const nextPage = pageRef.current + 1
+          pageRef.current = nextPage
+          fetchPage(nextPage)
+        }
       },
-      { threshold: 0.1 },
+      { rootMargin: "200px" },
     )
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [loadMore])
 
-  const filteredPortfolios = portfolios.filter((portfolio) =>
-    matchesPortfolioFilter(portfolio, activeFilter, deferredSearchQuery),
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [fetchPage, isLast, isLoading])
+
+  const filtered = portfolios.filter((p) =>
+    matchesPortfolioFilter(p, "all", deferredSearchQuery),
   )
 
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-background px-4 pb-16 pt-8 md:px-8 md:pt-10">
-        <div className="flex items-center justify-center py-20">
-          <div className="h-10 w-10 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground" />
-        </div>
-      </main>
-    )
-  }
-
   return (
-    <main className="min-h-screen bg-background px-4 pb-16 pt-8 md:px-8 md:pt-10">
-      <section className="mx-auto mb-8 max-w-7xl">
-        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.34em] text-primary/70">
-              Discover public work
-            </p>
-            <h1 className="text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
-              Portfolio cards with stronger signals, faster scanning, and cleaner actions.
-            </h1>
-            <p className="mt-4 text-sm leading-7 text-muted-foreground md:text-base">
-              Browse live portfolio builds from creators using your generator. Search by title,
-              creator, slug, or template and jump straight into any published project.
-            </p>
-          </div>
+    <main className="relative min-h-screen overflow-hidden bg-background pb-16">
+      <div className="mx-auto w-full max-w-[112rem] grow">
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 isolate -z-10 overflow-hidden opacity-60"
+        >
+          <div className="absolute left-0 top-0 h-[80rem] w-[35rem] -translate-y-[21.875rem] -rotate-45 rounded-full [background:radial-gradient(68.54%_68.72%_at_55.02%_31.46%,color-mix(in_oklab,var(--foreground)_6%,transparent)_0%,color-mix(in_oklab,var(--foreground)_2%,transparent)_50%,color-mix(in_oklab,var(--foreground)_1%,transparent)_80%)]" />
+          <div className="absolute left-0 top-0 h-[80rem] w-[15rem] translate-x-[5%] -translate-y-[50%] -rotate-45 rounded-full [background:radial-gradient(50%_50%_at_50%_50%,color-mix(in_oklab,var(--foreground)_4%,transparent)_0%,color-mix(in_oklab,var(--foreground)_1%,transparent)_80%,transparent_100%)]" />
+          <div className="absolute left-0 top-0 h-[80rem] w-[15rem] -translate-y-[21.875rem] -rotate-45 rounded-full [background:radial-gradient(50%_50%_at_50%_50%,color-mix(in_oklab,var(--foreground)_4%,transparent)_0%,color-mix(in_oklab,var(--foreground)_1%,transparent)_80%,transparent_100%)]" />
+        </div>
 
-          <div className="w-full max-w-md">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={searchQuery}
-                onChange={(event) => {
-                  const nextValue = event.target.value
-                  startTransition(() => setSearchQuery(nextValue))
-                }}
-                placeholder="Search portfolios, creators, templates..."
-                className="pl-11"
-              />
+        <div className="px-6 py-8 sm:px-8 lg:px-10">
+          <div className="flex w-full flex-col gap-4 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center">
+            <div className="hidden md:block" />
+
+            <div className="flex items-center justify-center md:col-start-2">
+              <NavigationMenu className="z-20">
+                <NavigationMenuList className="gap-0">
+                  {NAV_SECTIONS.map((section) => {
+                    const selectedValue =
+                      section.id === "major"
+                        ? activeMajor
+                        : section.id === "industry"
+                          ? activeIndustry
+                          : activeExperience
+
+                    return (
+                      <NavigationMenuItem key={section.id}>
+                        <NavigationMenuTrigger
+                          className={cn(
+                            navTriggerClassName,
+                            selectedValue !== "All" && "text-primary",
+                          )}
+                        >
+                          {section.label}
+                        </NavigationMenuTrigger>
+                        <NavigationMenuContent className="p-4 pb-1 md:w-[420px]">
+                          <div className="mb-4 break-inside-avoid">
+                            <h3 className="mb-1 px-2 text-xs font-semibold tracking-[0.22em] text-foreground/55 uppercase">
+                              {section.label}
+                            </h3>
+                            <p className="px-2 text-xs leading-snug text-muted-foreground">
+                              {section.description}
+                            </p>
+                            <ul className="mt-3 grid gap-1">
+                              {section.options.map((option) => (
+                                <li key={option}>
+                                  <button
+                                    type="button"
+                                    className={cn(
+                                      "block w-full rounded-xl px-3 py-2 text-left transition-colors hover:bg-accent/60",
+                                      selectedValue === option && "bg-accent/60",
+                                    )}
+                                    onClick={() => {
+                                      if (section.id === "major") {
+                                        setActiveMajor(option as ShowcaseMajor | "All")
+                                        return
+                                      }
+
+                                      if (section.id === "industry") {
+                                        setActiveIndustry(option as ShowcaseIndustry | "All")
+                                        return
+                                      }
+
+                                      setActiveExperience(option as ShowcaseExperience | "All")
+                                    }}
+                                  >
+                                    <div className="text-sm leading-none font-medium">
+                                      {option}
+                                    </div>
+                                    <p className="mt-1 text-xs leading-snug text-muted-foreground">
+                                      {option === "All"
+                                        ? `Show every portfolio in ${section.label.toLowerCase()}.`
+                                        : `Focus on ${option.toLowerCase()} portfolios.`}
+                                    </p>
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </NavigationMenuContent>
+                      </NavigationMenuItem>
+                    )
+                  })}
+                </NavigationMenuList>
+              </NavigationMenu>
+            </div>
+
+            <div className="flex w-full justify-end md:col-start-3 md:justify-self-stretch">
+              <div
+                className={cn(
+                  "relative flex items-center justify-end transition-[width] duration-300",
+                  isSearchOpen ? "w-full max-w-sm" : "w-10",
+                )}
+              >
+                {isSearchOpen ? (
+                  <>
+                    <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      autoFocus
+                      value={searchQuery}
+                      onBlur={() => {
+                        if (searchQuery.trim().length === 0) {
+                          setIsSearchOpen(false)
+                        }
+                      }}
+                      onChange={(event) => {
+                        const nextValue = event.target.value
+                        startTransition(() => setSearchQuery(nextValue))
+                      }}
+                      placeholder="Search portfolios, creators..."
+                      className="w-full pl-11 pr-4"
+                    />
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    aria-label="Search portfolios"
+                    className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                    onClick={() => setIsSearchOpen(true)}
+                  >
+                    <Search className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-wrap gap-2">
-            {FILTER_OPTIONS.map((option) => (
-              <Button
-                key={option.id}
-                type="button"
-                variant={activeFilter === option.id ? "secondary" : "ghost"}
-                className={
-                  activeFilter === option.id
-                    ? "rounded-full"
-                    : "rounded-full border border-border bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                }
-                onClick={() => setActiveFilter(option.id)}
-              >
-                {option.label}
-              </Button>
+        <div className="absolute inset-x-0 h-px w-full border-b border-dashed border-border" />
+
+        {filtered.length === 0 && !isLoading ? (
+          <div className="px-6 py-4 sm:px-8 lg:px-10">
+            <ExploreEmptyState hasQuery={deferredSearchQuery.length > 0} />
+          </div>
+        ) : (
+          <div className="z-10 grid gap-4 px-6 py-4 sm:px-8 lg:px-10 md:grid-cols-2 lg:grid-cols-3">
+            {filtered.map((portfolio) => (
+              <ExploreCard key={portfolio.slug} portfolio={portfolio} />
             ))}
           </div>
+        )}
 
-          <p className="text-sm text-muted-foreground">
-            Showing <span className="font-semibold text-foreground">{filteredPortfolios.length}</span>{" "}
-            of <span className="font-semibold text-foreground">{portfolios.length}</span> published portfolios
-          </p>
-        </div>
-      </section>
+        {!isLast && <div ref={sentinelRef} className="h-1" />}
 
-      {portfolios.length === 0 ? (
-        <ExploreEmptyState />
-      ) : filteredPortfolios.length === 0 ? (
-        <ExploreEmptyState hasQuery />
-      ) : (
-        <>
-          <ExploreGrid items={filteredPortfolios} />
-          <div ref={observerRef} className="h-10" />
-          {loadingMore && (
-            <div className="flex items-center justify-center py-8">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground" />
-            </div>
-          )}
-        </>
-      )}
+        {isLoading && (
+          <div className="flex justify-center py-8">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          </div>
+        )}
+      </div>
     </main>
   )
 }
