@@ -7,8 +7,6 @@ import Link from "next/link";
 import {
     FiGrid,
     FiFolder,
-    FiUpload,
-    FiSliders,
     FiShare2,
     FiSettings,
     FiHelpCircle,
@@ -20,10 +18,10 @@ import {
 } from "react-icons/fi";
 import { MdOutlineCreate } from "react-icons/md";
 import { IconType } from "react-icons";
-import { createClient } from "@/utils/supabase/client";
 import { signoutClient } from "@/lib/logout-client";
 import { useUser } from "@/context/UserContext";
 import BrandWordmark from "@/components/branding/BrandWordmark";
+import { ThemeModeToggle } from "@/components/theme/ThemeModeToggle";
 
 interface NavItem {
     id: string;
@@ -82,7 +80,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
         };
 
         fetchPortfoliosCount();
-    }, []);
+    }, [user?.id]);
 
     const collapsed = externalCollapsed ?? false;
 
@@ -113,8 +111,6 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
             path: "/dashboard-user/export",
         },
     ];
-
-    const secondaryItems: NavItem[] = [];
 
     const NavItemComponent = ({ item }: { item: NavItem }) => {
         const isActive = pathname === item.path;
@@ -179,7 +175,9 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                 {/* Product Name */}
                 {!collapsed && (
                     <div className="px-3 pb-3">
-                        <BrandWordmark className="text-base text-sidebar-foreground" />
+                        <Link href="/">
+                            <BrandWordmark className="text-base text-sidebar-foreground" />
+                        </Link>
                     </div>
                 )}
 
@@ -238,7 +236,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                 </motion.button>
 
                 {showProfileMenu && (
-                    <div className="absolute bottom-full left-4 right-4 z-50 mb-2 overflow-hidden rounded-lg border border-sidebar-border bg-card shadow-2xl">
+                    <div className="absolute bottom-full left-4 right-4 z-50 mb-2 overflow-hidden rounded-lg border border-sidebar-border bg-sidebar shadow-2xl">
                         {[
                             { icon: FiUser, label: "Sign Up" },
                             { icon: FiSettings, label: "Settings" },
@@ -248,18 +246,25 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                             <button
                                 key={item.label}
                                 onClick={() => setShowProfileMenu(false)}
-                                className="w-full flex items-center gap-3 px-4 py-3 text-left text-card-foreground/80 transition-colors hover:bg-sidebar-accent/40"
+                                className="w-full flex items-center gap-3 px-4 py-3 text-left text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent/40"
                             >
-                                <item.icon className="h-4 w-4 text-card-foreground/70" />
+                                <item.icon className="h-4 w-4 text-sidebar-foreground/70" />
                                 <span className="text-sm">{item.label}</span>
                             </button>
                         ))}
+
+                        <div className="border-t border-sidebar-border px-1 py-2">
+                            <p className="px-3 pb-1 text-xs font-medium uppercase tracking-[0.2em] text-sidebar-foreground/50">
+                                Theme
+                            </p>
+                            <ThemeModeToggle variant="inline" />
+                        </div>
 
                         <button
                             onClick={async () => {
                                 setShowProfileMenu(false);
                                 await signoutClient();
-                                router.push("/login");
+                                router.push("/");
                             }}
                             className="w-full flex items-center gap-3 border-t border-sidebar-border px-4 py-3 text-left text-red-300 transition-colors hover:bg-red-500/10"
                         >
@@ -289,7 +294,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
             <motion.aside
                 animate={{ width: collapsed ? 72 : 248 }}
                 transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="fixed left-0 top-0 z-40 hidden h-screen border-r border-sidebar-border bg-sidebar shadow-2xl shadow-black/40 md:block"
+                className="fixed left-0 top-0 z-40 hidden h-screen bg-sidebar shadow-2xl shadow-black/40 md:block"
             >
                 <SidebarContent />
             </motion.aside>
@@ -313,7 +318,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                             animate={{ x: 0 }}
                             exit={{ x: -248 }}
                             transition={{ duration: 0.3, ease: "easeOut" }}
-                            className="fixed left-0 top-0 z-50 h-screen w-[248px] border-r border-sidebar-border bg-sidebar shadow-2xl shadow-black/40 md:hidden"
+                            className="fixed left-0 top-0 z-50 h-screen w-[248px] bg-sidebar shadow-2xl shadow-black/40 md:hidden"
                         >
                             {/* Close Button */}
                             <button

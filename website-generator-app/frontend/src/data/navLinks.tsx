@@ -1,6 +1,3 @@
-import type { JSX } from "react";
-
-
 /* ------- NAVBAR LINKS AND PATHS ------- */
 // Define interface/shape for NavbarMenu array
 interface NavbarItem {
@@ -25,20 +22,8 @@ export const NavbarMenu: NavbarItem[] = [
   },
   {
     id: 3,
-    title: "About",
-    link: "/about",
-    showInNav: true,
-  },
-  {
-    id: 4,
-    title: "Login",
-    link: "/login",
-    showInNav: false, // Don't show in navbar
-  },
-  {
-    id: 5,
-    title: "Dashboard",
-    link: "/dashboard",
+    title: "How It Works",
+    link: "/how-it-works",
     showInNav: false, // Don't show in navbar (accessed via "Get Started" button)
   },
 ];

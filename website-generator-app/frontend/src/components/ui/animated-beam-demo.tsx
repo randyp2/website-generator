@@ -38,8 +38,9 @@ export function AnimatedBeamDemo() {
     const beamStyle = {
         pathColor: "#d1d5db",
         pathOpacity: 0.35,
-        gradientStartColor: "#d1d5db",
-        gradientStopColor: "#f3f4f6",
+        gradientStartColor: "#fbbf24",
+        gradientStopColor: "#b45309",
+        duration: 3.5,
     } as const;
 
     return (
