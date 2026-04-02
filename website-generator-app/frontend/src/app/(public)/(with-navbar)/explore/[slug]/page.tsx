@@ -5,6 +5,7 @@ import { ArrowLeft, Calendar, Eye, Heart, Share2, SquareArrowOutUpRight, User } 
 
 import { fetchPublicPortfolio } from "@/lib/api/publicPortfolio";
 import { LazyImage } from "@/components/ui/lazy-image";
+import PortfolioComments from "./portfolio-comments";
 
 const DEFAULT_PREVIEW_IMAGE =
   "https://images.unsplash.com/photo-1545665277-5937489579f2?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
@@ -112,7 +113,7 @@ const ExplorePortfolioDetailPage = async ({ params }: Props) => {
   const metrics = getPortfolioMetrics(portfolio.slug);
 
   return (
-    <section className="min-h-screen bg-background px-2 py-10 sm:px-3 lg:px-4">
+    <section className="min-h-screen bg-background px-6 py-10 sm:px-8 lg:px-12">
       <div className="mx-auto w-full max-w-[96rem]">
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.8fr)_320px]">
           <div className="flex min-w-0 flex-col gap-8">
@@ -139,6 +140,8 @@ const ExplorePortfolioDetailPage = async ({ params }: Props) => {
                     </p>
                     <Link
                       href={`/portfolio/${portfolio.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="inline-flex h-11 shrink-0 items-center justify-center gap-2 self-start rounded-md border border-border px-4 text-sm font-medium text-foreground transition-colors hover:bg-accent lg:self-auto"
                     >
                       <SquareArrowOutUpRight className="size-4" />
@@ -200,6 +203,8 @@ const ExplorePortfolioDetailPage = async ({ params }: Props) => {
               between the gallery card and the live portfolio.
             </p>
           </article>
+
+            <PortfolioComments />
           </div>
 
           <aside className="flex h-fit flex-col gap-5 xl:sticky xl:top-24">

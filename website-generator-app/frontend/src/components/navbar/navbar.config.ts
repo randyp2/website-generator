@@ -5,17 +5,17 @@ const productGroups = {
     {
       title: "Portfolio Launch",
       description: "Guided templates for designers, developers, and freelancers.",
-      href: "/dashboard",
+      href: "/",
     },
     {
       title: "Resume Import",
       description: "Turn your resume into sections and project highlights in minutes.",
-      href: "/dashboard",
+      href: "/",
     },
     {
       title: "AI Styling",
       description: "Refine tone, layout, and visual direction from plain-language prompts.",
-      href: "/dashboard",
+      href: "/",
     },
   ] satisfies NavLeafItem[],
   components: [
@@ -27,7 +27,7 @@ const productGroups = {
     {
       title: "Section Builder",
       description: "Assemble hero, about, work, and contact sections with structure.",
-      href: "/dashboard",
+      href: "/dashboard-user/create",
     },
     {
       title: "Version History",
@@ -39,7 +39,7 @@ const productGroups = {
     {
       title: "How It Works",
       description: "Understand the workflow from resume upload to published portfolio.",
-      href: "/dashboard",
+      href: "/how-it-works",
     },
     {
       title: "Explore Portfolios",
@@ -49,7 +49,7 @@ const productGroups = {
     {
       title: "Sign In",
       description: "Access saved portfolios and continue previous work.",
-      href: "/dashboard",
+      href: "/",
     },
   ] satisfies NavLeafItem[],
 }
@@ -80,7 +80,7 @@ export const navbarNavigation: NavbarNavigation = {
   ],
   desktop: [
     {
-      href: "/dashboard",
+      href: "/",
       label: "Platform",
       gridCols: 2,
       categories: [
@@ -97,7 +97,7 @@ export const navbarNavigation: NavbarNavigation = {
       ],
     },
     {
-      href: "/dashboard",
+      href: "/how-it-works",
       label: "Resources",
       gridCols: 1,
       categories: [
