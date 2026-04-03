@@ -383,8 +383,9 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
 
         portfolio.setStatus("draft");
+        portfolio.setSlug(null);
+        portfolio.setScreenshotUrl(null);
         portfolio.setUpdatedAt(OffsetDateTime.now());
-        // Retain slug so the user can re-publish at the same URL
         portfolioRepository.save(portfolio);
     }
 

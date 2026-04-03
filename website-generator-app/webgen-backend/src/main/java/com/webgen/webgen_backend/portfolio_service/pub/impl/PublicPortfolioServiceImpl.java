@@ -78,6 +78,8 @@ public class PublicPortfolioServiceImpl implements PublicPortfolioService {
         }
 
         PublicPortfolioDTO dto = new PublicPortfolioDTO();
+        dto.setPortfolioId(portfolio.getId().toString());
+        dto.setUserId(portfolio.getUserId().toString());
         dto.setTitle(portfolio.getTitle());
         dto.setSlug(portfolio.getSlug());
         dto.setTemplateId(portfolio.getTemplateId());

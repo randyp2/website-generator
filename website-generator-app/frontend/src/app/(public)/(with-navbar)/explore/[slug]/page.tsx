@@ -6,6 +6,7 @@ import { ArrowLeft, Calendar, Eye, Heart, Share2, SquareArrowOutUpRight, User } 
 import { fetchPublicPortfolio } from "@/lib/api/publicPortfolio";
 import { LazyImage } from "@/components/ui/lazy-image";
 import PortfolioComments from "./portfolio-comments";
+import { UnpublishButton } from "./UnpublishButton";
 
 const DEFAULT_PREVIEW_IMAGE =
   "https://images.unsplash.com/photo-1545665277-5937489579f2?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
@@ -138,15 +139,21 @@ const ExplorePortfolioDetailPage = async ({ params }: Props) => {
                       placeholder description section so visitors can scan the concept before
                       opening the full site.
                     </p>
-                    <Link
-                      href={`/portfolio/${portfolio.slug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex h-11 shrink-0 items-center justify-center gap-2 self-start rounded-md border border-border px-4 text-sm font-medium text-foreground transition-colors hover:bg-accent lg:self-auto"
-                    >
-                      <SquareArrowOutUpRight className="size-4" />
-                      Open Full Portfolio
-                    </Link>
+                    <div className="flex shrink-0 items-center gap-3 self-start lg:self-auto">
+                      <Link
+                        href={`/portfolio/${portfolio.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-border px-4 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+                      >
+                        <SquareArrowOutUpRight className="size-4" />
+                        Open Full Portfolio
+                      </Link>
+                      <UnpublishButton
+                        portfolioId={portfolio.portfolioId}
+                        userId={portfolio.userId}
+                      />
+                    </div>
                   </div>
                 </div>
             </div>
@@ -164,7 +171,7 @@ const ExplorePortfolioDetailPage = async ({ params }: Props) => {
 
                 <div className="relative">
                   <LazyImage
-                    src={DEFAULT_PREVIEW_IMAGE}
+                    src={portfolio.screenshotUrl ?? DEFAULT_PREVIEW_IMAGE}
                     fallback="https://placehold.co/1200x675?text=Portfolio+Preview"
                     inView={true}
                     alt={`${portfolio.title} preview`}
