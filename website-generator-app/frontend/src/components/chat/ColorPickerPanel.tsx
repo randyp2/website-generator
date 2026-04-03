@@ -39,6 +39,59 @@ const createRandomPalette = (): PaletteColors => ({
     muted: randomHex(),
 });
 
+const getAiPaletteForTheme = (
+    colors: PaletteColors,
+    themeMode: ThemeMode,
+): PaletteColors => {
+    if (themeMode === "dark") {
+        return colors;
+    }
+
+    return {
+        ...colors,
+        background: colors.text,
+        text: colors.background,
+        muted: `${colors.background}b3`,
+    };
+};
+
+const PICKER_THEME_STYLES = {
+    dark: {
+        panel: {
+            backgroundColor: "#0f0f0f",
+            borderColor: "#404040",
+            color: "#e5e5e5",
+        },
+        heading: "#ffffff",
+        body: "rgba(229,229,229,0.62)",
+        icon: "#bfdbfe",
+        toggleShell: "rgba(0,0,0,0.2)",
+        toggleBorder: "rgba(255,255,255,0.1)",
+        toggleActiveBg: "#ffffff",
+        toggleActiveText: "#000000",
+        toggleIdleText: "rgba(255,255,255,0.7)",
+        toggleIdleHoverText: "#ffffff",
+        sectionLabel: "rgba(255,255,255,0.45)",
+    },
+    light: {
+        panel: {
+            backgroundColor: "#f3f4f6",
+            borderColor: "#e5e7eb",
+            color: "#262626",
+        },
+        heading: "#0f172a",
+        body: "#475569",
+        icon: "#94a3b8",
+        toggleShell: "rgba(38,38,38,0.12)",
+        toggleBorder: "rgba(38,38,38,0.12)",
+        toggleActiveBg: "#ffffff",
+        toggleActiveText: "#111827",
+        toggleIdleText: "#6b7280",
+        toggleIdleHoverText: "#111827",
+        sectionLabel: "rgba(38,38,38,0.48)",
+    },
+} as const;
+
 export const ColorPickerPanel = ({
     onSubmit,
     recommendedPresets = [],
@@ -85,10 +138,18 @@ export const ColorPickerPanel = ({
         [recommendedPresets, effectiveSelectedAiPresetName],
     );
 
+    const themedSelectedAiPresetColors = useMemo(
+        () =>
+            selectedAiPreset
+                ? getAiPaletteForTheme(selectedAiPreset.colors, themeMode)
+                : null,
+        [selectedAiPreset, themeMode],
+    );
+
     const currentColors =
         activeTab === "custom"
             ? customPalette
-            : selectedAiPreset?.colors ?? selectedPalette[themeMode];
+            : themedSelectedAiPresetColors ?? selectedPalette[themeMode];
 
     const handleCustomColorChange = (key: ColorKey, color: string) => {
         setCustomPalette((previousPalette) => ({
@@ -101,90 +162,97 @@ export const ColorPickerPanel = ({
         setCustomPalette(createRandomPalette());
     };
 
+    const pickerTheme = PICKER_THEME_STYLES[themeMode];
+
     return (
         <div
-            className={cn(
-                "w-full overflow-hidden rounded-[2rem] p-4 shadow-[0_30px_80px_rgba(0,0,0,0.28)] backdrop-blur-2xl md:p-6",
-                themeMode === "light"
-                    ? "border border-slate-300/70 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.14),_transparent_35%),linear-gradient(180deg,rgba(248,250,252,0.98),rgba(226,232,240,0.94))] text-slate-950"
-                    : "border border-white/10 bg-[radial-gradient(circle_at_top,_rgba(99,102,241,0.16),_transparent_38%),linear-gradient(180deg,rgba(9,9,11,0.98),rgba(16,24,40,0.96))] text-white",
-            )}
+            className="w-full overflow-hidden rounded-[2rem] border p-4 shadow-[0_30px_80px_rgba(0,0,0,0.28)] md:p-6"
+            style={pickerTheme.panel}
         >
-            <div className="rounded-[1.75rem]  p-5">
+            <div className="rounded-[1.75rem] p-5">
                 <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex items-center gap-3">
                         <div
-                            className={cn(
-                                "flex h-20 w-20 items-center justify-center text-blue-200",
-                                themeMode === "light"
-                                    ? "text-slate-700"
-                                    : "text-blue-200",
-                            )}
+                            className="flex h-20 w-20 items-center justify-center"
+                            style={{ color: pickerTheme.icon }}
                         >
                             <Palette className="h-15 w-15" />
                         </div>
                         <div>
-                            <h2
-                                className={cn(
-                                    "text-lg font-semibold",
-                                    themeMode === "light"
-                                        ? "text-slate-950"
-                                        : "text-white",
-                                )}
-                            >
+                            <h2 className="text-lg font-semibold" style={{ color: pickerTheme.heading }}>
                                 Color Palette Studio
                             </h2>
-                            <p
-                                className={cn(
-                                    "text-sm",
-                                    themeMode === "light"
-                                        ? "text-slate-600"
-                                        : "text-white/55",
-                                )}
-                            >
+                            <p className="text-sm" style={{ color: pickerTheme.body }}>
                                 Pick a preset or build a custom palette.
                             </p>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <div className="inline-flex rounded-2xl border border-white/10 bg-black/20 p-1">
+                        <div
+                            className="inline-flex rounded-2xl border p-1"
+                            style={{
+                                borderColor: pickerTheme.toggleBorder,
+                                backgroundColor: pickerTheme.toggleShell,
+                            }}
+                        >
                             <button
                                 type="button"
                                 onClick={() => setActiveTab("presets")}
-                                className={cn(
-                                    "rounded-xl px-4 py-2 text-sm transition",
+                                className="rounded-xl px-4 py-2 text-sm transition"
+                                style={
                                     activeTab === "presets"
-                                        ? "bg-white text-black"
-                                        : "text-white/70 hover:text-white",
-                                )}
-                            >
+                                        ? {
+                                              backgroundColor: pickerTheme.toggleActiveBg,
+                                              color: pickerTheme.toggleActiveText,
+                                          }
+                                        : {
+                                              color: pickerTheme.toggleIdleText,
+                                          }
+                                }
+                                >
                                 Presets
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setActiveTab("custom")}
-                                className={cn(
-                                    "rounded-xl px-4 py-2 text-sm transition",
+                                className="rounded-xl px-4 py-2 text-sm transition"
+                                style={
                                     activeTab === "custom"
-                                        ? "bg-white text-black"
-                                        : "text-white/70 hover:text-white",
-                                )}
+                                        ? {
+                                              backgroundColor: pickerTheme.toggleActiveBg,
+                                              color: pickerTheme.toggleActiveText,
+                                          }
+                                        : {
+                                              color: pickerTheme.toggleIdleText,
+                                          }
+                                }
                             >
                                 Custom
                             </button>
                         </div>
 
-                        <div className="inline-flex rounded-2xl border border-white/10 bg-black/20 p-1">
+                        <div
+                            className="inline-flex rounded-2xl border p-1"
+                            style={{
+                                borderColor: pickerTheme.toggleBorder,
+                                backgroundColor: pickerTheme.toggleShell,
+                            }}
+                        >
                             <button
                                 type="button"
                                 onClick={() => setThemeMode("light")}
-                                className={cn(
-                                    "rounded-xl p-2.5 transition",
+                                className="rounded-xl p-2.5 transition"
+                                style={
                                     themeMode === "light"
-                                        ? "bg-white text-black"
-                                        : "text-white/70 hover:text-white",
-                                )}
+                                        ? {
+                                              backgroundColor: pickerTheme.toggleActiveBg,
+                                              color: pickerTheme.toggleActiveText,
+                                          }
+                                        : {
+                                              color: pickerTheme.toggleIdleText,
+                                          }
+                                }
                                 aria-label="Use light mode palette preview"
                             >
                                 <Sun className="h-4 w-4" />
@@ -192,12 +260,17 @@ export const ColorPickerPanel = ({
                             <button
                                 type="button"
                                 onClick={() => setThemeMode("dark")}
-                                className={cn(
-                                    "rounded-xl p-2.5 transition",
+                                className="rounded-xl p-2.5 transition"
+                                style={
                                     themeMode === "dark"
-                                        ? "bg-white text-black"
-                                        : "text-white/70 hover:text-white",
-                                )}
+                                        ? {
+                                              backgroundColor: pickerTheme.toggleActiveBg,
+                                              color: pickerTheme.toggleActiveText,
+                                          }
+                                        : {
+                                              color: pickerTheme.toggleIdleText,
+                                          }
+                                }
                                 aria-label="Use dark mode palette preview"
                             >
                                 <Moon className="h-4 w-4" />
@@ -210,15 +283,6 @@ export const ColorPickerPanel = ({
                     <div className="space-y-6">
                         {recommendedPresets.length > 0 && (
                             <div className="space-y-3">
-                                <div className="rounded-2xl border border-amber-300/30 bg-linear-to-r from-amber-300/12 via-orange-300/10 to-transparent px-4 py-3 text-amber-50">
-                                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-100/80">
-                                        AI Generated Palettes
-                                    </p>
-                                    <p className="mt-1 text-sm text-amber-50/85">
-                                        These are custom palettes generated from your design goal.
-                                    </p>
-                                </div>
-
                                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                                     {recommendedPresets.map(
                                         (
@@ -229,7 +293,10 @@ export const ColorPickerPanel = ({
                                                 key={`ai-${preset.name}-${index}`}
                                                 name={preset.name}
                                                 description={preset.description}
-                                                paletteColors={preset.colors}
+                                                paletteColors={getAiPaletteForTheme(
+                                                    preset.colors,
+                                                    themeMode,
+                                                )}
                                                 isSelected={
                                                     effectiveSelectedAiPresetName ===
                                                     preset.name
@@ -252,7 +319,10 @@ export const ColorPickerPanel = ({
                         )}
 
                         <div className="space-y-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
+                            <p
+                                className="text-[11px] font-semibold uppercase tracking-[0.16em]"
+                                style={{ color: pickerTheme.sectionLabel }}
+                            >
                                 Built-in Presets
                             </p>
                             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
