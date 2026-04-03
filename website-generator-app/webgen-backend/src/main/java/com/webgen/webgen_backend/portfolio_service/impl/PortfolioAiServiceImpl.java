@@ -189,6 +189,12 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
         ValidationResult validation = null;
         int attempt = 0;
 
+        // Locked invariants from attempt 1 — retries may only change reactSource
+        String lockedSectionKey = null;
+        String lockedTitle = null;
+        Integer lockedOrderIndex = null;
+        com.fasterxml.jackson.databind.JsonNode lockedContentJson = null;
+
         while (attempt < maxRetries) {
             ++attempt;
             System.out
@@ -205,7 +211,8 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
                 System.out.println(">>> [SECTION-WORKER] Retrying with validation errors (attempt " + attempt + ")");
                 sectionPrompt = portfolioPromptBuilder
                         .buildSectionRetryPrompt(msg.getReq(), msg.getRefinedPrompt(), msg.getBlueprint(),
-                                msg.getPlanItem(), validation.getErrors(), parsedSection.getReactSource());
+                                msg.getPlanItem(), validation.getErrors(), parsedSection.getReactSource(),
+                                lockedContentJson);
             }
 
             // --- Call and parse LLM
@@ -222,6 +229,34 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
                     + " | orderIndex=" + parsedSection.getOrderIndex()
                     + " | reactSourceChars="
                     + (parsedSection.getReactSource() == null ? 0 : parsedSection.getReactSource().length()));
+
+            // --- Lock invariants on first successful parse
+            if (lockedSectionKey == null) {
+                lockedSectionKey = parsedSection.getSectionKey();
+                lockedTitle = parsedSection.getTitle();
+                lockedOrderIndex = parsedSection.getOrderIndex();
+                lockedContentJson = parsedSection.getContentJson();
+                System.out.println(">>> [SECTION-WORKER] Locked invariants for '" + sectionKey
+                        + "': key=" + lockedSectionKey + " title=" + lockedTitle
+                        + " orderIndex=" + lockedOrderIndex
+                        + " contentJsonFields=" + (lockedContentJson != null ? lockedContentJson.fieldNames() : "null"));
+            }
+
+            // --- Enforce locked invariants on retries: override with attempt-1 values
+            if (attempt > 1) {
+                if (!lockedSectionKey.equals(parsedSection.getSectionKey())) {
+                    System.out.println(">>> [SECTION-WORKER] Invariant drift: sectionKey changed from '"
+                            + lockedSectionKey + "' to '" + parsedSection.getSectionKey() + "' — reverting");
+                }
+                if (lockedOrderIndex != null && !lockedOrderIndex.equals(parsedSection.getOrderIndex())) {
+                    System.out.println(">>> [SECTION-WORKER] Invariant drift: orderIndex changed from "
+                            + lockedOrderIndex + " to " + parsedSection.getOrderIndex() + " — reverting");
+                }
+                parsedSection.setSectionKey(lockedSectionKey);
+                parsedSection.setTitle(lockedTitle);
+                parsedSection.setOrderIndex(lockedOrderIndex);
+                parsedSection.setContentJson(lockedContentJson);
+            }
 
             // --- Validate
             validation = jsxValidatorService.validateGeneratedSection(parsedSection);
