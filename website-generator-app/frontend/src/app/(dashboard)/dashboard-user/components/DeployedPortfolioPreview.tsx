@@ -3,13 +3,16 @@
 import React from "react";
 import type { Portfolio } from "@/types/portfolio";
 import type { UserData } from "@/context/UserContext";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
     DEFAULT_DEPLOYED_PORTFOLIO_IMAGE,
     formatFieldValue,
     formatPortfolioDate,
     getFirstDeployedPortfolio,
 } from "../utils/deployedPortfolio";
+import { normalizeStatus } from "../utils/portfolioUtils";
 import { PublishedPortfolioAnalytics } from "./PublishedPortfolioAnalytics";
+import { StatusIndicator } from "./StatusIndicator";
 
 type DeployedPortfolioPreviewProps = {
     portfolios: Portfolio[];
@@ -32,6 +35,20 @@ const PreviewSkeleton: React.FC = () => (
     </div>
 );
 
+const formatTemplateLabel = (value?: string | null): string => {
+    const normalized = value?.trim().toLowerCase();
+    if (!normalized || normalized === "blank") return "Custom";
+    return formatFieldValue(value);
+};
+
+const getInitials = (value: string): string =>
+    value
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((part) => part.charAt(0).toUpperCase())
+        .join("") || "U";
+
 export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> = ({
     portfolios,
     isLoading,
@@ -53,16 +70,12 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
     }
 
     const createdBy = user?.username?.trim() || user?.email?.trim() || "TBD (schema placeholder)";
+    const avatarUrl = typeof user?.avatar === "string" ? user.avatar.trim() : "";
     const slug = deployedPortfolio.slug?.trim();
     const browserUrl = `https://portrn/${slug || "tbd-slug"}`;
     const publicRoute = `/portfolio/${slug || "tbd-slug"}`;
-    const metadata = [
-        { label: "Created By:", value: createdBy },
-        { label: "Date Created:", value: formatPortfolioDate(deployedPortfolio.created_at) },
-        { label: "Status:", value: formatFieldValue(deployedPortfolio.status) },
-        { label: "Template:", value: formatFieldValue(deployedPortfolio.template_id) },
-    ];
     const lastUpdated = formatPortfolioDate(deployedPortfolio.updated_at);
+    const normalizedStatus = normalizeStatus(deployedPortfolio.status);
 
     return (
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_370px]">
@@ -96,12 +109,39 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
 
                         <div>
                             <dl className="flex flex-col gap-5">
-                                {metadata.map((item) => (
-                                    <div key={item.label} className="space-y-1">
-                                        <dt className="text-sm font-semibold text-muted-foreground">{item.label}</dt>
-                                        <dd className="break-words text-sm text-foreground">{item.value}</dd>
-                                    </div>
-                                ))}
+                                <div className="space-y-1">
+                                    <dt className="text-sm font-semibold text-muted-foreground">Created By:</dt>
+                                    <dd className="flex items-center gap-3 break-words text-sm text-foreground">
+                                        <Avatar className="h-8 w-8 border border-border/60">
+                                            <AvatarImage src={avatarUrl || undefined} alt={`${createdBy} avatar`} />
+                                            <AvatarFallback className="text-xs font-semibold text-foreground">
+                                                {getInitials(createdBy)}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <span>{createdBy}</span>
+                                    </dd>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <dt className="text-sm font-semibold text-muted-foreground">Date Created:</dt>
+                                    <dd className="break-words text-sm text-foreground">
+                                        {formatPortfolioDate(deployedPortfolio.created_at)}
+                                    </dd>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <dt className="text-sm font-semibold text-muted-foreground">Status:</dt>
+                                    <dd className="break-words text-sm text-foreground">
+                                        <StatusIndicator status={normalizedStatus} />
+                                    </dd>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <dt className="text-sm font-semibold text-muted-foreground">Template:</dt>
+                                    <dd className="break-words text-sm text-foreground">
+                                        {formatTemplateLabel(deployedPortfolio.template_id)}
+                                    </dd>
+                                </div>
                             </dl>
                         </div>
                     </div>
