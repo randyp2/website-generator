@@ -7,6 +7,8 @@ export interface PublicSectionDTO {
 }
 
 export interface PublicPortfolioDTO {
+    portfolioId: string;
+    userId: string;
     title: string;
     slug: string;
     templateId: string | null;
@@ -21,4 +23,5 @@ export interface PublicPortfolioDTO {
     ownerName: string | null;
     ownerAvatarUrl: string | null;
     publishedAt: string;
+    screenshotUrl: string | null;
 }

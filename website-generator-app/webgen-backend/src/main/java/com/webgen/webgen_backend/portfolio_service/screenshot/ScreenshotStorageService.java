@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestTemplate;
@@ -34,6 +35,9 @@ public class ScreenshotStorageService {
      * @return The public url assigned to this uploaded image
      */
     public String uploadScreenshot(String portfolioId, byte[] pngBytes) {
+        System.out.println(">>> [STORAGE-DEBUG] serviceRoleKey starts with: "
+                + (serviceRoleKey != null ? serviceRoleKey.substring(0, Math.min(10, serviceRoleKey.length())) : "NULL")
+                + " | length: " + (serviceRoleKey != null ? serviceRoleKey.length() : 0));
         String storagePath = "screenshots/" + portfolioId + "/preview.png";
 
         // Upload via Supabase Storage Rest API
@@ -41,13 +45,16 @@ public class ScreenshotStorageService {
 
         org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
         headers.set("Authorization", "Bearer " + serviceRoleKey);
+        headers.set("apikey", serviceRoleKey);
         headers.setContentType(MediaType.IMAGE_PNG);
         headers.set("x-upsert", "true"); // Upsert to override double uploads
 
         // Construct request w/ headers
         HttpEntity<byte[]> request = new HttpEntity<>(pngBytes, headers);
 
-        restTemplate.exchange(uploadUrl, HttpMethod.POST, request, String.class);
+        ResponseEntity<String> response = restTemplate.exchange(uploadUrl, HttpMethod.POST, request, String.class);
+        System.out.println("Status: " + response.getStatusCode());
+        System.out.println("Body: " + response.getBody());
 
         return supabaseUrl + "/storage/v1/object/public/" + BUCKET + "/" + storagePath;
     }

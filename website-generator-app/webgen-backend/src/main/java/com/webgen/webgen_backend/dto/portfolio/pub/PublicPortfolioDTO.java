@@ -8,6 +8,8 @@ import java.util.List;
 
 @Data
 public class PublicPortfolioDTO {
+    private String portfolioId;
+    private String userId;
     private String title;
     private String slug;
     private String templateId;

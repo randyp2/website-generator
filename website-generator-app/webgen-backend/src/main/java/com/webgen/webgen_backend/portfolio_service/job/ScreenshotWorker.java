@@ -30,11 +30,19 @@ public class ScreenshotWorker {
             @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag
     ) throws IOException {
         try {
+            System.out.println(">>> [SCREENSHOT] Worker received message — slug: " + msg.getSlug()
+                    + " | portfolioId: " + msg.getPortfolioId()
+                    + " | jobId: " + msg.getJobId());
+
             // --- Capture screenshot via Playwright
+            System.out.println(">>> [SCREENSHOT] Capturing screenshot for: " + msg.getSlug());
             byte[] pngBytes = screenshotService.captureScreenshot(msg.getSlug());
+            System.out.println(">>> [SCREENSHOT] Screenshot captured — size: " + pngBytes.length + " bytes");
 
             // --- Upload to storage
+            System.out.println(">>> [SCREENSHOT] Uploading to storage...");
             String screenshotUrl = screenshotStorageService.uploadScreenshot(msg.getPortfolioId(), pngBytes);
+            System.out.println(">>> [SCREENSHOT] Uploaded — url: " + screenshotUrl);
 
             // --- Persist url to DB
             UUID portfolioId = UUID.fromString(msg.getPortfolioId());
@@ -44,11 +52,12 @@ public class ScreenshotWorker {
                     ));
             portfolio.setScreenshotUrl(screenshotUrl);
             portfolioRepository.save(portfolio);
+            System.out.println(">>> [SCREENSHOT] Saved to DB for portfolio: " + portfolioId);
 
             // --- Ack message
             channel.basicAck(deliveryTag, false);
 
-            System.out.println(">>> [SCREENSHOT] Captured for: " + msg.getSlug());
+            System.out.println(">>> [SCREENSHOT] Done for: " + msg.getSlug());
         } catch (Exception e) {
             System.err.println(">>> [SCREENSHOT] Failed for slug: " + msg.getSlug() + " | " + e.getMessage());
 
