@@ -158,4 +158,24 @@ public class OpenAiConfig {
                 .defaultOptions(options)
                 .build();
     }
+
+    @Bean("sectionRepairModel")
+    public OpenAiChatModel sectionRepairChatModel(
+            OpenAiApi openAiApi,
+            @Value("${spring.ai.openai.section-repair.model}") String model,
+            @Value("${spring.ai.openai.section-repair.max-completion-tokens}") int maxCompletionTokens,
+            @Value("${spring.ai.openai.section-repair.temperature}") double temperature) {
+
+        OpenAiChatOptions options = OpenAiChatOptions.builder()
+                .model(model)
+                .maxCompletionTokens(maxCompletionTokens)
+                .temperature(temperature)
+                .responseFormat(ResponseFormat.builder().type(ResponseFormat.Type.JSON_OBJECT).build())
+                .build();
+
+        return OpenAiChatModel.builder()
+                .openAiApi(openAiApi)
+                .defaultOptions(options)
+                .build();
+    }
 }

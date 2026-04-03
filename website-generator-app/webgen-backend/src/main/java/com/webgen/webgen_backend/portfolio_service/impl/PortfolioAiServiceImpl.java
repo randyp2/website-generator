@@ -40,6 +40,7 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
 
     private final ChatModel blueprintModel;
     private final ChatModel sectionModel;
+    private final ChatModel sectionRepairModel;
 
     private final GenerateJobService jobService;
 
@@ -61,6 +62,7 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
     public PortfolioAiServiceImpl(
             @Qualifier("portfolioBlueprintModel") ChatModel blueprintModel,
             @Qualifier("portfolioSectionModel") ChatModel sectionModel,
+            @Qualifier("portfolioSectionRepairModel") ChatModel sectionRepairModel,
             GenerateJobService jobService,
             PromptRefinerService promptRefinerService,
             PortfolioPromptBuilder portfolioPromptBuilder,
@@ -72,6 +74,7 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
             ObjectMapper objectMapper) {
         this.blueprintModel = blueprintModel;
         this.sectionModel = sectionModel;
+        this.sectionRepairModel = sectionRepairModel;
         this.jobService = jobService;
         this.promptRefinerService = promptRefinerService;
         this.portfolioPromptBuilder = portfolioPromptBuilder;
@@ -215,10 +218,15 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
                                 lockedContentJson);
             }
 
-            // --- Call and parse LLM
+            // --- Call LLM: first attempt uses creative model, retries use repair model
+            boolean isRetry = attempt > 1;
+            ChatModel activeModel = isRetry ? sectionRepairModel : sectionModel;
             long llmStart = System.currentTimeMillis();
             jobService.updateStatus(jobId, JobStatusDTO.Status.GENERATING);
-            ChatResponse response = sectionModel.call(sectionPrompt);
+            if (isRetry) {
+                System.out.println(">>> [SECTION-WORKER] Using repair model (gpt-4.1, temp=0.2) for attempt " + attempt);
+            }
+            ChatResponse response = activeModel.call(sectionPrompt);
             String rawJson = response.getResult().getOutput().getText();
             parsedSection = portfolioResponseParser.parseSingleSectionResponse(rawJson);
             System.out.println(">>> [SECTION-WORKER] Section '" + sectionKey + "' LLM call completed in "
