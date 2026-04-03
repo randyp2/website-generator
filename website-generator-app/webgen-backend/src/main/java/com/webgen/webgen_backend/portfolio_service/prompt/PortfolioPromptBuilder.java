@@ -336,6 +336,8 @@ public class PortfolioPromptBuilder {
                           - targetId (string)
 
                         - The Navbar MUST render links that scroll smoothly to matching section IDs
+                        - Scroll handler MUST use: document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth' })
+                        - Do NOT use anchor tags with href="#id" for scrolling
 
                         2. A Footer section
                            - sectionKey MUST be "footer"
@@ -757,6 +759,19 @@ public class PortfolioPromptBuilder {
                 - Prefer staggered entrance and emphasis animations over uniform fade-ins
                 - Animations should serve the design (hierarchy, attention, reading order),
                   not be applied uniformly
+
+                ========================
+                NAVBAR SMOOTH SCROLL (MANDATORY)
+                ========================
+
+                If this section is the navbar (sectionKey "navbar"):
+                - Each nav link MUST scroll smoothly to the target section
+                - Use this exact scroll handler pattern in the onClick:
+                  document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth' })
+                - Do NOT use anchor tags with href="#id" for scrolling
+                - Do NOT use window.scrollTo or other scroll methods
+                - The navbar MUST define navItems in contentJson, each with:
+                  label (string) and targetId (string)
 
                 ========================
                 ARCHITECTURAL RULES (STRICT)
