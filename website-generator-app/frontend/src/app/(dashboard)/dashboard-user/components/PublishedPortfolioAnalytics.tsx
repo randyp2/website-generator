@@ -10,104 +10,42 @@ const ANALYTICS_PLACEHOLDER_ITEMS = [
     { label: "Recruiter Interest", value: "31", delta: "+14.9%", icon: FiUserCheck },
 ];
 
-const COMMENT_PLACEHOLDERS = [
-    {
-        id: "c-1",
-        author: "A. Kim",
-        text: "Love the case study layout and strong project outcomes.",
-        time: "2h ago",
-    },
-    {
-        id: "c-2",
-        author: "R. Patel",
-        text: "Would be great to see a quick demo gif in the hero.",
-        time: "5h ago",
-    },
-    {
-        id: "c-3",
-        author: "J. Morgan",
-        text: "Clean typography and clear story on each section.",
-        time: "1d ago",
-    },
-    {
-        id: "c-4",
-        author: "S. Lee",
-        text: "The hero section feels polished and easy to scan.",
-        time: "2d ago",
-    },
-    {
-        id: "c-5",
-        author: "N. Rivera",
-        text: "Nice balance between visuals and technical detail.",
-        time: "4d ago",
-    },
-];
-
-const RECENT_COMMENT_LIMIT = 5;
-
-const getAuthorInitial = (author: string): string => {
-    const firstChar = author.trim().charAt(0);
-    return firstChar ? firstChar.toUpperCase() : "?";
-};
-
 export const PublishedPortfolioAnalytics: React.FC = () => {
-    const recentComments = COMMENT_PLACEHOLDERS.slice(0, RECENT_COMMENT_LIMIT);
-
     return (
-        <section className="flex-1 rounded-2xl border border-border bg-card/80 p-4 md:p-5">
-            <div className="mb-5 grid grid-cols-2 overflow-hidden rounded-2xl border border-border/70 bg-background/50">
-                {ANALYTICS_PLACEHOLDER_ITEMS.map((item, index) => {
-                    const isLeftColumn = index % 2 === 0;
-                    const isTopRow = index < 2;
+        <section className="relative flex h-full flex-1 overflow-hidden rounded-2xl border border-border bg-card/80 p-3 md:p-4">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-orange-400/18 via-orange-200/8 to-transparent dark:from-orange-500/12 dark:via-transparent dark:to-amber-400/8" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(251,146,60,0.14),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(245,158,11,0.10),transparent_30%)]" />
+            <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-orange-300/20 blur-3xl dark:bg-orange-400/12" />
 
+            <div className="relative grid min-h-[280px] flex-1 grid-cols-2 grid-rows-2">
+                <div className="pointer-events-none absolute inset-y-3 left-1/2 w-px -translate-x-1/2 bg-white/10" />
+                <div className="pointer-events-none absolute inset-x-3 top-1/2 h-px -translate-y-1/2 bg-white/10" />
+                {ANALYTICS_PLACEHOLDER_ITEMS.map((item) => {
                     return (
                         <div
                             key={item.label}
-                            className={[
-                                "relative overflow-hidden p-4 md:p-5",
-                                !isLeftColumn ? "border-l border-border/70" : "",
-                                !isTopRow ? "border-t border-border/70" : "",
-                            ]
-                                .filter(Boolean)
-                                .join(" ")}
+                            className="group relative flex h-full flex-col gap-5 p-4 md:p-5"
                         >
-                            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-orange-400/18 via-orange-200/8 to-transparent dark:from-orange-500/12 dark:via-transparent dark:to-amber-400/8" />
-                            <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-orange-300/25 blur-2xl dark:bg-orange-400/12" />
-                            <div className="flex items-center justify-between">
-                                <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                            <div className="relative flex items-start justify-between gap-3">
+                                <p className="max-w-[8rem] text-[11px] font-semibold uppercase tracking-[0.22em] text-white/58 md:text-[12px]">
                                     {item.label}
                                 </p>
-                                <item.icon className="h-5 w-5 text-orange-500 md:h-6 md:w-6 dark:text-orange-200/90" />
+                                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/10 backdrop-blur-sm">
+                                    <item.icon className="h-5 w-5 text-white/75 md:h-[22px] md:w-[22px]" />
+                                </span>
                             </div>
-                            <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground md:text-[1.7rem]">
-                                {item.value}
-                            </p>
-                            <p className="mt-1 text-sm font-medium text-emerald-600 dark:text-emerald-300/90">
-                                {item.delta}
-                            </p>
+
+                            <div className="relative mt-auto">
+                                <p className="text-[2.1rem] font-semibold leading-none tracking-[-0.04em] text-foreground md:text-[2.5rem]">
+                                    {item.value}
+                                </p>
+                                <p className="mt-2 text-base font-semibold text-emerald-300/95">
+                                    {item.delta}
+                                </p>
+                            </div>
                         </div>
                     );
                 })}
-            </div>
-
-            <div className="border-t border-border pt-4">
-                <h4 className="text-sm font-semibold text-foreground">Recent Comments</h4>
-                <ul className="mt-2 max-h-[128px] space-y-2 overflow-y-auto pr-1 [scrollbar-color:rgba(148,163,184,0.45)_transparent] [scrollbar-width:thin] dark:[scrollbar-color:rgba(255,255,255,0.35)_transparent] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300/70 dark:[&::-webkit-scrollbar-thumb]:bg-white/30 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1.5">
-                    {recentComments.map((comment) => (
-                        <li key={comment.id} className="flex items-start gap-2.5 py-1">
-                            <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-orange-100 text-[11px] font-semibold text-orange-700 dark:bg-white/12 dark:text-white/85">
-                                {getAuthorInitial(comment.author)}
-                            </span>
-                            <div className="min-w-0 flex-1">
-                                <div className="flex items-center justify-between gap-2">
-                                    <p className="truncate text-xs font-semibold text-foreground">{comment.author}</p>
-                                    <p className="shrink-0 text-[11px] text-muted-foreground">{comment.time}</p>
-                                </div>
-                                <p className="mt-0.5 text-xs leading-4 text-muted-foreground">{comment.text}</p>
-                            </div>
-                        </li>
-                    ))}
-                </ul>
             </div>
         </section>
     );

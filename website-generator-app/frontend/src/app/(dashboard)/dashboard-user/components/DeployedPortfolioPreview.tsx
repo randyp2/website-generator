@@ -8,7 +8,7 @@ import {
     DEFAULT_DEPLOYED_PORTFOLIO_IMAGE,
     formatFieldValue,
     formatPortfolioDate,
-    getFirstDeployedPortfolio,
+    isDeployedPortfolio,
 } from "../utils/deployedPortfolio";
 import { normalizeStatus } from "../utils/portfolioUtils";
 import { PublishedPortfolioAnalytics } from "./PublishedPortfolioAnalytics";
@@ -54,9 +54,33 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
     isLoading,
     user,
 }) => {
-    if (isLoading) return <PreviewSkeleton />;
+    const deployedPortfolios = React.useMemo(
+        () => portfolios.filter(isDeployedPortfolio),
+        [portfolios],
+    );
+    const [selectedPortfolioId, setSelectedPortfolioId] = React.useState<string | null>(null);
 
-    const deployedPortfolio = getFirstDeployedPortfolio(portfolios);
+    React.useEffect(() => {
+        if (deployedPortfolios.length === 0) {
+            setSelectedPortfolioId(null);
+            return;
+        }
+
+        const hasSelectedPortfolio = deployedPortfolios.some(
+            (portfolio) => portfolio.id === selectedPortfolioId,
+        );
+
+        if (!hasSelectedPortfolio) {
+            setSelectedPortfolioId(String(deployedPortfolios[0].id));
+        }
+    }, [deployedPortfolios, selectedPortfolioId]);
+
+    const deployedPortfolio =
+        deployedPortfolios.find((portfolio) => String(portfolio.id) === selectedPortfolioId) ??
+        deployedPortfolios[0] ??
+        null;
+
+    if (isLoading) return <PreviewSkeleton />;
 
     if (!deployedPortfolio) {
         return (
@@ -141,6 +165,28 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
                                     <dd className="break-words text-sm text-foreground">
                                         {formatTemplateLabel(deployedPortfolio.template_id)}
                                     </dd>
+                                    {deployedPortfolios.length > 1 ? (
+                                        <div className="pt-2">
+                                            <label
+                                                htmlFor="dashboard-published-portfolio-select"
+                                                className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+                                            >
+                                                Dashboard Portfolio
+                                            </label>
+                                            <select
+                                                id="dashboard-published-portfolio-select"
+                                                value={String(deployedPortfolio.id)}
+                                                onChange={(event) => setSelectedPortfolioId(event.target.value)}
+                                                className="w-full rounded-lg border border-border bg-background/80 px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary"
+                                            >
+                                                {deployedPortfolios.map((portfolio) => (
+                                                    <option key={String(portfolio.id)} value={String(portfolio.id)}>
+                                                        {portfolio.title?.trim() || "Untitled Portfolio"}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    ) : null}
                                 </div>
                             </dl>
                         </div>
