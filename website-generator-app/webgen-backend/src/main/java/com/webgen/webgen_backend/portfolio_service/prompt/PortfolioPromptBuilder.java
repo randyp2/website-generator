@@ -919,8 +919,9 @@ public class PortfolioPromptBuilder {
     }
 
     /**
-     * Minimal repair prompt — only sends the failed code and errors.
-     * No resume, assets, or blueprint context (saves tokens).
+     * Retry prompt — sends errors, failed code, and the LOCKED contentJson.
+     * The LLM must fix only the reactSource; sectionKey, title, orderIndex,
+     * and contentJson are frozen from attempt 1.
      */
     public Prompt buildSectionRetryPrompt(
             PortfolioGenerateRequestDTO req,
@@ -928,7 +929,8 @@ public class PortfolioPromptBuilder {
             BlueprintDTO blueprint,
             BlueprintSectionPlanDTO targetSection,
             List<ValidationResult.ValidationError> errors,
-            String failedReactSource
+            String failedReactSource,
+            com.fasterxml.jackson.databind.JsonNode lockedContentJson
     ) {
         String errorSummary = errors.stream()
                 .map(e -> String.format("- %s (line %s, col %s)",
@@ -937,47 +939,128 @@ public class PortfolioPromptBuilder {
                         e.getColumn() != null ? e.getColumn() : "?"))
                 .collect(Collectors.joining("\n"));
 
+        // Serialize locked contentJson so the LLM knows which fields are available
+        String contentJsonStr;
+        try {
+            contentJsonStr = lockedContentJson != null
+                    ? objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(lockedContentJson)
+                    : "{}";
+        } catch (JsonProcessingException e) {
+            contentJsonStr = "{}";
+        }
+
+        // Extract top-level field names for the constraint list
+        String fieldList = "{}";
+        if (lockedContentJson != null && lockedContentJson.isObject()) {
+            StringBuilder sb = new StringBuilder();
+            lockedContentJson.fieldNames().forEachRemaining(f -> {
+                if (!sb.isEmpty()) sb.append(", ");
+                sb.append(f);
+            });
+            fieldList = sb.toString();
+        }
+
         SystemMessage system = new SystemMessage("""
                 You are fixing JSX validation errors in a React portfolio section.
 
-                This is a REPAIR task. Fix ONLY the listed errors. Do NOT redesign,
-                simplify, or remove any working code.
+                This is a REPAIR task. You MUST fix ONLY the reactSource.
+                Do NOT redesign, simplify, or remove any working code.
 
-                ERRORS TO FIX:
+                ========================
+                ERRORS TO FIX
+                ========================
+
                 %s
 
-                RULES:
-                - Preserve all layout, styling, animations, and contentJson as-is
+                ========================
+                LOCKED FIELDS (DO NOT CHANGE)
+                ========================
+
+                The following values are FROZEN from the first attempt.
+                You MUST return them EXACTLY as shown — do NOT modify, rename,
+                or restructure them:
+
+                sectionKey: "%s"
+                title: "%s"
+                orderIndex: %d
+
+                contentJson (FROZEN — return verbatim):
+                %s
+
+                ========================
+                DATA CONTRACT (CRITICAL)
+                ========================
+
+                Your reactSource receives `data` which IS the contentJson above.
+                You may ONLY access these top-level fields on `data`:
+                %s
+
+                If your code accesses a field not in this list, it WILL crash.
+                Do NOT invent new fields. Do NOT restructure contentJson.
+                Do NOT use optional chaining (data?.field) — all listed fields
+                are guaranteed present.
+
+                ========================
+                RULES
+                ========================
+
                 - Plain JSX only — no TypeScript, no import statements
-                - Component format: export default function <Name>Section({ data }) { ... }
+                - Component format: export default function %sSection({ data }) { ... }
                 - `data` prop is always present — no optional chaining
                 - `motion` is already in scope — do NOT re-declare it
                   (no `var motion = ...`, no `typeof motion` checks)
                 - Lucide icons in scope: Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight
                 - No code comments (no // or /* */)
                 - Tailwind CSS only, transparent/semi-transparent backgrounds only
+                - Code MUST be properly formatted with newlines and indentation
 
-                OUTPUT FORMAT:
+                ========================
+                OUTPUT FORMAT
+                ========================
+
                 {
-                  "sectionKey": "<string>",
-                  "title": "<string>",
-                  "orderIndex": <number>,
-                  "contentJson": { ... },
-                  "reactSource": "<escaped JSX source>"
+                  "sectionKey": "%s",
+                  "title": "%s",
+                  "orderIndex": %d,
+                  "contentJson": <RETURN THE EXACT SAME contentJson above>,
+                  "reactSource": "<fixed JSX source>"
                 }
 
-                Return JSON ONLY.
-                """.formatted(errorSummary));
+                Return JSON ONLY. The ONLY field you should change is reactSource.
+                """.formatted(
+                errorSummary,
+                targetSection.getSectionKey(),
+                targetSection.getTitle(),
+                targetSection.getOrderIndex(),
+                contentJsonStr,
+                fieldList,
+                toPascalCase(targetSection.getSectionKey()),
+                targetSection.getSectionKey(),
+                targetSection.getTitle(),
+                targetSection.getOrderIndex()
+        ));
 
         UserMessage user = new UserMessage("""
-                Fix the errors in this code and return the corrected JSON.
+                Fix the errors in the reactSource below and return the corrected JSON.
 
-                FAILED CODE:
+                FAILED reactSource:
                 %s
                 """.formatted(
                 failedReactSource != null ? failedReactSource : "(no previous code available)"
         ));
 
         return new Prompt(List.of(system, user));
+    }
+
+    private String toPascalCase(String sectionKey) {
+        if (sectionKey == null || sectionKey.isBlank()) return "Unknown";
+        StringBuilder sb = new StringBuilder();
+        for (String part : sectionKey.split("-")) {
+            if (!part.isEmpty()) {
+                sb.append(Character.toUpperCase(part.charAt(0)));
+                if (part.length() > 1) sb.append(part.substring(1));
+            }
+        }
+        return sb.toString();
     }
 }
