@@ -23,6 +23,24 @@ export const PresetPaletteCard = ({
     recommendationRank,
     onSelect,
 }: PresetPaletteCardProps) => {
+    const recommendedCardStyle = isRecommended
+        ? {
+              backgroundImage:
+                  "linear-gradient(135deg, color-mix(in srgb, var(--primary) 18%, var(--card) 82%), color-mix(in srgb, var(--accent) 28%, var(--card) 72%))",
+              borderColor:
+                  "color-mix(in srgb, var(--primary) 44%, var(--border) 56%)",
+              boxShadow:
+                  "0 0 0 1px color-mix(in srgb, var(--primary) 18%, transparent), inset 0 1px 0 rgba(255,255,255,0.06)",
+          }
+        : undefined;
+
+    const contentStyle = isRecommended
+        ? {
+              backgroundColor:
+                  "color-mix(in srgb, var(--card) 82%, transparent)",
+          }
+        : { backgroundColor: paletteColors.background };
+
     return (
         <button
             type="button"
@@ -32,28 +50,46 @@ export const PresetPaletteCard = ({
                 isSelected
                     ? "border-blue-400 shadow-[0_0_0_1px_rgba(96,165,250,0.3)]"
                     : isRecommended
-                      ? "border-amber-300/40 shadow-[0_0_0_1px_rgba(252,211,77,0.18)] hover:border-amber-300/55"
+                      ? "hover:brightness-110"
                       : "border-white/10 hover:border-white/25",
             )}
+            style={recommendedCardStyle}
         >
-            <div
-                className="space-y-3 p-4"
-                style={{ backgroundColor: paletteColors.background }}
-            >
-                {isRecommended ? (
-                    <div className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full border border-amber-300/35 bg-amber-300/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-amber-100">
-                        <Sparkles className="h-3 w-3" />
-                        {recommendationRank ? `AI Pick #${recommendationRank}` : "AI Pick"}
+            <div className="space-y-3 p-4" style={contentStyle}>
+                {(isRecommended || isSelected) && (
+                    <div className="flex items-start justify-between gap-3">
+                        {isRecommended ? (
+                            <div
+                                className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--accent-foreground)]"
+                                style={{
+                                    backgroundColor:
+                                        "color-mix(in srgb, var(--primary) 20%, transparent)",
+                                    borderColor:
+                                        "color-mix(in srgb, var(--primary) 40%, var(--border) 60%)",
+                                }}
+                            >
+                                <Sparkles className="h-3.5 w-3.5" />
+                                {recommendationRank
+                                    ? `AI Pick #${recommendationRank}`
+                                    : "AI Pick"}
+                            </div>
+                        ) : (
+                            <div />
+                        )}
+                        {isSelected ? (
+                            <div>
+                                <Check
+                                    className="h-4 w-4"
+                                    style={{
+                                        color: isRecommended
+                                            ? "var(--primary)"
+                                            : paletteColors.primary,
+                                    }}
+                                />
+                            </div>
+                        ) : null}
                     </div>
-                ) : null}
-                {isSelected ? (
-                    <div className="absolute right-3 top-3">
-                        <Check
-                            className="h-4 w-4"
-                            style={{ color: paletteColors.primary }}
-                        />
-                    </div>
-                ) : null}
+                )}
                 <div className="flex gap-1.5">
                     {Object.entries(paletteColors).map(([key, color]) => (
                         <div
@@ -66,13 +102,21 @@ export const PresetPaletteCard = ({
                 <div>
                     <h3
                         className="font-medium"
-                        style={{ color: paletteColors.text }}
+                        style={{
+                            color: isRecommended
+                                ? "var(--foreground)"
+                                : paletteColors.text,
+                        }}
                     >
                         {name}
                     </h3>
                     <p
                         className="text-xs"
-                        style={{ color: paletteColors.muted }}
+                        style={{
+                            color: isRecommended
+                                ? "var(--muted-foreground)"
+                                : paletteColors.muted,
+                        }}
                     >
                         {description}
                     </p>
