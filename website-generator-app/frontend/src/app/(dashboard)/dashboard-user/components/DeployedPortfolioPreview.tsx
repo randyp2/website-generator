@@ -3,13 +3,16 @@
 import React from "react";
 import type { Portfolio } from "@/types/portfolio";
 import type { UserData } from "@/context/UserContext";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
     DEFAULT_DEPLOYED_PORTFOLIO_IMAGE,
     formatFieldValue,
     formatPortfolioDate,
-    getFirstDeployedPortfolio,
+    isDeployedPortfolio,
 } from "../utils/deployedPortfolio";
+import { normalizeStatus } from "../utils/portfolioUtils";
 import { PublishedPortfolioAnalytics } from "./PublishedPortfolioAnalytics";
+import { StatusIndicator } from "./StatusIndicator";
 
 type DeployedPortfolioPreviewProps = {
     portfolios: Portfolio[];
@@ -32,14 +35,52 @@ const PreviewSkeleton: React.FC = () => (
     </div>
 );
 
+const formatTemplateLabel = (value?: string | null): string => {
+    const normalized = value?.trim().toLowerCase();
+    if (!normalized || normalized === "blank") return "Custom";
+    return formatFieldValue(value);
+};
+
+const getInitials = (value: string): string =>
+    value
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((part) => part.charAt(0).toUpperCase())
+        .join("") || "U";
+
 export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> = ({
     portfolios,
     isLoading,
     user,
 }) => {
-    if (isLoading) return <PreviewSkeleton />;
+    const deployedPortfolios = React.useMemo(
+        () => portfolios.filter(isDeployedPortfolio),
+        [portfolios],
+    );
+    const [selectedPortfolioId, setSelectedPortfolioId] = React.useState<string | null>(null);
 
-    const deployedPortfolio = getFirstDeployedPortfolio(portfolios);
+    React.useEffect(() => {
+        if (deployedPortfolios.length === 0) {
+            setSelectedPortfolioId(null);
+            return;
+        }
+
+        const hasSelectedPortfolio = deployedPortfolios.some(
+            (portfolio) => portfolio.id === selectedPortfolioId,
+        );
+
+        if (!hasSelectedPortfolio) {
+            setSelectedPortfolioId(String(deployedPortfolios[0].id));
+        }
+    }, [deployedPortfolios, selectedPortfolioId]);
+
+    const deployedPortfolio =
+        deployedPortfolios.find((portfolio) => String(portfolio.id) === selectedPortfolioId) ??
+        deployedPortfolios[0] ??
+        null;
+
+    if (isLoading) return <PreviewSkeleton />;
 
     if (!deployedPortfolio) {
         return (
@@ -53,16 +94,12 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
     }
 
     const createdBy = user?.username?.trim() || user?.email?.trim() || "TBD (schema placeholder)";
+    const avatarUrl = typeof user?.avatar === "string" ? user.avatar.trim() : "";
     const slug = deployedPortfolio.slug?.trim();
     const browserUrl = `https://portrn/${slug || "tbd-slug"}`;
     const publicRoute = `/portfolio/${slug || "tbd-slug"}`;
-    const metadata = [
-        { label: "Created By:", value: createdBy },
-        { label: "Date Created:", value: formatPortfolioDate(deployedPortfolio.created_at) },
-        { label: "Status:", value: formatFieldValue(deployedPortfolio.status) },
-        { label: "Template:", value: formatFieldValue(deployedPortfolio.template_id) },
-    ];
     const lastUpdated = formatPortfolioDate(deployedPortfolio.updated_at);
+    const normalizedStatus = normalizeStatus(deployedPortfolio.status);
 
     return (
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_370px]">
@@ -83,7 +120,7 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
                             <div className="relative h-72">
                                 <div
                                     className="absolute inset-0 bg-cover bg-center"
-                                    style={{ backgroundImage: `url(${DEFAULT_DEPLOYED_PORTFOLIO_IMAGE})` }}
+                                    style={{ backgroundImage: `url(${deployedPortfolio.screenshot_url ?? DEFAULT_DEPLOYED_PORTFOLIO_IMAGE})` }}
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/10" />
                                 <div className="absolute inset-x-0 bottom-0 p-3">
@@ -96,12 +133,61 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
 
                         <div>
                             <dl className="flex flex-col gap-5">
-                                {metadata.map((item) => (
-                                    <div key={item.label} className="space-y-1">
-                                        <dt className="text-sm font-semibold text-muted-foreground">{item.label}</dt>
-                                        <dd className="break-words text-sm text-foreground">{item.value}</dd>
-                                    </div>
-                                ))}
+                                <div className="space-y-1">
+                                    <dt className="text-sm font-semibold text-muted-foreground">Created By:</dt>
+                                    <dd className="flex items-center gap-3 break-words text-sm text-foreground">
+                                        <Avatar className="h-8 w-8 border border-border/60">
+                                            <AvatarImage src={avatarUrl || undefined} alt={`${createdBy} avatar`} />
+                                            <AvatarFallback className="text-xs font-semibold text-foreground">
+                                                {getInitials(createdBy)}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <span>{createdBy}</span>
+                                    </dd>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <dt className="text-sm font-semibold text-muted-foreground">Date Created:</dt>
+                                    <dd className="break-words text-sm text-foreground">
+                                        {formatPortfolioDate(deployedPortfolio.created_at)}
+                                    </dd>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <dt className="text-sm font-semibold text-muted-foreground">Status:</dt>
+                                    <dd className="break-words text-sm text-foreground">
+                                        <StatusIndicator status={normalizedStatus} />
+                                    </dd>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <dt className="text-sm font-semibold text-muted-foreground">Template:</dt>
+                                    <dd className="break-words text-sm text-foreground">
+                                        {formatTemplateLabel(deployedPortfolio.template_id)}
+                                    </dd>
+                                    {deployedPortfolios.length > 1 ? (
+                                        <div className="pt-2">
+                                            <label
+                                                htmlFor="dashboard-published-portfolio-select"
+                                                className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+                                            >
+                                                Dashboard Portfolio
+                                            </label>
+                                            <select
+                                                id="dashboard-published-portfolio-select"
+                                                value={String(deployedPortfolio.id)}
+                                                onChange={(event) => setSelectedPortfolioId(event.target.value)}
+                                                className="w-full rounded-lg border border-border bg-background/80 px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary"
+                                            >
+                                                {deployedPortfolios.map((portfolio) => (
+                                                    <option key={String(portfolio.id)} value={String(portfolio.id)}>
+                                                        {portfolio.title?.trim() || "Untitled Portfolio"}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    ) : null}
+                                </div>
                             </dl>
                         </div>
                     </div>

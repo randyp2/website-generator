@@ -9,11 +9,14 @@ export const GET = async (req: NextRequest) => {
     const backendUrl = getBackendUrl();
     const res = await fetch(
         `${backendUrl}/api/v1/public/portfolio?page=${page}&size=${size}`,
-        { next: { revalidate: 30 } },
+        { next: { revalidate: 5 } },
     );
 
     if (!res.ok) {
-        return NextResponse.json({ content: [], totalPages: 0, last: true }, { status: 500 });
+        return NextResponse.json(
+            { content: [], totalPages: 0, last: true },
+            { status: 500 },
+        );
     }
 
     return NextResponse.json(await res.json());

@@ -43,8 +43,7 @@ public class SectionGenerationMessage {
         REFINE // Refine portfolio flow
     };
 
-
-
+    
     // --- SHARED FIELDS ---
     private String jobId;
     private String portfolioId;

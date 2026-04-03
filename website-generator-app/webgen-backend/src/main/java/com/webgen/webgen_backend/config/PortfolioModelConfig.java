@@ -41,5 +41,10 @@ public class PortfolioModelConfig {
         public ChatModel sectionModel(@Qualifier("sectionModel") ChatModel model) {
             return model;
         }
+
+        @Bean("portfolioSectionRepairModel")
+        public ChatModel sectionRepairModel(@Qualifier("sectionRepairModel") ChatModel model) {
+            return model;
+        }
     }
 }

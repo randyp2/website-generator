@@ -60,6 +60,10 @@ export async function GET() {
                       (portfolio.updated_at as string | null | undefined) ??
                       (portfolio.updatedAt as string | null | undefined) ??
                       null,
+                  screenshot_url:
+                      (portfolio.screenshot_url as string | null | undefined) ??
+                      (portfolio.screenshotUrl as string | null | undefined) ??
+                      null,
               }))
             : [];
 

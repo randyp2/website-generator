@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.portfolio_service.crud.impl;
 
+import com.webgen.webgen_backend.config.RabbitMQConfig;
 import com.webgen.webgen_backend.dto.portfolio.AssetDTO;
 import com.webgen.webgen_backend.dto.portfolio.ResumeDTO;
 import com.webgen.webgen_backend.dto.portfolio.SectionDTO;
@@ -13,6 +14,7 @@ import com.webgen.webgen_backend.mapper.AssetMapper;
 import com.webgen.webgen_backend.mapper.PortfolioMapper;
 import com.webgen.webgen_backend.mapper.ResumeMapper;
 import com.webgen.webgen_backend.portfolio_service.crud.PortfolioCrudService;
+import com.webgen.webgen_backend.portfolio_service.job.ScreenshotMessage;
 import com.webgen.webgen_backend.repository.AssetRepository;
 import com.webgen.webgen_backend.repository.GeneratedVersionRepository;
 import com.webgen.webgen_backend.repository.PortfolioRepository;
@@ -21,6 +23,7 @@ import com.webgen.webgen_backend.repository.ProfileRepository;
 import com.webgen.webgen_backend.repository.ResumeRepository;
 import com.webgen.webgen_backend.util.SlugUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -41,9 +44,13 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
     private final GeneratedVersionRepository generatedVersionRepository;
     private final PortfolioSectionRepository portfolioSectionRepository;
     private final ProfileRepository profileRepository;
+
     private final PortfolioMapper portfolioMapper;
+
     private final ResumeMapper resumeMapper;
     private final AssetMapper assetMapper;
+
+    private final RabbitTemplate rabbitTemplate;
 
     @Override
     public PortfolioListDTO listPortfolios(UUID userId) {
@@ -350,6 +357,20 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         portfolio.setUpdatedAt(OffsetDateTime.now());
         portfolioRepository.save(portfolio);
 
+        // Queue screenshot message
+        ScreenshotMessage screenshotMsg = new ScreenshotMessage(
+                UUID.randomUUID().toString(),
+                portfolioId.toString(),
+                slug
+        );
+
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.EXCHANGE,
+                RabbitMQConfig.SCREENSHOT_ROUTING_KEY,
+                screenshotMsg
+        );
+
+
         return new PublishResponseDTO(slug, "publish");
     }
 
@@ -362,8 +383,9 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
 
         portfolio.setStatus("draft");
+        portfolio.setSlug(null);
+        portfolio.setScreenshotUrl(null);
         portfolio.setUpdatedAt(OffsetDateTime.now());
-        // Retain slug so the user can re-publish at the same URL
         portfolioRepository.save(portfolio);
     }
 

@@ -32,7 +32,7 @@ export const ExploreCard = ({ portfolio }: ExploreCardProps) => {
       className="group flex flex-col gap-2 rounded-lg p-2 duration-75 hover:bg-accent/60 active:bg-accent"
     >
       <LazyImage
-        src={DEFAULT_PREVIEW_IMAGE}
+        src={portfolio.screenshotUrl ?? DEFAULT_PREVIEW_IMAGE}
         fallback="https://placehold.co/640x360?text=Portfolio+Preview"
         inView={true}
         alt={portfolio.title}

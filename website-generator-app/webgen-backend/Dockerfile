@@ -27,8 +27,19 @@ FROM eclipse-temurin:25-jre
 
 WORKDIR /app
 
+# Install Playwright Chromium dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
+    libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 \
+    libpango-1.0-0 libcairo2 libasound2 libxshmfence1 \
+    fonts-liberation fonts-noto-color-emoji \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy only the final JAR from the builder stage
 COPY --from=builder /app/target/*.jar app.jar
+
+# Install Playwright Chromium browser
+RUN java -cp app.jar -Dloader.main=com.microsoft.playwright.CLI org.springframework.boot.loader.launch.PropertiesLauncher install --with-deps chromium
 
 # Expose your Spring Boot port
 EXPOSE 8080
