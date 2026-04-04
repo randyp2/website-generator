@@ -59,8 +59,6 @@ public class ResumeParserResponseParser {
             resume.setEducations(parseEducations(root));
 
             System.out.println(">>> [RESUME LLM PARSER] Resume parsed successfully");
-            System.out.println(">>> [RESUME LLM PARSER] Name: " + resume.getFullName());
-            System.out.println(">>> [RESUME LLM PARSER] Email: " + resume.getEmail());
             System.out.println(">>> [RESUME LLM PARSER] Skills count: " + (resume.getSkills() != null ? resume.getSkills().size() : 0));
             System.out.println(">>> [RESUME LLM PARSER] Experiences count: " + (resume.getExperiences() != null ? resume.getExperiences().size() : 0));
 

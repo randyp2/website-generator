@@ -71,22 +71,18 @@ public class JWTService {
                     new ECDSAVerifier(publicKey));
 
             if (!verified) {
-                System.out.println("Invalid JWT signature");
                 return false;
             }
 
             // Check expiration
             Date expiration = jwt.getJWTClaimsSet().getExpirationTime();
             if (expiration.before(new Date())) {
-                System.out.println("JWT expired");
                 return false;
             }
 
             return true;
 
         } catch (Exception e) {
-            System.out.println("JWT validation failed: " + e.getMessage());
-
             return false;
         }
     }

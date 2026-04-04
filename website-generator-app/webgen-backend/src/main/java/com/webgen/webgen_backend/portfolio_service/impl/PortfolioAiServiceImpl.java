@@ -121,7 +121,6 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
 
         // --- Step 1) Refine & Build prompt
         String rawPrompt = req.getUserPrompt();
-        System.out.println(">>> [SERVICE] Raw prompt: " + rawPrompt);
         System.out.println(">>> [SERVICE] Calling promptRefinerService.refineUserPrompt()...");
 
         long refineStart = System.currentTimeMillis();
@@ -129,7 +128,6 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
         String refinedPrompt = promptRefinerService.refineUserPrompt(rawPrompt, resume, req.getStylePrefs());
 
         System.out.println(">>> [SERVICE] Prompt refined in " + (System.currentTimeMillis() - refineStart) + "ms");
-        System.out.println(">>> [SERVICE] Refined prompt: " + refinedPrompt);
 
         // --- Step 2) Generate a blueprint
         System.out.println(">>> [SERVICE] Buiilding blueprint prompt...");
@@ -145,7 +143,6 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
 
         // --- Blueprint quality log ---
         System.out.println(">>> [BLUEPRINT] ===== BLUEPRINT OUTPUT =====");
-        System.out.println(">>> [BLUEPRINT] Raw JSON: " + blueprintJson);
         System.out.println(">>> [BLUEPRINT] Design Directive: " + blueprint.getDesignDirective());
         System.out.println(">>> [BLUEPRINT] Global Theme: " + blueprint.getGlobalThemeDTO());
         System.out.println(">>> [BLUEPRINT] Section count: " + blueprint.getSectionPlan().size());

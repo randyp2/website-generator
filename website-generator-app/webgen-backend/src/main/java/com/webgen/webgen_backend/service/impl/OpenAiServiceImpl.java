@@ -50,7 +50,6 @@ public class OpenAiServiceImpl implements OpenAiService {
             // Get raw response in form of a string
             // Should be a string json
             String raw = response.getResult().getOutput().getText();
-            System.out.println(raw);
 
             ObjectMapper mapper = new ObjectMapper(); // Initialize json parser
             JsonNode root = mapper.readTree(raw); // Return tree object of json
@@ -64,7 +63,6 @@ public class OpenAiServiceImpl implements OpenAiService {
             return html;
 
         } catch (Exception e) {
-            e.printStackTrace();
             return "<html><body><h1>❌ Error generating HTML</h1><p>" + e.getMessage() + "</p></body></html>";
         }
 
