@@ -198,7 +198,7 @@ class ClarifierResponseParserTest {
 
             assertThatThrownBy(() -> parser.parse(json))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("updated context");
+                    .hasRootCauseMessage("updated context is missing or invalid");
         }
 
         @Test
@@ -226,7 +226,7 @@ class ClarifierResponseParserTest {
 
             assertThatThrownBy(() -> parser.parse(json))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("constraints");
+                    .hasRootCauseMessage("constraints is missing or invalid");
         }
 
         @Test
