@@ -1,8 +1,11 @@
 import { getBackendUrl } from "@/lib/server-env";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(context: { params: Promise<{ id: string }> }) {
+export async function GET(
+    _request: NextRequest,
+    context: { params: Promise<{ id: string }> },
+) {
     const { id: portfolioId } = await context.params;
 
     try {

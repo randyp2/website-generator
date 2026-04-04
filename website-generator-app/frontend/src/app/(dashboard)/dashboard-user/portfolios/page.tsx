@@ -91,18 +91,24 @@ const PortfolioManager: React.FC = () => {
         const data: PortfolioListResponse = await response.json();
 
         // Convert DB Rows to card format
-        const formattedPortfolios: Portfolio[] = data.portfolios.map((item) => ({
-          id: item.id,
-          title: item.title,
-          thumbnail: DEFAULT_PORTFOLIO_CARD_IMAGE,
-          status: item.status ?? "draft",
-          lastEdited: new Date(item.updated_at ?? item.created_at).toLocaleDateString(), // Format as needed
-          views: 0, // Placeholder - replace with actual views logic
-          likes: 0, // Placeholder - replace with actual likes logic
-          comments: 0, // Placeholder - replace with actual comments logic
-          shares: 0, // Placeholder - replace with actual shares logic
-          url: item.url ?? "unpublished",
-        }));
+        const formattedPortfolios: Portfolio[] = data.portfolios.map((item) => {
+          const lastEditedSource = item.updated_at ?? item.created_at;
+
+          return {
+            id: item.id,
+            title: item.title,
+            thumbnail: DEFAULT_PORTFOLIO_CARD_IMAGE,
+            status: item.status ?? "draft",
+            lastEdited: lastEditedSource
+              ? new Date(lastEditedSource).toLocaleDateString()
+              : "Unknown",
+            views: 0, // Placeholder - replace with actual views logic
+            likes: 0, // Placeholder - replace with actual likes logic
+            comments: 0, // Placeholder - replace with actual comments logic
+            shares: 0, // Placeholder - replace with actual shares logic
+            url: item.url ?? "unpublished",
+          };
+        });
 
         setPortfolios(formattedPortfolios);
 

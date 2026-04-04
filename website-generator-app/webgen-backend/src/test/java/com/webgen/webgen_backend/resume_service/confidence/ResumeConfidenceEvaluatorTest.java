@@ -65,18 +65,12 @@ class ResumeConfidenceEvaluatorTest {
                 if (parsed.getProjects() == null || parsed.getProjects().isEmpty()) missing.add("projects (-5pts)");
                 if (parsed.getEducations() == null || parsed.getEducations().isEmpty()) missing.add("education (-5pts)");
 
-                if (!missing.isEmpty()) {
-                    System.out.printf("    Missing: %s%n", String.join(", ", missing));
-                } else {
-                    System.out.println("    Missing: none — all fields extracted");
-                }
+                ResumeTestHelper.logMissing(String.join(", ", missing));
 
                 if (score < LLM_THRESHOLD) llmRequired++;
             }
 
-            System.out.printf("%n  Total: %d resumes | LLM required: %d | Regex sufficient: %d%n",
-                    resumes.size(), llmRequired, resumes.size() - llmRequired);
-            System.out.println("=".repeat(75));
+            ResumeTestHelper.logTotals(resumes.size(), llmRequired);
 
             // At minimum, the well-formatted resumes should score above threshold
             // If more than half need LLM, something is broken in extraction
