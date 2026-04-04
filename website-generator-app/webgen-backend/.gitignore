@@ -55,3 +55,6 @@ scripts/node_modules/
 ### Local runtime artifacts ###
 dump.rdb
 *.pid
+
+### Resumes ###
+src/test/resources/
