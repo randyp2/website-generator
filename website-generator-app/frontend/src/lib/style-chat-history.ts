@@ -1,6 +1,12 @@
 import type { Message } from "@/types/preview";
 import type { PersistedStyleChatMessage } from "@/types/style-chat";
 
+/**
+ * Validates whether an unknown value matches the persisted style chat messages
+ *
+ * @param value - Untrusted value from storage returned from API
+ * @returns True when value is an array that matches the shape of PersistedStyleChatMessage
+ */
 export const isStyleChatHistory = (
     value: unknown,
 ): value is PersistedStyleChatMessage[] => {
@@ -17,6 +23,12 @@ export const isStyleChatHistory = (
     });
 };
 
+/**
+ * Take list of UI shape messages and convert to persisted style shape
+ *
+ * @param messages - List of UI shaped messages
+ * @returns List of PersistedStyleChatMessage to store in DB
+ */
 export const toPersistedStyleChatHistory = (
     messages: Message[],
 ): PersistedStyleChatMessage[] =>
@@ -31,10 +43,20 @@ export const toPersistedStyleChatHistory = (
         ...(message.suggestions && { suggestions: message.suggestions }),
         ...(message.designTip && { designTip: message.designTip }),
         ...(message.previewType && { previewType: message.previewType }),
-        ...(message.isStyleComplete && { isStyleComplete: message.isStyleComplete }),
-        ...(message.stylePreferences && { stylePreferences: message.stylePreferences }),
+        ...(message.isStyleComplete && {
+            isStyleComplete: message.isStyleComplete,
+        }),
+        ...(message.stylePreferences && {
+            stylePreferences: message.stylePreferences,
+        }),
     }));
 
+/**
+ * Convert PersistedStyleChatMessage to Ui messages
+ *
+ * @param messages - List of Persisted Style Messages to convert
+ * @returns List of UI messages to display on frontend
+ */
 export const toUiStyleMessages = (
     messages: PersistedStyleChatMessage[],
 ): Message[] =>
@@ -44,7 +66,10 @@ export const toUiStyleMessages = (
         ...(message.suggestions && { suggestions: message.suggestions }),
         ...(message.designTip && { designTip: message.designTip }),
         ...(message.previewType && { previewType: message.previewType }),
-        ...(message.isStyleComplete && { isStyleComplete: message.isStyleComplete }),
-        ...(message.stylePreferences && { stylePreferences: message.stylePreferences }),
+        ...(message.isStyleComplete && {
+            isStyleComplete: message.isStyleComplete,
+        }),
+        ...(message.stylePreferences && {
+            stylePreferences: message.stylePreferences,
+        }),
     }));
-
