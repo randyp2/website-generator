@@ -2,7 +2,7 @@
 
 import React from "react"
 import Link from "next/link"
-import Lenis from "@studio-freight/lenis"
+import Lenis from "lenis"
 import { ZoomParallax } from "@/components/ui/zoom-parallax"
 import BrandWordmark from "@/components/branding/BrandWordmark"
 import { Button } from "@/components/ui/button"
