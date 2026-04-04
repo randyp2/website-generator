@@ -31,6 +31,7 @@ export interface SectionDTO {
     orderIndex?: number;
     contentJson: unknown;
     reactSource: string;
+    changeDescription: string | null;
 }
 
 export interface GlobalTheme {
