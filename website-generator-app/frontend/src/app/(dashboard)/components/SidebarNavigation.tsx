@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import {
     FiGrid,
     FiFolder,
@@ -207,9 +208,12 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                     }`}
                 >
                     {avatar ? (
-                        <img
+                        <Image
                             src={avatar}
                             alt="User Avatar"
+                            width={32}
+                            height={32}
+                            unoptimized
                             className="h-8 w-8 rounded-full border border-sidebar-border object-cover"
                         />
                     ) : (

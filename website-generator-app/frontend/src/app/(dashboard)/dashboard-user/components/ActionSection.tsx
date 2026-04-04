@@ -36,7 +36,7 @@ export const ActionSection: React.FC = () => {
             action: () => router.push("/dashboard-user/theme"),
             icon: <FiSettings className="w-7 h-7 text-white" />,
           },
-        ].map((action, i) => (
+        ].map((action) => (
           <motion.button
             key={action.title}
             whileHover={{ scale: 1.01, y: -2 }}

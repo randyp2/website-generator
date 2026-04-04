@@ -3,7 +3,6 @@
 import { Moon, Palette, RefreshCw, Sun } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { ColorSwatchField } from "./color-picker/ColorSwatchField";
 import { ColorWheel } from "./color-picker/ColorWheel";
 import {

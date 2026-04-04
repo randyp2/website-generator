@@ -5,7 +5,7 @@ import { Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // AI prompt input bubbles that float around
-function PromptBubble({
+const PromptBubble = ({
     className,
     delay = 0,
     prompt,
@@ -15,7 +15,9 @@ function PromptBubble({
     delay?: number;
     prompt: string;
     rotate?: number;
-}) {
+}) => {
+    const floatDuration = 10 + (Math.abs(rotate) % 4);
+
     return (
         <motion.div
             initial={{
@@ -41,7 +43,7 @@ function PromptBubble({
                     y: [0, 15, 0],
                 }}
                 transition={{
-                    duration: 10 + Math.random() * 4,
+                    duration: floatDuration,
                     repeat: Number.POSITIVE_INFINITY,
                     ease: "easeInOut",
                 }}
@@ -71,9 +73,9 @@ function PromptBubble({
             </motion.div>
         </motion.div>
     );
-}
+};
 
-function HeroGeometric({
+const HeroGeometric = ({
     title1 = "Elevate Your Digital Vision",
     title2 = "Crafting Exceptional Websites",
     description = "Crafting exceptional digital experiences through innovative design and cutting-edge technology.",
@@ -81,7 +83,7 @@ function HeroGeometric({
     title1?: string;
     title2?: string;
     description?: string;
-}) {
+}) => {
     const fadeUpVariants = {
         hidden: { opacity: 0, y: 30 },
         visible: (i: number) => ({
@@ -167,6 +169,6 @@ function HeroGeometric({
             <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-gray-100 to-transparent pointer-events-none" />
         </div>
     );
-}
+};
 
 export { HeroGeometric }

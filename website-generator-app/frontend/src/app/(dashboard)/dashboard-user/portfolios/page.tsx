@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 
 import {
   FiPlus,
@@ -336,9 +337,11 @@ const PortfolioManager: React.FC = () => {
               <div className="overflow-visible rounded-2xl border border-border bg-card/80 backdrop-blur-xl shadow-lg transition-all hover:border-primary/30 hover:shadow-xl">
                 {/* Thumbnail image */}
                 <div className="relative h-48 overflow-hidden">
-                  <img
+                  <Image
                     src={portfolio.thumbnail || DEFAULT_PORTFOLIO_CARD_IMAGE}
                     alt={`${portfolio.title} preview`}
+                    fill
+                    unoptimized
                     className="absolute inset-0 h-full w-full object-cover"
                   />
                   <div className="absolute inset-0 bg-linear-to-t from-black/45 via-black/10 to-transparent" />

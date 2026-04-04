@@ -73,9 +73,12 @@ export const useInitialPortfolioGeneration = ({
 }: UseInitialPortfolioGenerationParams): UseInitialPortfolioGenerationReturn => {
     const hasGeneratedRef = useRef<boolean>(false);
     const sectionsRef = useRef(sections);
-    sectionsRef.current = sections;
     const [generationPhase, setGenerationPhase] = useState<GenerationPhase | null>(null);
     const [totalSections, setTotalSections] = useState<number>(0);
+
+    useEffect(() => {
+        sectionsRef.current = sections;
+    }, [sections]);
 
     useEffect(() => {
         let pollTimer: ReturnType<typeof setInterval> | null = null;

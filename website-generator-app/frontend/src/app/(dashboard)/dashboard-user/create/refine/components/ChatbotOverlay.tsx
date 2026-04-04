@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 import {
     FiZap,
     FiPlus,
@@ -368,16 +369,14 @@ export const ChatbotOverlay: React.FC<ChatbotOverlayProps> = ({
                                                             }}
                                                             className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg p-2"
                                                         >
-                                                            <div className="w-12 h-12 rounded-lg overflow-hidden bg-[#1a1d21] flex items-center justify-center shrink-0">
+                                                            <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-[#1a1d21] flex items-center justify-center shrink-0">
                                                                 {isImage ? (
-                                                                    <img
-                                                                        src={
-                                                                            preview
-                                                                        }
-                                                                        alt={
-                                                                            file.name
-                                                                        }
-                                                                        className="w-full h-full object-cover"
+                                                                    <Image
+                                                                        src={preview}
+                                                                        alt={file.name}
+                                                                        fill
+                                                                        unoptimized
+                                                                        className="object-cover"
                                                                     />
                                                                 ) : (
                                                                     <FiVideo className="w-6 h-6 text-white/40" />

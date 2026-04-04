@@ -11,7 +11,7 @@ import { NextResponse, type NextRequest } from "next/server";
  * @param request
  * @returns
  */
-export async function updateSession(request: NextRequest) {
+export const updateSession = async (request: NextRequest) => {
     // Let request continue normally
     const response = NextResponse.next({
         request: { headers: request.headers },
@@ -44,8 +44,7 @@ export async function updateSession(request: NextRequest) {
     const code = searchParams.get("code");
 
     if (code) {
-        const { data, error } =
-            await supabase.auth.exchangeCodeForSession(code);
+        await supabase.auth.exchangeCodeForSession(code);
 
         const nextUrl = new URL(request.url);
         nextUrl.searchParams.delete("code"); // Remove the oauth code from URL
@@ -70,4 +69,4 @@ export async function updateSession(request: NextRequest) {
 
     await supabase.auth.getUser();
     return response;
-}
+};

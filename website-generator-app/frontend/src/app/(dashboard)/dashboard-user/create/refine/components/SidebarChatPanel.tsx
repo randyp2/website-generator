@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 import {
     Download,
     Eye,
@@ -73,7 +74,6 @@ export const SidebarChatPanel: React.FC<SidebarChatPanelProps> = ({
         isLoading: isLoadingVersions,
         activateVersion,
         isActivating,
-        refetch: refetchVersions,
     } = useVersions(portfolioId);
     const [previewUrls, setPreviewUrls] = useState<Map<string, string>>(new Map());
     const [completedStreamingIds, setCompletedStreamingIds] = useState<Set<string>>(new Set());
@@ -414,12 +414,14 @@ export const SidebarChatPanel: React.FC<SidebarChatPanelProps> = ({
                                         transition={{ duration: 0.2 }}
                                         className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 h-10"
                                     >
-                                        <div className="w-6 h-6 rounded overflow-hidden bg-[#0a0f14] flex items-center justify-center shrink-0">
+                                        <div className="relative w-6 h-6 rounded overflow-hidden bg-[#0a0f14] flex items-center justify-center shrink-0">
                                             {isImage && preview ? (
-                                                <img
+                                                <Image
                                                     src={preview}
                                                     alt={file.name}
-                                                    className="w-full h-full object-cover"
+                                                    fill
+                                                    unoptimized
+                                                    className="object-cover"
                                                 />
                                             ) : (
                                                 <Video className="w-4 h-4 text-white/40" />

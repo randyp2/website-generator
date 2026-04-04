@@ -173,17 +173,6 @@ export const TemplateSection: React.FC<TemplateSectionProps> = ({
     setSelectedTemplate(templateId);
   };
 
-  const getPatternSVG = (pattern: string) => {
-    const patterns: Record<string, string> = {
-      circuit: "M0 0h20v20H0z M10 10h10v10H10z M0 10h10v10H0z M10 0h10v10H10z",
-      mesh: "M0 0h20L10 10 0 20z M20 0L10 10 20 20z M10 10L0 20h20z",
-      grid: "M0 10h20 M10 0v20",
-      paper: "M0 0h20v20H0z M2 2h16v16H2z",
-      organic: "M0 10Q5 5 10 10t10 0 M0 20Q5 15 10 20t10 0",
-    };
-    return patterns[pattern] || patterns.circuit;
-  };
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {/* Blank Canvas Option */}

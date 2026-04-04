@@ -5,7 +5,7 @@ interface MobilePortfolioMockupProps {
   className?: string
 }
 
-function TechPortfolio() {
+const TechPortfolio = () => {
   return (
     <div className="absolute inset-0 flex flex-col bg-zinc-950 text-white">
       {/* Matrix-style background characters */}
@@ -18,8 +18,8 @@ function TechPortfolio() {
         <span className="absolute right-[20%] top-[55%]">10010</span>
         <span className="absolute left-[8%] top-[80%]">::</span>
         <span className="absolute right-[12%] top-[75%]">{"=>"}</span>
-        <span className="absolute left-[25%] top-[25%]">/*</span>
-        <span className="absolute right-[25%] top-[70%]">*/</span>
+        <span className="absolute left-[25%] top-[25%]">{"/*"}</span>
+        <span className="absolute right-[25%] top-[70%]">{"*/"}</span>
         <span className="absolute left-[20%] top-[45%] text-[10px]">#</span>
         <span className="absolute right-[5%] top-[50%]">null</span>
       </div>
@@ -97,7 +97,7 @@ function TechPortfolio() {
   )
 }
 
-function CreativePortfolio() {
+const CreativePortfolio = () => {
   return (
     <div className="absolute inset-0 flex flex-col overflow-hidden bg-zinc-950 text-white">
       {/* Gradient orb background */}
@@ -161,10 +161,10 @@ function CreativePortfolio() {
   )
 }
 
-export function MobilePortfolioMockup({
+export const MobilePortfolioMockup = ({
   variant,
   className,
-}: MobilePortfolioMockupProps) {
+}: MobilePortfolioMockupProps) => {
   return (
     <div className={cn("absolute inset-0", className)}>
       {variant === "tech" ? <TechPortfolio /> : <CreativePortfolio />}

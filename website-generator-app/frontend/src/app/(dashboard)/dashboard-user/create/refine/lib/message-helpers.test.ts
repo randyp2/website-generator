@@ -7,7 +7,6 @@ import {
     createUserMessage,
     normalizeMessages,
 } from "./message-helpers";
-import { TurbopackMessageSentToBrowser } from "next/dist/server/dev/hot-reloader-types";
 
 describe("message-helpers", () => {
     // Normalize Date.now() before every test case

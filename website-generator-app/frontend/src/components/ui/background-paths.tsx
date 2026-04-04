@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 
-function FloatingPaths({ position }: { position: number }) {
+const FloatingPaths = ({ position }: { position: number }) => {
     const paths = Array.from({ length: 36 }, (_, i) => ({
         id: i,
         d: `M-${380 - i * 5 * position} -${189 + i * 6}C-${
@@ -38,7 +38,7 @@ function FloatingPaths({ position }: { position: number }) {
                             pathOffset: [0, 1, 0],
                         }}
                         transition={{
-                            duration: 20 + Math.random() * 10,
+                            duration: 20 + (path.id % 10),
                             repeat: Number.POSITIVE_INFINITY,
                             ease: "linear",
                         }}
@@ -47,13 +47,13 @@ function FloatingPaths({ position }: { position: number }) {
             </svg>
         </div>
     );
-}
+};
 
-export function BackgroundPaths() {
+export const BackgroundPaths = () => {
     return (
         <div className="absolute inset-0 w-full h-full overflow-hidden">
             <FloatingPaths position={1} />
             <FloatingPaths position={-1} />
         </div>
     );
-}
+};

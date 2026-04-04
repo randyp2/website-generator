@@ -2,9 +2,8 @@
 
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { FileText } from 'lucide-react';
 
-export function VisualFeaturesSection() {
+export const VisualFeaturesSection = () => {
     return (
         <section className="bg-black py-16 md:py-24">
             <div className="mx-auto max-w-7xl px-6">
@@ -60,7 +59,7 @@ export function VisualFeaturesSection() {
                                                     </div>
                                                     <div className="bg-white/10 border border-white/20 rounded-lg rounded-tl-sm px-3 py-1.5 max-w-[85%] shadow-xl">
                                                         <p className="text-white/90 text-[10px] md:text-xs leading-relaxed">
-                                                            I've created a sleek portfolio with a dark theme, featuring your projects, skills, and experience.
+                                                            I&apos;ve created a sleek portfolio with a dark theme, featuring your projects, skills, and experience.
                                                         </p>
                                                     </div>
                                                 </div>
@@ -270,105 +269,7 @@ export function VisualFeaturesSection() {
             </div>
         </section>
     );
-}
-
-// Visual Component 2: Template Selection
-const TemplateSelectionVisual = () => (
-    <div className="relative h-64">
-        {/* Header - Top left */}
-        <div className="absolute top-0 left-0 right-0 bg-black rounded-xl px-4 py-3 border border-white/10 shadow-2xl z-10 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                <span className="text-white/80 text-xs font-medium">Choose Template</span>
-            </div>
-            <span className="px-2 py-1 bg-green-500/20 rounded-full text-green-400 text-[10px] font-medium">✨ AI Match</span>
-        </div>
-
-        {/* Template 1 - Coming from left, larger */}
-        <div className="absolute top-16 left-0 w-44 bg-black rounded-lg p-3 border-2 border-blue-400 shadow-2xl z-30">
-            <div className="aspect-3/4 bg-linear-to-br from-blue-500/20 to-purple-500/20 rounded mb-2 overflow-hidden">
-                <div className="w-full h-full p-2 space-y-1">
-                    <div className="h-2 bg-white/30 rounded w-3/4"></div>
-                    <div className="h-1 bg-white/20 rounded w-1/2"></div>
-                    <div className="mt-2 h-1 bg-white/10 rounded w-full"></div>
-                    <div className="h-1 bg-white/10 rounded w-5/6"></div>
-                </div>
-            </div>
-            <div className="flex items-center justify-between">
-                <p className="text-white text-xs font-medium">Modern</p>
-                <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
-                    <span className="text-white text-[10px]">✓</span>
-                </div>
-            </div>
-        </div>
-
-        {/* Template 2 - Coming from right, slightly smaller */}
-        <div className="absolute top-24 right-0 w-36 bg-black rounded-lg p-3 border border-white/10 shadow-2xl z-20 opacity-60">
-            <div className="aspect-3/4 bg-linear-to-br from-purple-500/20 to-pink-500/20 rounded mb-2 overflow-hidden">
-                <div className="w-full h-full p-2 space-y-1">
-                    <div className="h-2 bg-white/30 rounded w-2/3"></div>
-                    <div className="h-1 bg-white/20 rounded w-1/3"></div>
-                    <div className="mt-2 grid grid-cols-2 gap-1">
-                        <div className="h-3 bg-white/10 rounded"></div>
-                        <div className="h-3 bg-white/10 rounded"></div>
-                    </div>
-                </div>
-            </div>
-            <p className="text-white text-xs font-medium">Creative</p>
-        </div>
-
-        {/* Template 3 - Peek from bottom */}
-        <div className="absolute bottom-0 left-16 right-16 bg-black rounded-t-lg p-3 border border-white/10 border-b-0 shadow-2xl z-10 opacity-40">
-            <div className="h-16 bg-linear-to-br from-green-500/20 to-teal-500/20 rounded"></div>
-        </div>
-    </div>
-);
-
-// Visual Component 3: Live Preview
-const LivePreviewVisual = () => (
-    <div className="relative h-64">
-        {/* Mac Browser Window - Main element */}
-        <div className="absolute top-0 left-0 right-0 bg-black rounded-xl shadow-2xl z-20 border border-white/10">
-            {/* Browser Chrome */}
-            <div className="bg-black px-3 py-2 rounded-t-xl border-b border-white/10">
-                <div className="flex items-center gap-2">
-                    <div className="flex gap-1.5">
-                        <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]"></div>
-                        <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]"></div>
-                        <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]"></div>
-                    </div>
-                    <div className="flex-1 bg-black rounded px-2 py-1 flex items-center gap-1.5">
-                        <div className="text-[10px]">🔒</div>
-                        <span className="text-white/60 text-[10px] font-mono">johndoe.vercel.app</span>
-                    </div>
-                </div>
-            </div>
-
-            {/* Portfolio Preview */}
-            <div className="bg-black p-4 rounded-b-xl">
-                <div className="bg-linear-to-br from-blue-500/10 to-purple-500/10 rounded-lg p-4 border border-white/10">
-                    <div className="w-8 h-8 rounded-full bg-linear-to-br from-blue-500 to-purple-500 mb-2"></div>
-                    <div className="h-3 bg-white/20 rounded w-2/3 mb-1.5"></div>
-                    <div className="h-2 bg-white/10 rounded w-1/2"></div>
-                </div>
-            </div>
-        </div>
-
-        {/* Project Cards - Overlapping from bottom */}
-        <div className="absolute bottom-0 left-4 right-4 bg-black rounded-xl p-4 border border-white/10 shadow-2xl z-30">
-            <div className="grid grid-cols-2 gap-2">
-                <div className="bg-white/5 rounded p-2 border border-white/10">
-                    <div className="aspect-video bg-linear-to-br from-blue-500/20 to-cyan-500/20 rounded mb-1.5"></div>
-                    <div className="h-1.5 bg-white/15 rounded w-3/4"></div>
-                </div>
-                <div className="bg-white/5 rounded p-2 border border-white/10">
-                    <div className="aspect-video bg-linear-to-br from-purple-500/20 to-pink-500/20 rounded mb-1.5"></div>
-                    <div className="h-1.5 bg-white/15 rounded w-2/3"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-);
+};
 
 // Visual Component 4: Deployment
 const DeploymentVisual = () => (
