@@ -1,10 +1,17 @@
 import { redis } from "./redis";
 import { isRateLimitDisabled } from "./rate-limit-config";
 
-export async function acquireLock(
+/**
+ * ===================================================================
+ * Helper functions for distributed locking
+ * Acquire lock w/ specified TTL
+ * Release lock when job finished before TTL expired
+ * ===================================================================
+ */
+export const acquireLock = async (
     key: string,
     ttlSeconds: number,
-): Promise<boolean> {
+): Promise<boolean> => {
     if (isRateLimitDisabled()) {
         return true;
     }
@@ -19,9 +26,9 @@ export async function acquireLock(
     });
 
     return result === "OK";
-}
+};
 
-export async function releaseLock(key: string) {
+export const releaseLock = async (key: string) => {
     if (isRateLimitDisabled()) {
         return;
     }
@@ -31,4 +38,4 @@ export async function releaseLock(key: string) {
     }
 
     await redis.del(key);
-}
+};
