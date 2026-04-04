@@ -4,8 +4,8 @@ import {
     toPersistedStyleChatHistory,
     toUiStyleMessages,
 } from "./style-chat-history";
-import { Message } from "@/types/preview";
-import { PersistedStyleChatMessage } from "@/types/style-chat";
+import type { Message } from "@/types/preview";
+import type { PersistedStyleChatMessage } from "@/types/style-chat";
 
 describe("style-chat-history helpers", () => {
     describe("isStyleChatHistory", () => {
@@ -45,6 +45,11 @@ describe("style-chat-history helpers", () => {
 
             expect(isStyleChatHistory(payload)).toBe(false);
         });
+
+        it("returns false when array contains null or non-object items", () => {
+            const payload: unknown = [null];
+            expect(isStyleChatHistory(payload)).toBe(false);
+        });
     });
 
     describe("toPersistedStyleChatHistory", () => {
@@ -76,6 +81,21 @@ describe("style-chat-history helpers", () => {
                 colorScheme: "neutral",
             });
         });
+
+        it("converts non-Date timestamps via new Date(...)", () => {
+            const uiMessages = [
+                {
+                    id: "user-2",
+                    role: "user",
+                    content: "string timestamp input",
+                    timestamp: "2026-04-03T20:15:30.000Z",
+                },
+            ] as unknown as Message[];
+
+            const result = toPersistedStyleChatHistory(uiMessages);
+
+            expect(result[0].timestamp).toBe("2026-04-03T20:15:30.000Z");
+        });
     });
 
     describe("toUiStyleMessages", () => {
@@ -95,6 +115,36 @@ describe("style-chat-history helpers", () => {
             expect(result[0].timestamp.toISOString()).toBe(
                 "2026-04-03T20:15:30.000Z",
             );
+        });
+
+        it("preserves optional fields when present", () => {
+            const persisted: PersistedStyleChatMessage[] = [
+                {
+                    id: "ai-2",
+                    role: "ai",
+                    content: "refined style",
+                    timestamp: "2026-04-03T20:15:31.000Z",
+                    suggestions: ["Use a neutral palette"],
+                    designTip: "Increase section spacing",
+                    previewType: "minimal",
+                    isStyleComplete: true,
+                    stylePreferences: {
+                        tone: "professional",
+                        colorScheme: "neutral",
+                    },
+                },
+            ];
+
+            const result = toUiStyleMessages(persisted);
+
+            expect(result[0].suggestions).toEqual(["Use a neutral palette"]);
+            expect(result[0].designTip).toBe("Increase section spacing");
+            expect(result[0].previewType).toBe("minimal");
+            expect(result[0].isStyleComplete).toBe(true);
+            expect(result[0].stylePreferences).toMatchObject({
+                tone: "professional",
+                colorScheme: "neutral",
+            });
         });
     });
 });

@@ -1,5 +1,11 @@
 import type { Message } from "@/types/preview";
 
+/**
+ * Normalize messages in the case Date is passed as a string
+ *
+ * @param messages - List of UI messages
+ * @returns List of UI messages w/ a normlized timestamp
+ */
 export const normalizeMessages = (messages: Message[]): Message[] => {
     return messages.map((message) => ({
         ...message,
@@ -10,6 +16,13 @@ export const normalizeMessages = (messages: Message[]): Message[] => {
     }));
 };
 
+/**
+ * Creates a user message given a user's query
+ *
+ * @param content - a string representing user's query
+ * @returns a Message containing the User's message + metadata
+ *
+ */
 export const createUserMessage = (content: string): Message => {
     return {
         id: Date.now().toString(),
