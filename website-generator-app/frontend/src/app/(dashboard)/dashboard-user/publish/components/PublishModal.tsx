@@ -6,7 +6,7 @@ import { FiCheck, FiGlobe, FiLoader } from "react-icons/fi"
 
 import { cn } from "@/lib/utils"
 
-import type { PortfolioItem } from "./export.types"
+import type { PortfolioItem } from "./publish.types"
 
 const SLUG_REGEX = /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/
 

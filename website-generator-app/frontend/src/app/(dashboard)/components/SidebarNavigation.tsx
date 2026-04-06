@@ -106,10 +106,10 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
             path: "/dashboard-user/create",
         },
         {
-            id: "export",
-            label: "Export & Share",
+            id: "publish",
+            label: "Publish",
             icon: FiShare2,
-            path: "/dashboard-user/export",
+            path: "/dashboard-user/publish",
         },
     ];
 

@@ -11,7 +11,7 @@ import {
 } from "react-icons/fi"
 
 import { PublishModal } from "./components/PublishModal"
-import type { PortfolioItem, PortfolioListApiItem } from "./components/export.types"
+import type { PortfolioItem, PortfolioListApiItem } from "./components/publish.types"
 
 const BASE_URL = typeof window !== "undefined" ? window.location.origin : ""
 
