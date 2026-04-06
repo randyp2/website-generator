@@ -1,0 +1,63 @@
+# Name of workflow
+name: CI
+
+# Run workflow when:
+# - Pushing to main & dev
+# - Pull requests to main & dev
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+# Run the build job whenever our CI workflow is triggered
+jobs:
+  frontend-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Clone repo to get access to code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: pnpm install
+
+      - name: Frontend tests
+        working-directory: ./frontend
+        run: pnpm test
+
+      - name: Frontend build
+        working-directory: ./frontend
+        run: pnpm build
+
+  backend-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Clone repo to get access to code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Make mvnw executable
+        working-directory: ./webgen-backend
+        run: chmod +x mvnw
+
+      - name: Build Backend & Run Tests
+        working-directory: ./webgen-backend
+        run: ./mvnw clean package
