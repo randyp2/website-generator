@@ -29,15 +29,15 @@ jobs:
         run: npm install -g pnpm
 
       - name: Install Frontend Dependencies
-        working-directory: ./frontend
+        working-directory: ./website-generator-app/frontend
         run: pnpm install
 
       - name: Frontend tests
-        working-directory: ./frontend
+        working-directory: ./website-generator-app/frontend
         run: pnpm test
 
       - name: Frontend build
-        working-directory: ./frontend
+        working-directory: ./website-generator-app/frontend
         run: pnpm build
 
   backend-build:
@@ -55,9 +55,9 @@ jobs:
           java-version: 21
 
       - name: Make mvnw executable
-        working-directory: ./webgen-backend
+        working-directory: ./website-generator-app/webgen-backend
         run: chmod +x mvnw
 
       - name: Build Backend & Run Tests
-        working-directory: ./webgen-backend
+        working-directory: ./website-generator-app/webgen-backend
         run: ./mvnw clean package
