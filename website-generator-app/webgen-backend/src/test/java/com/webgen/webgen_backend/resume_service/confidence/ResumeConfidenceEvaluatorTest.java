@@ -6,12 +6,14 @@ import com.webgen.webgen_backend.resume_service.ResumeTestHelper;
 import com.webgen.webgen_backend.resume_service.extraction.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.*;
 
+@Tag("requires-fixtures")
 class ResumeConfidenceEvaluatorTest {
 
     private static final double LLM_THRESHOLD = 0.40;

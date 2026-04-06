@@ -14,10 +14,12 @@ on:
 jobs:
   frontend-build:
     runs-on: ubuntu-latest
+
+    # Placeholder env's
     env:
-      UPSTASH_REDIS_REST_URL: dummy
+      UPSTASH_REDIS_REST_URL: https://example.com
       UPSTASH_REDIS_REST_TOKEN: dummy
-      NEXT_PUBLIC_SUPABASE_URL: https://dummy.supabase.co
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy
 
     steps:

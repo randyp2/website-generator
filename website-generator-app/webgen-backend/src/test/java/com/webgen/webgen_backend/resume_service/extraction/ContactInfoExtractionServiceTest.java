@@ -3,12 +3,14 @@ package com.webgen.webgen_backend.resume_service.extraction;
 import com.webgen.webgen_backend.model.ParsedResume;
 import com.webgen.webgen_backend.resume_service.ResumeTestHelper;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.*;
 
+@Tag("requires-fixtures")
 class ContactInfoExtractionServiceTest {
 
     private final ContactInfoExtractionService service = new ContactInfoExtractionService();

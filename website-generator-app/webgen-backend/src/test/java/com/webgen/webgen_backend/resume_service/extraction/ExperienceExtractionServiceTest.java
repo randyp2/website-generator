@@ -3,6 +3,7 @@ package com.webgen.webgen_backend.resume_service.extraction;
 import com.webgen.webgen_backend.model.Experience;
 import com.webgen.webgen_backend.resume_service.ResumeTestHelper;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.*;
 
+@Tag("requires-fixtures")
 class ExperienceExtractionServiceTest {
 
     private final ExperienceExtractionService service = new ExperienceExtractionService();
