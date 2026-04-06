@@ -24,16 +24,12 @@ public class ResumeParserResponseParser {
     /**
      * Parse the LLM JSON response into a ParsedResume object.
      * @param rawJson The raw JSON string from LLM
-     * @return ParsedResume object
+    * @return ParsedResume object
      * @throws IllegalArgumentException if JSON is invalid or cannot be parsed
      */
     public ParsedResume parseResponse(String rawJson) {
-        System.out.println(">>> [RESUME LLM PARSER] Parsing LLM response...");
-        System.out.println(">>> [RESUME LLM PARSER] Raw JSON length: " + (rawJson != null ? rawJson.length() : 0));
-
         try {
             JsonNode root = objectMapper.readTree(rawJson);
-            System.out.println(">>> [RESUME LLM PARSER] JSON parsed successfully");
 
             ParsedResume resume = new ParsedResume();
 
@@ -58,15 +54,8 @@ public class ResumeParserResponseParser {
             // Parse education
             resume.setEducations(parseEducations(root));
 
-            System.out.println(">>> [RESUME LLM PARSER] Resume parsed successfully");
-            System.out.println(">>> [RESUME LLM PARSER] Name: " + resume.getFullName());
-            System.out.println(">>> [RESUME LLM PARSER] Email: " + resume.getEmail());
-            System.out.println(">>> [RESUME LLM PARSER] Skills count: " + (resume.getSkills() != null ? resume.getSkills().size() : 0));
-            System.out.println(">>> [RESUME LLM PARSER] Experiences count: " + (resume.getExperiences() != null ? resume.getExperiences().size() : 0));
-
             return resume;
         } catch (Exception e) {
-            System.err.println(">>> [RESUME LLM PARSER] ERROR: Failed to parse JSON: " + e.getMessage());
             throw new IllegalArgumentException("Failed to parse LLM response: " + e.getMessage(), e);
         }
     }
@@ -77,8 +66,6 @@ public class ResumeParserResponseParser {
      * @throws IllegalArgumentException if validation fails
      */
     public void validateResponse(ParsedResume resume) {
-        System.out.println(">>> [RESUME LLM PARSER] Validating parsed resume...");
-
         if (resume == null) {
             throw new IllegalArgumentException("Parsed resume is null");
         }
@@ -91,8 +78,6 @@ public class ResumeParserResponseParser {
         if (!hasContactInfo) {
             throw new IllegalArgumentException("Resume must have at least name, email, or phone");
         }
-
-        System.out.println(">>> [RESUME LLM PARSER] Validation passed");
     }
 
     /**

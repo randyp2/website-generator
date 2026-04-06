@@ -201,7 +201,6 @@ public class PortfolioResponseParser {
             return response;
         } catch (Exception e) {
             System.out.println(">>> [PARSER] ERROR: Failed to parse AI response JSON: " + e.getMessage());
-            e.printStackTrace();
             throw new IllegalArgumentException("Failed to parse AI response JSON", e);
         }
     }

@@ -1,12 +1,8 @@
 "use client";
 
-
-import { useRouter } from "next/navigation";
 import React from "react";
 
 export const ExampleSection: React.FC = () => {
-    const router = useRouter(); 
-    
     return (
         <section className="py-20 px-6 bg-[#030506] text-white">
             <div className="max-w-6xl mx-auto">
@@ -24,4 +20,4 @@ export const ExampleSection: React.FC = () => {
             </div>
         </section>
     );
-}
+};

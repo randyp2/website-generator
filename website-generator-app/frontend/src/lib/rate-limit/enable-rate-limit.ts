@@ -13,9 +13,6 @@ export async function enforceRateLimit(
     if (isRateLimitDisabled()) {
         return null;
     }
-    // const ip = req.headers.get("x-forwarded-for")?.split(",")[0] ?? "127.0.0.1";
-
-    // const key = `${scope}:${ip}`;
 
     // sucess - true or false
     // limit - amt of requests in this window

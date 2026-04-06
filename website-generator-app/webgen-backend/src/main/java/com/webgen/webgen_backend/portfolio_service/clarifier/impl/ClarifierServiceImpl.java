@@ -43,7 +43,6 @@ public class ClarifierServiceImpl implements ClarifierService {
             throw new IllegalArgumentException("portfolioId and userPrompt required!");
         System.out.println(">>> [CLARIFIER] Input validation passed");
         System.out.println(">>> [CLARIFIER] Portfolio ID: " + req.getPortfolioId());
-        System.out.println(">>> [CLARIFIER] User prompt: " + req.getUserPrompt());
         System.out.println(">>> [CLARIFIER] Sections count: " + (req.getSections() == null ? 0 : req.getSections().size()));
         System.out.println(">>> [CLARIFIER] Assets count: " + (req.getAssets() == null ? 0 : req.getAssets().size()));
 
@@ -53,15 +52,14 @@ public class ClarifierServiceImpl implements ClarifierService {
 
         if (sessionId != null && !sessionId.isBlank()) {
             context = loadContext(sessionId);
-            System.out.println(">>> [CLARIFIER] Existing session: " + sessionId
-                    + " | context found: " + (context != null));
+            System.out.println(">>> [CLARIFIER] Existing session context found: " + (context != null));
         }
 
         if (context == null) {
             // First turn — mint a new session
             sessionId = UUID.randomUUID().toString();
             context = newContext();
-            System.out.println(">>> [CLARIFIER] New session created: " + sessionId);
+            System.out.println(">>> [CLARIFIER] New session created");
         }
 
         System.out.println(">>> [CLARIFIER] Loaded context with turnCount=" + context.getTurnCount()
@@ -138,19 +136,6 @@ public class ClarifierServiceImpl implements ClarifierService {
         // Always return the sessionId so the frontend can pass it on subsequent calls
         parsed.setSessionId(sessionId);
 
-        // Debug: Print updated context
-        System.out.println("=== CLARIFIER CONTEXT UPDATED ===");
-        System.out.println("Session ID: " + sessionId);
-        System.out.println("Portfolio ID: " + req.getPortfolioId());
-        System.out.println("Turn Count: " + updatedContext.getTurnCount());
-        System.out.println("Confidence Score: " + updatedContext.getConfidenceScore());
-        System.out.println("Scope: " + updatedContext.getScope());
-        System.out.println("Global Intent: " + updatedContext.getGlobalIntent());
-        System.out.println("Target Sections: " + updatedContext.getTargetSectionKeys());
-        System.out.println("Open Questions: " + updatedContext.getOpenQuestions());
-        System.out.println("Assumptions: " + updatedContext.getAssumptions());
-        System.out.println("Constraints: " + updatedContext.getConstraints());
-        System.out.println("=================================");
         System.out.println(">>> [CLARIFIER] Returning clarify response");
 
         return parsed;

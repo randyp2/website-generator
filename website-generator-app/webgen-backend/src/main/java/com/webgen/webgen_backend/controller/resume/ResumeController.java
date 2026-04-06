@@ -33,8 +33,6 @@ public class ResumeController {
             @RequestPart("file") MultipartFile file
     ) {
         ParsedResumeDTO parsedResumeDto = resumeParserService.parseResume(file); // Parse the resume
-        System.out.println(">>> [RESUME] Parsed resume DTO: " + parsedResumeDto);
-
         return ResponseEntity.ok(parsedResumeDto);
     }
 

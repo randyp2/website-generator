@@ -66,7 +66,6 @@ public class ContactInfoExtractionService {
      * @return - Full name of user's resume
      */
     private String extractNameFromFirstLine(String line) {
-        System.out.println("ATTEMPTING TO EXTRACT FIRST NAME FROM : " + line);
         if (line == null || line.isBlank()) return null;
 
         // Remove header elements
@@ -178,4 +177,3 @@ public class ContactInfoExtractionService {
 
 
 }
-

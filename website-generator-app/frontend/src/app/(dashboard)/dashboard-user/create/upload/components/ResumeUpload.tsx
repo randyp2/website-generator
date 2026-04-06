@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { FiFile, FiUpload, FiCheck, FiX } from "react-icons/fi";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
 // Import react-pdf components for PDF rendering
@@ -37,25 +37,6 @@ export const ResumeUpload: React.FC<ResumeUploadProps> = ({
 
   // State to track the number of pages in the PDF
   const [numPages, setNumPages] = useState<number>(0);
-  // State to store the preview URL created from the uploaded file
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-
-  // Create a preview URL when a resume file is uploaded
-  useEffect(() => {
-    if (resumeFile?.file) {
-      // Create an object URL from the file blob for preview
-      const url = URL.createObjectURL(resumeFile.file);
-      setPreviewUrl(url);
-
-      // Cleanup function to revoke the object URL when component unmounts
-      // or when the file changes to prevent memory leaks
-      return () => {
-        URL.revokeObjectURL(url);
-      };
-    } else {
-      setPreviewUrl(null);
-    }
-  }, [resumeFile]);
 
   /**
    * Callback fired when PDF document loads successfully
@@ -146,11 +127,11 @@ export const ResumeUpload: React.FC<ResumeUploadProps> = ({
 
             {/* PDF Preview Section */}
             <div className="flex-1 flex items-center justify-center bg-[#0a0f14]/50 rounded-xl overflow-hidden border border-white/10">
-              {isPDF && previewUrl ? (
+              {isPDF ? (
                 // Render PDF preview for PDF files
                 <div className="w-full h-full flex items-center justify-center p-4">
                   <Document
-                    file={previewUrl}
+                    file={resumeFile.file}
                     onLoadSuccess={onDocumentLoadSuccess}
                     className="flex items-center justify-center"
                     loading={

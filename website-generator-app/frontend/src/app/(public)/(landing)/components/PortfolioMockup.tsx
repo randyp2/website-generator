@@ -441,7 +441,7 @@ export const PortfolioMockup: React.FC = () => {
                                             AI
                                         </div>
                                         <div className="bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-slate-700 flex-1 shadow-sm border border-slate-100">
-                                            Hi! I'm here to build your portfolio. What's your field?
+                                            Hi! I&apos;m here to build your portfolio. What&apos;s your field?
                                         </div>
                                     </div>
 
@@ -453,7 +453,7 @@ export const PortfolioMockup: React.FC = () => {
                                         className="flex items-start gap-2 justify-end"
                                     >
                                         <div className="bg-linear-to-r from-cyan-100/90 to-sky-100/90 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-slate-700 max-w-[200px] shadow-sm border border-cyan-200/50">
-                                            I'm a marketing major looking to showcase my campaigns
+                                            I&apos;m a marketing major looking to showcase my campaigns
                                         </div>
                                         <div className="w-7 h-7 rounded-full bg-slate-300 flex items-center justify-center text-white text-xs font-bold shrink-0">
                                             ME

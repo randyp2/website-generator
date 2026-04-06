@@ -3,12 +3,63 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
+import type { GlobalTheme } from "@/types/portfolio";
 
 interface LoadedPortfolioResponse {
     templateId?: string | null;
     sections?: unknown;
     globalTheme?: unknown;
 }
+
+const parseGlobalTheme = (value: unknown): GlobalTheme | null => {
+    if (!value || typeof value !== "object") return null;
+
+    const theme = value as {
+        background?: unknown;
+        textPrimary?: unknown;
+        textSecondary?: unknown;
+        accentColor?: unknown;
+        fonts?: unknown;
+    };
+
+    if (
+        typeof theme.background !== "string" ||
+        typeof theme.textPrimary !== "string" ||
+        typeof theme.textSecondary !== "string" ||
+        typeof theme.accentColor !== "string"
+    ) {
+        return null;
+    }
+
+    let fonts: GlobalTheme["fonts"];
+    if (theme.fonts !== undefined) {
+        if (!theme.fonts || typeof theme.fonts !== "object") return null;
+        const candidateFonts = theme.fonts as {
+            heading?: unknown;
+            body?: unknown;
+        };
+
+        if (
+            typeof candidateFonts.heading !== "string" ||
+            typeof candidateFonts.body !== "string"
+        ) {
+            return null;
+        }
+
+        fonts = {
+            heading: candidateFonts.heading,
+            body: candidateFonts.body,
+        };
+    }
+
+    return {
+        background: theme.background,
+        textPrimary: theme.textPrimary,
+        textSecondary: theme.textSecondary,
+        accentColor: theme.accentColor,
+        ...(fonts ? { fonts } : {}),
+    };
+};
 
 export const useRefinePortfolioHydration = (): {
     isHydrating: boolean;
@@ -76,7 +127,7 @@ export const useRefinePortfolioHydration = (): {
                 setPortfolioId(portfolioIdParam);
                 setTemplateId(data.templateId ?? null);
                 setSections(Array.isArray(data.sections) ? data.sections : []);
-                setGlobalTheme(data.globalTheme ?? null);
+                setGlobalTheme(parseGlobalTheme(data.globalTheme));
             } catch (error: unknown) {
                 console.error("Failed to load portfolio:", error);
             } finally {

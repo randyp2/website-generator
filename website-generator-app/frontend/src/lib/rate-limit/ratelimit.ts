@@ -3,6 +3,13 @@ import { redis } from "./redis";
 import { isRateLimitDisabled } from "./rate-limit-config";
 import { RateLimiter } from "./rate-limit-types";
 
+/*
+ * Disabled no-op limiter used when `DISABLE_RATE_LIMIT=true`.
+ *
+ * Keeps call sites simple by returning a successful limiter result shape.
+ * This means route handlers can always call `enforceRateLimit(...)` without
+ * branching on environment state.
+ */
 const disabledLimiter: RateLimiter = {
     limit: async () => ({
         success: true,
@@ -14,6 +21,13 @@ const disabledLimiter: RateLimiter = {
 
 const isDisabled = isRateLimitDisabled();
 
+/*
+ * Lazily resolve Redis only when rate limiting is enabled.
+ *
+ * Why lazy:
+ * - avoids eager Redis access in local/dev when limits are disabled
+ * - fails fast with a clear error if limits are enabled but Redis is missing
+ */
 const getRedis = () => {
     if (!redis) {
         throw new Error("Redis client is not configured");
@@ -22,9 +36,30 @@ const getRedis = () => {
     return redis;
 };
 
-/* ------ Types of Rate Limiters ------ */
+/* ===================================================================
+ * RATE LIMITER BUCKETS BY ROUTE COST / ABUSE RISK
+ * ===================================================================
+ * `cheapRateLimit`:
+ *   - Lightweight checks and read-ish endpoints
+ *
+ * `uploadRateLimit`:
+ *   - Upload and create endpoints that can generate storage churn
+ *
+ * `expensiveRateLimit`:
+ *   - CPU-heavy or third-party API dependent routes
+ *
+ * `refineRateLimit`:
+ *   - Multi-step refine chat flow; higher limit for iterative UX
+ *
+ * `generateRateLimit`:
+ *   - One-shot generation/build operations with higher compute cost
+ * ===================================================================
+ */
 
-// Rate limiter
+/* --- Generic default limiter (10 req / 60s) ---
+ * Baseline limiter kept as a shared default.
+ * Note: currently not imported by route handlers.
+ */
 export const ratelimit: RateLimiter = isDisabled
     ? disabledLimiter
     : new Ratelimit({
@@ -33,8 +68,9 @@ export const ratelimit: RateLimiter = isDisabled
           analytics: true,
       });
 
-// --- Cheap routes
-// Generate cheap routes
+/* --- Cheap routes limiter (10 req / 60s) ---
+ * Used for low-cost endpoints where moderate burst traffic is acceptable.
+ */
 export const cheapRateLimit: RateLimiter = isDisabled
     ? disabledLimiter
     : new Ratelimit({
@@ -43,7 +79,9 @@ export const cheapRateLimit: RateLimiter = isDisabled
           analytics: true,
       });
 
-// Upload routes
+/* --- Upload/create routes limiter (20 req / 60s) ---
+ * Slightly higher throughput for user upload flows.
+ */
 export const uploadRateLimit: RateLimiter = isDisabled
     ? disabledLimiter
     : new Ratelimit({
@@ -52,8 +90,9 @@ export const uploadRateLimit: RateLimiter = isDisabled
           analytics: true,
       });
 
-// --- Expensive routes
-// Generic expensive route
+/* --- Expensive routes limiter (2 req / 60s) ---
+ * Tight throttle for costly endpoints (e.g., parsing/generation helpers).
+ */
 export const expensiveRateLimit: RateLimiter = isDisabled
     ? disabledLimiter
     : new Ratelimit({
@@ -62,7 +101,9 @@ export const expensiveRateLimit: RateLimiter = isDisabled
           analytics: true,
       });
 
-// Rate limit for refinement flow
+/* --- Refinement flow limiter (30 req / 15m) ---
+ * Supports back-and-forth chat iterations while still capping abuse.
+ */
 export const refineRateLimit: RateLimiter = isDisabled
     ? disabledLimiter
     : new Ratelimit({
@@ -71,7 +112,9 @@ export const refineRateLimit: RateLimiter = isDisabled
           analytics: true,
       });
 
-// One shot rate limit (backend call, and api calls)
+/* --- One-shot generation/build limiter (1 req / 10m) ---
+ * Strict guard for high-cost, backend-heavy generation actions.
+ */
 export const generateRateLimit: RateLimiter = isDisabled
     ? disabledLimiter
     : new Ratelimit({

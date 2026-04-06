@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
 import type {
+    ColorPresetColors,
     ColorPresetRecommendation,
     StylePreferences,
     StyleChatResponse,
@@ -46,14 +47,36 @@ function normalizeRecommendedPresets(value: unknown): ColorPresetRecommendation[
     if (!Array.isArray(value)) return [];
     const seen = new Set<string>();
     const normalized: ColorPresetRecommendation[] = [];
-    const requiredColorKeys = [
-        "primary",
-        "secondary",
-        "accent",
-        "background",
-        "text",
-        "muted",
-    ] as const;
+
+    const parseColors = (colors: unknown): ColorPresetColors | null => {
+        if (!colors || typeof colors !== "object") return null;
+        const colorMap = colors as Record<string, unknown>;
+
+        const primary =
+            typeof colorMap.primary === "string" ? colorMap.primary.trim() : "";
+        const secondary =
+            typeof colorMap.secondary === "string" ? colorMap.secondary.trim() : "";
+        const accent = typeof colorMap.accent === "string" ? colorMap.accent.trim() : "";
+        const background =
+            typeof colorMap.background === "string"
+                ? colorMap.background.trim()
+                : "";
+        const text = typeof colorMap.text === "string" ? colorMap.text.trim() : "";
+        const muted = typeof colorMap.muted === "string" ? colorMap.muted.trim() : "";
+
+        if (!primary || !secondary || !accent || !background || !text || !muted) {
+            return null;
+        }
+
+        return {
+            primary,
+            secondary,
+            accent,
+            background,
+            text,
+            muted,
+        };
+    };
 
     for (const item of value) {
         if (!item || typeof item !== "object") continue;
@@ -63,20 +86,10 @@ function normalizeRecommendedPresets(value: unknown): ColorPresetRecommendation[
             typeof row.description === "string"
                 ? row.description.trim()
                 : "Custom AI-generated palette.";
-        const colors = row.colors;
-        if (!name || !colors || typeof colors !== "object") continue;
-        const colorMap = colors as Record<string, unknown>;
-        const normalizedColors: Record<string, string> = {};
-        let valid = true;
-        for (const key of requiredColorKeys) {
-            const raw = colorMap[key];
-            if (typeof raw !== "string" || !raw.trim()) {
-                valid = false;
-                break;
-            }
-            normalizedColors[key] = raw.trim();
-        }
-        if (!valid) continue;
+        if (!name) continue;
+
+        const normalizedColors = parseColors(row.colors);
+        if (!normalizedColors) continue;
 
         const dedupeKey = name.toLowerCase();
         if (seen.has(dedupeKey)) continue;
@@ -84,7 +97,7 @@ function normalizeRecommendedPresets(value: unknown): ColorPresetRecommendation[
         normalized.push({
             name,
             description,
-            colors: normalizedColors as ColorPresetRecommendation["colors"],
+            colors: normalizedColors,
         });
         if (normalized.length >= 3) break;
     }

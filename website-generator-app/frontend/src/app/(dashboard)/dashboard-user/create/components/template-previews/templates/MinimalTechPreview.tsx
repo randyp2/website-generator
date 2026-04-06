@@ -66,7 +66,7 @@ export const MinimalTechPreview: React.FC<MinimalTechPreviewProps> = ({
                 className="text-[9px] font-mono mb-2 opacity-50"
                 style={{ color: themeColors.accent }}
               >
-                // Full-Stack Developer
+                {"// Full-Stack Developer"}
               </p>
               <h1
                 className="text-[28px] font-bold mb-2 leading-[1.1] tracking-tight"

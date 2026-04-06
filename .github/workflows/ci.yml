@@ -1,0 +1,76 @@
+# Name of workflow
+name: CI
+
+# Run workflow when:
+# - Pushing to main & dev
+# - Pull requests to main & dev
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+# Run the build job whenever our CI workflow is triggered
+jobs:
+  frontend-build:
+    runs-on: ubuntu-latest
+
+    # Placeholder env's
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co"
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bW15Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDAwMDAwMDAsImV4cCI6MjAwMDAwMDAwMH0.abc123"
+      SUPABASE_SECRET_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bW15Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcwMDAwMDAwMCwiZXhwIjoyMDAwMDAwMDAwfQ.abc123"
+      RESEND_API_KEY: "re_dummy_123456789"
+      BACKEND_URL: "http://localhost:8080"
+      NEXT_PUBLIC_BACKEND_URL: "http://localhost:8080"
+      NEXT_PUBLIC_SITE_URL: "http://localhost:3000"
+      UPSTASH_REDIS_REST_URL: "https://example.com"
+      UPSTASH_REDIS_REST_TOKEN: "dummy"
+      DISABLE_RATE_LIMIT: "true"
+
+    steps:
+      # Clone repo to get access to code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install Frontend Dependencies
+        working-directory: ./website-generator-app/frontend
+        run: pnpm install
+
+      - name: Frontend tests
+        working-directory: ./website-generator-app/frontend
+        run: pnpm test
+
+      - name: Frontend build
+        working-directory: ./website-generator-app/frontend
+        run: pnpm build
+
+  backend-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Clone repo to get access to code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - name: Make mvnw executable
+        working-directory: ./website-generator-app/webgen-backend
+        run: chmod +x mvnw
+
+      - name: Build Backend & Run Tests
+        working-directory: ./website-generator-app/webgen-backend
+        run: ./mvnw clean package

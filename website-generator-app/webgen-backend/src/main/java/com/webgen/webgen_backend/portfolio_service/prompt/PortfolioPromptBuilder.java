@@ -78,6 +78,8 @@ public class PortfolioPromptBuilder {
                         4. Component format (STRICT)
                         - Each reactSource MUST be plain JSX (NO TypeScript types).
                         - NEVER use React.createElement() - ALWAYS use JSX syntax like <div>, <section>, etc.
+                        - Use React DOM attribute names only (className, htmlFor, tabIndex, readOnly, onClick, onMouseEnter, etc.).
+                        - NEVER use raw HTML attribute aliases that trigger React warnings (class, for, tabindex, readonly, onclick, onmouseover, etc.).
                         - Each reactSource MUST declare the component exactly as:
                           export default function <PascalCaseSectionKey>Section({ data }) { ... }
                         - The function name MUST be PascalCase + "Section" (e.g., sectionKey "work" → function "WorkSection").
@@ -790,6 +792,7 @@ public class PortfolioPromptBuilder {
                 11. Custom style notes are mandatory if provided.
                 12. Media URLs must come from contentJson only — never invent URLs.
                 13. No code comments — do NOT include // or /* */ comments in reactSource.
+                14. Use React DOM attribute names only (className/htmlFor/tabIndex/readOnly/camelCase event handlers). Never use class/for/tabindex/readonly/onclick.
 
                 ========================
                 RESPONSIVE DESIGN (REQUIRED)
@@ -1024,6 +1027,8 @@ public class PortfolioPromptBuilder {
                 - `data` prop is always present — no optional chaining
                 - `motion` is already in scope — do NOT re-declare it
                   (no `var motion = ...`, no `typeof motion` checks)
+                - Use React DOM attribute names only (className, htmlFor, tabIndex, readOnly, camelCase events)
+                - Never use raw HTML aliases (class, for, tabindex, readonly, onclick, onmouseover, etc.)
                 - Lucide icons in scope: Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight
                 - No code comments (no // or /* */)
                 - Tailwind CSS only, transparent/semi-transparent backgrounds only

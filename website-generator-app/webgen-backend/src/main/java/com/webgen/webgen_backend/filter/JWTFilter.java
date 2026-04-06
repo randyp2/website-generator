@@ -101,7 +101,7 @@ public class JWTFilter extends OncePerRequestFilter {
 //                        SecurityContextHolder.getContext().getAuthentication().getAuthorities());
             }
         } catch (Exception e) {
-            System.out.println("JWT verification failed: " + e.getMessage());
+            // Treat invalid tokens as unauthenticated requests.
         }
 
 //        System.out.println("Request URL: " + request.getRequestURI());

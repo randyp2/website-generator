@@ -156,7 +156,7 @@ export default function HowItWorksPage() {
           </section>
 
           {workflow.slice(1).map((item) => {
-            const Icon = item.icon
+            const Icon = item.icon ?? Sparkles
 
             return (
               <section

@@ -58,7 +58,6 @@ public class SectionExtractor {
             return content;
 
         } catch (Exception e) {
-            System.err.println("Error extracting section: " + e.getMessage());
             return "";
         }
     }

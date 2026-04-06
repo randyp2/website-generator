@@ -1,19 +1,11 @@
 package com.webgen.webgen_backend.portfolio_service.screenshot;
 
-import com.microsoft.playwright.options.HttpHeader;
-import io.jsonwebtoken.Header;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestTemplate;
-
-import java.net.http.HttpHeaders;
-import java.util.List;
-import java.util.Map;
 
 @Service
 public class ScreenshotStorageService {
@@ -35,9 +27,6 @@ public class ScreenshotStorageService {
      * @return The public url assigned to this uploaded image
      */
     public String uploadScreenshot(String portfolioId, byte[] pngBytes) {
-        System.out.println(">>> [STORAGE-DEBUG] serviceRoleKey starts with: "
-                + (serviceRoleKey != null ? serviceRoleKey.substring(0, Math.min(10, serviceRoleKey.length())) : "NULL")
-                + " | length: " + (serviceRoleKey != null ? serviceRoleKey.length() : 0));
         String storagePath = "screenshots/" + portfolioId + "/preview.png";
 
         // Upload via Supabase Storage Rest API
@@ -52,11 +41,8 @@ public class ScreenshotStorageService {
         // Construct request w/ headers
         HttpEntity<byte[]> request = new HttpEntity<>(pngBytes, headers);
 
-        ResponseEntity<String> response = restTemplate.exchange(uploadUrl, HttpMethod.POST, request, String.class);
-        System.out.println("Status: " + response.getStatusCode());
-        System.out.println("Body: " + response.getBody());
+        restTemplate.exchange(uploadUrl, HttpMethod.POST, request, String.class);
 
         return supabaseUrl + "/storage/v1/object/public/" + BUCKET + "/" + storagePath;
     }
 }
-

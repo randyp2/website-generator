@@ -3,7 +3,6 @@ package com.webgen.webgen_backend.portfolio_service.prompt;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.dto.resume.ParsedResumeDTO;
-import com.webgen.webgen_backend.model.ParsedResume;
 import lombok.AllArgsConstructor;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -28,7 +27,6 @@ public class PromptRefinerService {
             Map<String, String> stylePrefs
     ) {
         System.out.println(">>> [REFINER] refineUserPrompt() started");
-        System.out.println(">>> [REFINER] Raw prompt: " + rawPrompt);
 
         if (rawPrompt == null) {
             System.out.println(">>> [REFINER] Raw prompt is null, returning default");
@@ -37,8 +35,6 @@ public class PromptRefinerService {
 
         String resumeSummary = buildResumeSummary(resume);
         String styleSummary = stylePrefs == null ? "none" : stylePrefs.toString();
-        System.out.println(">>> [REFINER] Resume summary: " + resumeSummary);
-        System.out.println(">>> [REFINER] Style prefs: " + styleSummary);
 
         SystemMessage system = new SystemMessage("""
                 You are a prompt refiner for portfolio generation.
@@ -127,16 +123,13 @@ public class PromptRefinerService {
             System.out.println(">>> [REFINER] OpenAI refine call completed in " + (System.currentTimeMillis() - start) + "ms");
 
             String raw = response.getResult().getOutput().getText();
-            System.out.println(">>> [REFINER] Raw response: " + raw);
 
             JsonNode root = objectMapper.readTree(raw);
             String refined = root.path("refinedPrompt").asText();
-            System.out.println(">>> [REFINER] Refined prompt extracted: " + refined);
 
             return refined == null || refined.isBlank() ? rawPrompt : refined;
         } catch (Exception e) {
             System.err.println(">>> [REFINER] Error calling OpenAI API: " + e.getMessage());
-            e.printStackTrace();
             return rawPrompt;
         }
 

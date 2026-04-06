@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 
 import {
   FiPlus,
@@ -91,18 +92,24 @@ const PortfolioManager: React.FC = () => {
         const data: PortfolioListResponse = await response.json();
 
         // Convert DB Rows to card format
-        const formattedPortfolios: Portfolio[] = data.portfolios.map((item) => ({
-          id: item.id,
-          title: item.title,
-          thumbnail: DEFAULT_PORTFOLIO_CARD_IMAGE,
-          status: item.status ?? "draft",
-          lastEdited: new Date(item.updated_at ?? item.created_at).toLocaleDateString(), // Format as needed
-          views: 0, // Placeholder - replace with actual views logic
-          likes: 0, // Placeholder - replace with actual likes logic
-          comments: 0, // Placeholder - replace with actual comments logic
-          shares: 0, // Placeholder - replace with actual shares logic
-          url: item.url ?? "unpublished",
-        }));
+        const formattedPortfolios: Portfolio[] = data.portfolios.map((item) => {
+          const lastEditedSource = item.updated_at ?? item.created_at;
+
+          return {
+            id: item.id,
+            title: item.title,
+            thumbnail: DEFAULT_PORTFOLIO_CARD_IMAGE,
+            status: item.status ?? "draft",
+            lastEdited: lastEditedSource
+              ? new Date(lastEditedSource).toLocaleDateString()
+              : "Unknown",
+            views: 0, // Placeholder - replace with actual views logic
+            likes: 0, // Placeholder - replace with actual likes logic
+            comments: 0, // Placeholder - replace with actual comments logic
+            shares: 0, // Placeholder - replace with actual shares logic
+            url: item.url ?? "unpublished",
+          };
+        });
 
         setPortfolios(formattedPortfolios);
 
@@ -330,9 +337,11 @@ const PortfolioManager: React.FC = () => {
               <div className="overflow-visible rounded-2xl border border-border bg-card/80 backdrop-blur-xl shadow-lg transition-all hover:border-primary/30 hover:shadow-xl">
                 {/* Thumbnail image */}
                 <div className="relative h-48 overflow-hidden">
-                  <img
+                  <Image
                     src={portfolio.thumbnail || DEFAULT_PORTFOLIO_CARD_IMAGE}
                     alt={`${portfolio.title} preview`}
+                    fill
+                    unoptimized
                     className="absolute inset-0 h-full w-full object-cover"
                   />
                   <div className="absolute inset-0 bg-linear-to-t from-black/45 via-black/10 to-transparent" />
