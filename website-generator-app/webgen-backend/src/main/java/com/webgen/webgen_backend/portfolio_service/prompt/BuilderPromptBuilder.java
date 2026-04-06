@@ -125,6 +125,8 @@ public class BuilderPromptBuilder {
               IMPORTANT:
               - Section backgrounds MUST be transparent (bg-transparent, bg-black/10, bg-white/5)
               - reactSource must be valid React/JSX code
+              - Use React DOM attribute names only (className, htmlFor, tabIndex, readOnly, onClick, onMouseEnter, etc.)
+              - Never use raw HTML aliases that trigger React warnings (class, for, tabindex, readonly, onclick, onmouseover, etc.)
               - Preserve Tailwind CSS classes and Framer Motion
               - `motion` is already declared in scope — do NOT re-declare, re-assign, or create
                 fallbacks for it (no `var motion = ...`, no `typeof motion` checks)
@@ -181,6 +183,8 @@ public class BuilderPromptBuilder {
               - `data` prop is always present — no optional chaining
               - `motion` is already in scope — do NOT re-declare it
                 (no `var motion = ...`, no `typeof motion` checks)
+              - Use React DOM attribute names only (className, htmlFor, tabIndex, readOnly, camelCase events)
+              - Never use raw HTML aliases (class, for, tabindex, readonly, onclick, onmouseover, etc.)
               - Lucide icons in scope: Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight
               - No code comments (no // or /* */)
               - Tailwind CSS only, transparent/semi-transparent backgrounds only
