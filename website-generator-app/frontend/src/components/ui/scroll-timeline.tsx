@@ -92,7 +92,7 @@ export const ScrollTimeline: React.FC<ScrollTimelineProps> = ({
     return (
         <div
             ref={containerRef}
-            className={cn("flex flex-col h-full", className)}
+            className={cn("relative flex h-full flex-col", className)}
         >
             {steps.map((step, index) => (
                 <TimelineStepItem

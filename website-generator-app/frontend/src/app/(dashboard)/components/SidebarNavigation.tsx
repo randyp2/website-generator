@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import {
     FiGrid,
     FiFolder,
@@ -39,6 +40,7 @@ interface SidebarNavigationProps {
 
 const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
     collapsed: externalCollapsed,
+    onToggleCollapse,
 }) => {
     const { user } = useUser(); // Extract user from context
 
@@ -84,6 +86,12 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
     }, [user?.id]);
 
     const collapsed = externalCollapsed ?? false;
+    const hasDesktopToggle = typeof onToggleCollapse === "function";
+
+    const handleDesktopToggle = () => {
+        setShowProfileMenu(false);
+        onToggleCollapse?.();
+    };
 
     const navItems: NavItem[] = [
         {
@@ -175,16 +183,37 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
             >
                 {/* Product Name */}
                 {!collapsed && (
-                    <div className="px-3 pb-3">
+                    <div className="flex items-start justify-between gap-2 px-3 pb-3">
                         <Link href="/">
                             <BrandWordmark className="text-base text-sidebar-foreground" />
                         </Link>
+                        {hasDesktopToggle && (
+                            <button
+                                type="button"
+                                onClick={handleDesktopToggle}
+                                aria-label="Close sidebar"
+                                title="Close sidebar"
+                                className="hidden md:inline-flex cursor-pointer items-center justify-center p-1.5 text-sidebar-foreground/80 transition-colors hover:text-sidebar-foreground"
+                            >
+                                <PanelLeftClose className="h-5 w-5" />
+                            </button>
+                        )}
                     </div>
                 )}
 
                 {collapsed && (
                     <div className="flex justify-center pb-3">
-                        <div className="h-8 w-8 rounded-md border border-sidebar-border bg-sidebar-accent/30" />
+                        {hasDesktopToggle && (
+                            <button
+                                type="button"
+                                onClick={handleDesktopToggle}
+                                aria-label="Open sidebar"
+                                title="Open sidebar"
+                                className="hidden md:inline-flex cursor-pointer items-center justify-center p-1.5 text-sidebar-foreground/80 transition-colors hover:text-sidebar-foreground"
+                            >
+                                <PanelLeftOpen className="h-5 w-5" />
+                            </button>
+                        )}
                     </div>
                 )}
             </div>
