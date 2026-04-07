@@ -144,6 +144,36 @@ const PublishPage = () => {
     setTimeout(() => setCopiedSlug(null), 2000)
   }
 
+  const handleSaveDescription = async (
+    nextDescription: string,
+  ): Promise<void> => {
+    if (!featuredPortfolio) return
+
+    const res = await fetch(`/api/portfolio/${featuredPortfolio.id}/update`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ description: nextDescription }),
+    })
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => null)
+      throw new Error(data?.error || "Failed to save description")
+    }
+
+    const normalizedDescription = nextDescription.trim() || null
+    setPortfolios((prev) =>
+      prev.map((portfolio) =>
+        String(portfolio.id) === String(featuredPortfolio.id)
+          ? {
+              ...portfolio,
+              description: normalizedDescription,
+            }
+          : portfolio,
+      ),
+    )
+    setHeroViewMode("description")
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
@@ -215,6 +245,7 @@ const PublishPage = () => {
             featuredPortfolio && handleUnpublish(String(featuredPortfolio.id))
           }
           onOpenWizard={() => setWizardOpen(true)}
+          onSaveDescription={handleSaveDescription}
         />
       </motion.div>
 

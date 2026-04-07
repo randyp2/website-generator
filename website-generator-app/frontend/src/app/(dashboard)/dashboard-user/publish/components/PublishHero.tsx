@@ -42,6 +42,7 @@ interface PublishHeroProps {
   onCopyUrl: () => void
   onUnpublish: () => void
   onOpenWizard: () => void
+  onSaveDescription: (nextDescription: string) => Promise<void>
 }
 
 export const PublishHero = ({
@@ -54,6 +55,7 @@ export const PublishHero = ({
   onCopyUrl,
   onUnpublish,
   onOpenWizard,
+  onSaveDescription,
 }: PublishHeroProps) => {
   if (!portfolio) {
     return (
@@ -140,7 +142,11 @@ export const PublishHero = ({
           </div>
         </div>
       ) : (
-        <PublishHeroDescriptionPanel title={portfolio.title} description={description} />
+        <PublishHeroDescriptionPanel
+          title={portfolio.title}
+          description={description}
+          onSaveDescription={onSaveDescription}
+        />
       )}
 
       {/* Deployment bar */}
