@@ -13,4 +13,5 @@ public class PublicPortfolioCardDTO {
     private String ownerAvatarUrl;
     private OffsetDateTime publishedAt;
     private String screenshotUrl;
+    private String description;
 }

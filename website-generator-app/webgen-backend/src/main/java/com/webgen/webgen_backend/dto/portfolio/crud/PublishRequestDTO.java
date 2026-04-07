@@ -4,5 +4,6 @@ import lombok.Data;
 
 @Data
 public class PublishRequestDTO {
+    private String description;
     private String slug; // optional — if null, auto-generate
 }

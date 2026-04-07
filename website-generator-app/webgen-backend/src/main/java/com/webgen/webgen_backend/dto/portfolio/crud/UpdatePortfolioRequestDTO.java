@@ -11,4 +11,5 @@ public class UpdatePortfolioRequestDTO {
     private String lastStep;
     private String templateId;
     private List<StyleChatMessage> styleChatHistory;
+    private String description;
 }

@@ -26,7 +26,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
@@ -51,6 +50,8 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
     private final AssetMapper assetMapper;
 
     private final RabbitTemplate rabbitTemplate;
+
+    private static final int MAX_PORTFOLIO_DESCRIPTION_LENGTH = 1000;
 
     @Override
     public PortfolioListDTO listPortfolios(UUID userId) {
@@ -118,6 +119,8 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
             portfolio.setTemplateId(request.getTemplateId());
         if (request.getStyleChatHistory() != null)
             portfolio.setStyleChatHistory(request.getStyleChatHistory());
+        if (request.getDescription() != null)
+            portfolio.setDescription(normalizeDescription(request.getDescription()));
 
         Portfolio saved = portfolioRepository.save(portfolio);
         return portfolioMapper.toDto(saved);
@@ -173,8 +176,10 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         }
 
         // Update optional portfolio fields
-        if (req.getTemplateId() != null) portfolio.setTemplateId(req.getTemplateId());
-        if (req.getLastStep() != null) portfolio.setLastStep(req.getLastStep());
+        if (req.getTemplateId() != null)
+            portfolio.setTemplateId(req.getTemplateId());
+        if (req.getLastStep() != null)
+            portfolio.setLastStep(req.getLastStep());
         Portfolio saved = portfolioRepository.save(portfolio);
 
         // Build response
@@ -320,6 +325,8 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
 
     @Override
     public PublishResponseDTO publishPortfolio(UUID userId, UUID portfolioId, PublishRequestDTO request) {
+        if (request == null) request = new PublishRequestDTO();
+
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio not found"));
 
@@ -351,6 +358,10 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
             slug = generateUniqueSlug(baseName != null ? baseName : "portfolio");
         }
 
+        if (request.getDescription() != null) {
+            portfolio.setDescription(normalizeDescription(request.getDescription()));
+        }
+
         portfolio.setSlug(slug);
         portfolio.setStatus("publish");
         portfolio.setLastStep("publish");
@@ -361,15 +372,12 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         ScreenshotMessage screenshotMsg = new ScreenshotMessage(
                 UUID.randomUUID().toString(),
                 portfolioId.toString(),
-                slug
-        );
+                slug);
 
         rabbitTemplate.convertAndSend(
                 RabbitMQConfig.EXCHANGE,
                 RabbitMQConfig.SCREENSHOT_ROUTING_KEY,
-                screenshotMsg
-        );
-
+                screenshotMsg);
 
         return new PublishResponseDTO(slug, "publish");
     }
@@ -389,11 +397,28 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         portfolioRepository.save(portfolio);
     }
 
+    private String normalizeDescription(String rawDescription) {
+        if (rawDescription == null) return null;
+
+        String normalized = rawDescription.trim();
+        if (normalized.isEmpty()) return null;
+
+        if (normalized.length() > MAX_PORTFOLIO_DESCRIPTION_LENGTH) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Description exceeds max length of " + MAX_PORTFOLIO_DESCRIPTION_LENGTH + " characters");
+        }
+
+        return normalized;
+    }
+
     private String generateUniqueSlug(String baseName) {
         for (int attempt = 0; attempt < 5; attempt++) {
             String slug = SlugUtil.generateSlug(baseName);
-            if (!portfolioRepository.existsBySlug(slug)) return slug;
+            if (!portfolioRepository.existsBySlug(slug))
+                return slug;
         }
-        throw new ResponseStatusException(HttpStatus.CONFLICT, "Could not generate a unique slug, please provide one manually");
+        throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "Could not generate a unique slug, please provide one manually");
     }
 }

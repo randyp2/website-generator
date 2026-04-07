@@ -58,4 +58,7 @@ public class Portfolio {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "style_chat_history", nullable = false)
     private List<StyleChatMessage> styleChatHistory;
+
+    @Column(name = "description")
+    private String description;
 }

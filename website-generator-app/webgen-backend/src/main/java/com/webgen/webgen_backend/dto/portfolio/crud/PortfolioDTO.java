@@ -19,4 +19,5 @@ public class PortfolioDTO {
     private OffsetDateTime updatedAt;
     private List<StyleChatMessage> styleChatHistory;
     private String screenshotUrl;
+    private String description;
 }
