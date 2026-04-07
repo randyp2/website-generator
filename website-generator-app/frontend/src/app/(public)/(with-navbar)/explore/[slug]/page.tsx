@@ -10,6 +10,7 @@ import { ExplorePortfolioSidebar } from "./components/ExplorePortfolioSidebar";
 import PortfolioComments from "./components/PortfolioComments";
 import { UnpublishButton } from "./components/UnpublishButton";
 import {
+  getPortfolioDescriptionSnippet,
   formatTimeAgo,
   getPortfolioMetrics,
   splitTimeAgo,
@@ -29,7 +30,7 @@ export const generateMetadata = async ({ params }: Props): Promise<Metadata> => 
 
   return {
     title: `${portfolio.title} | Explore`,
-    description: `Preview ${portfolio.title} by ${portfolio.ownerName ?? "an independent creator"} before opening the full portfolio.`,
+    description: getPortfolioDescriptionSnippet(portfolio, 160),
   };
 };
 
@@ -44,6 +45,7 @@ const ExplorePortfolioDetailPage = async ({ params }: Props) => {
   const updatedAgo = formatTimeAgo(portfolio.publishedAt);
   const updatedTime = splitTimeAgo(updatedAgo);
   const metrics = getPortfolioMetrics(portfolio.slug);
+  const heroSummary = getPortfolioDescriptionSnippet(portfolio, 280);
 
   return (
     <section className="min-h-screen bg-background px-6 py-10 sm:px-8 lg:px-12">
@@ -67,9 +69,7 @@ const ExplorePortfolioDetailPage = async ({ params }: Props) => {
                 </h1>
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <p className="max-w-[56rem] flex-1 text-sm leading-6 text-muted-foreground sm:text-base">
-                    A dedicated preview page for this portfolio. The image mockup sits above a
-                    placeholder description section so visitors can scan the concept before
-                    opening the full site.
+                    {heroSummary}
                   </p>
                   <div className="flex shrink-0 items-center gap-3 self-start lg:self-auto">
                     <Link

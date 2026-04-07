@@ -12,6 +12,7 @@ export interface PublicPortfolioDTO {
     title: string;
     slug: string;
     templateId: string | null;
+    description: string | null;
     sections: PublicSectionDTO[];
     globalTheme: {
         background?: string;

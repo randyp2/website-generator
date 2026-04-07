@@ -24,6 +24,25 @@ const toTitleCase = (value: string): string =>
 const formatPluralizedTime = (value: number, unit: string): string =>
   `${value} ${unit}${value === 1 ? "" : "s"} ago`;
 
+const stripMarkdown = (value: string): string =>
+  value
+    .replace(/!\[[^\]]*]\([^)]*\)/g, " ")
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
+    .replace(/`{1,3}([^`]*)`{1,3}/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^>\s?/gm, "")
+    .replace(/^[-*+]\s+/gm, "")
+    .replace(/^\d+\.\s+/gm, "")
+    .replace(/[*_~]/g, "")
+    .replace(/\r?\n+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const toExcerpt = (value: string, maxLength = 220): string => {
+  if (value.length <= maxLength) return value;
+  return `${value.slice(0, maxLength - 1).trimEnd()}…`;
+};
+
 export const formatTimeAgo = (iso: string): string => {
   const now = new Date();
   const date = new Date(iso);
@@ -84,6 +103,20 @@ export const getPortfolioMetrics = (slug: string): ExplorePortfolioMetrics => {
 
 export const getPortfolioOwnerName = (portfolio: ExplorePortfolioDetail): string =>
   portfolio.ownerName ?? "Anonymous Creator";
+
+export const getPortfolioDescriptionSnippet = (
+  portfolio: ExplorePortfolioDetail,
+  maxLength = 220,
+): string => {
+  const rawDescription = portfolio.description?.trim();
+  if (rawDescription) {
+    const plainDescription = stripMarkdown(rawDescription);
+    if (plainDescription) return toExcerpt(plainDescription, maxLength);
+  }
+
+  const ownerName = portfolio.ownerName ?? "an independent creator";
+  return `Preview ${portfolio.title} by ${ownerName} before opening the full portfolio.`;
+};
 
 export const getPortfolioDescription = (portfolio: ExplorePortfolioDetail): string[] => {
   const templateLabel = getTemplateLabel(portfolio.templateId).toLowerCase();
