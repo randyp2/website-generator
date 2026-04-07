@@ -52,6 +52,9 @@ export async function GET() {
                       null,
                   slug:
                       (portfolio.slug as string | null | undefined) ?? null,
+                  description:
+                      (portfolio.description as string | null | undefined) ??
+                      null,
                   created_at:
                       (portfolio.created_at as string | null | undefined) ??
                       (portfolio.createdAt as string | null | undefined) ??

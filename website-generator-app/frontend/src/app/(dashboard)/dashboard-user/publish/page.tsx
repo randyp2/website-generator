@@ -13,7 +13,6 @@ import { PublishHero } from "./components/PublishHero"
 import { PublishListCard } from "./components/PublishListCard"
 import type { PublishHeroViewMode } from "./components/PublishHeroViewToggle"
 import { PublishWizardModal } from "./components/PublishWizardModal"
-import { usePortfolioDescriptions } from "./hooks/usePortfolioDescriptions"
 
 const compareByUpdatedAt = (a: Portfolio, b: Portfolio) => {
   const ta = new Date(a.updated_at ?? a.created_at ?? 0).getTime() || 0
@@ -30,8 +29,6 @@ const PublishPage = () => {
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null)
   const [heroViewMode, setHeroViewMode] =
     useState<PublishHeroViewMode>("screenshot")
-  const { descriptions, getDescription, upsertDescription } =
-    usePortfolioDescriptions()
 
   useEffect(() => {
     const loadPortfolios = async () => {
@@ -92,7 +89,7 @@ const PublishPage = () => {
   const ownerName = user?.username?.trim() || user?.email?.trim() || "You"
   const ownerAvatarUrl =
     typeof user?.avatar === "string" && user.avatar.trim() ? user.avatar : null
-  const featuredDescription = getDescription(featuredPortfolio?.id)
+  const featuredDescription = featuredPortfolio?.description ?? ""
 
   const handlePublished = (
     portfolioId: string,
@@ -102,17 +99,17 @@ const PublishPage = () => {
     setPortfolios((prev) =>
       prev.map((p) =>
         String(p.id) === portfolioId
-          ? {
-              ...p,
-              status: "publish",
-              slug,
-              screenshot_url: null,
-              updated_at: new Date().toISOString(),
-            }
-          : p,
-      ),
-    )
-    upsertDescription(portfolioId, description)
+            ? {
+                ...p,
+                status: "publish",
+                slug,
+                description: description.trim() || null,
+                screenshot_url: null,
+                updated_at: new Date().toISOString(),
+              }
+            : p,
+        ),
+      )
     setFeaturedPortfolioId(portfolioId)
   }
 
@@ -301,7 +298,6 @@ const PublishPage = () => {
         {wizardOpen && (
           <PublishWizardModal
             drafts={drafts}
-            descriptionByPortfolioId={descriptions}
             ownerName={ownerName}
             ownerAvatarUrl={ownerAvatarUrl}
             onClose={() => setWizardOpen(false)}

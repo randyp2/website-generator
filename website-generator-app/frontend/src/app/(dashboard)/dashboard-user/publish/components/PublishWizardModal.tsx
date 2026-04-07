@@ -26,7 +26,6 @@ const STEPS: WizardStepDef[] = [
 
 interface PublishWizardModalProps {
   drafts: Portfolio[]
-  descriptionByPortfolioId: Record<string, string>
   ownerName: string
   ownerAvatarUrl: string | null
   onClose: () => void
@@ -35,7 +34,6 @@ interface PublishWizardModalProps {
 
 export const PublishWizardModal = ({
   drafts,
-  descriptionByPortfolioId,
   ownerName,
   ownerAvatarUrl,
   onClose,
@@ -114,7 +112,7 @@ export const PublishWizardModal = ({
   const handleSelectPortfolio = (portfolioId: string) => {
     setSelectedPortfolioId(portfolioId)
     const next = drafts.find((p) => String(p.id) === portfolioId)
-    setDescriptionInput(descriptionByPortfolioId[portfolioId] ?? "")
+    setDescriptionInput(next?.description ?? "")
     if (next?.slug) {
       setSlugInput(next.slug)
       setSlugAvailable(null)
@@ -150,7 +148,10 @@ export const PublishWizardModal = ({
       const res = await fetch(`/api/portfolio/${selectedPortfolio.id}/publish`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug: slugInput || null }),
+        body: JSON.stringify({
+          slug: slugInput || null,
+          description: descriptionInput,
+        }),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: "Publish failed" }))

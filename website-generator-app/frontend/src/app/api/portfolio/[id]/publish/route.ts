@@ -18,6 +18,8 @@ export const POST = async (
     }
 
     const body = await req.json();
+    const description =
+        typeof body?.description === "string" ? body.description : null;
     const backendUrl = getBackendUrl();
 
     const res: Response = await fetch(
@@ -28,7 +30,10 @@ export const POST = async (
                 Authorization: `Bearer ${session.access_token}`,
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({ slug: body?.slug ?? null }),
+            body: JSON.stringify({
+                slug: body?.slug ?? null,
+                description,
+            }),
         },
     );
 
