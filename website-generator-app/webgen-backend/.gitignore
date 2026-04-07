@@ -8,7 +8,6 @@ target/
 ### Local env files (do not commit secrets) ###
 .env
 .env.*
-!.env.example
 !.env.*.example
 
 ### STS ###
