@@ -5,12 +5,15 @@ import { Eye, Heart, MessageCircle } from "lucide-react"
 import { LazyImage } from "@/components/ui/lazy-image"
 
 import type { Portfolio } from "@/types/portfolio"
+import type { PublishSource } from "./StepPick"
 
 const DEFAULT_PREVIEW_IMAGE =
   "https://images.unsplash.com/photo-1545665277-5937489579f2?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
 
 interface StepPreviewProps {
-  portfolio: Portfolio
+  source: PublishSource
+  externalUrl: string
+  portfolio: Portfolio | null
   slug: string
   description: string
   ownerName: string
@@ -26,15 +29,25 @@ const fallbackSummary = (portfolio: Portfolio, ownerName: string) =>
   `${formatTemplateLabel(portfolio.template_id)} portfolio by ${ownerName}.`
 
 export const StepPreview = ({
+  source,
+  externalUrl,
   portfolio,
   slug,
   description,
   ownerName,
   ownerAvatarUrl,
 }: StepPreviewProps) => {
-  const summary = description.trim() || fallbackSummary(portfolio, ownerName)
-  const templateLabel = formatTemplateLabel(portfolio.template_id)
-  const previewSrc = portfolio.screenshot_url ?? DEFAULT_PREVIEW_IMAGE
+  const isExternal = source === "external"
+  const portfolioTitle = isExternal
+    ? "External Portfolio"
+    : portfolio?.title ?? "Untitled Portfolio"
+  const summary = description.trim()
+    || (portfolio ? fallbackSummary(portfolio, ownerName) : `External portfolio by ${ownerName}.`)
+  const templateLabel = isExternal
+    ? "External Website"
+    : formatTemplateLabel(portfolio?.template_id)
+  const previewSrc = portfolio?.screenshot_url ?? DEFAULT_PREVIEW_IMAGE
+  const browserUrl = isExternal ? externalUrl || "https://yourportfolio.com" : `https://portrn.com/${slug || "your-slug"}`
   const initials =
     ownerName
       .split(/\s+/)
@@ -62,7 +75,7 @@ export const StepPreview = ({
             <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
             <div className="ml-2 min-w-0 flex-1 rounded-full border border-white/15 bg-[#070b14] px-3 py-1">
               <p className="truncate text-[11px] text-white/75">
-                https://portrn.com/{slug || "your-slug"}
+                {browserUrl}
               </p>
             </div>
           </div>
@@ -70,7 +83,7 @@ export const StepPreview = ({
             src={previewSrc}
             fallback="https://placehold.co/1280x720?text=Portfolio+Preview"
             inView={true}
-            alt={`${portfolio.title} screenshot`}
+            alt={`${portfolioTitle} screenshot`}
             ratio={16 / 9}
             aspectRatioClassName="rounded-none border-0"
             className="rounded-none"
@@ -86,15 +99,18 @@ export const StepPreview = ({
             src={previewSrc}
             fallback="https://placehold.co/640x360?text=Portfolio+Preview"
             inView={true}
-            alt={portfolio.title}
+            alt={portfolioTitle}
             ratio={16 / 9}
           />
           <div className="space-y-2 px-1 pb-1">
             <p className="text-[11px] text-muted-foreground">{templateLabel}</p>
             <h3 className="line-clamp-2 text-base font-semibold leading-5 tracking-tight text-foreground">
-              {portfolio.title}
+              {portfolioTitle}
             </h3>
             <p className="line-clamp-3 text-sm text-muted-foreground">{summary}</p>
+            {isExternal && externalUrl.trim() && (
+              <p className="truncate text-[11px] text-primary">{externalUrl.trim()}</p>
+            )}
             <div className="flex items-end justify-between gap-3 pt-2">
               <div className="flex min-w-0 items-center gap-2">
                 {ownerAvatarUrl ? (

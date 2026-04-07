@@ -8,13 +8,14 @@ import { cn } from "@/lib/utils"
 import type { Portfolio } from "@/types/portfolio"
 
 import { StepIndicator, type WizardStepDef } from "./wizard/StepIndicator"
-import { StepPick } from "./wizard/StepPick"
+import { StepPick, type PublishSource } from "./wizard/StepPick"
 import { StepSlug } from "./wizard/StepSlug"
 import { StepDetails } from "./wizard/StepDetails"
 import { StepPreview } from "./wizard/StepPreview"
 import { StepPublish, type PublishActionState } from "./wizard/StepPublish"
 
 const SLUG_REGEX = /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/
+const URL_REGEX = /^https?:\/\/[^\s/$.?#].[^\s]*$/i
 
 const STEPS: WizardStepDef[] = [
   { key: "pick", label: "Pick" },
@@ -41,6 +42,8 @@ export const PublishWizardModal = ({
 }: PublishWizardModalProps) => {
   const [currentStep, setCurrentStep] = useState(0)
   const [direction, setDirection] = useState(1)
+  const [source, setSource] = useState<PublishSource>("generated")
+  const [externalUrl, setExternalUrl] = useState("")
   const [selectedPortfolioId, setSelectedPortfolioId] = useState<string | null>(null)
   const [slugInput, setSlugInput] = useState("")
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null)
@@ -58,6 +61,7 @@ export const PublishWizardModal = ({
   )
 
   const slugIsValid = slugInput.length >= 3 && SLUG_REGEX.test(slugInput)
+  const externalUrlReady = URL_REGEX.test(externalUrl.trim())
   const isUnchanged = Boolean(
     selectedPortfolio?.slug && selectedPortfolio.slug === slugInput,
   )
@@ -66,7 +70,7 @@ export const PublishWizardModal = ({
   const canAdvance = (() => {
     switch (currentStep) {
       case 0:
-        return Boolean(selectedPortfolioId)
+        return source === "generated" ? Boolean(selectedPortfolioId) : externalUrlReady
       case 1:
         return slugReady
       case 2:
@@ -110,6 +114,7 @@ export const PublishWizardModal = ({
   }
 
   const handleSelectPortfolio = (portfolioId: string) => {
+    setSource("generated")
     setSelectedPortfolioId(portfolioId)
     const next = drafts.find((p) => String(p.id) === portfolioId)
     setDescriptionInput(next?.description ?? "")
@@ -118,6 +123,18 @@ export const PublishWizardModal = ({
       setSlugAvailable(null)
       return
     }
+    setSlugInput("")
+    setSlugAvailable(null)
+  }
+
+  const handleSourceChange = (nextSource: PublishSource) => {
+    setSource(nextSource)
+    setPublishError(null)
+    if (nextSource === "generated") {
+      return
+    }
+    setSelectedPortfolioId(null)
+    setDescriptionInput("")
     setSlugInput("")
     setSlugAvailable(null)
   }
@@ -141,6 +158,13 @@ export const PublishWizardModal = ({
   }
 
   const handlePublish = async () => {
+    if (source === "external") {
+      setPublishState("idle")
+      setPublishError(
+        "External website publishing is only mocked in the frontend right now. Backend support is still required.",
+      )
+      return
+    }
     if (!selectedPortfolio) return
     setPublishState("loading")
     setPublishError(null)
@@ -180,6 +204,11 @@ export const PublishWizardModal = ({
 
   const isLastStep = currentStep === STEPS.length - 1
   const isPublishLocked = publishState === "loading" || publishState === "success"
+  const selectedLabel = selectedPortfolio
+    ? selectedPortfolio.title
+    : source === "external" && externalUrl.trim()
+      ? externalUrl.trim()
+      : ""
 
   return (
     <AnimatePresence>
@@ -203,13 +232,13 @@ export const PublishWizardModal = ({
               <h2 className="text-2xl font-bold text-foreground">Publish portfolio</h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 Step {currentStep + 1} of {STEPS.length}
-                {selectedPortfolio ? ` · ${selectedPortfolio.title}` : ""}
+                {selectedLabel ? ` · ${selectedLabel}` : ""}
               </p>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-border bg-background p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="cursor-pointer rounded-lg border border-border bg-background p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               aria-label="Close"
             >
               <FiX className="h-4 w-4" />
@@ -240,8 +269,12 @@ export const PublishWizardModal = ({
                 {currentStep === 0 && (
                   <StepPick
                     drafts={drafts}
+                    source={source}
+                    externalUrl={externalUrl}
                     selectedPortfolioId={selectedPortfolioId}
+                    onExternalUrlChange={setExternalUrl}
                     onSelect={handleSelectPortfolio}
+                    onSourceChange={handleSourceChange}
                   />
                 )}
                 {currentStep === 1 && (
@@ -260,8 +293,10 @@ export const PublishWizardModal = ({
                     onChange={setDescriptionInput}
                   />
                 )}
-                {currentStep === 3 && selectedPortfolio && (
+                {currentStep === 3 && (
                   <StepPreview
+                    source={source}
+                    externalUrl={externalUrl}
                     portfolio={selectedPortfolio}
                     slug={slugInput}
                     description={descriptionInput}
@@ -271,9 +306,11 @@ export const PublishWizardModal = ({
                 )}
                 {currentStep === 4 && (
                   <StepPublish
+                    source={source}
                     state={publishState}
                     error={publishError}
                     slug={slugInput}
+                    externalUrl={externalUrl}
                     publishedSlug={publishedSlug}
                     onCopyUrl={handleCopyUrl}
                     copied={copied}
@@ -290,7 +327,7 @@ export const PublishWizardModal = ({
               onClick={goBack}
               disabled={currentStep === 0 || isPublishLocked}
               className={cn(
-                "inline-flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted",
+                "inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted",
                 (currentStep === 0 || isPublishLocked) &&
                   "cursor-not-allowed opacity-40 hover:bg-background",
               )}
@@ -305,7 +342,7 @@ export const PublishWizardModal = ({
                 onClick={goNext}
                 disabled={!canAdvance}
                 className={cn(
-                  "inline-flex items-center gap-2 rounded-lg border border-primary bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90",
+                  "inline-flex cursor-pointer items-center gap-2 rounded-lg border border-primary bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90",
                   !canAdvance && "cursor-not-allowed opacity-40 hover:bg-primary",
                 )}
               >
@@ -316,14 +353,19 @@ export const PublishWizardModal = ({
               <button
                 type="button"
                 onClick={handlePublish}
-                disabled={isPublishLocked}
+                disabled={isPublishLocked || source === "external"}
                 className={cn(
-                  "inline-flex items-center gap-2 rounded-lg border border-primary bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90",
-                  isPublishLocked && "cursor-not-allowed opacity-60 hover:bg-primary",
+                  "inline-flex cursor-pointer items-center gap-2 rounded-lg border border-primary bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90",
+                  (isPublishLocked || source === "external") &&
+                    "cursor-not-allowed opacity-60 hover:bg-primary",
                 )}
               >
                 <FiGlobe className="h-4 w-4" />
-                {publishState === "success" ? "Published" : "Publish"}
+                {source === "external"
+                  ? "Backend required"
+                  : publishState === "success"
+                    ? "Published"
+                    : "Publish"}
               </button>
             )}
           </div>

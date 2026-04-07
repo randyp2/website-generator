@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { AnimatePresence } from "framer-motion"
 import { FiGlobe, FiInbox } from "react-icons/fi"
 
 import { useUser } from "@/context/UserContext"
@@ -177,11 +177,7 @@ const PublishPage = () => {
   if (loading) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="h-12 w-12 rounded-full border-3 border-border border-t-primary"
-        />
+        <div className="h-12 w-12 rounded-full border-3 border-border border-t-primary" />
         <p className="text-sm text-muted-foreground">Loading deployment targets...</p>
       </div>
     )
@@ -190,11 +186,7 @@ const PublishPage = () => {
   return (
     <div className="space-y-6 px-4 py-8 md:px-6">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-border bg-card/70 p-5 sm:p-6"
-      >
+      <div className="rounded-2xl border border-border bg-card/70 p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="mb-2 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
@@ -223,14 +215,10 @@ const PublishPage = () => {
             Publish portfolio
           </button>
         </div>
-      </motion.div>
+      </div>
 
       {/* Hero: featured deployment */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-      >
+      <div>
         <PublishHero
           portfolio={featuredPortfolio}
           liveCount={live.length}
@@ -247,15 +235,10 @@ const PublishPage = () => {
           onOpenWizard={() => setWizardOpen(true)}
           onSaveDescription={handleSaveDescription}
         />
-      </motion.div>
+      </div>
 
       {/* Two-column feed */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="grid gap-6 xl:grid-cols-2"
-      >
+      <div className="grid gap-6 xl:grid-cols-2">
         {/* Drafts column */}
         <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
@@ -323,7 +306,7 @@ const PublishPage = () => {
             </div>
           )}
         </section>
-      </motion.div>
+      </div>
 
       <AnimatePresence>
         {wizardOpen && (

@@ -3,26 +3,32 @@
 import { FiCheck, FiCopy, FiExternalLink, FiGlobe, FiLoader } from "react-icons/fi"
 
 import { cn } from "@/lib/utils"
+import type { PublishSource } from "./StepPick"
 
 export type PublishActionState = "idle" | "loading" | "success" | "error"
 
 interface StepPublishProps {
+  source: PublishSource
   state: PublishActionState
   error: string | null
   slug: string
+  externalUrl: string
   publishedSlug: string | null
   onCopyUrl: () => void
   copied: boolean
 }
 
 export const StepPublish = ({
+  source,
   state,
   error,
   slug,
+  externalUrl,
   publishedSlug,
   onCopyUrl,
   copied,
 }: StepPublishProps) => {
+  const isExternal = source === "external"
   const isSuccess = state === "success"
   const isLoading = state === "loading"
 
@@ -49,14 +55,18 @@ export const StepPublish = ({
 
       <div>
         <h3 className="text-lg font-semibold text-foreground">
-          {isSuccess
+          {isExternal
+            ? "External website preview ready"
+            : isSuccess
             ? "You're live!"
             : isLoading
               ? "Publishing..."
               : "Ready to publish"}
         </h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          {isSuccess
+          {isExternal
+            ? `Frontend flow captured ${externalUrl || "your website URL"}, but final publishing still needs backend support.`
+            : isSuccess
             ? `Your portfolio is now public at /portfolio/${publishedSlug ?? slug}.`
             : isLoading
               ? "Hang tight while we deploy your portfolio."
@@ -71,7 +81,7 @@ export const StepPublish = ({
           <button
             type="button"
             onClick={onCopyUrl}
-            className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
           >
             {copied ? (
               <FiCheck className="h-4 w-4 text-emerald-400" />
@@ -84,7 +94,7 @@ export const StepPublish = ({
             href={`/portfolio/${publishedSlug}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
           >
             <FiExternalLink className="h-4 w-4" />
             View on Explore
