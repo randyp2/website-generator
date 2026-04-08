@@ -98,6 +98,7 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         portfolio.setStatus("draft");
         portfolio.setLastStep("style");
         portfolio.setStyleChatHistory(new ArrayList<>());
+        portfolio.setSourceType(PublishRequestDTO.SourceType.GENERATED.name());
 
         Portfolio saved = portfolioRepository.save(portfolio);
         return portfolioMapper.toDto(saved);
@@ -324,8 +325,30 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
     }
 
     @Override
-    public PublishResponseDTO publishPortfolio(UUID userId, UUID portfolioId, PublishRequestDTO request) {
+    public PublishResponseDTO publishPortfolio(UUID userId, PublishRequestDTO request) {
         if (request == null) request = new PublishRequestDTO();
+
+        PublishRequestDTO.SourceType sourceType = request.getSourceType() != null
+                ? request.getSourceType()
+                : PublishRequestDTO.SourceType.GENERATED;
+
+        // Required portfolioId
+        // - Generated portfolios should already have a row in portfolios
+        if (request.getPortfolioId() == null || request.getPortfolioId().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "portfolioId is required for generated publish");
+        }
+
+        if (sourceType == PublishRequestDTO.SourceType.EXTERNAL) {
+            throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "External publish not implemented yet.");
+        }
+
+
+        UUID portfolioId;
+        try {
+            portfolioId = UUID.fromString(request.getPortfolioId().trim());
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid portfolioId format");
+        }
 
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio not found"));
@@ -345,6 +368,7 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
             slug = request.getSlug().trim().toLowerCase();
             if (!SlugUtil.isValid(slug))
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid slug format");
+
             // Allow re-publishing with the same slug the portfolio already owns
             boolean slugTaken = portfolioRepository.existsBySlug(slug);
             boolean ownSlug = slug.equals(portfolio.getSlug());
@@ -362,7 +386,10 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
             portfolio.setDescription(normalizeDescription(request.getDescription()));
         }
 
+        // Update portfolio metadata
         portfolio.setSlug(slug);
+        portfolio.setSourceType(sourceType.name());
+        portfolio.setExternalUrl(null);
         portfolio.setStatus("publish");
         portfolio.setLastStep("publish");
         portfolio.setUpdatedAt(OffsetDateTime.now());
@@ -379,7 +406,14 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
                 RabbitMQConfig.SCREENSHOT_ROUTING_KEY,
                 screenshotMsg);
 
-        return new PublishResponseDTO(slug, "publish");
+
+        return new PublishResponseDTO(
+                portfolio.getId().toString(),
+                slug,
+                "publish",
+                sourceType,
+                portfolio.getExternalUrl()
+        );
     }
 
     @Override

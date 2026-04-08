@@ -27,6 +27,7 @@ public class DebugController {
         p.setTitle("Test portfolio");
         p.setLastStep("template");
         p.setStyleChatHistory(new ArrayList<>());
+        p.setSourceType("GENERATED");
 
         return portfolioRepository.save(p); // Insert
     }

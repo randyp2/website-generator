@@ -20,4 +20,6 @@ public class PortfolioDTO {
     private List<StyleChatMessage> styleChatHistory;
     private String screenshotUrl;
     private String description;
+    private String sourceType;
+    private String externalUrl;
 }

@@ -31,6 +31,15 @@ export const POST = async (
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
+                sourceType:
+                    typeof body?.sourceType === "string"
+                        ? body.sourceType
+                        : null,
+                title: typeof body?.title === "string" ? body.title : null,
+                externalUrl:
+                    typeof body?.externalUrl === "string"
+                        ? body.externalUrl
+                        : null,
                 slug: body?.slug ?? null,
                 description,
             }),

@@ -61,4 +61,10 @@ public class Portfolio {
 
     @Column(name = "description")
     private String description;
+
+    @Column(name = "source_type", nullable = false)
+    private String sourceType;
+
+    @Column(name = "external_url")
+    private String externalUrl;
 }

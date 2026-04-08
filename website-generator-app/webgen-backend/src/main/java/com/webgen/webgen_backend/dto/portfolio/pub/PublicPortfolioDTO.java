@@ -20,4 +20,6 @@ public class PublicPortfolioDTO {
     private OffsetDateTime publishedAt;
     private String screenshotUrl;
     private String description;
+    private String sourceType;
+    private String externalUrl;
 }
