@@ -11,7 +11,7 @@ interface PublishLiveColumnProps {
   featuredPortfolioId: string | null
   copiedSlug: string | null
   onSelectFeatured: (portfolioId: string) => void
-  onCopyUrl: (slug: string) => void
+  onCopyUrl: (slug: string, externalUrl?: string | null) => void
   onUnpublish: (portfolioId: string) => void
 }
 
@@ -45,6 +45,8 @@ export const PublishLiveColumn = ({
         {live.map((portfolio) => {
           const portfolioId = String(portfolio.id)
           const slug = portfolio.slug ?? null
+          const externalUrl =
+            (portfolio.external_url ?? portfolio.externalUrl ?? null)?.trim() || null
           return (
             <PublishListCard
               key={portfolioId}
@@ -53,7 +55,7 @@ export const PublishLiveColumn = ({
               isFeatured={portfolioId === featuredPortfolioId}
               copied={copiedSlug !== null && copiedSlug === slug}
               onClick={() => onSelectFeatured(portfolioId)}
-              onCopyUrl={() => slug && onCopyUrl(slug)}
+              onCopyUrl={() => slug && onCopyUrl(slug, externalUrl)}
               onUnpublish={() => onUnpublish(portfolioId)}
             />
           )

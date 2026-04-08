@@ -12,6 +12,7 @@ import { UnpublishButton } from "./components/UnpublishButton";
 import {
   getPortfolioDescriptionSnippet,
   formatTimeAgo,
+  getPortfolioFullHref,
   getPortfolioMetrics,
   splitTimeAgo,
 } from "./explore-portfolio-detail.utils";
@@ -73,7 +74,7 @@ const ExplorePortfolioDetailPage = async ({ params }: Props) => {
                   </p>
                   <div className="flex shrink-0 items-center gap-3 self-start lg:self-auto">
                     <Link
-                      href={`/portfolio/${portfolio.slug}`}
+                      href={getPortfolioFullHref(portfolio)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-border px-4 text-sm font-medium text-foreground transition-colors hover:bg-accent"

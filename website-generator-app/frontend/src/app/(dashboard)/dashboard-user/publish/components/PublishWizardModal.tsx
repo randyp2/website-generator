@@ -250,9 +250,12 @@ export const PublishWizardModal = ({
     const handleCopyUrl = async () => {
         if (!publishedSlug) return;
         const origin = window.location.origin;
-        await navigator.clipboard.writeText(
-            `${origin}/portfolio/${publishedSlug}`,
-        );
+        const trimmedExternalUrl = externalUrl.trim();
+        const urlToCopy =
+            source === "external" && trimmedExternalUrl
+                ? trimmedExternalUrl
+                : `${origin}/portfolio/${publishedSlug}`;
+        await navigator.clipboard.writeText(urlToCopy);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };

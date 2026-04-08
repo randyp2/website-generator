@@ -12,6 +12,7 @@ import {
 } from "react-icons/fi"
 
 import { LazyImage } from "@/components/ui/lazy-image"
+import { buildPortfolioUrl } from "@/lib/public-env"
 import { cn } from "@/lib/utils"
 import type { Portfolio } from "@/types/portfolio"
 
@@ -85,8 +86,23 @@ export const PublishHero = ({
   }
 
   const slug = portfolio.slug?.trim() || null
-  const displayUrl = `https://portrn.com/${slug ?? "pending-slug"}`
-  const livePath = slug ? `/portfolio/${slug}` : "/portfolio/pending-slug"
+  const externalUrl = (portfolio.external_url ?? portfolio.externalUrl ?? "").trim()
+  const sourceTypeNormalized = (portfolio.source_type ?? portfolio.sourceType ?? "")
+    .trim()
+    .toLowerCase()
+  const isExternalPortfolio =
+    sourceTypeNormalized === "external" ||
+    (sourceTypeNormalized !== "generated" && externalUrl.length > 0)
+  const displayUrl =
+    isExternalPortfolio && externalUrl
+      ? externalUrl
+      : buildPortfolioUrl(slug ?? "pending-slug")
+  const livePath =
+    isExternalPortfolio && externalUrl
+      ? externalUrl
+      : slug
+        ? `/portfolio/${slug}`
+        : "/portfolio/pending-slug"
   const previewSrc = portfolio.screenshot_url ?? DEFAULT_HERO_IMAGE
   const templateLabel = formatTemplateLabel(portfolio.template_id)
   const lastUpdated = formatPortfolioDate(portfolio.updated_at)

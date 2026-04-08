@@ -36,6 +36,15 @@ export const PublishListCard = ({
   const isLive = variant === "live"
   const isClickable = isLive && Boolean(onClick)
   const slug = portfolio.slug?.trim()
+  const externalUrl = (portfolio.external_url ?? portfolio.externalUrl ?? "").trim()
+  const sourceTypeNormalized = (portfolio.source_type ?? portfolio.sourceType ?? "")
+    .trim()
+    .toLowerCase()
+  const isExternal =
+    sourceTypeNormalized === "external" ||
+    (sourceTypeNormalized !== "generated" && externalUrl.length > 0)
+  const displayUrl = isExternal && externalUrl ? externalUrl : slug ? `/portfolio/${slug}` : ""
+  const openHref = isExternal && externalUrl ? externalUrl : slug ? `/portfolio/${slug}` : ""
 
   return (
     <article
@@ -71,9 +80,9 @@ export const PublishListCard = ({
               </span>
             )}
           </div>
-          {slug ? (
+          {displayUrl ? (
             <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
-              /portfolio/{slug}
+              {displayUrl}
             </p>
           ) : (
             <p className="mt-0.5 text-xs text-muted-foreground">
@@ -104,9 +113,9 @@ export const PublishListCard = ({
             )}
             Copy URL
           </button>
-          {slug && (
+          {openHref && (
             <a
-              href={`/portfolio/${slug}`}
+              href={openHref}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"

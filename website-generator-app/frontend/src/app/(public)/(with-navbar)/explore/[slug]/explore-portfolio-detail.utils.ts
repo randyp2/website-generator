@@ -104,6 +104,20 @@ export const getPortfolioMetrics = (slug: string): ExplorePortfolioMetrics => {
 export const getPortfolioOwnerName = (portfolio: ExplorePortfolioDetail): string =>
   portfolio.ownerName ?? "Anonymous Creator";
 
+export const isExternalExplorePortfolio = (portfolio: ExplorePortfolioDetail): boolean => {
+  const normalizedSource = (portfolio.sourceType ?? "").trim().toLowerCase();
+  if (normalizedSource === "external") return true;
+  if (normalizedSource === "generated") return false;
+  return Boolean(portfolio.externalUrl && portfolio.externalUrl.trim().length > 0);
+};
+
+export const getPortfolioFullHref = (portfolio: ExplorePortfolioDetail): string => {
+  if (isExternalExplorePortfolio(portfolio) && portfolio.externalUrl) {
+    return portfolio.externalUrl;
+  }
+  return `/portfolio/${portfolio.slug}`;
+};
+
 export const getPortfolioDescriptionSnippet = (
   portfolio: ExplorePortfolioDetail,
   maxLength = 220,

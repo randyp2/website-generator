@@ -62,7 +62,12 @@ const PublishPage = () => {
     );
 
     const handleCopyFeatured = useCallback((): void => {
-        if (featuredPortfolio?.slug) void copySlug(featuredPortfolio.slug);
+        if (!featuredPortfolio?.slug) return;
+        const externalUrl =
+            featuredPortfolio.external_url ??
+            featuredPortfolio.externalUrl ??
+            null;
+        void copySlug(featuredPortfolio.slug, externalUrl);
     }, [featuredPortfolio, copySlug]);
 
     const handleUnpublishFeatured = useCallback((): void => {
@@ -70,8 +75,8 @@ const PublishPage = () => {
     }, [featuredPortfolio, unpublish]);
 
     const handleCopySlug = useCallback(
-        (slug: string): void => {
-            void copySlug(slug);
+        (slug: string, externalUrl?: string | null): void => {
+            void copySlug(slug, externalUrl ?? null);
         },
         [copySlug],
     );

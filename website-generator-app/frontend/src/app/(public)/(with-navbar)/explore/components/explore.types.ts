@@ -7,6 +7,8 @@ export interface PortfolioCard {
   ownerAvatarUrl: string | null
   publishedAt: string
   screenshotUrl: string | null
+  sourceType: string | null
+  externalUrl: string | null
 }
 
 export interface PageResponse {

@@ -1,8 +1,10 @@
 import { LazyImage } from "@/components/ui/lazy-image";
+import { buildPortfolioUrl } from "@/lib/public-env";
 
 import {
   DEFAULT_PREVIEW_IMAGE,
   getPortfolioOwnerName,
+  isExternalExplorePortfolio,
 } from "../explore-portfolio-detail.utils";
 import type { ExplorePortfolioDetail } from "../explore-portfolio-detail.types";
 
@@ -14,6 +16,11 @@ export const ExplorePortfolioPreviewCard = ({
   portfolio,
 }: ExplorePortfolioPreviewCardProps) => {
   const ownerName = getPortfolioOwnerName(portfolio);
+  const isExternal = isExternalExplorePortfolio(portfolio);
+  const displayUrl =
+    isExternal && portfolio.externalUrl
+      ? portfolio.externalUrl
+      : buildPortfolioUrl(portfolio.slug);
 
   return (
     <article className="overflow-hidden rounded-2xl border border-border bg-card/80 shadow-sm">
@@ -23,7 +30,7 @@ export const ExplorePortfolioPreviewCard = ({
           <span className="h-2.5 w-2.5 rounded-full bg-white/90" />
           <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
           <div className="ml-2 min-w-0 flex-1 rounded-full border border-white/15 bg-[#070b14] px-3 py-1">
-            <p className="truncate text-xs text-white/75">{`https://portrn/${portfolio.slug}`}</p>
+            <p className="truncate text-xs text-white/75">{displayUrl}</p>
           </div>
         </div>
 
