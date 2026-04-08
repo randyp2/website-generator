@@ -1,7 +1,7 @@
 package com.webgen.webgen_backend.dto.portfolio.crud;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.webgen.webgen_backend.dto.portfolio.SectionDTO;
+import com.webgen.webgen_backend.dto.portfolio.common.SectionDTO;
 import lombok.Data;
 
 import java.util.List;

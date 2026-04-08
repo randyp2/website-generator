@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.dto.portfolio.*;
+import com.webgen.webgen_backend.dto.portfolio.common.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

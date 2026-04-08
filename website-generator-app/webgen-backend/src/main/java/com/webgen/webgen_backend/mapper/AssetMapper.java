@@ -1,6 +1,6 @@
 package com.webgen.webgen_backend.mapper;
 
-import com.webgen.webgen_backend.dto.portfolio.AssetDTO;
+import com.webgen.webgen_backend.dto.portfolio.common.AssetDTO;
 import com.webgen.webgen_backend.entity.Asset;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

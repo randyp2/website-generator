@@ -2,8 +2,8 @@ package com.webgen.webgen_backend.portfolio_service.export;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.webgen.webgen_backend.dto.portfolio.GlobalThemeDTO;
-import com.webgen.webgen_backend.dto.portfolio.SectionDTO;
+import com.webgen.webgen_backend.dto.portfolio.common.GlobalThemeDTO;
+import com.webgen.webgen_backend.dto.portfolio.common.SectionDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

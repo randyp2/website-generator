@@ -1,6 +1,6 @@
 package com.webgen.webgen_backend.controller.portfolio;
 
-import com.webgen.webgen_backend.dto.portfolio.ResumeDTO;
+import com.webgen.webgen_backend.dto.portfolio.common.ResumeDTO;
 import com.webgen.webgen_backend.dto.portfolio.crud.*;
 import com.webgen.webgen_backend.portfolio_service.crud.PortfolioCrudService;
 import lombok.RequiredArgsConstructor;

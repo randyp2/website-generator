@@ -1,7 +1,7 @@
 package com.webgen.webgen_backend.dto.portfolio.crud;
 
-import com.webgen.webgen_backend.dto.portfolio.AssetDTO;
-import com.webgen.webgen_backend.dto.portfolio.ResumeDTO;
+import com.webgen.webgen_backend.dto.portfolio.common.AssetDTO;
+import com.webgen.webgen_backend.dto.portfolio.common.ResumeDTO;
 import lombok.Data;
 
 import java.util.List;

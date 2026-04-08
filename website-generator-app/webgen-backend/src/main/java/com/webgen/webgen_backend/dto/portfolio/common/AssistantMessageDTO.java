@@ -1,4 +1,4 @@
-package com.webgen.webgen_backend.dto.portfolio;
+package com.webgen.webgen_backend.dto.portfolio.common;
 
 import lombok.Data;
 

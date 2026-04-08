@@ -1,9 +1,9 @@
 package com.webgen.webgen_backend.portfolio_service.crud.impl;
 
 import com.webgen.webgen_backend.config.RabbitMQConfig;
-import com.webgen.webgen_backend.dto.portfolio.AssetDTO;
-import com.webgen.webgen_backend.dto.portfolio.ResumeDTO;
-import com.webgen.webgen_backend.dto.portfolio.SectionDTO;
+import com.webgen.webgen_backend.dto.portfolio.common.AssetDTO;
+import com.webgen.webgen_backend.dto.portfolio.common.ResumeDTO;
+import com.webgen.webgen_backend.dto.portfolio.common.SectionDTO;
 import com.webgen.webgen_backend.dto.portfolio.crud.*;
 import com.webgen.webgen_backend.entity.Asset;
 import com.webgen.webgen_backend.entity.GeneratedVersion;
