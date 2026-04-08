@@ -65,7 +65,7 @@ const DashboardLayoutClientInner: React.FC<DashboardLayoutClientProps> = ({
                 onClick={() => setMobileOpen(true)}
                 aria-label="Open sidebar"
                 title="Open sidebar"
-                className="inline-flex h-7 w-7 items-center justify-center text-white/85 transition-colors hover:text-white md:hidden"
+                className="inline-flex h-7 w-7 items-center justify-center text-muted-foreground transition-colors hover:text-foreground md:hidden"
               >
                 <PanelLeftOpen className="h-4 w-4" />
               </button>
@@ -75,7 +75,7 @@ const DashboardLayoutClientInner: React.FC<DashboardLayoutClientProps> = ({
                 onClick={handleToggleCollapse}
                 aria-label={collapsed ? "Open sidebar" : "Close sidebar"}
                 title={collapsed ? "Open sidebar" : "Close sidebar"}
-                className="hidden h-7 w-7 items-center justify-center text-white/85 transition-colors hover:text-white md:inline-flex"
+                className="hidden h-7 w-7 items-center justify-center text-muted-foreground transition-colors hover:text-foreground md:inline-flex"
               >
                 {collapsed ? (
                   <PanelLeftOpen className="h-4 w-4" />
@@ -84,8 +84,8 @@ const DashboardLayoutClientInner: React.FC<DashboardLayoutClientProps> = ({
                 )}
               </button>
 
-              <span className="mx-3 h-5 w-px bg-white/15" aria-hidden />
-              <p className="truncate text-base font-medium text-white/90">
+              <span className="mx-3 h-5 w-px bg-border" aria-hidden />
+              <p className="truncate text-base font-medium text-foreground">
                 {activeTabLabel}
               </p>
             </div>
