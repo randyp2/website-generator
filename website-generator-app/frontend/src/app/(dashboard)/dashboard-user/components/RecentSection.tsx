@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useUser } from "@/context/UserContext";
+import type { Portfolio } from "@/types/portfolio";
 import { usePortfolios } from "../hooks/usePortfolios";
 import { normalizeStatus, getDateValue } from "../utils/portfolioUtils";
 import { PortfolioToolbar } from "./PortfolioToolbar";
@@ -14,6 +15,21 @@ import { DeployedPortfolioPreview } from "./DeployedPortfolioPreview";
 
 type SortBy = "name" | "date" | "status";
 type DisplayMode = "card" | "list";
+
+const isGeneratedPortfolio = (portfolio: Portfolio): boolean => {
+    const sourceType = (portfolio.source_type ?? portfolio.sourceType ?? "")
+        .trim()
+        .toLowerCase();
+
+    if (sourceType) {
+        return sourceType === "generated";
+    }
+
+    const externalUrl = (portfolio.external_url ?? portfolio.externalUrl ?? "")
+        .trim();
+
+    return externalUrl.length === 0;
+};
 
 export const RecentSection: React.FC = () => {
     const [sortBy, setSortBy] = useState<SortBy>("date");
@@ -44,7 +60,8 @@ export const RecentSection: React.FC = () => {
         const matchesQuery = (fields: Array<string | null | undefined>) =>
             fields.some((field) => (field ?? "").toLowerCase().includes(normalizedQuery));
 
-        return [...portfolios]
+        return portfolios
+            .filter(isGeneratedPortfolio)
             .filter((p) => showArchived || normalizeStatus(p.status) !== "archived")
             .filter((p) => {
                 if (!normalizedQuery) return true;

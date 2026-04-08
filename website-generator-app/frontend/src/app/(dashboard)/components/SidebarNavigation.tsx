@@ -5,14 +5,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import {
     FiGrid,
     FiFolder,
     FiShare2,
     FiSettings,
     FiHelpCircle,
-    FiMenu,
     FiX,
     FiLogOut,
     FiUser,
@@ -35,12 +33,14 @@ interface NavItem {
 
 interface SidebarNavigationProps {
     collapsed?: boolean;
-    onToggleCollapse?: () => void;
+    mobileOpen: boolean;
+    setMobileOpen: (open: boolean) => void;
 }
 
 const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
     collapsed: externalCollapsed,
-    onToggleCollapse,
+    mobileOpen,
+    setMobileOpen,
 }) => {
     const { user } = useUser(); // Extract user from context
 
@@ -51,7 +51,6 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
 
     const pathname = usePathname();
     const router = useRouter();
-    const [mobileOpen, setMobileOpen] = useState<boolean>(false);
     const [portfoliosCount, setPortfoliosCount] = useState<number>(0);
     const [showProfileMenu, setShowProfileMenu] = useState<boolean>(false);
 
@@ -86,12 +85,6 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
     }, [user?.id]);
 
     const collapsed = externalCollapsed ?? false;
-    const hasDesktopToggle = typeof onToggleCollapse === "function";
-
-    const handleDesktopToggle = () => {
-        setShowProfileMenu(false);
-        onToggleCollapse?.();
-    };
 
     const navItems: NavItem[] = [
         {
@@ -179,43 +172,22 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
         <div className="flex flex-col h-full">
             {/* Logo / Brand */}
             <div
-                className={`border-b border-sidebar-border px-5 pt-5 pb-2 ${collapsed ? "px-3" : ""}`}
+                className={`border-b border-sidebar-border ${collapsed ? "px-3 py-4" : "px-5 pt-5 pb-4"}`}
             >
-                {/* Product Name */}
-                {!collapsed && (
-                    <div className="flex items-start justify-between gap-2 px-3 pb-3">
-                        <Link href="/">
+                <div className={`flex ${collapsed ? "justify-center" : "px-3"}`}>
+                    <Link href="/">
+                        {collapsed ? (
+                            <BrandWordmark
+                                compact
+                                className="text-sm text-sidebar-foreground"
+                                portClassName="hidden"
+                                rnChipClassName="px-1.5 py-0.5"
+                            />
+                        ) : (
                             <BrandWordmark className="text-base text-sidebar-foreground" />
-                        </Link>
-                        {hasDesktopToggle && (
-                            <button
-                                type="button"
-                                onClick={handleDesktopToggle}
-                                aria-label="Close sidebar"
-                                title="Close sidebar"
-                                className="hidden md:inline-flex cursor-pointer items-center justify-center p-1.5 text-sidebar-foreground/80 transition-colors hover:text-sidebar-foreground"
-                            >
-                                <PanelLeftClose className="h-5 w-5" />
-                            </button>
                         )}
-                    </div>
-                )}
-
-                {collapsed && (
-                    <div className="flex justify-center pb-3">
-                        {hasDesktopToggle && (
-                            <button
-                                type="button"
-                                onClick={handleDesktopToggle}
-                                aria-label="Open sidebar"
-                                title="Open sidebar"
-                                className="hidden md:inline-flex cursor-pointer items-center justify-center p-1.5 text-sidebar-foreground/80 transition-colors hover:text-sidebar-foreground"
-                            >
-                                <PanelLeftOpen className="h-5 w-5" />
-                            </button>
-                        )}
-                    </div>
-                )}
+                    </Link>
+                </div>
             </div>
 
             {/* Main Navigation */}
@@ -312,17 +284,6 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
 
     return (
         <>
-            {/* Mobile Menu Button */}
-            <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                onClick={() => setMobileOpen(true)}
-                className="fixed top-4 left-4 z-50 rounded-lg border border-sidebar-border bg-sidebar/95 p-3 shadow-lg md:hidden"
-            >
-                <FiMenu className="h-6 w-6 text-sidebar-foreground" />
-            </motion.button>
-
             {/* Desktop Sidebar */}
             <motion.aside
                 animate={{ width: collapsed ? 72 : 248 }}
