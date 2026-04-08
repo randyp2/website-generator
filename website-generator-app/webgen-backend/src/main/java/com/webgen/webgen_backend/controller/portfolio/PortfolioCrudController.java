@@ -134,21 +134,6 @@ public class PortfolioCrudController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/{id}/publish")
-    public ResponseEntity<PublishResponseDTO> publishPortfolioById(
-            @PathVariable UUID id,
-            @RequestBody(required = false) PublishRequestDTO request) {
-        UUID userId = UUID.fromString(
-                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
-        );
-
-        if (request == null) request = new PublishRequestDTO();
-        request.setPortfolioId(id.toString());
-
-        PublishResponseDTO response = portfolioCrudService.publishPortfolio(userId, request);
-        return ResponseEntity.ok(response);
-    }
-
     @PostMapping("/publish")
     public ResponseEntity<PublishResponseDTO> publishPortfolio(
             @RequestBody @Valid PublishRequestDTO request) {

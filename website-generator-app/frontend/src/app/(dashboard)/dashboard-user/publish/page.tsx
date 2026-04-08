@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { AnimatePresence } from "framer-motion"
 import { FiGlobe, FiInbox } from "react-icons/fi"
 
@@ -30,30 +30,31 @@ const PublishPage = () => {
   const [heroViewMode, setHeroViewMode] =
     useState<PublishHeroViewMode>("screenshot")
 
-  useEffect(() => {
-    const loadPortfolios = async () => {
-      if (!user?.id) return
-      setLoading(true)
-      try {
-        const res = await fetch(`/api/portfolio/list?userId=${user.id}`)
-        if (!res.ok) throw new Error()
-        const data = await res.json()
-        const rows: Portfolio[] = Array.isArray(data?.portfolios)
-          ? data.portfolios.map((item: Portfolio) => ({
-              ...item,
-              title: item.title ?? "Untitled Portfolio",
-            }))
-          : []
-        setPortfolios(rows)
-      } catch {
-        console.error("Failed to fetch portfolios")
-        setPortfolios([])
-      } finally {
-        setLoading(false)
-      }
+  const loadPortfolios = useCallback(async () => {
+    if (!user?.id) return
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/portfolio/list?userId=${user.id}`)
+      if (!res.ok) throw new Error()
+      const data = await res.json()
+      const rows: Portfolio[] = Array.isArray(data?.portfolios)
+        ? data.portfolios.map((item: Portfolio) => ({
+            ...item,
+            title: item.title ?? "Untitled Portfolio",
+          }))
+        : []
+      setPortfolios(rows)
+    } catch {
+      console.error("Failed to fetch portfolios")
+      setPortfolios([])
+    } finally {
+      setLoading(false)
     }
-    loadPortfolios()
   }, [user?.id])
+
+  useEffect(() => {
+    void loadPortfolios()
+  }, [loadPortfolios])
 
   const drafts = useMemo(
     () =>
@@ -111,6 +112,7 @@ const PublishPage = () => {
         ),
       )
     setFeaturedPortfolioId(portfolioId)
+    void loadPortfolios()
   }
 
   const handleUnpublish = async (portfolioId: string) => {
@@ -208,7 +210,6 @@ const PublishPage = () => {
           <button
             type="button"
             onClick={() => setWizardOpen(true)}
-            disabled={drafts.length === 0}
             className="inline-flex items-center gap-2 rounded-xl border border-primary bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <FiGlobe className="h-4 w-4" />

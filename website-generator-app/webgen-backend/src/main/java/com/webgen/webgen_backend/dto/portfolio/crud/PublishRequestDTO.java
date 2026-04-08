@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 
+import java.util.Locale;
+
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PublishRequestDTO {
@@ -16,7 +18,13 @@ public class PublishRequestDTO {
         public static SourceType fromJson(String value) {
             if (value == null || value.isBlank())
                 return GENERATED;
-            return SourceType.valueOf(value.trim().toUpperCase());
+            try {
+                return SourceType.valueOf(value.trim().toUpperCase(Locale.ROOT));
+            } catch (IllegalArgumentException ex) {
+                throw new IllegalArgumentException(
+                        "Invalid sourceType '" + value + "'. Allowed values: GENERATED, EXTERNAL"
+                );
+            }
         }
     }
 

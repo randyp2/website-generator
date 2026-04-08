@@ -167,28 +167,52 @@ export const PublishWizardModal = ({
     };
 
     const handlePublish = async () => {
-        if (source === "external") {
-            setPublishState("idle");
-            setPublishError(
-                "External website publishing is only mocked in the frontend right now. Backend support is still required.",
-            );
+        const isExternalSource = source === "external";
+        if (isExternalSource && !externalUrlReady) {
+            setPublishState("error");
+            setPublishError("Please provide a valid external URL.");
             return;
         }
-        if (!selectedPortfolio) return;
+
         setPublishState("loading");
         setPublishError(null);
         try {
-            const res = await fetch(
-                `/api/portfolio/${selectedPortfolio.id}/publish`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        slug: slugInput || null,
-                        description: descriptionInput,
-                    }),
-                },
-            );
+            let payload:
+                | {
+                      sourceType: "EXTERNAL";
+                      externalUrl: string;
+                      slug: string | null;
+                      description: string;
+                  }
+                | {
+                      portfolioId: string;
+                      sourceType: "GENERATED";
+                      slug: string | null;
+                      description: string;
+                  };
+
+            if (isExternalSource) {
+                payload = {
+                    sourceType: "EXTERNAL",
+                    externalUrl: externalUrl.trim(),
+                    slug: slugInput || null,
+                    description: descriptionInput,
+                };
+            } else {
+                if (!selectedPortfolio) return;
+                payload = {
+                    portfolioId: String(selectedPortfolio.id),
+                    sourceType: "GENERATED",
+                    slug: slugInput || null,
+                    description: descriptionInput,
+                };
+            }
+
+            const res = await fetch(`/api/portfolio/publish`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
             if (!res.ok) {
                 const err = await res
                     .json()
@@ -196,13 +220,22 @@ export const PublishWizardModal = ({
                 throw new Error(err.error || "Publish failed");
             }
             const data = await res.json();
-            setPublishedSlug(data.slug);
+            const responseSlug =
+                typeof data?.slug === "string" ? data.slug : null;
+            const responsePortfolioId =
+                typeof data?.portfolioId === "string"
+                    ? data.portfolioId
+                    : selectedPortfolio
+                      ? String(selectedPortfolio.id)
+                      : null;
+
+            if (!responseSlug || !responsePortfolioId) {
+                throw new Error("Publish response missing required fields.");
+            }
+
+            setPublishedSlug(responseSlug);
             setPublishState("success");
-            onPublished(
-                String(selectedPortfolio.id),
-                data.slug,
-                descriptionInput,
-            );
+            onPublished(responsePortfolioId, responseSlug, descriptionInput);
             setTimeout(() => {
                 onClose();
             }, 1800);
@@ -381,21 +414,18 @@ export const PublishWizardModal = ({
                             <button
                                 type="button"
                                 onClick={handlePublish}
-                                disabled={
-                                    isPublishLocked || source === "external"
-                                }
+                                disabled={isPublishLocked}
                                 className={cn(
                                     "inline-flex cursor-pointer items-center gap-2 rounded-lg border border-primary bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90",
-                                    (isPublishLocked ||
-                                        source === "external") &&
+                                    isPublishLocked &&
                                         "cursor-not-allowed opacity-60 hover:bg-primary",
                                 )}
                             >
                                 <FiGlobe className="h-4 w-4" />
-                                {source === "external"
-                                    ? "Backend required"
-                                    : publishState === "success"
+                                {publishState === "success"
                                       ? "Published"
+                                      : publishState === "loading"
+                                        ? "Publishing..."
                                       : "Publish"}
                             </button>
                         )}

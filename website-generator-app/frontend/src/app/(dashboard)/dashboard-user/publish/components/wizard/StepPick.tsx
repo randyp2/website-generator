@@ -178,8 +178,8 @@ export const StepPick = ({
             className="w-full rounded-xl border border-border bg-background px-3 py-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
           />
           <p className="text-xs text-muted-foreground">
-            This is a frontend-only flow for now. The URL is used in the wizard preview,
-            but final publishing still needs backend support.
+            We will capture a screenshot of this URL and list it through the same
+            publish flow as generated drafts.
           </p>
         </div>
       )}

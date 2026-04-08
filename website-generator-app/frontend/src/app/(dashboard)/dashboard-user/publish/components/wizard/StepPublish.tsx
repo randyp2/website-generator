@@ -55,21 +55,21 @@ export const StepPublish = ({
 
       <div>
         <h3 className="text-lg font-semibold text-foreground">
-          {isExternal
-            ? "External website preview ready"
-            : isSuccess
+          {isSuccess
             ? "You're live!"
             : isLoading
               ? "Publishing..."
               : "Ready to publish"}
         </h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          {isExternal
-            ? `Frontend flow captured ${externalUrl || "your website URL"}, but final publishing still needs backend support.`
-            : isSuccess
-            ? `Your portfolio is now public at /portfolio/${publishedSlug ?? slug}.`
+          {isSuccess
+            ? isExternal
+              ? `Your external portfolio is now listed at /portfolio/${publishedSlug ?? slug}.`
+              : `Your portfolio is now public at /portfolio/${publishedSlug ?? slug}.`
             : isLoading
-              ? "Hang tight while we deploy your portfolio."
+              ? isExternal
+                ? `Hang tight while we connect ${externalUrl || "your website"} and capture its screenshot.`
+                : "Hang tight while we deploy your portfolio."
               : "Click Publish below to share this with the world."}
         </p>
       </div>
