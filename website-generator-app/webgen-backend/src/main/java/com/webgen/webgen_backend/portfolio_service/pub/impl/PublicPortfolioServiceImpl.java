@@ -1,8 +1,8 @@
 package com.webgen.webgen_backend.portfolio_service.pub.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.webgen.webgen_backend.dto.portfolio.GlobalThemeDTO;
-import com.webgen.webgen_backend.dto.portfolio.SectionDTO;
+import com.webgen.webgen_backend.dto.portfolio.common.GlobalThemeDTO;
+import com.webgen.webgen_backend.dto.portfolio.common.SectionDTO;
 import com.webgen.webgen_backend.dto.portfolio.pub.PublicPortfolioCardDTO;
 import com.webgen.webgen_backend.dto.portfolio.pub.PublicPortfolioDTO;
 import com.webgen.webgen_backend.dto.portfolio.pub.PublicSectionDTO;

@@ -33,17 +33,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - name: Install pnpm
-        run: npm install -g pnpm
+          cache: "pnpm"
+          cache-dependency-path: ./website-generator-app/frontend/pnpm-lock.yaml
 
       - name: Install Frontend Dependencies
         working-directory: ./website-generator-app/frontend
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Frontend tests
         working-directory: ./website-generator-app/frontend
@@ -66,6 +70,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 25
+          cache: maven
 
       - name: Make mvnw executable
         working-directory: ./website-generator-app/webgen-backend

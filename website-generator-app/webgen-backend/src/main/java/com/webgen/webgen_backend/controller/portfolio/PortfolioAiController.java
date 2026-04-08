@@ -2,6 +2,7 @@ package com.webgen.webgen_backend.controller.portfolio;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.dto.portfolio.*;
+import com.webgen.webgen_backend.dto.portfolio.common.*;
 import com.webgen.webgen_backend.portfolio_service.PortfolioAiService;
 import com.webgen.webgen_backend.portfolio_service.job.GenerateJobService;
 

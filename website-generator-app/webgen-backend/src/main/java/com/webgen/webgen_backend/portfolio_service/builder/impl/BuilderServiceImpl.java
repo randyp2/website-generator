@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.webgen.webgen_backend.dto.portfolio.JobStatusDTO;
-import com.webgen.webgen_backend.dto.portfolio.SectionDTO;
+import com.webgen.webgen_backend.dto.portfolio.common.SectionDTO;
 import com.webgen.webgen_backend.dto.portfolio.builder.BuilderRequestDTO;
 import com.webgen.webgen_backend.dto.portfolio.builder.BuilderResponseDTO;
 import com.webgen.webgen_backend.dto.portfolio.builder.ValidationResult;

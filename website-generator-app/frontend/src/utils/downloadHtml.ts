@@ -50,7 +50,7 @@ export async function downloadPortfolioHtml(
 /**
  * Sanitizes a string to be used as a filename.
  */
-function sanitizeFilename(name: string): string {
+export function sanitizeFilename(name: string): string {
     return name
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")

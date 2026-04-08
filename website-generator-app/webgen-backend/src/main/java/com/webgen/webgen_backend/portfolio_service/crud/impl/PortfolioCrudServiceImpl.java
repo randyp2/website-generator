@@ -1,9 +1,9 @@
 package com.webgen.webgen_backend.portfolio_service.crud.impl;
 
 import com.webgen.webgen_backend.config.RabbitMQConfig;
-import com.webgen.webgen_backend.dto.portfolio.AssetDTO;
-import com.webgen.webgen_backend.dto.portfolio.ResumeDTO;
-import com.webgen.webgen_backend.dto.portfolio.SectionDTO;
+import com.webgen.webgen_backend.dto.portfolio.common.AssetDTO;
+import com.webgen.webgen_backend.dto.portfolio.common.ResumeDTO;
+import com.webgen.webgen_backend.dto.portfolio.common.SectionDTO;
 import com.webgen.webgen_backend.dto.portfolio.crud.*;
 import com.webgen.webgen_backend.entity.Asset;
 import com.webgen.webgen_backend.entity.GeneratedVersion;
@@ -21,6 +21,7 @@ import com.webgen.webgen_backend.repository.PortfolioRepository;
 import com.webgen.webgen_backend.repository.PortfolioSectionRepository;
 import com.webgen.webgen_backend.repository.ProfileRepository;
 import com.webgen.webgen_backend.repository.ResumeRepository;
+import com.webgen.webgen_backend.util.ExternalUrlSafetyValidator;
 import com.webgen.webgen_backend.util.SlugUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -393,11 +394,12 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
      * @return publish response containing slug/status/source metadata
      */
     private PublishResponseDTO publishExternalPortfolio(UUID userId, PublishRequestDTO request) {
-        String normalizedExternalUrl = request.getExternalUrl() != null
-                ? request.getExternalUrl().trim()
-                : "";
-        if (normalizedExternalUrl.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "externalUrl is required for external publish");
+        String normalizedExternalUrl;
+        try {
+            normalizedExternalUrl = ExternalUrlSafetyValidator
+                    .normalizeAndValidateExternalUrl(request.getExternalUrl());
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         }
 
         String requestedTitle = request.getTitle() != null ? request.getTitle().trim() : "";

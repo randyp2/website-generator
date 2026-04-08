@@ -4,6 +4,7 @@ import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.LoadState;
 import com.microsoft.playwright.options.ScreenshotType;
 import com.microsoft.playwright.options.WaitUntilState;
+import com.webgen.webgen_backend.util.ExternalUrlSafetyValidator;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,7 +50,7 @@ public class ScreenshotService {
      */
     public byte[] captureScreenshot(String slug) {
         String url = baseUrl + "/portfolio/" + slug;
-        return captureScreenshotByUrl(url);
+        return captureScreenshotInternal(url, false);
     }
 
     /**
@@ -59,12 +60,30 @@ public class ScreenshotService {
      * @return image bytes of the captured screenshot
      */
     public byte[] captureScreenshotByUrl(String url) {
+        String normalizedExternalUrl = ExternalUrlSafetyValidator.normalizeAndValidateExternalUrl(url);
+        return captureScreenshotInternal(normalizedExternalUrl, true);
+    }
+
+    private byte[] captureScreenshotInternal(String url, boolean externalCapture) {
         System.out.println(">>> [SCREENSHOT] Navigating to: " + url);
 
         // Create isolated browser context
         try (BrowserContext context = browser.newContext(
                 new Browser.NewContextOptions().setViewportSize(1280, 800)
         )) {
+            if (externalCapture) {
+                // Block non-public network requests for external captures.
+                context.route("**/*", route -> {
+                    String requestUrl = route.request().url();
+                    if (ExternalUrlSafetyValidator.isSafeRequestUrl(requestUrl)) {
+                        route.resume();
+                        return;
+                    }
+
+                    System.err.println(">>> [SCREENSHOT] Blocked unsafe request URL: " + requestUrl);
+                    route.abort();
+                });
+            }
 
             // Load page until network requests stop - MAX WAIT = 30 seconds
             Page page = context.newPage();

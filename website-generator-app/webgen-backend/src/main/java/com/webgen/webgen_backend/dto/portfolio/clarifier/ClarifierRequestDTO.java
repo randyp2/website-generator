@@ -1,6 +1,6 @@
 package com.webgen.webgen_backend.dto.portfolio.clarifier;
 
-import com.webgen.webgen_backend.dto.portfolio.AssetDTO;
+import com.webgen.webgen_backend.dto.portfolio.common.AssetDTO;
 import lombok.Data;
 
 import java.util.List;

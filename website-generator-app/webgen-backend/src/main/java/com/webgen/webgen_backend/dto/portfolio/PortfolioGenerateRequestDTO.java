@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.dto.portfolio;
 
+import com.webgen.webgen_backend.dto.portfolio.common.AssetDTO;
 import com.webgen.webgen_backend.dto.resume.ParsedResumeDTO;
 import lombok.Data;
 

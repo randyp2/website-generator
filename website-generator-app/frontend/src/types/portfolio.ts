@@ -8,6 +8,10 @@ export interface Portfolio {
     title: string;
     status: string;
     template_id: string;
+    source_type?: string | null;
+    sourceType?: string | null;
+    external_url?: string | null;
+    externalUrl?: string | null;
     last_step?: string | null;
     slug?: string | null;
     description?: string | null;

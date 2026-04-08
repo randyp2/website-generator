@@ -1,6 +1,6 @@
 package com.webgen.webgen_backend.dto.portfolio.builder;
 
-import com.webgen.webgen_backend.dto.portfolio.GlobalThemeDTO;
+import com.webgen.webgen_backend.dto.portfolio.common.GlobalThemeDTO;
 import lombok.Data;
 import java.util.List;
 

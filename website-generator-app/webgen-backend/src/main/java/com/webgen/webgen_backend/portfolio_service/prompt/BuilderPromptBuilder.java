@@ -2,7 +2,7 @@ package com.webgen.webgen_backend.portfolio_service.prompt;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.webgen.webgen_backend.dto.portfolio.AssetDTO;
+import com.webgen.webgen_backend.dto.portfolio.common.AssetDTO;
 import com.webgen.webgen_backend.dto.portfolio.builder.ValidationResult;
 import com.webgen.webgen_backend.dto.portfolio.planner.SectionContentDTO;
 import com.webgen.webgen_backend.dto.portfolio.planner.SectionPlanDTO;

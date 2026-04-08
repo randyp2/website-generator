@@ -1,6 +1,7 @@
 package com.webgen.webgen_backend.portfolio_service;
 
 import com.webgen.webgen_backend.dto.portfolio.*;
+import com.webgen.webgen_backend.dto.portfolio.common.*;
 import com.webgen.webgen_backend.portfolio_service.job.SectionGenerationMessage;
 
 import java.util.UUID;

@@ -3,6 +3,7 @@ package com.webgen.webgen_backend.portfolio_service.prompt;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.dto.portfolio.*;
+import com.webgen.webgen_backend.dto.portfolio.common.*;
 import com.webgen.webgen_backend.dto.portfolio.builder.ValidationResult;
 import com.webgen.webgen_backend.dto.resume.ParsedResumeDTO;
 import lombok.RequiredArgsConstructor;

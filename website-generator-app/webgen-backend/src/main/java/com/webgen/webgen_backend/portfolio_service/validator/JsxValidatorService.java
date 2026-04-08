@@ -3,7 +3,7 @@ package com.webgen.webgen_backend.portfolio_service.validator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.webgen.webgen_backend.dto.portfolio.SectionDTO;
+import com.webgen.webgen_backend.dto.portfolio.common.SectionDTO;
 import com.webgen.webgen_backend.dto.portfolio.builder.ModifiedSectionDTO;
 import com.webgen.webgen_backend.dto.portfolio.builder.ValidationResult;
 import lombok.RequiredArgsConstructor;

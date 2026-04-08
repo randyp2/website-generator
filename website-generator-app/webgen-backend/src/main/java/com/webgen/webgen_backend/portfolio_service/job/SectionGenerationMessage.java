@@ -1,7 +1,7 @@
 package com.webgen.webgen_backend.portfolio_service.job;
 
 
-import com.webgen.webgen_backend.dto.portfolio.AssetDTO;
+import com.webgen.webgen_backend.dto.portfolio.common.AssetDTO;
 import com.webgen.webgen_backend.dto.portfolio.BlueprintDTO;
 import com.webgen.webgen_backend.dto.portfolio.BlueprintSectionPlanDTO;
 import com.webgen.webgen_backend.dto.portfolio.PortfolioGenerateRequestDTO;

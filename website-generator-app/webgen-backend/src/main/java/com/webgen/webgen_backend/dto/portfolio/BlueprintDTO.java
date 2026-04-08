@@ -1,5 +1,7 @@
 package com.webgen.webgen_backend.dto.portfolio;
 
+import com.webgen.webgen_backend.dto.portfolio.common.AssistantMessageDTO;
+import com.webgen.webgen_backend.dto.portfolio.common.GlobalThemeDTO;
 import lombok.Data;
 
 import java.util.List;

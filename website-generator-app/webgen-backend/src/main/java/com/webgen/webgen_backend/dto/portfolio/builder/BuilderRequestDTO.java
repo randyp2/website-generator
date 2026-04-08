@@ -1,6 +1,6 @@
 package com.webgen.webgen_backend.dto.portfolio.builder;
 
-import com.webgen.webgen_backend.dto.portfolio.AssetDTO;
+import com.webgen.webgen_backend.dto.portfolio.common.AssetDTO;
 import com.webgen.webgen_backend.dto.portfolio.planner.SectionContentDTO;
 import com.webgen.webgen_backend.dto.portfolio.planner.SectionPlanDTO;
 import lombok.Data;

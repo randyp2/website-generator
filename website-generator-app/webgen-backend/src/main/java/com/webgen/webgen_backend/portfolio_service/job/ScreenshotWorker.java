@@ -6,6 +6,7 @@ import com.webgen.webgen_backend.entity.Portfolio;
 import com.webgen.webgen_backend.portfolio_service.screenshot.ScreenshotService;
 import com.webgen.webgen_backend.portfolio_service.screenshot.ScreenshotStorageService;
 import com.webgen.webgen_backend.repository.PortfolioRepository;
+import com.webgen.webgen_backend.util.ExternalUrlSafetyValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
@@ -37,6 +38,7 @@ public class ScreenshotWorker {
             // --- Capture screenshot via Playwright
             String targetUrl = msg.getTargetUrl();
             if (targetUrl != null && !targetUrl.isBlank()) {
+                targetUrl = ExternalUrlSafetyValidator.normalizeAndValidateExternalUrl(targetUrl);
                 System.out.println(">>> [SCREENSHOT] Capturing external screenshot for: " + targetUrl);
             } else {
                 System.out.println(">>> [SCREENSHOT] Capturing screenshot for slug: " + msg.getSlug());

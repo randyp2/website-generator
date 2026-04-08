@@ -1,7 +1,7 @@
 package com.webgen.webgen_backend.portfolio_service.parser;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.webgen.webgen_backend.dto.portfolio.SectionDTO;
+import com.webgen.webgen_backend.dto.portfolio.common.SectionDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

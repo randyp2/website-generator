@@ -33,11 +33,11 @@ export default async function DashboardLayout({
 
   return (
     <UserProviderWrapper user = {{ id: user.id, username, email, avatar}}>
-      <div className="dashboard-user-shell relative min-h-dvh bg-background text-foreground">
+      <div className="dashboard-user-shell relative h-dvh overflow-hidden bg-background text-foreground">
         {/* Keep dashboard background consistent during overscroll/bounce */}
         <div className="pointer-events-none fixed inset-0 z-0 bg-background" />
         {/* DashboardLayoutClient handles sidebar and content with responsive margins */}
-        <div className="relative z-10">
+        <div className="relative z-10 h-full">
           <DashboardLayoutClient>{children}</DashboardLayoutClient>
         </div>
       </div>
