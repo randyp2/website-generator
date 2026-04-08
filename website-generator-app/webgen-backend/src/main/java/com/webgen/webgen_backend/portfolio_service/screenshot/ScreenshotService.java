@@ -48,8 +48,17 @@ public class ScreenshotService {
      * @return image bytes of the captured screenshot
      */
     public byte[] captureScreenshot(String slug) {
-
         String url = baseUrl + "/portfolio/" + slug;
+        return captureScreenshotByUrl(url);
+    }
+
+    /**
+     * Given a URL navigate to the page via playwright and then take a screenshot.
+     * Used for external portfolio captures where URL is not hosted on /portfolio/{slug}.
+     * @param url a String URL to capture
+     * @return image bytes of the captured screenshot
+     */
+    public byte[] captureScreenshotByUrl(String url) {
         System.out.println(">>> [SCREENSHOT] Navigating to: " + url);
 
         // Create isolated browser context

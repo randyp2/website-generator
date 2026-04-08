@@ -31,6 +31,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -326,61 +327,46 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
 
     @Override
     public PublishResponseDTO publishPortfolio(UUID userId, PublishRequestDTO request) {
-        if (request == null) request = new PublishRequestDTO();
+        request = Objects.requireNonNull(request, "request must not be null");
 
+        // Default to GENERATED if empty request
         PublishRequestDTO.SourceType sourceType = request.getSourceType() != null
                 ? request.getSourceType()
                 : PublishRequestDTO.SourceType.GENERATED;
 
+        if (sourceType == PublishRequestDTO.SourceType.EXTERNAL) {
+            return publishExternalPortfolio(userId, request);
+        }
+
+        return publishGeneratedPortfolio(userId, request);
+    }
+
+    /**
+     * Publishes an existing generated portfolio.
+     *
+     * @param userId  authenticated user id used for ownership checks
+     * @param request publish request containing generated portfolio metadata
+     * @return publish response containing slug/status/source metadata
+     */
+    private PublishResponseDTO publishGeneratedPortfolio(UUID userId, PublishRequestDTO request) {
         // Required portfolioId
         // - Generated portfolios should already have a row in portfolios
-        if (request.getPortfolioId() == null || request.getPortfolioId().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "portfolioId is required for generated publish");
-        }
+        UUID portfolioId = parsePortfolioId(request.getPortfolioId());
 
-        if (sourceType == PublishRequestDTO.SourceType.EXTERNAL) {
-            throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "External publish not implemented yet.");
-        }
-
-
-        UUID portfolioId;
-        try {
-            portfolioId = UUID.fromString(request.getPortfolioId().trim());
-        } catch (IllegalArgumentException ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid portfolioId format");
-        }
-
+        // Ownership check
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio not found"));
-
         if (!portfolio.getUserId().equals(userId))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
 
-        // Must have sections to publish
+        // Check for sections to publish
         List<PortfolioSection> sections = portfolioSectionRepository
                 .findAllByPortfolioIdOrderByOrderIndexAsc(portfolioId);
         if (sections.isEmpty())
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot publish a portfolio with no sections");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot publish portfolio w/ no sections");
 
         // Resolve slug
-        String slug;
-        if (request.getSlug() != null && !request.getSlug().isBlank()) {
-            slug = request.getSlug().trim().toLowerCase();
-            if (!SlugUtil.isValid(slug))
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid slug format");
-
-            // Allow re-publishing with the same slug the portfolio already owns
-            boolean slugTaken = portfolioRepository.existsBySlug(slug);
-            boolean ownSlug = slug.equals(portfolio.getSlug());
-            if (slugTaken && !ownSlug)
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Slug is already taken");
-        } else {
-            // Auto-generate from profile name or portfolio title
-            String baseName = profileRepository.findById(userId)
-                    .map(p -> p.getFullName())
-                    .orElse(portfolio.getTitle());
-            slug = generateUniqueSlug(baseName != null ? baseName : "portfolio");
-        }
+        String slug = resolveSlug(userId, request.getSlug(), portfolio.getSlug(), portfolio.getTitle());
 
         if (request.getDescription() != null) {
             portfolio.setDescription(normalizeDescription(request.getDescription()));
@@ -388,28 +374,157 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
 
         // Update portfolio metadata
         portfolio.setSlug(slug);
-        portfolio.setSourceType(sourceType.name());
+        portfolio.setSourceType(PublishRequestDTO.SourceType.GENERATED.name());
         portfolio.setExternalUrl(null);
         portfolio.setStatus("publish");
         portfolio.setLastStep("publish");
-        portfolio.setUpdatedAt(OffsetDateTime.now());
+        portfolio.setUpdatedAt(OffsetDateTime.now()); // last publish date
         portfolioRepository.save(portfolio);
 
+        queueScreenshotJob(portfolio.getId(), slug, null);
+        return buildPublishResponse(portfolio, PublishRequestDTO.SourceType.GENERATED);
+    }
+
+    /**
+     * Publishes an external portfolio by creating a new portfolio row.
+     *
+     * @param userId  authenticated user id that will own the new portfolio row
+     * @param request publish request containing external portfolio metadata
+     * @return publish response containing slug/status/source metadata
+     */
+    private PublishResponseDTO publishExternalPortfolio(UUID userId, PublishRequestDTO request) {
+        String normalizedExternalUrl = request.getExternalUrl() != null
+                ? request.getExternalUrl().trim()
+                : "";
+        if (normalizedExternalUrl.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "externalUrl is required for external publish");
+        }
+
+        String requestedTitle = request.getTitle() != null ? request.getTitle().trim() : "";
+        String title = requestedTitle.isBlank() ? "External Portfolio" : requestedTitle;
+
+        // Resolve slug
+        String slug = resolveSlug(userId, request.getSlug(), null, title);
+
+        Portfolio portfolio = new Portfolio();
+        portfolio.setId(UUID.randomUUID());
+        portfolio.setUserId(userId);
+        portfolio.setTitle(title);
+        portfolio.setTemplateId(null);
+        portfolio.setStatus("publish");
+        portfolio.setSlug(slug);
+        portfolio.setLastStep("publish");
+        portfolio.setStyleChatHistory(new ArrayList<>());
+        portfolio.setDescription(normalizeDescription(request.getDescription()));
+        portfolio.setSourceType(PublishRequestDTO.SourceType.EXTERNAL.name());
+        portfolio.setExternalUrl(normalizedExternalUrl);
+
+        OffsetDateTime now = OffsetDateTime.now();
+        portfolio.setCreatedAt(now);
+        portfolio.setUpdatedAt(now);
+
+        // Save external portfolio as a new row
+        Portfolio saved = portfolioRepository.save(portfolio);
+
         // Queue screenshot message
+        // - For external publish we use targetUrl to capture remote website
+        queueScreenshotJob(saved.getId(), saved.getSlug(), saved.getExternalUrl());
+
+        return buildPublishResponse(saved, PublishRequestDTO.SourceType.EXTERNAL);
+    }
+
+    /**
+     * Resolves a publish slug by validating a request slug or generating one.
+     *
+     * @param userId user id used for profile based slug generation fallback
+     * @param requestedSlug slug requested by user (nullable)
+     * @param ownedSlug existing slug already owned by portfolio (nullable)
+     * @param fallbackTitle fallback title when auto-generating slugs
+     * @return resolved unique slug for portfolio publishing
+     */
+    private String resolveSlug(
+            UUID userId,
+            String requestedSlug,
+            String ownedSlug,
+            String fallbackTitle
+    ) {
+        // Resolve slug
+        if (requestedSlug != null && !requestedSlug.isBlank()) {
+            String slug = requestedSlug.trim().toLowerCase();
+            if (!SlugUtil.isValid(slug))
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid slug format");
+
+            // Allow re-publishing with the same slug the portfolio already owns
+            boolean slugTaken = portfolioRepository.existsBySlug(slug);
+            boolean ownSlug = ownedSlug != null && slug.equals(ownedSlug);
+            if (slugTaken && !ownSlug)
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Slug is already taken");
+
+            return slug;
+        }
+
+        // Auto-generate from profile name or portfolio title
+        String baseName = profileRepository.findById(userId)
+                .map(p -> p.getFullName())
+                .orElse(fallbackTitle);
+
+        if (baseName == null || baseName.isBlank()) {
+            baseName = "portfolio";
+        }
+        return generateUniqueSlug(baseName);
+    }
+
+    /**
+     * Parses and validates a portfolio id from publish request.
+     *
+     * @param rawPortfolioId portfolio id as a string
+     * @return parsed UUID portfolio id
+     */
+    private UUID parsePortfolioId(String rawPortfolioId) {
+        if (rawPortfolioId == null || rawPortfolioId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "portfolioId is required for generated publish");
+        }
+
+        try {
+            return UUID.fromString(rawPortfolioId.trim());
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid portfolioId format");
+        }
+    }
+
+    /**
+     * Queues screenshot generation for generated or external portfolios.
+     *
+     * @param portfolioId portfolio id associated with screenshot
+     * @param slug publish slug associated with screenshot
+     * @param targetUrl external url for capture, null when using internal slug route
+     */
+    private void queueScreenshotJob(UUID portfolioId, String slug, String targetUrl) {
         ScreenshotMessage screenshotMsg = new ScreenshotMessage(
                 UUID.randomUUID().toString(),
                 portfolioId.toString(),
-                slug);
+                slug,
+                targetUrl
+        );
 
         rabbitTemplate.convertAndSend(
                 RabbitMQConfig.EXCHANGE,
                 RabbitMQConfig.SCREENSHOT_ROUTING_KEY,
-                screenshotMsg);
+                screenshotMsg
+        );
+    }
 
-
+    /**
+     * Builds a standardized publish response for generated and external sources.
+     *
+     * @param portfolio persisted portfolio entity
+     * @param sourceType publish source type associated with this response
+     * @return DTO returned to publish API callers
+     */
+    private PublishResponseDTO buildPublishResponse(Portfolio portfolio, PublishRequestDTO.SourceType sourceType) {
         return new PublishResponseDTO(
                 portfolio.getId().toString(),
-                slug,
+                portfolio.getSlug(),
                 "publish",
                 sourceType,
                 portfolio.getExternalUrl()

@@ -35,8 +35,16 @@ public class ScreenshotWorker {
                     + " | jobId: " + msg.getJobId());
 
             // --- Capture screenshot via Playwright
-            System.out.println(">>> [SCREENSHOT] Capturing screenshot for: " + msg.getSlug());
-            byte[] pngBytes = screenshotService.captureScreenshot(msg.getSlug());
+            String targetUrl = msg.getTargetUrl();
+            if (targetUrl != null && !targetUrl.isBlank()) {
+                System.out.println(">>> [SCREENSHOT] Capturing external screenshot for: " + targetUrl);
+            } else {
+                System.out.println(">>> [SCREENSHOT] Capturing screenshot for slug: " + msg.getSlug());
+            }
+
+            byte[] pngBytes = (targetUrl != null && !targetUrl.isBlank())
+                    ? screenshotService.captureScreenshotByUrl(targetUrl)
+                    : screenshotService.captureScreenshot(msg.getSlug());
             System.out.println(">>> [SCREENSHOT] Screenshot captured — size: " + pngBytes.length + " bytes");
 
             // --- Upload to storage

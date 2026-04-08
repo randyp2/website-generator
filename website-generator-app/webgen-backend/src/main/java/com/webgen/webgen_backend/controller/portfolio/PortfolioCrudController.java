@@ -10,6 +10,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 
+import javax.validation.Valid;
 import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/portfolio")
@@ -150,7 +151,7 @@ public class PortfolioCrudController {
 
     @PostMapping("/publish")
     public ResponseEntity<PublishResponseDTO> publishPortfolio(
-            @RequestBody(required = false) PublishRequestDTO request) {
+            @RequestBody @Valid PublishRequestDTO request) {
         UUID userId = UUID.fromString(
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
         );
