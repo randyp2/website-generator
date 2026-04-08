@@ -83,6 +83,9 @@ public class PublicPortfolioServiceImpl implements PublicPortfolioService {
         dto.setTitle(portfolio.getTitle());
         dto.setSlug(portfolio.getSlug());
         dto.setTemplateId(portfolio.getTemplateId());
+        dto.setDescription(portfolio.getDescription());
+        dto.setSourceType(portfolio.getSourceType());
+        dto.setExternalUrl(portfolio.getExternalUrl());
         dto.setSections(sectionDTOs);
         dto.setGlobalTheme(globalTheme);
         dto.setOwnerName(ownerName);
@@ -134,6 +137,9 @@ public class PublicPortfolioServiceImpl implements PublicPortfolioService {
             card.setTitle(portfolio.getTitle());
             card.setSlug(portfolio.getSlug());
             card.setTemplateId(portfolio.getTemplateId());
+            card.setDescription(portfolio.getDescription());
+            card.setSourceType(portfolio.getSourceType());
+            card.setExternalUrl(portfolio.getExternalUrl());
             card.setPublishedAt(portfolio.getUpdatedAt());
             card.setScreenshotUrl(portfolio.getScreenshotUrl());
 

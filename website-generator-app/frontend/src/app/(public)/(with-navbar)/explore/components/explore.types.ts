@@ -2,6 +2,7 @@ export interface PortfolioCard {
   title: string
   slug: string
   templateId: string | null
+  description: string | null
   ownerName: string | null
   ownerAvatarUrl: string | null
   publishedAt: string

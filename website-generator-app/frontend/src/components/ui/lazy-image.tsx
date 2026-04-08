@@ -53,6 +53,13 @@ export const LazyImage = ({
   }, [imgSrc, inView, isInView, src])
 
   React.useEffect(() => {
+    if (inView && !isInView) return
+
+    setImgSrc(src)
+    setIsLoading(true)
+  }, [inView, isInView, src])
+
+  React.useEffect(() => {
     if (imgRef.current?.complete) {
       handleLoad()
     }

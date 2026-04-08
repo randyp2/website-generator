@@ -21,20 +21,6 @@ import java.util.UUID;
 @Getter
 @Setter
 public class Portfolio {
-    // Column | Type | Collation | Nullable | Default
-    // --------------------+--------------------------+-----------+----------+-------------------
-    // id | uuid | | not null | gen_random_uuid()
-    // user_id | uuid | | not null |
-    // title | text | | |
-    // template_id | text | | |
-    // status | text | | | 'draft'::text
-    // slug | text | | |
-    // created_at | timestamp with time zone | | | now()
-    // updated_at | timestamp with time zone | | | now()
-    // active_version_id | uuid | | |
-    // last_step | text | | not null | 'template'::text
-    // style_chat_history | jsonb | | not null | '[]'::jsonb
-    //
     @Id
     @Column(name = "id", nullable = false)
     private UUID id;
@@ -72,4 +58,13 @@ public class Portfolio {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "style_chat_history", nullable = false)
     private List<StyleChatMessage> styleChatHistory;
+
+    @Column(name = "description")
+    private String description;
+
+    @Column(name = "source_type", nullable = false)
+    private String sourceType;
+
+    @Column(name = "external_url")
+    private String externalUrl;
 }

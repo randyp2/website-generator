@@ -11,4 +11,5 @@ public class ScreenshotMessage {
     private String jobId;
     private String portfolioId;
     private String slug;
+    private String targetUrl;
 }

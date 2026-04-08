@@ -10,6 +10,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 
+import javax.validation.Valid;
 import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/portfolio")
@@ -133,14 +134,14 @@ public class PortfolioCrudController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/{id}/publish")
+    @PostMapping("/publish")
     public ResponseEntity<PublishResponseDTO> publishPortfolio(
-            @PathVariable UUID id,
-            @RequestBody PublishRequestDTO request) {
+            @RequestBody @Valid PublishRequestDTO request) {
         UUID userId = UUID.fromString(
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
         );
-        PublishResponseDTO response = portfolioCrudService.publishPortfolio(userId, id, request);
+
+        PublishResponseDTO response = portfolioCrudService.publishPortfolio(userId, request);
         return ResponseEntity.ok(response);
     }
 
@@ -153,4 +154,3 @@ public class PortfolioCrudController {
         return ResponseEntity.noContent().build();
     }
 }
-

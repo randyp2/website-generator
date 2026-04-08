@@ -4,6 +4,7 @@ export interface PortfolioItem {
   status: string
   slug: string | null
   updatedAt: string
+  screenshotUrl: string | null
 }
 
 export interface PortfolioListApiItem {
@@ -15,4 +16,6 @@ export interface PortfolioListApiItem {
   updatedAt?: string
   created_at?: string
   createdAt?: string
+  screenshot_url?: string | null
+  screenshotUrl?: string | null
 }
