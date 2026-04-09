@@ -244,7 +244,6 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                     <div className="absolute bottom-full left-4 right-4 z-50 mb-2 overflow-hidden rounded-lg border border-sidebar-border bg-sidebar shadow-2xl">
                         {[
                             { icon: FiUser, label: "Profile", path: "/dashboard-user/profile" },
-                            { icon: FiUser, label: "Sign Up" },
                             { icon: FiSettings, label: "Settings" },
                             { icon: FiShare2, label: "Pricing" },
                             { icon: FiHelpCircle, label: "Help" },
