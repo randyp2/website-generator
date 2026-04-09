@@ -13,6 +13,7 @@ interface DashboardLayoutClientProps {
 
 const getActiveTabLabel = (pathname: string): string => {
   const routeLabelMap: Array<{ prefix: string; label: string }> = [
+    { prefix: "/dashboard-user/profile", label: "Profile" },
     { prefix: "/dashboard-user/portfolios", label: "My Portfolios" },
     { prefix: "/dashboard-user/create", label: "Create New" },
     { prefix: "/dashboard-user/publish", label: "Publish" },

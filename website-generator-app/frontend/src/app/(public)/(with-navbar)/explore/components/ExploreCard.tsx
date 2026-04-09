@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { Eye, Heart, MessageCircle } from "lucide-react"
 
 import { LazyImage } from "@/components/ui/lazy-image"
@@ -27,7 +28,7 @@ export const ExploreCard = ({ portfolio }: ExploreCardProps) => {
   const metrics = getPortfolioMetrics(portfolio)
 
   return (
-    <a
+    <Link
       href={href}
       className="group flex flex-col gap-2 rounded-lg p-2 duration-75 hover:bg-accent/60 active:bg-accent"
     >
@@ -90,6 +91,6 @@ export const ExploreCard = ({ portfolio }: ExploreCardProps) => {
           </div>
         </div>
       </div>
-    </a>
+    </Link>
   )
 }

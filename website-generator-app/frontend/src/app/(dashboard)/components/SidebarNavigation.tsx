@@ -243,6 +243,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                 {showProfileMenu && (
                     <div className="absolute bottom-full left-4 right-4 z-50 mb-2 overflow-hidden rounded-lg border border-sidebar-border bg-sidebar shadow-2xl">
                         {[
+                            { icon: FiUser, label: "Profile", path: "/dashboard-user/profile" },
                             { icon: FiUser, label: "Sign Up" },
                             { icon: FiSettings, label: "Settings" },
                             { icon: FiShare2, label: "Pricing" },
@@ -250,7 +251,12 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                         ].map((item) => (
                             <button
                                 key={item.label}
-                                onClick={() => setShowProfileMenu(false)}
+                                onClick={() => {
+                                    setShowProfileMenu(false);
+                                    if ("path" in item && item.path) {
+                                        router.push(item.path);
+                                    }
+                                }}
                                 className="w-full flex items-center gap-3 px-4 py-3 text-left text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent/40"
                             >
                                 <item.icon className="h-4 w-4 text-sidebar-foreground/70" />
