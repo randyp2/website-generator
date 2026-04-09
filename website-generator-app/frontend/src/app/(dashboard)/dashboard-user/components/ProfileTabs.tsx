@@ -63,7 +63,7 @@ const ProfileTabs = ({ userId, username, avatarUrl }: ProfileTabsProps) => {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`pb-3 text-sm font-medium transition-colors ${
+            className={`pb-3 text-sm font-medium transition-colors hover:cursor-pointer ${
               activeTab === tab
                 ? "border-b-2 border-primary text-foreground"
                 : "text-muted-foreground hover:text-foreground"

@@ -80,10 +80,10 @@ const ProfileHeader = ({ username, avatarUrl }: ProfileHeaderProps) => {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-3 pt-1">
-            <button className="rounded-full bg-foreground px-6 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90">
+            <button className="rounded-full bg-foreground px-6 py-2 text-sm font-medium text-background transition-opacity hover:cursor-pointer hover:opacity-90">
               Follow
             </button>
-            <button className="rounded-full border border-border px-6 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted">
+            <button className="rounded-full border border-border px-6 py-2 text-sm font-medium text-foreground transition-colors hover:cursor-pointer hover:bg-muted">
               Get in touch
             </button>
           </div>
