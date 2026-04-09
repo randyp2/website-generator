@@ -1,0 +1,146 @@
+"use client"
+
+import { motion } from "framer-motion"
+import { RefreshCw, Info } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import {
+  Card,
+  CardContent,
+} from "@/components/ui/card"
+import { cn } from "@/lib/utils"
+
+import type { VerificationOverviewProps } from "./verification.types"
+import { getTierColor, getTierBgColor } from "./verification.utils"
+
+const CIRCUMFERENCE = 2 * Math.PI * 52
+
+const KPI_ITEMS = [
+  { key: "totalSkills", label: "Total Skills", accent: "" },
+  { key: "verifiedCount", label: "Verified", accent: "border-l-2 border-l-emerald-400" },
+  { key: "needsActionCount", label: "Needs Action", accent: "border-l-2 border-l-yellow-400" },
+  { key: "conflictCount", label: "Conflicts", accent: "border-l-2 border-l-red-400" },
+] as const
+
+const VerificationOverview = ({
+  data,
+  onRerunChecks,
+}: VerificationOverviewProps) => {
+  const offset = CIRCUMFERENCE - (data.overallScore / 100) * CIRCUMFERENCE
+  const lastUpdated = new Date(data.lastRunDate)
+  const daysAgo = Math.floor(
+    (Date.now() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24),
+  )
+
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <div className="flex flex-col lg:flex-row gap-6 items-center lg:items-start">
+          {/* Verification Ring */}
+          <div className="flex flex-col items-center gap-2 shrink-0">
+            <svg viewBox="0 0 120 120" className="h-28 w-28">
+              <circle
+                cx="60"
+                cy="60"
+                r="52"
+                fill="none"
+                stroke="currentColor"
+                className="text-muted"
+                strokeWidth="8"
+              />
+              <motion.circle
+                cx="60"
+                cy="60"
+                r="52"
+                fill="none"
+                stroke="currentColor"
+                className="text-amber-500"
+                strokeWidth="8"
+                strokeLinecap="round"
+                strokeDasharray={CIRCUMFERENCE}
+                initial={{ strokeDashoffset: CIRCUMFERENCE }}
+                animate={{ strokeDashoffset: offset }}
+                transition={{ duration: 1, ease: "easeOut" }}
+                transform="rotate(-90 60 60)"
+              />
+              <text
+                x="60"
+                y="56"
+                textAnchor="middle"
+                dominantBaseline="central"
+                className="fill-foreground text-2xl font-bold"
+                style={{ fontSize: "24px", fontWeight: 700 }}
+              >
+                {data.overallScore}
+              </text>
+              <text
+                x="60"
+                y="74"
+                textAnchor="middle"
+                dominantBaseline="central"
+                className="fill-muted-foreground"
+                style={{ fontSize: "10px" }}
+              >
+                / 100
+              </text>
+            </svg>
+            <Badge
+              className={cn(
+                "text-xs font-semibold",
+                getTierBgColor(data.tier),
+                getTierColor(data.tier),
+              )}
+            >
+              {data.tier}
+            </Badge>
+          </div>
+
+          {/* KPI Cards */}
+          <div className="flex-1 w-full">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+              {KPI_ITEMS.map((item) => (
+                <div
+                  key={item.key}
+                  className={cn(
+                    "rounded-lg bg-muted/50 p-3",
+                    item.accent,
+                  )}
+                >
+                  <p className="text-2xl font-bold text-foreground">
+                    {data[item.key]}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{item.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Trust note */}
+            <div className="flex items-start gap-2 text-xs text-muted-foreground mb-3">
+              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <p>{data.trustNote}</p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onRerunChecks}
+                className="gap-1.5"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Re-run Checks
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                Last checked {daysAgo === 0 ? "today" : `${daysAgo}d ago`}
+              </span>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+export default VerificationOverview

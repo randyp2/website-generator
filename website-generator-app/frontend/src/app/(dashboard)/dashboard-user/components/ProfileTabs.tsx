@@ -10,6 +10,7 @@ import type { ProfileTab, ApiPortfolio } from "../profile/profile.types"
 import { mapApiPortfolioToCard } from "../profile/profile.utils"
 import { isDeployedPortfolio } from "../utils/deployedPortfolio"
 import ProfilePortfoliosGrid from "./ProfilePortfoliosGrid"
+import VerificationTab from "./verification/VerificationTab"
 
 type PortfolioSubTab = "deployed" | "undeployed"
 
@@ -109,6 +110,8 @@ const ProfileTabs = ({ userId, username, avatarUrl }: ProfileTabsProps) => {
               loading={loading}
             />
           </div>
+        ) : activeTab === "Verification" ? (
+          <VerificationTab userId={userId} />
         ) : (
           <div className="flex flex-col items-center justify-center py-20">
             <p className="text-lg font-medium text-foreground">{activeTab}</p>
