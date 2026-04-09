@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 
 import type { Portfolio } from "@/types/portfolio"
 
-import { isDeployedPortfolio } from "../../utils/deployedPortfolio"
+import { isDeployedPortfolio, isExternalPortfolio } from "../../utils/deployedPortfolio"
 import { compareByUpdatedAtDesc } from "../lib/sortPortfolios"
 
 interface UsePortfoliosListResult {
@@ -54,7 +54,7 @@ export const usePortfoliosList = (
   const drafts = useMemo<Portfolio[]>(
     () =>
       portfolios
-        .filter((portfolio) => !isDeployedPortfolio(portfolio))
+        .filter((portfolio) => !isDeployedPortfolio(portfolio) && !isExternalPortfolio(portfolio))
         .sort(compareByUpdatedAtDesc),
     [portfolios],
   )

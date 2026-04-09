@@ -227,6 +227,14 @@ export const PublishHero = ({
             <FiEyeOff className="h-4 w-4" />
             Unpublish
           </button>
+          <button
+            type="button"
+            onClick={onOpenWizard}
+            className="inline-flex items-center gap-2 rounded-lg border border-primary bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            <FiZap className="h-4 w-4" />
+            Publish new
+          </button>
         </div>
       </div>
     </section>
