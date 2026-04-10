@@ -127,12 +127,26 @@ const ResumeVerificationGuard = ({
         updateVerificationSubTab("resume-review");
     };
 
-    const handleResumeRemoved = () => {
+    const handleResumeRemoved = async () => {
         if (resume?.url) {
             URL.revokeObjectURL(resume.url);
         }
 
+        // Delete from DB + storage if persisted
+        if (hasPersistedVerification) {
+            try {
+                await fetch("/api/profile/resume-verification", {
+                    method: "DELETE",
+                });
+            } catch (error) {
+                console.error("Failed to delete resume verification:", error);
+            }
+        }
+
         setResume(null);
+        setParsedResumeData(null);
+        setParsingError(null);
+        setHasPersistedVerification(false);
         setUploadError(null);
         updateVerificationSubTab("resume-review");
     };

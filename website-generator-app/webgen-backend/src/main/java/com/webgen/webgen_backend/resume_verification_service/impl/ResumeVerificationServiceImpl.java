@@ -80,6 +80,16 @@ public class ResumeVerificationServiceImpl implements ResumeVerificationService 
         return resumeVerificationMapper.toDto(saved);
     }
 
+    @Override
+    public ResumeVerificationDTO deleteResumeVerification(UUID userId) {
+        ResumeVerification resumeVerification = resumeVerificationRepository.findByProfileId(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No resume verification found for this user"));
+
+        ResumeVerificationDTO dto = resumeVerificationMapper.toDto(resumeVerification);
+        resumeVerificationRepository.delete(resumeVerification);
+        return dto;
+    }
+
     private Profile resolveOrCreateProfile(UUID userId) {
         return profileRepository.findById(userId).orElseGet(() -> {
             Profile profile = new Profile();

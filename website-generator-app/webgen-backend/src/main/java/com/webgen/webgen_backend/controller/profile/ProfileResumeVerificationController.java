@@ -7,6 +7,7 @@ import com.webgen.webgen_backend.resume_verification_service.ResumeVerificationS
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -48,6 +49,13 @@ public class ProfileResumeVerificationController {
     ) {
         UUID userId = resolveAuthenticatedUserId();
         ResumeVerificationDTO response = resumeVerificationService.updateParsedData(userId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping
+    public ResponseEntity<ResumeVerificationDTO> deleteResumeVerification() {
+        UUID userId = resolveAuthenticatedUserId();
+        ResumeVerificationDTO response = resumeVerificationService.deleteResumeVerification(userId);
         return ResponseEntity.ok(response);
     }
 

@@ -10,4 +10,5 @@ public interface ResumeVerificationService {
     ResumeVerificationDTO getResumeVerification(UUID userId);
     ResumeVerificationDTO uploadResumeVerification(UUID userId, UploadResumeVerificationRequestDTO request);
     ResumeVerificationDTO updateParsedData(UUID userId, UpdateResumeVerificationParsedDTO request);
+    ResumeVerificationDTO deleteResumeVerification(UUID userId);
 }
