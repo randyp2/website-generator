@@ -45,7 +45,7 @@ public class ResumeParserService  {
     private boolean llmFallbackEnabled;
 
 
-    public ParsedResumeDTO parseResume(MultipartFile file) {
+    public ParsedResumeDTO parseResume(MultipartFile file, Boolean llmFallbackOverride) {
         // 1. Extract and normalize text
         String rawText = pdfTextExtractor.extract(file); // Get raw text
 
@@ -63,11 +63,14 @@ public class ResumeParserService  {
         ParsedResume finalParsed;
         String parsingMethod;
 
+        // Per-request override takes precedence over the global config
+        boolean useLlmFallback = llmFallbackOverride != null ? llmFallbackOverride : llmFallbackEnabled;
+
         // 4. Decision logic
         if (confidence >= confidenceThreshold) {
             finalParsed = regexParsed;
             parsingMethod = "regex";
-        } else if (llmFallbackEnabled) {
+        } else if (useLlmFallback) {
             try {
                 finalParsed = llmResumeParserService.parseWithLlm(rawText, normalizedText);
                 confidence = confidenceEvaluator.evaluateConfidence(finalParsed);

@@ -10,6 +10,9 @@ import { NextResponse } from "next/server";
  */
 export async function POST(req: Request) {
     try {
+        const { searchParams } = new URL(req.url);
+        const llmFallback = searchParams.get("llmFallback");
+
         const formData = await req.formData();
         const resumeFile = formData.get("file") as File;
 
@@ -66,7 +69,11 @@ export async function POST(req: Request) {
         const backendFormData = new FormData();
         backendFormData.append("file", resumeFile);
 
-        const response = await fetch(`${backendUrl}/api/v1/resume/parse`, {
+        const parseUrl = llmFallback !== null
+            ? `${backendUrl}/api/v1/resume/parse?llmFallback=${llmFallback}`
+            : `${backendUrl}/api/v1/resume/parse`;
+
+        const response = await fetch(parseUrl, {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${token}`,

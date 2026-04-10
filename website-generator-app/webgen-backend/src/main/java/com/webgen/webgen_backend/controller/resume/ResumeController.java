@@ -24,15 +24,17 @@ public class ResumeController {
 
 
     // Parses a resume PDF and return structured data
+    // Pass ?llmFallback=false to skip the LLM fallback (regex-only, zero token cost)
     @PostMapping(
             value = "/parse",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<ParsedResumeDTO> parseResume(
-            @RequestPart("file") MultipartFile file
+            @RequestPart("file") MultipartFile file,
+            @RequestParam(value = "llmFallback", required = false) Boolean llmFallback
     ) {
-        ParsedResumeDTO parsedResumeDto = resumeParserService.parseResume(file); // Parse the resume
+        ParsedResumeDTO parsedResumeDto = resumeParserService.parseResume(file, llmFallback);
         return ResponseEntity.ok(parsedResumeDto);
     }
 
