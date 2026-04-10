@@ -10,7 +10,6 @@ import java.util.UUID;
 public class ResumeDTO {
     private UUID id;
     private UUID portfolioId;
-    private String rawFileUrl;
     private String rawFileBucket;
     private String rawFilePath;
     private String extractedText;

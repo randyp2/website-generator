@@ -32,9 +32,6 @@ public class Resume {
     @JoinColumn(name = "portfolio_id", nullable = false)
     private Portfolio portfolio;
 
-    @Column(name = "raw_file_url")
-    private String rawFileUrl;
-
     @Column(name = "raw_file_bucket")
     private String rawFileBucket;
 

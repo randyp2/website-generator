@@ -32,9 +32,6 @@ public class ResumeVerification {
     @JoinColumn(name = "profile_id", nullable = false)
     private Profile profile;
 
-    @Column(name = "raw_file_url", nullable = false)
-    private String rawFileUrl;
-
     @Column(name = "raw_file_bucket")
     private String rawFileBucket;
 

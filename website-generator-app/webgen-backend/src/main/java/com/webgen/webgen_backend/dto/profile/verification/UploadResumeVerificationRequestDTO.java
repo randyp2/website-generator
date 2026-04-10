@@ -4,7 +4,6 @@ import lombok.Data;
 
 @Data
 public class UploadResumeVerificationRequestDTO {
-    private String rawFileUrl;
     private String rawFileBucket;
     private String rawFilePath;
     private String originalFileName;

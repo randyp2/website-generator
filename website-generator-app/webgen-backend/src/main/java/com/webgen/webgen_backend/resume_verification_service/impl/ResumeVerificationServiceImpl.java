@@ -48,7 +48,6 @@ public class ResumeVerificationServiceImpl implements ResumeVerificationService 
         }
 
         resumeVerification.setProfile(profile);
-        resumeVerification.setRawFileUrl(request.getRawFileUrl());
         resumeVerification.setRawFileBucket(request.getRawFileBucket());
         resumeVerification.setRawFilePath(request.getRawFilePath());
         resumeVerification.setOriginalFileName(request.getOriginalFileName());
