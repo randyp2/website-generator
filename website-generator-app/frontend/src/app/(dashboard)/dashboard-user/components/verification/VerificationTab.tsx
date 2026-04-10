@@ -32,8 +32,11 @@ import SkillDetailDrawer from "./SkillDetailDrawer"
 import EvidenceTable from "./EvidenceTable"
 import VerificationHistory from "./VerificationHistory"
 import ScoringTransparency from "./ScoringTransparency"
+import ResumeVerificationGuard from "./ResumeVerificationGuard"
 
 const VerificationTab = ({ userId }: VerificationTabProps) => {
+  void userId
+
   const [activeFilter, setActiveFilter] = useState<FilterOption>("all")
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -82,11 +85,13 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
     // Placeholder for backend wiring
   }
 
-  const handleConnect = (_provider: ConnectionProvider) => {
+  const handleConnect = (provider: ConnectionProvider) => {
+    void provider
     // Placeholder for backend wiring
   }
 
-  const handleDisconnect = (_provider: ConnectionProvider) => {
+  const handleDisconnect = (provider: ConnectionProvider) => {
+    void provider
     // Placeholder for backend wiring
   }
 
@@ -103,7 +108,7 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
   }
 
   return (
-    <div className="space-y-8">
+    <ResumeVerificationGuard>
       <VerificationFilterBar
         active={activeFilter}
         counts={filterCounts}
@@ -144,7 +149,7 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
         open={drawerOpen}
         onClose={handleDrawerClose}
       />
-    </div>
+    </ResumeVerificationGuard>
   )
 }
 

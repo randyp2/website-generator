@@ -104,6 +104,12 @@ export interface VerificationTabProps {
   userId: string
 }
 
+export interface ResumeFile {
+  name: string
+  size: string
+  url: string
+}
+
 export interface VerificationOverviewProps {
   data: VerificationOverviewData
   onRerunChecks: () => void
