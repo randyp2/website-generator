@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.dto.profile.verification;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Data;
 
 import java.time.OffsetDateTime;
@@ -15,6 +16,8 @@ public class ResumeVerificationDTO {
     private String originalFileName;
     private String contentType;
     private Long fileSizeBytes;
+    private String extractedText;
+    private JsonNode parsedJson;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 }

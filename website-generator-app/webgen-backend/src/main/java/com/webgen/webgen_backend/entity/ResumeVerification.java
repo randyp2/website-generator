@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.entity;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -10,6 +11,8 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -46,6 +49,13 @@ public class ResumeVerification {
 
     @Column(name = "file_size_bytes", nullable = false)
     private Long fileSizeBytes;
+
+    @Column(name = "extracted_text")
+    private String extractedText;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "parsed_json")
+    private JsonNode parsedJson;
 
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
