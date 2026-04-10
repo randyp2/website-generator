@@ -10,6 +10,8 @@ public class ResumeVerificationDTO {
     private UUID id;
     private UUID profileId;
     private String rawFileUrl;
+    private String rawFileBucket;
+    private String rawFilePath;
     private String originalFileName;
     private String contentType;
     private Long fileSizeBytes;

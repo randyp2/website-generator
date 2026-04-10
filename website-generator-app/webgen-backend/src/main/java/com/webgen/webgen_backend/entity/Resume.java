@@ -35,6 +35,12 @@ public class Resume {
     @Column(name = "raw_file_url")
     private String rawFileUrl;
 
+    @Column(name = "raw_file_bucket")
+    private String rawFileBucket;
+
+    @Column(name = "raw_file_path")
+    private String rawFilePath;
+
     @Column(name = "extracted_text")
     private String extractedText;
 

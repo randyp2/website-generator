@@ -32,6 +32,12 @@ public class ResumeVerification {
     @Column(name = "raw_file_url", nullable = false)
     private String rawFileUrl;
 
+    @Column(name = "raw_file_bucket")
+    private String rawFileBucket;
+
+    @Column(name = "raw_file_path")
+    private String rawFilePath;
+
     @Column(name = "original_file_name", nullable = false)
     private String originalFileName;
 
