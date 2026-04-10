@@ -1,17 +1,17 @@
 package com.webgen.webgen_backend.resume_verification_service.impl;
 
 import com.webgen.webgen_backend.dto.profile.verification.ResumeVerificationDTO;
+import com.webgen.webgen_backend.dto.profile.verification.UploadResumeVerificationRequestDTO;
 import com.webgen.webgen_backend.entity.Profile;
 import com.webgen.webgen_backend.entity.ResumeVerification;
 import com.webgen.webgen_backend.mapper.ResumeVerificationMapper;
 import com.webgen.webgen_backend.repository.ProfileRepository;
 import com.webgen.webgen_backend.repository.ResumeVerificationRepository;
 import com.webgen.webgen_backend.resume_verification_service.ResumeVerificationService;
-import com.webgen.webgen_backend.resume_verification_service.ResumeVerificationStorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
@@ -24,15 +24,12 @@ public class ResumeVerificationServiceImpl implements ResumeVerificationService 
     private final ProfileRepository profileRepository;
     private final ResumeVerificationRepository resumeVerificationRepository;
     private final ResumeVerificationMapper resumeVerificationMapper;
-    private final ResumeVerificationStorageService resumeVerificationStorageService;
 
     @Override
-    public ResumeVerificationDTO uploadResumeVerification(UUID userId, MultipartFile file) {
-        Profile profile = profileRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile not found"));
-
-        ResumeVerificationStorageService.UploadResult uploadResult =
-                resumeVerificationStorageService.uploadResume(userId, file);
+    public ResumeVerificationDTO uploadResumeVerification(UUID userId, UploadResumeVerificationRequestDTO request) {
+        System.out.println(">>> [RESUME VERIFICATION SERVICE] entered upload resume verification serviced");
+        validateRequest(request);
+        Profile profile = resolveOrCreateProfile(userId);
 
         OffsetDateTime now = OffsetDateTime.now();
 
@@ -50,13 +47,46 @@ public class ResumeVerificationServiceImpl implements ResumeVerificationService 
         }
 
         resumeVerification.setProfile(profile);
-        resumeVerification.setRawFileUrl(uploadResult.publicUrl());
-        resumeVerification.setOriginalFileName(uploadResult.originalFileName());
-        resumeVerification.setContentType(uploadResult.contentType());
-        resumeVerification.setFileSizeBytes(uploadResult.fileSizeBytes());
+        resumeVerification.setRawFileUrl(request.getRawFileUrl());
+        resumeVerification.setOriginalFileName(request.getOriginalFileName());
+        resumeVerification.setContentType(request.getContentType());
+        resumeVerification.setFileSizeBytes(request.getFileSizeBytes());
         resumeVerification.setUpdatedAt(now);
 
         ResumeVerification saved = resumeVerificationRepository.save(resumeVerification);
+        System.out.println(">>> [RESUME VERIFICATION SERVICE] successfully saved");
         return resumeVerificationMapper.toDto(saved);
+    }
+
+    private Profile resolveOrCreateProfile(UUID userId) {
+        return profileRepository.findById(userId).orElseGet(() -> {
+            Profile profile = new Profile();
+            profile.setId(userId);
+            return profileRepository.save(profile);
+        });
+    }
+
+    private void validateRequest(UploadResumeVerificationRequestDTO request) {
+        System.out.println(">>> [RESUME VERIFICATION SERVICE] request validating...");
+        if (request == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request body is required");
+        }
+
+        if (!StringUtils.hasText(request.getRawFileUrl())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "rawFileUrl is required");
+        }
+
+        if (!StringUtils.hasText(request.getOriginalFileName())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "originalFileName is required");
+        }
+
+        if (!StringUtils.hasText(request.getContentType())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "contentType is required");
+        }
+
+        if (request.getFileSizeBytes() == null || request.getFileSizeBytes() < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fileSizeBytes must be >= 0");
+        }
+        System.out.println(">>> [RESUME VERIFICATION SERVICE] request validated!");
     }
 }

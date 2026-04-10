@@ -2,6 +2,7 @@ package com.webgen.webgen_backend.config;
 
 import ch.qos.logback.classic.spi.ConfiguratorRank;
 import com.webgen.webgen_backend.filter.JWTFilter;
+import jakarta.servlet.DispatcherType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -36,6 +37,8 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(customizer -> customizer.disable()) // Disable CSRF for stateless
                 .authorizeHttpRequests(request -> request
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                        .requestMatchers("/error").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/generate/ping").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/generate").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/debug/all").permitAll()
@@ -71,4 +74,3 @@ public class SecurityConfig {
         return src;
     }
 }
-

@@ -45,6 +45,7 @@ const ResumeUploadGate = ({ onResumeUploaded }: ResumeUploadGateProps) => {
         name: file.name,
         size: formatFileSize(file.size),
         url: objectUrl,
+        file,
       })
     },
     [onResumeUploaded],

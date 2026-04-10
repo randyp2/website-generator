@@ -108,6 +108,7 @@ export interface ResumeFile {
   name: string
   size: string
   url: string
+  file: File
 }
 
 export interface VerificationOverviewProps {
