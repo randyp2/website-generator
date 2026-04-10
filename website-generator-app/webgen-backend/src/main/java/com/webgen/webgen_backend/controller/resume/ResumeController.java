@@ -1,4 +1,4 @@
-package com.webgen.webgen_backend.controller;
+package com.webgen.webgen_backend.controller.resume;
 
 
 import com.webgen.webgen_backend.dto.resume.ParsedResumeDTO;
@@ -15,13 +15,6 @@ import org.springframework.web.multipart.MultipartFile;
 public class ResumeController {
 
     private final ResumeParserService resumeParserService;
-
-
-    // Health check ping
-    @GetMapping("/ping")
-    public String ping () {return "API RESUME ENDPOINT WORKING!";}
-
-
 
     // Parses a resume PDF and return structured data
     // Pass ?llmFallback=false to skip the LLM fallback (regex-only, zero token cost)
