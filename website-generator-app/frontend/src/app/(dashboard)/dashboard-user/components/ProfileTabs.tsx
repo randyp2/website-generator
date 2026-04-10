@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
 import type { PortfolioCard } from "@/app/(public)/(with-navbar)/explore/components/explore.types"
 import type { Portfolio } from "@/types/portfolio"
@@ -14,6 +15,17 @@ import VerificationTab from "./verification/VerificationTab"
 
 type PortfolioSubTab = "deployed" | "undeployed"
 
+const PROFILE_TAB_QUERY_KEY = "profileTab"
+const PORTFOLIO_SUB_TAB_QUERY_KEY = "portfolioTab"
+const DEFAULT_PROFILE_TAB: ProfileTab = "Portfolios"
+const DEFAULT_PORTFOLIO_SUB_TAB: PortfolioSubTab = "deployed"
+
+const isProfileTab = (value: string | null): value is ProfileTab =>
+  value !== null && PROFILE_TABS.includes(value as ProfileTab)
+
+const isPortfolioSubTab = (value: string | null): value is PortfolioSubTab =>
+  value === "deployed" || value === "undeployed"
+
 interface ProfileTabsProps {
   userId: string
   username: string
@@ -21,10 +33,43 @@ interface ProfileTabsProps {
 }
 
 const ProfileTabs = ({ userId, username, avatarUrl }: ProfileTabsProps) => {
-  const [activeTab, setActiveTab] = useState<ProfileTab>("Portfolios")
-  const [portfolioSubTab, setPortfolioSubTab] = useState<PortfolioSubTab>("deployed")
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [rawPortfolios, setRawPortfolios] = useState<ApiPortfolio[]>([])
   const [loading, setLoading] = useState<boolean>(true)
+
+  const activeTab = isProfileTab(searchParams.get(PROFILE_TAB_QUERY_KEY))
+    ? searchParams.get(PROFILE_TAB_QUERY_KEY)
+    : DEFAULT_PROFILE_TAB
+  const portfolioSubTab = isPortfolioSubTab(
+    searchParams.get(PORTFOLIO_SUB_TAB_QUERY_KEY),
+  )
+    ? searchParams.get(PORTFOLIO_SUB_TAB_QUERY_KEY)
+    : DEFAULT_PORTFOLIO_SUB_TAB
+
+  const updateQueryParam = useCallback(
+    (key: string, value: string) => {
+      const params = new URLSearchParams(searchParams.toString())
+      params.set(key, value)
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+    },
+    [pathname, router, searchParams],
+  )
+
+  const handleProfileTabChange = useCallback(
+    (tab: ProfileTab) => {
+      updateQueryParam(PROFILE_TAB_QUERY_KEY, tab)
+    },
+    [updateQueryParam],
+  )
+
+  const handlePortfolioSubTabChange = useCallback(
+    (subTab: PortfolioSubTab) => {
+      updateQueryParam(PORTFOLIO_SUB_TAB_QUERY_KEY, subTab)
+    },
+    [updateQueryParam],
+  )
 
   useEffect(() => {
     if (!userId) {
@@ -72,7 +117,7 @@ const ProfileTabs = ({ userId, username, avatarUrl }: ProfileTabsProps) => {
         {PROFILE_TABS.map((tab) => (
           <button
             key={tab}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => handleProfileTabChange(tab)}
             className={`pb-3 text-sm font-medium transition-colors hover:cursor-pointer ${
               activeTab === tab
                 ? "border-b-2 border-primary text-foreground"
@@ -93,7 +138,7 @@ const ProfileTabs = ({ userId, username, avatarUrl }: ProfileTabsProps) => {
               {(["deployed", "undeployed"] as const).map((sub) => (
                 <button
                   key={sub}
-                  onClick={() => setPortfolioSubTab(sub)}
+                  onClick={() => handlePortfolioSubTabChange(sub)}
                   className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
                     portfolioSubTab === sub
                       ? "bg-background text-foreground shadow-sm"

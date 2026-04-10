@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 
@@ -9,6 +10,13 @@ import ResumePreviewCard from "./ResumePreviewCard"
 import ResumeUploadGate from "./ResumeUploadGate"
 
 type VerificationSubTab = "resume-review" | "skill-verification"
+const VERIFICATION_SUB_TAB_QUERY_KEY = "verificationTab"
+const DEFAULT_VERIFICATION_SUB_TAB: VerificationSubTab = "resume-review"
+
+const isVerificationSubTab = (
+  value: string | null,
+): value is VerificationSubTab =>
+  value === "resume-review" || value === "skill-verification"
 
 interface ResumeVerificationGuardProps {
   children: React.ReactNode
@@ -17,8 +25,25 @@ interface ResumeVerificationGuardProps {
 const ResumeVerificationGuard = ({
   children,
 }: ResumeVerificationGuardProps) => {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [resume, setResume] = useState<ResumeFile | null>(null)
-  const [activeTab, setActiveTab] = useState<VerificationSubTab>("resume-review")
+
+  const activeTab = isVerificationSubTab(
+    searchParams.get(VERIFICATION_SUB_TAB_QUERY_KEY),
+  )
+    ? searchParams.get(VERIFICATION_SUB_TAB_QUERY_KEY)
+    : DEFAULT_VERIFICATION_SUB_TAB
+
+  const updateVerificationSubTab = useCallback(
+    (nextTab: VerificationSubTab) => {
+      const params = new URLSearchParams(searchParams.toString())
+      params.set(VERIFICATION_SUB_TAB_QUERY_KEY, nextTab)
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+    },
+    [pathname, router, searchParams],
+  )
 
   useEffect(() => {
     return () => {
@@ -34,7 +59,7 @@ const ResumeVerificationGuard = ({
     }
 
     setResume(file)
-    setActiveTab("resume-review")
+    updateVerificationSubTab("resume-review")
   }
 
   const handleResumeRemoved = () => {
@@ -43,7 +68,7 @@ const ResumeVerificationGuard = ({
     }
 
     setResume(null)
-    setActiveTab("resume-review")
+    updateVerificationSubTab("resume-review")
   }
 
   if (!resume) {
@@ -63,7 +88,7 @@ const ResumeVerificationGuard = ({
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as VerificationSubTab)}
+                onClick={() => updateVerificationSubTab(tab.id as VerificationSubTab)}
                 className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-background text-foreground shadow-sm"
@@ -92,7 +117,7 @@ const ResumeVerificationGuard = ({
                   verification workspace and evidence preview.
                 </p>
               </div>
-              <Button onClick={() => setActiveTab("skill-verification")}>
+              <Button onClick={() => updateVerificationSubTab("skill-verification")}>
                 Continue to Skill Verification
               </Button>
             </div>
