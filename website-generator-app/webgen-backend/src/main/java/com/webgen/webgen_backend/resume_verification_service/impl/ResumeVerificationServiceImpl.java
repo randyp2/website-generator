@@ -48,6 +48,8 @@ public class ResumeVerificationServiceImpl implements ResumeVerificationService 
 
         resumeVerification.setProfile(profile);
         resumeVerification.setRawFileUrl(request.getRawFileUrl());
+        resumeVerification.setRawFileBucket(request.getRawFileBucket());
+        resumeVerification.setRawFilePath(request.getRawFilePath());
         resumeVerification.setOriginalFileName(request.getOriginalFileName());
         resumeVerification.setContentType(request.getContentType());
         resumeVerification.setFileSizeBytes(request.getFileSizeBytes());
@@ -72,8 +74,12 @@ public class ResumeVerificationServiceImpl implements ResumeVerificationService 
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request body is required");
         }
 
-        if (!StringUtils.hasText(request.getRawFileUrl())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "rawFileUrl is required");
+        if (!StringUtils.hasText(request.getRawFileBucket())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "rawFileBucket is required");
+        }
+
+        if (!StringUtils.hasText(request.getRawFilePath())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "rawFilePath is required");
         }
 
         if (!StringUtils.hasText(request.getOriginalFileName())) {

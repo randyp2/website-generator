@@ -156,6 +156,8 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
             resume.setCreatedAt(OffsetDateTime.now());
         }
         resume.setRawFileUrl(req.getResumeRawFileUrl());
+        resume.setRawFileBucket(req.getResumeRawFileBucket());
+        resume.setRawFilePath(req.getResumeRawFilePath());
         resumeRepository.save(resume);
 
         // Insert assets

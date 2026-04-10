@@ -6,7 +6,7 @@ import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 
-const STORAGE_BUCKET = "portfolio_uploads";
+const STORAGE_BUCKET = "private_resumes";
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 const CONTENT_TYPE_BY_EXTENSION: Record<string, string> = {
     pdf: "application/pdf",
@@ -90,12 +90,9 @@ export const POST = async (req: Request) => {
             );
         }
 
-        const { data: publicUrlData } = adminSupabase.storage
-            .from(STORAGE_BUCKET)
-            .getPublicUrl(uploadData.path);
-
         const uploadPayload = {
-            rawFileUrl: publicUrlData.publicUrl,
+            rawFileBucket: STORAGE_BUCKET,
+            rawFilePath: uploadData.path,
             originalFileName: resumeFile.name,
             contentType,
             fileSizeBytes: resumeFile.size,
