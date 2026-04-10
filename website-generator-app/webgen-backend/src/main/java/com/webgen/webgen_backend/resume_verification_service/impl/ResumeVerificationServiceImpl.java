@@ -27,6 +27,13 @@ public class ResumeVerificationServiceImpl implements ResumeVerificationService 
     private final ResumeVerificationMapper resumeVerificationMapper;
 
     @Override
+    public ResumeVerificationDTO getResumeVerification(UUID userId) {
+        return resumeVerificationRepository.findByProfileId(userId)
+                .map(resumeVerificationMapper::toDto)
+                .orElse(null);
+    }
+
+    @Override
     public ResumeVerificationDTO uploadResumeVerification(UUID userId, UploadResumeVerificationRequestDTO request) {
         System.out.println(">>> [RESUME VERIFICATION SERVICE] entered upload resume verification serviced");
         validateRequest(request);

@@ -41,7 +41,7 @@ const ResumePreviewCard = ({
         </Button>
       </div>
 
-      {isPdf ? (
+      {isPdf && resume.url ? (
         <iframe
           src={resume.url}
           title="Resume Preview"
@@ -51,15 +51,10 @@ const ResumePreviewCard = ({
         <div className="flex h-[200px] w-full flex-col items-center justify-center rounded-lg border bg-muted">
           <FileText className="mb-3 h-16 w-16 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
-            Preview not available for DOCX files
+            {resume.url
+              ? "Preview not available for DOCX files"
+              : "Resume uploaded and stored securely"}
           </p>
-          <a
-            href={resume.url}
-            download={resume.name}
-            className="mt-2 text-sm text-primary hover:underline"
-          >
-            Download to view
-          </a>
         </div>
       )}
     </div>

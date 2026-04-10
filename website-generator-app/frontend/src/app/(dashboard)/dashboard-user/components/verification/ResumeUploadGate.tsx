@@ -1,7 +1,7 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
-import { AnimatePresence, motion } from "framer-motion"
+import { useCallback, useRef, useState } from "react"
+import { motion } from "framer-motion"
 import { FileText, Upload } from "lucide-react"
 
 import type { ResumeFile } from "./verification.types"
@@ -24,23 +24,10 @@ const isAcceptedResumeFile = (fileName: string): boolean => {
 
 const ResumeUploadGate = ({ onResumeUploaded }: ResumeUploadGateProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const uploadIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const [dragOver, setDragOver] = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState(0)
-
-  useEffect(() => {
-    return () => {
-      if (uploadIntervalRef.current) {
-        clearInterval(uploadIntervalRef.current)
-      }
-    }
-  }, [])
 
   const completeUpload = useCallback(
     (file: File, objectUrl: string) => {
-      setUploading(false)
-      setUploadProgress(0)
       onResumeUploaded({
         name: file.name,
         size: formatFileSize(file.size),
@@ -57,33 +44,8 @@ const ResumeUploadGate = ({ onResumeUploaded }: ResumeUploadGateProps) => {
         return
       }
 
-      setUploading(true)
-      setUploadProgress(0)
-
       const objectUrl = URL.createObjectURL(file)
-
-      if (uploadIntervalRef.current) {
-        clearInterval(uploadIntervalRef.current)
-      }
-
-      uploadIntervalRef.current = setInterval(() => {
-        setUploadProgress((prev) => {
-          const nextProgress = Math.min(prev + 10, 100)
-
-          if (nextProgress >= 100) {
-            if (uploadIntervalRef.current) {
-              clearInterval(uploadIntervalRef.current)
-              uploadIntervalRef.current = null
-            }
-
-            window.setTimeout(() => {
-              completeUpload(file, objectUrl)
-            }, 0)
-          }
-
-          return nextProgress
-        })
-      }, 150)
+      completeUpload(file, objectUrl)
     },
     [completeUpload],
   )
@@ -160,39 +122,6 @@ const ResumeUploadGate = ({ onResumeUploaded }: ResumeUploadGateProps) => {
           <p className="text-xs text-muted-foreground">PDF or DOCX, max 5MB</p>
         </div>
 
-        <AnimatePresence>
-          {uploading && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 flex flex-col items-center justify-center rounded-xl bg-background/95 backdrop-blur-sm"
-            >
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{
-                  duration: 1,
-                  repeat: Infinity,
-                  ease: "linear",
-                }}
-                className="mb-4 h-12 w-12 rounded-full border-4 border-primary/20 border-t-primary"
-              />
-              <p className="mb-2 text-sm font-semibold text-foreground">
-                Uploading...
-              </p>
-              <div className="h-2 w-48 overflow-hidden rounded-full bg-muted">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${uploadProgress}%` }}
-                  className="h-full bg-primary"
-                />
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                {uploadProgress}%
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     </div>
   )

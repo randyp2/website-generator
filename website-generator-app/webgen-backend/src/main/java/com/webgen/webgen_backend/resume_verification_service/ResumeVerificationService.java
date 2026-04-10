@@ -7,6 +7,7 @@ import com.webgen.webgen_backend.dto.profile.verification.UploadResumeVerificati
 import java.util.UUID;
 
 public interface ResumeVerificationService {
+    ResumeVerificationDTO getResumeVerification(UUID userId);
     ResumeVerificationDTO uploadResumeVerification(UUID userId, UploadResumeVerificationRequestDTO request);
     ResumeVerificationDTO updateParsedData(UUID userId, UpdateResumeVerificationParsedDTO request);
 }

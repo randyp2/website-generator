@@ -7,6 +7,7 @@ import com.webgen.webgen_backend.resume_verification_service.ResumeVerificationS
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,6 +22,16 @@ import java.util.UUID;
 public class ProfileResumeVerificationController {
 
     private final ResumeVerificationService resumeVerificationService;
+
+    @GetMapping
+    public ResponseEntity<ResumeVerificationDTO> getResumeVerification() {
+        UUID userId = resolveAuthenticatedUserId();
+        ResumeVerificationDTO response = resumeVerificationService.getResumeVerification(userId);
+        if (response == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(response);
+    }
 
     @PostMapping("/upload")
     public ResponseEntity<ResumeVerificationDTO> uploadResumeForVerification(

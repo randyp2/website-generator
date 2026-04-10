@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,9 @@ const ResumeVerificationGuard = ({
     const [parsingError, setParsingError] = useState<string | null>(null);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [parsedResumeData, setParsedResumeData] = useState<any>(null);
+    const [isLoadingExisting, setIsLoadingExisting] = useState(true);
+    const [hasPersistedVerification, setHasPersistedVerification] =
+        useState(false);
 
     const activeTab = isVerificationSubTab(
         searchParams.get(VERIFICATION_SUB_TAB_QUERY_KEY),
@@ -56,13 +59,63 @@ const ResumeVerificationGuard = ({
         [pathname, router, searchParams],
     );
 
+    // Revoke blob URL only on unmount, not on every resume change
+    const resumeUrlRef = useRef(resume?.url);
+    resumeUrlRef.current = resume?.url;
     useEffect(() => {
         return () => {
-            if (resume?.url) {
-                URL.revokeObjectURL(resume.url);
+            if (resumeUrlRef.current) {
+                URL.revokeObjectURL(resumeUrlRef.current);
             }
         };
-    }, [resume]);
+    }, []);
+
+    // Load existing resume verification on mount
+    useEffect(() => {
+        const loadExisting = async () => {
+            try {
+                const response = await fetch(
+                    "/api/profile/resume-verification",
+                );
+
+                if (!response.ok) {
+                    setIsLoadingExisting(false);
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (!data) {
+                    setIsLoadingExisting(false);
+                    return;
+                }
+
+                // Hydrate state from persisted data
+                setHasPersistedVerification(true);
+                setResume({
+                    name: data.originalFileName ?? "Resume",
+                    size: data.fileSizeBytes
+                        ? `${(data.fileSizeBytes / 1024).toFixed(1)} KB`
+                        : "",
+                    url: "",
+                    file: new File([], data.originalFileName ?? "Resume"),
+                });
+
+                if (data.parsedJson) {
+                    setParsedResumeData(data.parsedJson);
+                }
+            } catch (error) {
+                console.error(
+                    "Failed to load existing resume verification:",
+                    error,
+                );
+            } finally {
+                setIsLoadingExisting(false);
+            }
+        };
+
+        loadExisting();
+    }, []);
 
     const handleResumeUploaded = (file: ResumeFile) => {
         if (resume?.url) {
@@ -141,6 +194,12 @@ const ResumeVerificationGuard = ({
             return;
         }
 
+        // If we already have persisted verification data, skip upload
+        if (hasPersistedVerification) {
+            updateVerificationSubTab("skill-review");
+            return;
+        }
+
         setIsUploadingResume(true);
         setUploadError(null);
 
@@ -176,6 +235,8 @@ const ResumeVerificationGuard = ({
                 throw new Error(errorMessage);
             }
 
+            setHasPersistedVerification(true);
+
             // Navigate to skill review and start parsing
             updateVerificationSubTab("skill-review");
             parseAndPersist(resume.file);
@@ -188,7 +249,15 @@ const ResumeVerificationGuard = ({
         } finally {
             setIsUploadingResume(false);
         }
-    }, [resume, updateVerificationSubTab, parseAndPersist]);
+    }, [resume, hasPersistedVerification, updateVerificationSubTab, parseAndPersist]);
+
+    if (isLoadingExisting) {
+        return (
+            <div className="flex items-center justify-center py-16">
+                <p className="text-sm text-muted-foreground">Loading...</p>
+            </div>
+        );
+    }
 
     if (!resume) {
         return <ResumeUploadGate onResumeUploaded={handleResumeUploaded} />;
@@ -196,8 +265,7 @@ const ResumeVerificationGuard = ({
 
     return (
         <div className="space-y-8">
-            {activeTab !== "resume-review" ? (
-                <div className="flex w-fit gap-1 rounded-lg bg-muted p-1">
+            <div className="flex w-fit gap-1 rounded-lg bg-muted p-1">
                     {[
                         { id: "resume-review", label: "Resume Review" },
                         { id: "skill-review", label: "Skill Review" },
@@ -227,7 +295,6 @@ const ResumeVerificationGuard = ({
                         );
                     })}
                 </div>
-            ) : null}
 
             {activeTab === "resume-review" ? (
                 <div className="space-y-8">
