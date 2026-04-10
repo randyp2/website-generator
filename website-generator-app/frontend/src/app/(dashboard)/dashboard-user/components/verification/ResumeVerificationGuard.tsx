@@ -8,15 +8,18 @@ import { Button } from "@/components/ui/button";
 import type { ResumeFile } from "./verification.types";
 import ResumePreviewCard from "./ResumePreviewCard";
 import ResumeUploadGate from "./ResumeUploadGate";
+import SkillReviewPanel from "./SkillReviewPanel";
 
-type VerificationSubTab = "resume-review" | "skill-verification";
+type VerificationSubTab = "resume-review" | "skill-review" | "skill-verification";
 const VERIFICATION_SUB_TAB_QUERY_KEY = "verificationTab";
 const DEFAULT_VERIFICATION_SUB_TAB: VerificationSubTab = "resume-review";
 
 const isVerificationSubTab = (
     value: string | null,
 ): value is VerificationSubTab =>
-    value === "resume-review" || value === "skill-verification";
+    value === "resume-review" ||
+    value === "skill-review" ||
+    value === "skill-verification";
 
 interface ResumeVerificationGuardProps {
     children: React.ReactNode;
@@ -31,6 +34,10 @@ const ResumeVerificationGuard = ({
     const [resume, setResume] = useState<ResumeFile | null>(null);
     const [isUploadingResume, setIsUploadingResume] = useState(false);
     const [uploadError, setUploadError] = useState<string | null>(null);
+    const [isParsingResume, setIsParsingResume] = useState(false);
+    const [parsingError, setParsingError] = useState<string | null>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [parsedResumeData, setParsedResumeData] = useState<any>(null);
 
     const activeTab = isVerificationSubTab(
         searchParams.get(VERIFICATION_SUB_TAB_QUERY_KEY),
@@ -77,6 +84,58 @@ const ResumeVerificationGuard = ({
         updateVerificationSubTab("resume-review");
     };
 
+    const parseAndPersist = useCallback(
+        async (file: File) => {
+            setIsParsingResume(true);
+            setParsingError(null);
+            setParsedResumeData(null);
+
+            try {
+                const formData = new FormData();
+                formData.append("file", file);
+
+                const parseResponse = await fetch(
+                    "/api/resume/parse?llmFallback=false",
+                    {
+                        method: "POST",
+                        body: formData,
+                    },
+                );
+
+                if (!parseResponse.ok) {
+                    throw new Error("Failed to parse resume");
+                }
+
+                const parseData = await parseResponse.json();
+
+                if (parseData.success && parseData.data) {
+                    setParsedResumeData(parseData.data);
+
+                    await fetch("/api/profile/resume-verification/parsed", {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            extractedText:
+                                parseData.data.normalizedText ?? null,
+                            parsedJson: parseData.data,
+                        }),
+                    });
+                }
+            } catch (error) {
+                console.error(
+                    "Resume verification parsing failed:",
+                    error,
+                );
+                setParsingError(
+                    "Failed to parse resume. You can add skills manually.",
+                );
+            } finally {
+                setIsParsingResume(false);
+            }
+        },
+        [],
+    );
+
     const handleContinueToSkillVerification = useCallback(async () => {
         if (!resume) {
             return;
@@ -89,10 +148,6 @@ const ResumeVerificationGuard = ({
             const formData = new FormData();
             formData.append("file", resume.file);
 
-            // const response = await fetch(
-            //     "/api/profile/resume-verification/test",
-            // );
-            // if (response.ok) alert("PING");
             const response = await fetch(
                 "/api/profile/resume-verification/upload",
                 {
@@ -121,7 +176,9 @@ const ResumeVerificationGuard = ({
                 throw new Error(errorMessage);
             }
 
-            updateVerificationSubTab("skill-verification");
+            // Navigate to skill review and start parsing
+            updateVerificationSubTab("skill-review");
+            parseAndPersist(resume.file);
         } catch (error) {
             const message =
                 error instanceof Error
@@ -131,7 +188,7 @@ const ResumeVerificationGuard = ({
         } finally {
             setIsUploadingResume(false);
         }
-    }, [resume, updateVerificationSubTab]);
+    }, [resume, updateVerificationSubTab, parseAndPersist]);
 
     if (!resume) {
         return <ResumeUploadGate onResumeUploaded={handleResumeUploaded} />;
@@ -139,10 +196,11 @@ const ResumeVerificationGuard = ({
 
     return (
         <div className="space-y-8">
-            {activeTab === "skill-verification" ? (
+            {activeTab !== "resume-review" ? (
                 <div className="flex w-fit gap-1 rounded-lg bg-muted p-1">
                     {[
                         { id: "resume-review", label: "Resume Review" },
+                        { id: "skill-review", label: "Skill Review" },
                         {
                             id: "skill-verification",
                             label: "Skill Verification",
@@ -208,6 +266,17 @@ const ResumeVerificationGuard = ({
                         </div>
                     </div>
                 </div>
+            ) : null}
+
+            {activeTab === "skill-review" ? (
+                <SkillReviewPanel
+                    parsedData={parsedResumeData}
+                    isLoading={isParsingResume}
+                    parsingError={parsingError}
+                    onConfirm={() => {
+                        updateVerificationSubTab("skill-verification");
+                    }}
+                />
             ) : null}
 
             {activeTab === "skill-verification" ? children : null}

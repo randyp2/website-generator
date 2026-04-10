@@ -1,11 +1,13 @@
 package com.webgen.webgen_backend.controller.profile;
 
 import com.webgen.webgen_backend.dto.profile.verification.ResumeVerificationDTO;
+import com.webgen.webgen_backend.dto.profile.verification.UpdateResumeVerificationParsedDTO;
 import com.webgen.webgen_backend.dto.profile.verification.UploadResumeVerificationRequestDTO;
 import com.webgen.webgen_backend.resume_verification_service.ResumeVerificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,6 +28,15 @@ public class ProfileResumeVerificationController {
     ) {
         UUID userId = resolveAuthenticatedUserId();
         ResumeVerificationDTO response = resumeVerificationService.uploadResumeVerification(userId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/parsed")
+    public ResponseEntity<ResumeVerificationDTO> updateParsedData(
+            @RequestBody UpdateResumeVerificationParsedDTO request
+    ) {
+        UUID userId = resolveAuthenticatedUserId();
+        ResumeVerificationDTO response = resumeVerificationService.updateParsedData(userId, request);
         return ResponseEntity.ok(response);
     }
 

@@ -1,6 +1,7 @@
 package com.webgen.webgen_backend.resume_verification_service.impl;
 
 import com.webgen.webgen_backend.dto.profile.verification.ResumeVerificationDTO;
+import com.webgen.webgen_backend.dto.profile.verification.UpdateResumeVerificationParsedDTO;
 import com.webgen.webgen_backend.dto.profile.verification.UploadResumeVerificationRequestDTO;
 import com.webgen.webgen_backend.entity.Profile;
 import com.webgen.webgen_backend.entity.ResumeVerification;
@@ -57,6 +58,19 @@ public class ResumeVerificationServiceImpl implements ResumeVerificationService 
 
         ResumeVerification saved = resumeVerificationRepository.save(resumeVerification);
         System.out.println(">>> [RESUME VERIFICATION SERVICE] successfully saved");
+        return resumeVerificationMapper.toDto(saved);
+    }
+
+    @Override
+    public ResumeVerificationDTO updateParsedData(UUID userId, UpdateResumeVerificationParsedDTO request) {
+        ResumeVerification resumeVerification = resumeVerificationRepository.findByProfileId(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No resume verification found for this user"));
+
+        resumeVerification.setExtractedText(request.getExtractedText());
+        resumeVerification.setParsedJson(request.getParsedJson());
+        resumeVerification.setUpdatedAt(OffsetDateTime.now());
+
+        ResumeVerification saved = resumeVerificationRepository.save(resumeVerification);
         return resumeVerificationMapper.toDto(saved);
     }
 
