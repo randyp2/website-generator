@@ -26,7 +26,7 @@ export const POST = async (req: Request) => {
             );
         }
 
-        const lastDotIndex = resumeFile.name.lastIndexOf(".");
+        const lastDotIndex: number = resumeFile.name.lastIndexOf(".");
         const extension =
             lastDotIndex >= 0 && lastDotIndex < resumeFile.name.length - 1
                 ? resumeFile.name.slice(lastDotIndex + 1).toLowerCase()
