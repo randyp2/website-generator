@@ -1,269 +1,59 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-
 import { Button } from "@/components/ui/button";
 
-import type { ResumeFile } from "./verification.types";
 import ResumePreviewCard from "./ResumePreviewCard";
 import ResumeUploadGate from "./ResumeUploadGate";
 import SkillReviewPanel from "./SkillReviewPanel";
+import useResumeVerification from "./useResumeVerification";
+import useVerificationSubTab from "./useVerificationSubTab";
+import type { VerificationSubTab } from "./useVerificationSubTab";
 
-type VerificationSubTab = "resume-review" | "skill-review" | "skill-verification";
-const VERIFICATION_SUB_TAB_QUERY_KEY = "verificationTab";
-const DEFAULT_VERIFICATION_SUB_TAB: VerificationSubTab = "resume-review";
+// ─── Sub-tab definitions ─────────────────────────────────────────────
 
-const isVerificationSubTab = (
-    value: string | null,
-): value is VerificationSubTab =>
-    value === "resume-review" ||
-    value === "skill-review" ||
-    value === "skill-verification";
+const SUB_TABS: { id: VerificationSubTab; label: string }[] = [
+    { id: "resume-review", label: "Resume Review" },
+    { id: "skill-review", label: "Skill Review" },
+    { id: "skill-verification", label: "Skill Verification" },
+];
+
+// ─── Component ───────────────────────────────────────────────────────
 
 interface ResumeVerificationGuardProps {
     children: React.ReactNode;
 }
 
+/**
+ * Top-level orchestrator for the verification sub-tab.
+ *
+ * Renders one of three states:
+ * 1. **Loading** — while hydrating an existing verification from the backend.
+ * 2. **Upload gate** — when no resume is present (first visit).
+ * 3. **Sub-tab workspace** — once a resume is loaded, shows a tab bar with
+ *    Resume Review / Skill Review / Skill Verification panels.
+ *
+ * All state management lives in `useResumeVerification`; tab routing
+ * lives in `useVerificationSubTab`. This component is purely presentational.
+ */
 const ResumeVerificationGuard = ({
     children,
 }: ResumeVerificationGuardProps) => {
-    const router = useRouter();
-    const pathname = usePathname();
-    const searchParams = useSearchParams();
-    const [resume, setResume] = useState<ResumeFile | null>(null);
-    const [isUploadingResume, setIsUploadingResume] = useState(false);
-    const [uploadError, setUploadError] = useState<string | null>(null);
-    const [isParsingResume, setIsParsingResume] = useState(false);
-    const [parsingError, setParsingError] = useState<string | null>(null);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [parsedResumeData, setParsedResumeData] = useState<any>(null);
-    const [isLoadingExisting, setIsLoadingExisting] = useState(true);
-    const [hasPersistedVerification, setHasPersistedVerification] =
-        useState(false);
+    const { activeTab, setActiveTab } = useVerificationSubTab();
 
-    const activeTab = isVerificationSubTab(
-        searchParams.get(VERIFICATION_SUB_TAB_QUERY_KEY),
-    )
-        ? searchParams.get(VERIFICATION_SUB_TAB_QUERY_KEY)
-        : DEFAULT_VERIFICATION_SUB_TAB;
+    const {
+        resume,
+        isUploading,
+        uploadError,
+        isParsing,
+        parsingError,
+        parsedData,
+        isLoadingExisting,
+        handleResumeUploaded,
+        handleResumeRemoved,
+        handleContinueToSkillVerification,
+    } = useResumeVerification(setActiveTab);
 
-    const updateVerificationSubTab = useCallback(
-        (nextTab: VerificationSubTab) => {
-            const params = new URLSearchParams(searchParams.toString());
-            params.set(VERIFICATION_SUB_TAB_QUERY_KEY, nextTab);
-            router.replace(`${pathname}?${params.toString()}`, {
-                scroll: false,
-            });
-        },
-        [pathname, router, searchParams],
-    );
-
-    // Revoke blob URL only on unmount, not on every resume change
-    const resumeUrlRef = useRef(resume?.url);
-    resumeUrlRef.current = resume?.url;
-    useEffect(() => {
-        return () => {
-            if (resumeUrlRef.current) {
-                URL.revokeObjectURL(resumeUrlRef.current);
-            }
-        };
-    }, []);
-
-    // Load existing resume verification on mount
-    useEffect(() => {
-        const loadExisting = async () => {
-            try {
-                const response = await fetch(
-                    "/api/profile/resume-verification",
-                );
-
-                if (!response.ok) {
-                    setIsLoadingExisting(false);
-                    return;
-                }
-
-                const data = await response.json();
-
-                if (!data) {
-                    setIsLoadingExisting(false);
-                    return;
-                }
-
-                // Hydrate state from persisted data
-                setHasPersistedVerification(true);
-                setResume({
-                    name: data.originalFileName ?? "Resume",
-                    size: data.fileSizeBytes
-                        ? `${(data.fileSizeBytes / 1024).toFixed(1)} KB`
-                        : "",
-                    url: "",
-                    file: new File([], data.originalFileName ?? "Resume"),
-                });
-
-                if (data.parsedJson) {
-                    setParsedResumeData(data.parsedJson);
-                }
-            } catch (error) {
-                console.error(
-                    "Failed to load existing resume verification:",
-                    error,
-                );
-            } finally {
-                setIsLoadingExisting(false);
-            }
-        };
-
-        loadExisting();
-    }, []);
-
-    const handleResumeUploaded = (file: ResumeFile) => {
-        if (resume?.url) {
-            URL.revokeObjectURL(resume.url);
-        }
-
-        setResume(file);
-        setUploadError(null);
-        updateVerificationSubTab("resume-review");
-    };
-
-    const handleResumeRemoved = async () => {
-        if (resume?.url) {
-            URL.revokeObjectURL(resume.url);
-        }
-
-        // Delete from DB + storage if persisted
-        if (hasPersistedVerification) {
-            try {
-                await fetch("/api/profile/resume-verification", {
-                    method: "DELETE",
-                });
-            } catch (error) {
-                console.error("Failed to delete resume verification:", error);
-            }
-        }
-
-        setResume(null);
-        setParsedResumeData(null);
-        setParsingError(null);
-        setHasPersistedVerification(false);
-        setUploadError(null);
-        updateVerificationSubTab("resume-review");
-    };
-
-    const parseAndPersist = useCallback(
-        async (file: File) => {
-            setIsParsingResume(true);
-            setParsingError(null);
-            setParsedResumeData(null);
-
-            try {
-                const formData = new FormData();
-                formData.append("file", file);
-
-                const parseResponse = await fetch(
-                    "/api/resume/parse?llmFallback=false",
-                    {
-                        method: "POST",
-                        body: formData,
-                    },
-                );
-
-                if (!parseResponse.ok) {
-                    throw new Error("Failed to parse resume");
-                }
-
-                const parseData = await parseResponse.json();
-
-                if (parseData.success && parseData.data) {
-                    setParsedResumeData(parseData.data);
-
-                    await fetch("/api/profile/resume-verification/parsed", {
-                        method: "PATCH",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            extractedText:
-                                parseData.data.normalizedText ?? null,
-                            parsedJson: parseData.data,
-                        }),
-                    });
-                }
-            } catch (error) {
-                console.error(
-                    "Resume verification parsing failed:",
-                    error,
-                );
-                setParsingError(
-                    "Failed to parse resume. You can add skills manually.",
-                );
-            } finally {
-                setIsParsingResume(false);
-            }
-        },
-        [],
-    );
-
-    const handleContinueToSkillVerification = useCallback(async () => {
-        if (!resume) {
-            return;
-        }
-
-        // If we already have persisted verification data, skip upload
-        if (hasPersistedVerification) {
-            updateVerificationSubTab("skill-review");
-            return;
-        }
-
-        setIsUploadingResume(true);
-        setUploadError(null);
-
-        try {
-            const formData = new FormData();
-            formData.append("file", resume.file);
-
-            const response = await fetch(
-                "/api/profile/resume-verification/upload",
-                {
-                    method: "POST",
-                    body: formData,
-                },
-            );
-
-            if (!response.ok) {
-                let errorMessage = "Failed to upload resume for verification";
-
-                try {
-                    const errorBody = await response.json();
-                    if (
-                        errorBody &&
-                        typeof errorBody === "object" &&
-                        "error" in errorBody &&
-                        typeof errorBody.error === "string"
-                    ) {
-                        errorMessage = errorBody.error;
-                    }
-                } catch {
-                    // Fall back to default error message.
-                }
-
-                throw new Error(errorMessage);
-            }
-
-            setHasPersistedVerification(true);
-
-            // Navigate to skill review and start parsing
-            updateVerificationSubTab("skill-review");
-            parseAndPersist(resume.file);
-        } catch (error) {
-            const message =
-                error instanceof Error
-                    ? error.message
-                    : "Failed to upload resume for verification";
-            setUploadError(message);
-        } finally {
-            setIsUploadingResume(false);
-        }
-    }, [resume, hasPersistedVerification, updateVerificationSubTab, parseAndPersist]);
+    // ── Loading spinner while hydrating existing data ────────────────
 
     if (isLoadingExisting) {
         return (
@@ -273,44 +63,38 @@ const ResumeVerificationGuard = ({
         );
     }
 
+    // ── No resume yet — show drag-and-drop upload gate ──────────────
+
     if (!resume) {
         return <ResumeUploadGate onResumeUploaded={handleResumeUploaded} />;
     }
 
+    // ── Resume present — render the three-step sub-tab workspace ────
+
     return (
         <div className="space-y-8">
+            {/* Sub-tab bar */}
             <div className="flex w-fit gap-1 rounded-lg bg-muted p-1">
-                    {[
-                        { id: "resume-review", label: "Resume Review" },
-                        { id: "skill-review", label: "Skill Review" },
-                        {
-                            id: "skill-verification",
-                            label: "Skill Verification",
-                        },
-                    ].map((tab) => {
-                        const isActive = activeTab === tab.id;
+                {SUB_TABS.map((tab) => {
+                    const isActive = activeTab === tab.id;
+                    return (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+                                isActive
+                                    ? "bg-background text-foreground shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground"
+                            }`}
+                        >
+                            {tab.label}
+                        </button>
+                    );
+                })}
+            </div>
 
-                        return (
-                            <button
-                                key={tab.id}
-                                onClick={() =>
-                                    updateVerificationSubTab(
-                                        tab.id as VerificationSubTab,
-                                    )
-                                }
-                                className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
-                                    isActive
-                                        ? "bg-background text-foreground shadow-sm"
-                                        : "text-muted-foreground hover:text-foreground"
-                                }`}
-                            >
-                                {tab.label}
-                            </button>
-                        );
-                    })}
-                </div>
-
-            {activeTab === "resume-review" ? (
+            {/* Step 1 — Review the uploaded resume and continue to parsing */}
+            {activeTab === "resume-review" && (
                 <div className="space-y-8">
                     <ResumePreviewCard
                         resume={resume}
@@ -331,36 +115,38 @@ const ResumeVerificationGuard = ({
                             </div>
                             <div className="flex flex-col items-end gap-2">
                                 <Button
-                                    onClick={handleContinueToSkillVerification}
-                                    disabled={isUploadingResume}
+                                    onClick={
+                                        handleContinueToSkillVerification
+                                    }
+                                    disabled={isUploading}
                                 >
-                                    {isUploadingResume
+                                    {isUploading
                                         ? "Uploading resume..."
                                         : "Continue to Skill Verification"}
                                 </Button>
-                                {uploadError ? (
+                                {uploadError && (
                                     <p className="max-w-xs text-right text-xs text-destructive">
                                         {uploadError}
                                     </p>
-                                ) : null}
+                                )}
                             </div>
                         </div>
                     </div>
                 </div>
-            ) : null}
+            )}
 
-            {activeTab === "skill-review" ? (
+            {/* Step 2 — Review / edit extracted skills before verification */}
+            {activeTab === "skill-review" && (
                 <SkillReviewPanel
-                    parsedData={parsedResumeData}
-                    isLoading={isParsingResume}
+                    parsedData={parsedData}
+                    isLoading={isParsing}
                     parsingError={parsingError}
-                    onConfirm={() => {
-                        updateVerificationSubTab("skill-verification");
-                    }}
+                    onConfirm={() => setActiveTab("skill-verification")}
                 />
-            ) : null}
+            )}
 
-            {activeTab === "skill-verification" ? children : null}
+            {/* Step 3 — The actual verification UI (passed as children) */}
+            {activeTab === "skill-verification" && children}
         </div>
     );
 };

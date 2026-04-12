@@ -5,26 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FiPlus, FiX, FiLoader } from "react-icons/fi";
 
-interface ParsedResumeData {
-    normalizedText?: string;
-    skills?: string[];
-    experiences?: {
-        title?: string;
-        company?: string;
-        startDate?: string;
-        endDate?: string;
-        location?: string;
-        bullets?: string[];
-    }[];
-    confidenceScore?: number;
-    parsingMethod?: string;
-}
+import type { ParsedResumeData, ParsedExperience } from "@/types/resume";
 
 interface SkillReviewPanelProps {
     parsedData: ParsedResumeData | null;
     isLoading: boolean;
     parsingError: string | null;
-    onConfirm: (skills: string[], experiences: ParsedResumeData["experiences"]) => void;
+    onConfirm: (skills: string[], experiences: ParsedExperience[]) => void;
 }
 
 const SkillReviewPanel = ({
