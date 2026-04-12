@@ -50,7 +50,6 @@ export interface UpdateResumeBody {
 export interface ResumeDTO {
   id: string;
   portfolioId: string;
-  rawFileUrl: string | null;
   extractedText: string | null;
   parsedJson: ParsedResumeData | null;
   createdAt: string;
