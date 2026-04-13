@@ -13,6 +13,9 @@ interface ResumeVerificationState {
     /** The locally-selected or hydrated resume file. `null` = upload gate. */
     resume: ResumeFile | null;
 
+    /** The backend row ID — needed for claim ingestion. */
+    resumeVerificationId: string | null;
+
     /** True while the file is being uploaded to Supabase storage + backend. */
     isUploading: boolean;
     uploadError: string | null;
@@ -29,6 +32,10 @@ interface ResumeVerificationState {
 
     /** Whether a verification row already exists in the backend. */
     hasPersisted: boolean;
+
+    /** True while skill claims are being ingested. */
+    isIngesting: boolean;
+    ingestError: string | null;
 }
 
 // ─── Hook ────────────────────────────────────────────────────────────
@@ -51,6 +58,7 @@ const useResumeVerification = (
 ) => {
     const [state, setState] = useState<ResumeVerificationState>({
         resume: null,
+        resumeVerificationId: null,
         isUploading: false,
         uploadError: null,
         isParsing: false,
@@ -58,6 +66,8 @@ const useResumeVerification = (
         parsedData: null,
         isLoadingExisting: true,
         hasPersisted: false,
+        isIngesting: false,
+        ingestError: null,
     });
 
     // Keep a ref to the current blob URL so we can revoke it on unmount
@@ -85,6 +95,7 @@ const useResumeVerification = (
                 setState((prev) => ({
                     ...prev,
                     hasPersisted: true,
+                    resumeVerificationId: data.id ?? null,
                     resume: {
                         name: data.originalFileName ?? "Resume",
                         size: data.fileSizeBytes
@@ -142,10 +153,12 @@ const useResumeVerification = (
         setState((prev) => ({
             ...prev,
             resume: null,
+            resumeVerificationId: null,
             parsedData: null,
             parsingError: null,
             hasPersisted: false,
             uploadError: null,
+            ingestError: null,
         }));
         setActiveTab("resume-review");
     }, [state.resume?.url, state.hasPersisted, setActiveTab]);
@@ -240,7 +253,12 @@ const useResumeVerification = (
                 throw new Error(message);
             }
 
-            setState((prev) => ({ ...prev, hasPersisted: true }));
+            const uploadData = await res.json();
+            setState((prev) => ({
+                ...prev,
+                hasPersisted: true,
+                resumeVerificationId: uploadData.id ?? null,
+            }));
 
             // Navigate first so the user sees progress, then parse.
             setActiveTab("skill-review");
@@ -256,11 +274,61 @@ const useResumeVerification = (
         }
     }, [state.resume, state.hasPersisted, setActiveTab, parseAndPersist]);
 
+    /**
+     * Called when the user confirms their reviewed skill list.
+     * Sends the final skills to the ingestion endpoint, then navigates
+     * to the skill-verification tab.
+     */
+    const handleConfirmSkills = useCallback(
+        async (skills: string[]) => {
+            if (!state.resumeVerificationId) return;
+
+            setState((prev) => ({
+                ...prev,
+                isIngesting: true,
+                ingestError: null,
+            }));
+
+            try {
+                const res = await fetch(
+                    "/api/profile/resume-verification/claims/ingest",
+                    {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            resumeVerificationId: state.resumeVerificationId,
+                            skills,
+                        }),
+                    },
+                );
+
+                if (!res.ok) {
+                    throw new Error("Failed to ingest skill claims");
+                }
+
+                setActiveTab("skill-verification");
+            } catch (error) {
+                console.error("Claim ingestion failed:", error);
+                setState((prev) => ({
+                    ...prev,
+                    ingestError:
+                        error instanceof Error
+                            ? error.message
+                            : "Failed to ingest skill claims",
+                }));
+            } finally {
+                setState((prev) => ({ ...prev, isIngesting: false }));
+            }
+        },
+        [state.resumeVerificationId, setActiveTab],
+    );
+
     return {
         ...state,
         handleResumeUploaded,
         handleResumeRemoved,
         handleContinueToSkillVerification,
+        handleConfirmSkills,
     } as const;
 };
 

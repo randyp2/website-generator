@@ -48,9 +48,12 @@ const ResumeVerificationGuard = ({
         parsingError,
         parsedData,
         isLoadingExisting,
+        isIngesting,
+        ingestError,
         handleResumeUploaded,
         handleResumeRemoved,
         handleContinueToSkillVerification,
+        handleConfirmSkills,
     } = useResumeVerification(setActiveTab);
 
     // ── Loading spinner while hydrating existing data ────────────────
@@ -141,7 +144,9 @@ const ResumeVerificationGuard = ({
                     parsedData={parsedData}
                     isLoading={isParsing}
                     parsingError={parsingError}
-                    onConfirm={() => setActiveTab("skill-verification")}
+                    isIngesting={isIngesting}
+                    ingestError={ingestError}
+                    onConfirm={(skills) => handleConfirmSkills(skills)}
                 />
             )}
 

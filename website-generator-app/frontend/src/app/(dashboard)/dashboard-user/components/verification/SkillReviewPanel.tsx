@@ -11,13 +11,17 @@ interface SkillReviewPanelProps {
     parsedData: ParsedResumeData | null;
     isLoading: boolean;
     parsingError: string | null;
-    onConfirm: (skills: string[], experiences: ParsedExperience[]) => void;
+    isIngesting: boolean;
+    ingestError: string | null;
+    onConfirm: (skills: string[]) => void;
 }
 
 const SkillReviewPanel = ({
     parsedData,
     isLoading,
     parsingError,
+    isIngesting,
+    ingestError,
     onConfirm,
 }: SkillReviewPanelProps) => {
     const [skills, setSkills] = useState<string[]>(parsedData?.skills ?? []);
@@ -202,12 +206,21 @@ const SkillReviewPanel = ({
                             verification process.
                         </p>
                     </div>
-                    <Button
-                        onClick={() => onConfirm(skills, experiences)}
-                        disabled={skills.length === 0}
-                    >
-                        Confirm &amp; Start Verification
-                    </Button>
+                    <div className="flex flex-col items-end gap-2">
+                        <Button
+                            onClick={() => onConfirm(skills)}
+                            disabled={skills.length === 0 || isIngesting}
+                        >
+                            {isIngesting
+                                ? "Saving skills..."
+                                : "Confirm & Start Verification"}
+                        </Button>
+                        {ingestError && (
+                            <p className="max-w-xs text-right text-xs text-destructive">
+                                {ingestError}
+                            </p>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
