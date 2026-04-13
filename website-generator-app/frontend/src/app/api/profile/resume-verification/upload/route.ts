@@ -111,8 +111,8 @@ export const POST = async (req: Request) => {
             );
         }
 
-        const backendUrl = getBackendUrl();
-        const response = await fetch(
+        const backendUrl: string = getBackendUrl();
+        const response: Response = await fetch(
             `${backendUrl}/api/v1/profile/resume-verification/upload`,
             {
                 method: "POST",
