@@ -41,12 +41,24 @@ public class ClaimIngestionServiceImpl implements ClaimIngestionService {
     @Transactional
     public int ingestSkillClaims(UUID profileId, UUID resumeVerificationId, List<String> rawSkills) {
 
-        // --- Check for row instance existence
+        // --- Validate inputs
+        if (resumeVerificationId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "resumeVerificationId is required");
+        }
+        if (rawSkills == null || rawSkills.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "skills list cannot be empty");
+        }
+
         Profile profile = profileRepository.findById(profileId)
-                .orElseThrow(() -> new IllegalArgumentException("Profile not found: " + profileId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile not found"));
 
         ResumeVerification resumeVerification = resumeVerificationRepository.findById(resumeVerificationId)
-                .orElseThrow(() -> new IllegalArgumentException("Resume to verify not found: " + resumeVerificationId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resume verification not found"));
+
+        // Ownership check: resume verification must belong to this user
+        if (!resumeVerification.getProfile().getId().equals(profileId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Resume verification does not belong to this user");
+        }
 
         // --- Ingest the raw skills into the claims table
         System.out.println(">>> [CLAIM INGESTION] Starting ingestion of " + rawSkills.size() + " raw skills");
@@ -147,6 +159,11 @@ public class ClaimIngestionServiceImpl implements ClaimIngestionService {
 
         ResumeVerification resumeVerification = resumeVerificationRepository.findById(resumeVerificationId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resume verification not found"));
+
+        // Ownership check: resume verification must belong to this user
+        if (!resumeVerification.getProfile().getId().equals(profileId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Resume verification does not belong to this user");
+        }
 
         UUID canonicalSkillId = resolveCanonicalSkillId(trimmed);
         OffsetDateTime now = OffsetDateTime.now();
