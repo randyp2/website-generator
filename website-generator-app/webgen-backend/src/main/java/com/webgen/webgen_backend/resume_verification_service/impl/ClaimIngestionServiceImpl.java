@@ -15,9 +15,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -54,8 +56,15 @@ public class ClaimIngestionServiceImpl implements ClaimIngestionService {
             String trimmed = rawSkill.trim();
             if (trimmed.isEmpty()) continue;
 
+            // Pre-normalize: expand "Languages: React/Redux (Hooks)" into
+            // individual candidates like ["React", "Redux", "Hooks"]
+            List<String> candidates = normalizeAndSplit(trimmed);
+            System.out.println(">>>   [NORMALIZE] \"" + trimmed + "\" -> " + candidates);
+
+            for (String candidate : candidates) {
+
             // Resolve the skill
-            UUID canonicalSkillId = resolveCanonicalSkillId(trimmed);
+            UUID canonicalSkillId = resolveCanonicalSkillId(candidate);
             if (canonicalSkillId != null) {
                 matched++;
             } else {
@@ -64,7 +73,7 @@ public class ClaimIngestionServiceImpl implements ClaimIngestionService {
 
             // Check if the user already has a skill claim with raw_value
             Optional<Claim> existingClaim = claimRepository
-                    .findSkillClaimByProfileAndRawValue(profileId, trimmed);
+                    .findSkillClaimByProfileAndRawValue(profileId, candidate);
 
             OffsetDateTime now = OffsetDateTime.now();
 
@@ -82,7 +91,7 @@ public class ClaimIngestionServiceImpl implements ClaimIngestionService {
                         .profile(profile)
                         .resumeVerification(resumeVerification)
                         .claimType("skill")
-                        .rawValue(trimmed)
+                        .rawValue(candidate)
                         .canonicalSkillId(canonicalSkillId)
                         .source("resume")
                         .confidence(null)
@@ -95,6 +104,8 @@ public class ClaimIngestionServiceImpl implements ClaimIngestionService {
                 claimRepository.save(claim);
             }
             upserted++;
+
+            } 
         }
 
         System.out.println(">>> [CLAIM INGESTION] Complete: " + upserted + " claims upserted, "
@@ -103,6 +114,100 @@ public class ClaimIngestionServiceImpl implements ClaimIngestionService {
         return upserted;
     }
 
+
+    // ── Pre-normalization ──────────────────────────────────────────────
+
+    /** Label prefixes like "Languages:", "Frameworks:", "Tools:" etc. */
+    private static final Pattern LABEL_PREFIX = Pattern.compile("^[A-Za-z &/]+:\\s*");
+
+    /** Trailing punctuation that isn't part of a skill name. */
+    private static final Pattern TRAILING_PUNCT = Pattern.compile("[.,;:!?]+$");
+
+    /**
+     * Known compound terms that should NOT be split on "/".
+     * Checked case-insensitively.
+     */
+    private static final List<String> SLASH_COMPOUNDS = List.of(
+            "CI/CD", "SSL/TLS", "TCP/IP", "HTML/CSS", "FP&A",
+            "OS/2", "I/O", "R&D", "S/4HANA", "A/R", "A/P", "G/L"
+    );
+
+    /**
+     * Pre-normalizes a raw skill string into one or more clean candidates.
+     *
+     * Steps:
+     *   1. Strip label prefix  ("Languages: React" -> "React")
+     *   2. Strip trailing punctuation ("Python." -> "Python")
+     *   3. Extract parenthetical items as separate candidates
+     *      ("Node.js (Express)" -> ["Node.js", "Express"])
+     *   4. Split on "/" unless it's a known compound
+     *      ("React/Redux" -> ["React", "Redux"])
+     *      ("CI/CD" -> ["CI/CD"])
+     */
+    private List<String> normalizeAndSplit(String raw) {
+        List<String> results = new ArrayList<>();
+
+        // 1. Strip label prefix
+        String cleaned = LABEL_PREFIX.matcher(raw).replaceFirst("");
+
+        // 2. Strip trailing punctuation
+        cleaned = TRAILING_PUNCT.matcher(cleaned).replaceFirst("");
+        cleaned = cleaned.trim();
+        if (cleaned.isEmpty()) return results;
+
+        // 3. Extract parenthetical content as separate candidates
+        //    "Node.js (Express, Koa)" -> base="Node.js", parens=["Express", "Koa"]
+        String base = cleaned;
+        if (cleaned.contains("(") && cleaned.contains(")")) {
+            int openIdx = cleaned.indexOf('(');
+            int closeIdx = cleaned.lastIndexOf(')');
+            base = cleaned.substring(0, openIdx).trim();
+            String parenContent = cleaned.substring(openIdx + 1, closeIdx).trim();
+
+            for (String part : parenContent.split(",")) {
+                String trimmed = part.trim();
+                if (!trimmed.isEmpty()) {
+                    results.addAll(splitOnSlash(trimmed));
+                }
+            }
+        }
+
+        // 4. Split the base on "/" (respecting known compounds)
+        if (!base.isEmpty()) {
+            results.addAll(0, splitOnSlash(base));
+        }
+
+        return results;
+    }
+
+    /**
+     * Splits a string on "/" unless the whole string is a known compound term.
+     */
+    private List<String> splitOnSlash(String input) {
+        List<String> results = new ArrayList<>();
+
+        for (String compound : SLASH_COMPOUNDS) {
+            if (compound.equalsIgnoreCase(input.trim())) {
+                results.add(input.trim());
+                return results;
+            }
+        }
+
+        if (input.contains("/")) {
+            for (String part : input.split("/")) {
+                String trimmed = TRAILING_PUNCT.matcher(part.trim()).replaceFirst("");
+                if (!trimmed.isEmpty()) {
+                    results.add(trimmed);
+                }
+            }
+        } else {
+            results.add(input.trim());
+        }
+
+        return results;
+    }
+
+    // ── Resolution ───────────────────────────────────────────────────
 
     /**
      * Resolves the raw skill into a canonical claim
