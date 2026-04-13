@@ -50,7 +50,7 @@ public class Claim {
     private String source;
 
     @Column(name = "confidence")
-    private Double confidence;
+    private java.math.BigDecimal confidence;
 
     @Column(name = "status", nullable = false)
     private String status;

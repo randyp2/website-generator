@@ -44,13 +44,23 @@ public class ClaimIngestionServiceImpl implements ClaimIngestionService {
                 .orElseThrow(() -> new IllegalArgumentException("Resume to verify not found: " + resumeVerificationId));
 
         // --- Ingest the raw skills into the claims table
+        System.out.println(">>> [CLAIM INGESTION] Starting ingestion of " + rawSkills.size() + " raw skills");
+
         int upserted = 0;
+        int matched = 0;
+        int unmatched = 0;
+
         for (String rawSkill: rawSkills) {
             String trimmed = rawSkill.trim();
             if (trimmed.isEmpty()) continue;
 
             // Resolve the skill
             UUID canonicalSkillId = resolveCanonicalSkillId(trimmed);
+            if (canonicalSkillId != null) {
+                matched++;
+            } else {
+                unmatched++;
+            }
 
             // Check if the user already has a skill claim with raw_value
             Optional<Claim> existingClaim = claimRepository
@@ -87,6 +97,9 @@ public class ClaimIngestionServiceImpl implements ClaimIngestionService {
             upserted++;
         }
 
+        System.out.println(">>> [CLAIM INGESTION] Complete: " + upserted + " claims upserted, "
+                + matched + " matched to canonical skills, " + unmatched + " unmatched");
+
         return upserted;
     }
 
@@ -106,13 +119,20 @@ public class ClaimIngestionServiceImpl implements ClaimIngestionService {
 
         // --- Exact match
         Optional<Skill> exactSkill = skillRepository.findByNameIgnoreCase(rawSkill);
-        if (exactSkill.isPresent()) return exactSkill.get().getId();
+        if (exactSkill.isPresent()) {
+            System.out.println(">>>   [RESOLVE] \"" + rawSkill + "\" -> exact match -> \"" + exactSkill.get().getName() + "\" (" + exactSkill.get().getId() + ")");
+            return exactSkill.get().getId();
+        }
 
         // --- Use skill alias table
         Optional<Skill> aliasSkill = skillRepository.findByAliasIgnoreCase(rawSkill);
-        if (aliasSkill.isPresent()) return aliasSkill.get().getId();
+        if (aliasSkill.isPresent()) {
+            System.out.println(">>>   [RESOLVE] \"" + rawSkill + "\" -> alias match -> \"" + aliasSkill.get().getName() + "\" (" + aliasSkill.get().getId() + ")");
+            return aliasSkill.get().getId();
+        }
 
         // --- No match found | TODO: resolve later
+        System.out.println(">>>   [RESOLVE] \"" + rawSkill + "\" -> NO MATCH");
         return null;
     }
 }
