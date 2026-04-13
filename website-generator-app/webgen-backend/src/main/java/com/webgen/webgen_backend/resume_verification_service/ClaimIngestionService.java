@@ -1,5 +1,7 @@
 package com.webgen.webgen_backend.resume_verification_service;
 
+import com.webgen.webgen_backend.dto.profile.verification.ClaimDTO;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -15,4 +17,13 @@ public interface ClaimIngestionService {
      * @return the number of skill claims upserted
      */
     int ingestSkillClaims(UUID profileId, UUID resumeVerificationId, List<String> rawSkills);
+
+    /** Get all skill claims for a user. */
+    List<ClaimDTO> getSkillClaims(UUID profileId);
+
+    /** Add a single manual skill claim, resolving to canonical if possible. */
+    ClaimDTO addSkillClaim(UUID profileId, UUID resumeVerificationId, String skill);
+
+    /** Delete a single claim owned by this user. */
+    void deleteSkillClaim(UUID profileId, UUID claimId);
 }

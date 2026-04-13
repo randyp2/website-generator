@@ -1,6 +1,7 @@
 package com.webgen.webgen_backend.resume_verification_service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.webgen.webgen_backend.dto.profile.verification.ClaimDTO;
 import com.webgen.webgen_backend.entity.Claim;
 import com.webgen.webgen_backend.entity.Profile;
 import com.webgen.webgen_backend.entity.ResumeVerification;
@@ -11,8 +12,10 @@ import com.webgen.webgen_backend.repository.ResumeVerificationRepository;
 import com.webgen.webgen_backend.repository.SkillRepository;
 import com.webgen.webgen_backend.resume_verification_service.ClaimIngestionService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -114,6 +117,97 @@ public class ClaimIngestionServiceImpl implements ClaimIngestionService {
         return upserted;
     }
 
+
+    // ── CRUD operations ────────────────────────────────────────────────
+
+    @Override
+    public List<ClaimDTO> getSkillClaims(UUID profileId) {
+        return claimRepository.findByProfileId(profileId).stream()
+                .filter(c -> "skill".equals(c.getClaimType()))
+                .map(this::toDto)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public ClaimDTO addSkillClaim(UUID profileId, UUID resumeVerificationId, String skill) {
+        String trimmed = skill.trim();
+        if (trimmed.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Skill cannot be blank");
+        }
+
+        // Check for duplicate
+        Optional<Claim> existing = claimRepository.findSkillClaimByProfileAndRawValue(profileId, trimmed);
+        if (existing.isPresent()) {
+            return toDto(existing.get());
+        }
+
+        Profile profile = profileRepository.findById(profileId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile not found"));
+
+        ResumeVerification resumeVerification = resumeVerificationRepository.findById(resumeVerificationId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resume verification not found"));
+
+        UUID canonicalSkillId = resolveCanonicalSkillId(trimmed);
+        OffsetDateTime now = OffsetDateTime.now();
+
+        Claim claim = Claim.builder()
+                .id(UUID.randomUUID())
+                .profile(profile)
+                .resumeVerification(resumeVerification)
+                .claimType("skill")
+                .rawValue(trimmed)
+                .canonicalSkillId(canonicalSkillId)
+                .source("manual")
+                .confidence(null)
+                .status("pending")
+                .metadata(objectMapper.createObjectNode())
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
+
+        return toDto(claimRepository.save(claim));
+    }
+
+    @Override
+    @Transactional
+    public void deleteSkillClaim(UUID profileId, UUID claimId) {
+        Claim claim = claimRepository.findById(claimId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Claim not found"));
+
+        if (!claim.getProfile().getId().equals(profileId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your claim");
+        }
+
+        claimRepository.delete(claim);
+    }
+
+    // ── DTO mapping ──────────────────────────────────────────────────
+
+    private ClaimDTO toDto(Claim claim) {
+        ClaimDTO dto = new ClaimDTO();
+        dto.setId(claim.getId());
+        dto.setProfileId(claim.getProfile().getId());
+        dto.setResumeVerificationId(
+                claim.getResumeVerification() != null ? claim.getResumeVerification().getId() : null
+        );
+        dto.setClaimType(claim.getClaimType());
+        dto.setRawValue(claim.getRawValue());
+        dto.setCanonicalSkillId(claim.getCanonicalSkillId());
+        dto.setSource(claim.getSource());
+        dto.setConfidence(claim.getConfidence());
+        dto.setStatus(claim.getStatus());
+        dto.setCreatedAt(claim.getCreatedAt());
+        dto.setUpdatedAt(claim.getUpdatedAt());
+
+        // Resolve canonical skill name for display
+        if (claim.getCanonicalSkillId() != null) {
+            skillRepository.findById(claim.getCanonicalSkillId())
+                    .ifPresent(skill -> dto.setCanonicalSkillName(skill.getName()));
+        }
+
+        return dto;
+    }
 
     // ── Pre-normalization ──────────────────────────────────────────────
 
