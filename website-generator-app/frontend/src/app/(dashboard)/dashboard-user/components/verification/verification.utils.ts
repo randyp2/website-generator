@@ -1,8 +1,11 @@
+import type { ClaimDTO } from "@/types/claim"
+
 import type {
   EvidenceType,
   FilterOption,
   QualityFlag,
   SkillVerification,
+  VerificationOverviewData,
   VerificationStatus,
   VerificationTier,
 } from "./verification.types"
@@ -172,4 +175,98 @@ export const calculateGapToNextTier = (
   const nextTier = TIER_ORDER[currentIndex + 1]
   const threshold = TIER_THRESHOLDS[nextTier]
   return { nextTier, gap: threshold - score }
+}
+
+// ─── Claim → SkillVerification mappers ──────────────────────────────
+
+const mapClaimStatus = (status: string): VerificationStatus => {
+  switch (status) {
+    case "verified":
+      return "verified"
+    case "pending":
+      return "pending"
+    case "conflict":
+      return "conflict"
+    case "expired":
+      return "expired"
+    default:
+      return "needs_action"
+  }
+}
+
+const scoreFromConfidence = (confidence: number | null): number => {
+  if (confidence === null) return 0
+  return Math.round(confidence * 100)
+}
+
+const tierFromScore = (score: number): VerificationTier => {
+  for (let i = TIER_ORDER.length - 1; i >= 0; i--) {
+    if (score >= TIER_THRESHOLDS[TIER_ORDER[i]]) return TIER_ORDER[i]
+  }
+  return "Unverified"
+}
+
+const freshnessFromDate = (
+  dateStr: string,
+): "fresh" | "aging" | "stale" => {
+  const age = Date.now() - new Date(dateStr).getTime()
+  const days = age / (1000 * 60 * 60 * 24)
+  if (days <= 30) return "fresh"
+  if (days <= 90) return "aging"
+  return "stale"
+}
+
+export const mapClaimsToSkillVerifications = (
+  claims: ClaimDTO[],
+): SkillVerification[] =>
+  claims.map((claim) => {
+    const score = scoreFromConfidence(claim.confidence)
+    const tier = tierFromScore(score)
+    const status = mapClaimStatus(claim.status)
+    const freshness = freshnessFromDate(claim.updatedAt)
+
+    return {
+      id: claim.id,
+      name: claim.canonicalSkillName ?? claim.rawValue,
+      score,
+      tier,
+      status,
+      freshness,
+      lastVerified: claim.updatedAt,
+      evidenceCount: claim.source === "resume" ? 1 : 0,
+      endorsementCount: 0,
+      certificationCount: 0,
+      projectCount: 0,
+      assessmentCount: 0,
+      selfReportedCount: claim.source === "resume" ? 1 : 0,
+      conflictDetails: null,
+    }
+  })
+
+export const deriveOverview = (
+  skills: SkillVerification[],
+): VerificationOverviewData => {
+  const total = skills.length
+  const verifiedCount = skills.filter((s) => s.status === "verified").length
+  const needsActionCount = skills.filter(
+    (s) => s.status === "needs_action",
+  ).length
+  const conflictCount = skills.filter((s) => s.status === "conflict").length
+
+  const avgScore =
+    total > 0
+      ? Math.round(skills.reduce((sum, s) => sum + s.score, 0) / total)
+      : 0
+
+  return {
+    overallScore: avgScore,
+    tier: tierFromScore(avgScore),
+    totalSkills: total,
+    verifiedCount,
+    needsActionCount,
+    conflictCount,
+    lastRunDate: new Date().toISOString(),
+    trustNote:
+      "Scores are evidence-based and may change as new data is connected.",
+  }
 }

@@ -6,17 +6,19 @@ import type {
   ConnectionProvider,
   EvidenceType,
   FilterOption,
-  ViewState,
   VerificationTabProps,
 } from "./verification.types"
 import {
   MOCK_CONNECTIONS,
   MOCK_EVIDENCE,
   MOCK_HISTORY,
-  MOCK_OVERVIEW,
-  MOCK_SKILLS,
 } from "./verification.mock"
-import { filterSkills } from "./verification.utils"
+import {
+  deriveOverview,
+  filterSkills,
+  mapClaimsToSkillVerifications,
+} from "./verification.utils"
+import useClaims from "./useClaims"
 
 import {
   VerificationEmptyState,
@@ -40,19 +42,27 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
   const [activeFilter, setActiveFilter] = useState<FilterOption>("all")
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [viewState] = useState<ViewState>("loaded")
   const [evidenceTypeFilter, setEvidenceTypeFilter] = useState<
     EvidenceType | "all"
   >("all")
 
+  const { claims, isLoading, error } = useClaims()
+
+  const skills = useMemo(
+    () => mapClaimsToSkillVerifications(claims),
+    [claims],
+  )
+
+  const overview = useMemo(() => deriveOverview(skills), [skills])
+
   const filteredSkills = useMemo(
-    () => filterSkills(MOCK_SKILLS, activeFilter),
-    [activeFilter],
+    () => filterSkills(skills, activeFilter),
+    [skills, activeFilter],
   )
 
   const selectedSkill = useMemo(
-    () => MOCK_SKILLS.find((s) => s.id === selectedSkillId) ?? null,
-    [selectedSkillId],
+    () => skills.find((s) => s.id === selectedSkillId) ?? null,
+    [skills, selectedSkillId],
   )
 
   const skillEvidence = useMemo(
@@ -62,13 +72,12 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
 
   const filterCounts = useMemo<Record<FilterOption, number>>(
     () => ({
-      all: MOCK_SKILLS.length,
-      verified: MOCK_SKILLS.filter((s) => s.status === "verified").length,
-      needs_action: MOCK_SKILLS.filter((s) => s.status === "needs_action")
-        .length,
-      conflicts: MOCK_SKILLS.filter((s) => s.status === "conflict").length,
+      all: skills.length,
+      verified: skills.filter((s) => s.status === "verified").length,
+      needs_action: skills.filter((s) => s.status === "needs_action").length,
+      conflicts: skills.filter((s) => s.status === "conflict").length,
     }),
-    [],
+    [skills],
   )
 
   const handleSkillClick = (skillId: string) => {
@@ -95,16 +104,20 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
     // Placeholder for backend wiring
   }
 
-  if (viewState === "empty") {
-    return <VerificationEmptyState onStart={() => {}} />
-  }
-
-  if (viewState === "loading") {
+  if (isLoading) {
     return <VerificationLoadingSkeleton />
   }
 
-  if (viewState === "error") {
-    return <VerificationErrorState onRetry={() => {}} />
+  if (error) {
+    return <VerificationErrorState onRetry={() => window.location.reload()} />
+  }
+
+  if (claims.length === 0) {
+    return (
+      <ResumeVerificationGuard>
+        <VerificationEmptyState onStart={() => {}} />
+      </ResumeVerificationGuard>
+    )
   }
 
   return (
@@ -116,7 +129,7 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
       />
 
       <VerificationOverview
-        data={MOCK_OVERVIEW}
+        data={overview}
         onRerunChecks={handleRerunChecks}
       />
 
