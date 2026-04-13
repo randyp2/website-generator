@@ -50,7 +50,7 @@ public class ClaimIngestionServiceImpl implements ClaimIngestionService {
             if (trimmed.isEmpty()) continue;
 
             // Resolve the skill
-            UUID canoncialSkillId = resolveCanonicalSkillId(trimmed);
+            UUID canonicalSkillId = resolveCanonicalSkillId(trimmed);
 
             // Check if the user already has a skill claim with raw_value
             Optional<Claim> existingClaim = claimRepository
@@ -61,7 +61,7 @@ public class ClaimIngestionServiceImpl implements ClaimIngestionService {
             if (existingClaim.isPresent()) {
                 // update the claim timestamp
                 Claim claim = existingClaim.get();
-                claim.setCanonicalSkillId(canoncialSkillId);
+                claim.setCanonicalSkillId(canonicalSkillId);
                 claim.setResumeVerification(resumeVerification);
                 claim.setUpdatedAt(now);
                 claimRepository.save(claim);
@@ -73,7 +73,7 @@ public class ClaimIngestionServiceImpl implements ClaimIngestionService {
                         .resumeVerification(resumeVerification)
                         .claimType("skill")
                         .rawValue(trimmed)
-                        .canonicalSkillId(canoncialSkillId)
+                        .canonicalSkillId(canonicalSkillId)
                         .source("resume")
                         .confidence(null)
                         .status("pending")
@@ -86,7 +86,7 @@ public class ClaimIngestionServiceImpl implements ClaimIngestionService {
             }
             upserted++;
         }
-        
+
         return upserted;
     }
 

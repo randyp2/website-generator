@@ -1,8 +1,10 @@
 package com.webgen.webgen_backend.controller.profile;
 
+import com.webgen.webgen_backend.dto.profile.verification.IngestSkillClaimsRequestDTO;
 import com.webgen.webgen_backend.dto.profile.verification.ResumeVerificationDTO;
 import com.webgen.webgen_backend.dto.profile.verification.UpdateResumeVerificationParsedDTO;
 import com.webgen.webgen_backend.dto.profile.verification.UploadResumeVerificationRequestDTO;
+import com.webgen.webgen_backend.resume_verification_service.ClaimIngestionService;
 import com.webgen.webgen_backend.resume_verification_service.ResumeVerificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +25,7 @@ import java.util.UUID;
 public class ProfileResumeVerificationController {
 
     private final ResumeVerificationService resumeVerificationService;
+    private final ClaimIngestionService claimIngestionService;
 
     @GetMapping
     public ResponseEntity<ResumeVerificationDTO> getResumeVerification() {
@@ -43,6 +46,19 @@ public class ProfileResumeVerificationController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/claims/ingest")
+    public ResponseEntity<Integer> ingestSkillClaims(
+            @RequestBody IngestSkillClaimsRequestDTO request
+    ) {
+        UUID userId = resolveAuthenticatedUserId();
+        int upserted = claimIngestionService.ingestSkillClaims(
+                userId,
+                request.getResumeVerificationId(),
+                request.getSkills()
+        );
+        return ResponseEntity.ok(upserted);
+    }
+
     @PatchMapping("/parsed")
     public ResponseEntity<ResumeVerificationDTO> updateParsedData(
             @RequestBody UpdateResumeVerificationParsedDTO request
@@ -58,6 +74,8 @@ public class ProfileResumeVerificationController {
         ResumeVerificationDTO response = resumeVerificationService.deleteResumeVerification(userId);
         return ResponseEntity.ok(response);
     }
+
+
 
     private UUID resolveAuthenticatedUserId() {
         return UUID.fromString(
