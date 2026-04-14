@@ -3,22 +3,15 @@
 import { useMemo, useState } from "react"
 
 import type {
-  ConnectionProvider,
-  EvidenceType,
   FilterOption,
   VerificationTabProps,
 } from "./verification.types"
 import {
-  MOCK_CONNECTIONS,
-  MOCK_EVIDENCE,
-  MOCK_HISTORY,
-} from "./verification.mock"
-import {
-  deriveOverview,
+  deriveOverviewFromSummary,
   filterSkills,
-  mapClaimsToSkillVerifications,
+  mapSummaryClaimsToSkillVerifications,
 } from "./verification.utils"
-import useClaims from "./useClaims"
+import useVerificationSummary from "./useVerificationSummary"
 
 import {
   VerificationEmptyState,
@@ -27,12 +20,9 @@ import {
 } from "./VerificationEmptyState"
 import VerificationFilterBar from "./VerificationFilterBar"
 import VerificationOverview from "./VerificationOverview"
-import ConnectionsPanel from "./ConnectionsPanel"
 import SkillLeaderboard from "./SkillLeaderboard"
 import SkillCharts from "./SkillCharts"
 import SkillDetailDrawer from "./SkillDetailDrawer"
-import EvidenceTable from "./EvidenceTable"
-import VerificationHistory from "./VerificationHistory"
 import ScoringTransparency from "./ScoringTransparency"
 import ResumeVerificationGuard from "./ResumeVerificationGuard"
 
@@ -42,18 +32,25 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
   const [activeFilter, setActiveFilter] = useState<FilterOption>("all")
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [evidenceTypeFilter, setEvidenceTypeFilter] = useState<
-    EvidenceType | "all"
-  >("all")
 
-  const { claims, isLoading, error } = useClaims()
+  const { summary, isLoading, error, refetch } = useVerificationSummary()
 
   const skills = useMemo(
-    () => mapClaimsToSkillVerifications(claims),
-    [claims],
+    () =>
+      summary
+        ? mapSummaryClaimsToSkillVerifications(
+            summary.claims,
+            summary.suggestedActions,
+            summary.generatedAt,
+          )
+        : [],
+    [summary],
   )
 
-  const overview = useMemo(() => deriveOverview(skills), [skills])
+  const overview = useMemo(
+    () => (summary ? deriveOverviewFromSummary(summary) : null),
+    [summary],
+  )
 
   const filteredSkills = useMemo(
     () => filterSkills(skills, activeFilter),
@@ -63,11 +60,6 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
   const selectedSkill = useMemo(
     () => skills.find((s) => s.id === selectedSkillId) ?? null,
     [skills, selectedSkillId],
-  )
-
-  const skillEvidence = useMemo(
-    () => MOCK_EVIDENCE.filter((e) => e.skillId === selectedSkillId),
-    [selectedSkillId],
   )
 
   const filterCounts = useMemo<Record<FilterOption, number>>(
@@ -91,17 +83,7 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
   }
 
   const handleRerunChecks = () => {
-    // Placeholder for backend wiring
-  }
-
-  const handleConnect = (provider: ConnectionProvider) => {
-    void provider
-    // Placeholder for backend wiring
-  }
-
-  const handleDisconnect = (provider: ConnectionProvider) => {
-    void provider
-    // Placeholder for backend wiring
+    refetch()
   }
 
   if (isLoading) {
@@ -112,7 +94,7 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
     return <VerificationErrorState onRetry={() => window.location.reload()} />
   }
 
-  if (claims.length === 0) {
+  if (!summary || summary.totalSkills === 0 || !overview) {
     return (
       <ResumeVerificationGuard>
         <VerificationEmptyState onStart={() => {}} />
@@ -133,12 +115,6 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
         onRerunChecks={handleRerunChecks}
       />
 
-      <ConnectionsPanel
-        connections={MOCK_CONNECTIONS}
-        onConnect={handleConnect}
-        onDisconnect={handleDisconnect}
-      />
-
       <SkillLeaderboard
         skills={filteredSkills}
         onSkillClick={handleSkillClick}
@@ -146,19 +122,11 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
 
       <SkillCharts skills={filteredSkills} />
 
-      <EvidenceTable
-        evidence={MOCK_EVIDENCE}
-        activeTypeFilter={evidenceTypeFilter}
-        onTypeFilterChange={setEvidenceTypeFilter}
-      />
-
-      <VerificationHistory entries={MOCK_HISTORY} />
-
       <ScoringTransparency />
 
       <SkillDetailDrawer
         skill={selectedSkill}
-        evidence={skillEvidence}
+        evidence={[]}
         open={drawerOpen}
         onClose={handleDrawerClose}
       />

@@ -1,4 +1,9 @@
 import type { ClaimDTO } from "@/types/claim"
+import type {
+  VerificationClaimScoreDTO,
+  VerificationSuggestedActionDTO,
+  VerificationSummaryDTO,
+} from "@/types/verification-summary"
 
 import type {
   EvidenceType,
@@ -240,6 +245,44 @@ export const mapClaimsToSkillVerifications = (
       assessmentCount: 0,
       selfReportedCount: claim.source === "resume" ? 1 : 0,
       conflictDetails: null,
+      suggestedActions: [],
+    }
+  })
+
+export const mapSummaryClaimsToSkillVerifications = (
+  claims: VerificationClaimScoreDTO[],
+  suggestedActions: VerificationSuggestedActionDTO[],
+  generatedAt: string,
+): SkillVerification[] =>
+  claims.map((claim) => {
+    const score = claim.claimScore
+    const tier = tierFromScore(score)
+    const status = mapClaimStatus(claim.status)
+    const actions = suggestedActions
+      .filter((action) => action.claimId === claim.id)
+      .sort((a, b) => b.priority - a.priority)
+      .map((action) => ({
+        action: action.action,
+        reason: action.reason,
+        priority: action.priority,
+      }))
+
+    return {
+      id: claim.id,
+      name: claim.canonicalSkillName ?? claim.rawValue,
+      score,
+      tier,
+      status,
+      freshness: "fresh",
+      lastVerified: generatedAt,
+      evidenceCount: 0,
+      endorsementCount: 0,
+      certificationCount: 0,
+      projectCount: 0,
+      assessmentCount: 0,
+      selfReportedCount: claim.source === "imported" ? 0 : 1,
+      conflictDetails: null,
+      suggestedActions: actions,
     }
   })
 
@@ -247,11 +290,11 @@ export const deriveOverview = (
   skills: SkillVerification[],
 ): VerificationOverviewData => {
   const total = skills.length
-  const verifiedCount = skills.filter((s) => s.status === "verified").length
-  const needsActionCount = skills.filter(
+  const unmatchedSkills = skills.filter(
     (s) => s.status === "needs_action",
   ).length
-  const conflictCount = skills.filter((s) => s.status === "conflict").length
+  const matchedSkills = Math.max(0, total - unmatchedSkills)
+  const unverifiedClaimsCount = skills.filter((s) => s.status !== "verified").length
 
   const avgScore =
     total > 0
@@ -262,11 +305,25 @@ export const deriveOverview = (
     overallScore: avgScore,
     tier: tierFromScore(avgScore),
     totalSkills: total,
-    verifiedCount,
-    needsActionCount,
-    conflictCount,
+    matchedSkills,
+    unmatchedSkills,
+    unverifiedClaimsCount,
     lastRunDate: new Date().toISOString(),
     trustNote:
-      "Scores are evidence-based and may change as new data is connected.",
+      "Initial deterministic score based on canonical matching and claim source.",
   }
 }
+
+export const deriveOverviewFromSummary = (
+  summary: VerificationSummaryDTO,
+): VerificationOverviewData => ({
+  overallScore: summary.overallScore,
+  tier: tierFromScore(summary.overallScore),
+  totalSkills: summary.totalSkills,
+  matchedSkills: summary.matchedSkills,
+  unmatchedSkills: summary.unmatchedSkills,
+  unverifiedClaimsCount: summary.unverifiedClaims.length,
+  lastRunDate: summary.generatedAt,
+  trustNote:
+    "Initial deterministic score based on canonical matching and claim source.",
+})

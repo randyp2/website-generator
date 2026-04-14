@@ -69,8 +69,6 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(sectionQueue).to(exchange).with(SECTION_ROUTING_KEY);
     }
 
-
-
     /* ======== SCREENSHOT QUEUE ======== */
     @Bean
     public Queue screenshotQueue() {

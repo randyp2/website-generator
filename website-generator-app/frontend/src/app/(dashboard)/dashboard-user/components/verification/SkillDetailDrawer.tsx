@@ -8,10 +8,7 @@ import {
   ClipboardCheck,
   FileText,
   AlertTriangle,
-  Plus,
   Link2,
-  ShieldAlert,
-  TrendingUp,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -57,6 +54,7 @@ const SkillDetailDrawer = ({
   const offset = CIRCUMFERENCE - (skill.score / 100) * CIRCUMFERENCE
   const freshness = getFreshnessLabel(skill.freshness)
   const mix = getEvidenceMixForSkill(skill)
+  const suggestedActions = skill.suggestedActions ?? []
   const lastVerifiedDate = new Date(skill.lastVerified).toLocaleDateString(
     "en-US",
     { month: "short", day: "numeric", year: "numeric" },
@@ -254,46 +252,30 @@ const SkillDetailDrawer = ({
             </div>
           )}
 
-          {/* Expected Impact */}
-          <div className="rounded-md bg-primary/5 border border-primary/20 p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="h-4 w-4 text-primary" />
-              <span className="text-xs font-medium text-foreground">
-                Expected Impact
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Completing suggested actions likely adds{" "}
-              <span className="font-bold text-primary">+8 to +12</span> points
-              to this skill.
-            </p>
-          </div>
-
           {/* Action CTAs */}
           <div className="space-y-2">
             <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider">
               Suggested Actions
             </h4>
-            <div className="flex flex-col gap-2">
-              <Button variant="outline" size="sm" className="justify-start gap-2">
-                <Plus className="h-3.5 w-3.5" />
-                Add Certification or Course
-              </Button>
-              <Button variant="outline" size="sm" className="justify-start gap-2">
-                <Link2 className="h-3.5 w-3.5" />
-                Connect Account for Evidence
-              </Button>
-              {skill.conflictDetails && skill.conflictDetails.length > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="justify-start gap-2 border-red-400/30 text-red-400 hover:bg-red-400/10"
-                >
-                  <ShieldAlert className="h-3.5 w-3.5" />
-                  Dispute Conflict
-                </Button>
-              )}
-            </div>
+            {suggestedActions.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                {suggestedActions.map((item) => (
+                  <Button
+                    key={`${skill.id}-${item.action}-${item.priority}`}
+                    variant="outline"
+                    size="sm"
+                    className="justify-start gap-2"
+                  >
+                    <Link2 className="h-3.5 w-3.5" />
+                    {item.action}
+                  </Button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                No suggested actions for this claim yet.
+              </p>
+            )}
           </div>
         </div>
       </SheetContent>

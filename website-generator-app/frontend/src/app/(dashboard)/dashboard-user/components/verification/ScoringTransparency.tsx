@@ -21,24 +21,24 @@ const TIER_SEGMENTS = [
 
 const SCORING_RULES = [
   {
-    title: "Evidence Weighting",
+    title: "Canonical Coverage",
     description:
-      "Third-party verified evidence (certifications, endorsements) carries more weight than self-reported claims.",
+      "Coverage measures how many skill claims resolve to canonical skills.",
   },
   {
-    title: "Freshness Decay",
+    title: "Source Weighting",
     description:
-      "Evidence older than 12 months begins to decay. Stale evidence (24+ months) significantly reduces scores.",
+      "Source quality uses deterministic trust weights: resume 0.8, manual 0.5, imported 0.9.",
   },
   {
-    title: "Conflict Penalties",
+    title: "Weighted Blend",
     description:
-      "Discrepancies between claimed experience and actual evidence incur score deductions until resolved.",
+      "Initial score = 100 × (0.7 × coverage + 0.3 × sourceQuality).",
   },
   {
-    title: "Consistency Bonus",
+    title: "Parser Confidence (Optional)",
     description:
-      "Skills supported by multiple independent sources receive a consistency multiplier.",
+      "When available, parser confidence is blended as a 10% nudge to the base score.",
   },
 ] as const
 
@@ -113,8 +113,8 @@ const ScoringTransparency = () => {
           </div>
 
           <p className="text-[10px] text-muted-foreground border-t border-border pt-3">
-            Scores are calculated using rule version v2.1. All deductions
-            (staleness, conflicts) are shown transparently in skill details.
+            Baseline uses deterministic skill-only scoring. Evidence-backed scoring
+            will be layered in a later phase.
           </p>
         </CardContent>
       )}

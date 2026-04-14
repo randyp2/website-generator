@@ -18,9 +18,9 @@ const CIRCUMFERENCE = 2 * Math.PI * 52
 
 const KPI_ITEMS = [
   { key: "totalSkills", label: "Total Skills", accent: "" },
-  { key: "verifiedCount", label: "Verified", accent: "border-l-2 border-l-emerald-400" },
-  { key: "needsActionCount", label: "Needs Action", accent: "border-l-2 border-l-yellow-400" },
-  { key: "conflictCount", label: "Conflicts", accent: "border-l-2 border-l-red-400" },
+  { key: "matchedSkills", label: "Matched", accent: "border-l-2 border-l-emerald-400" },
+  { key: "unmatchedSkills", label: "Unmatched", accent: "border-l-2 border-l-yellow-400" },
+  { key: "unverifiedClaimsCount", label: "Unverified", accent: "border-l-2 border-l-zinc-400" },
 ] as const
 
 const VerificationOverview = ({

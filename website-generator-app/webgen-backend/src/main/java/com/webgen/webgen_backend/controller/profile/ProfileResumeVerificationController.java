@@ -1,9 +1,11 @@
 package com.webgen.webgen_backend.controller.profile;
 
+import com.webgen.webgen_backend.dto.profile.verification.summary.VerificationSummaryDTO;
 import com.webgen.webgen_backend.dto.profile.verification.ResumeVerificationDTO;
 import com.webgen.webgen_backend.dto.profile.verification.UpdateResumeVerificationParsedDTO;
 import com.webgen.webgen_backend.dto.profile.verification.UploadResumeVerificationRequestDTO;
 import com.webgen.webgen_backend.resume_verification_service.ResumeVerificationService;
+import com.webgen.webgen_backend.resume_verification_service.SkillVerificationSummaryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,6 +25,7 @@ import java.util.UUID;
 public class ProfileResumeVerificationController {
 
     private final ResumeVerificationService resumeVerificationService;
+    private final SkillVerificationSummaryService skillVerificationSummaryService;
 
     @GetMapping
     public ResponseEntity<ResumeVerificationDTO> getResumeVerification() {
@@ -31,6 +34,13 @@ public class ProfileResumeVerificationController {
         if (response == null) {
             return ResponseEntity.noContent().build();
         }
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/summary")
+    public ResponseEntity<VerificationSummaryDTO> getSkillVerificationSummary() {
+        UUID userId = resolveAuthenticatedUserId();
+        VerificationSummaryDTO response = skillVerificationSummaryService.getSkillVerificationSummary(userId);
         return ResponseEntity.ok(response);
     }
 

@@ -37,9 +37,9 @@ export interface VerificationOverviewData {
   overallScore: number
   tier: VerificationTier
   totalSkills: number
-  verifiedCount: number
-  needsActionCount: number
-  conflictCount: number
+  matchedSkills: number
+  unmatchedSkills: number
+  unverifiedClaimsCount: number
   lastRunDate: string
   trustNote: string
 }
@@ -77,6 +77,11 @@ export interface SkillVerification {
   assessmentCount: number
   selfReportedCount: number
   conflictDetails: ConflictDetail[] | null
+  suggestedActions?: {
+    action: string
+    reason: string
+    priority: number
+  }[]
 }
 
 export interface EvidenceItem {
