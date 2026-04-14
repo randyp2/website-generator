@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 
 import type {
   FilterOption,
+  ConnectionProvider,
   VerificationTabProps,
 } from "./verification.types"
 import {
@@ -20,12 +21,14 @@ import {
 } from "./VerificationEmptyState"
 import VerificationFilterBar from "./VerificationFilterBar"
 import VerificationOverview from "./VerificationOverview"
+import ConnectionsPanel from "./ConnectionsPanel"
 import SkillLeaderboard from "./SkillLeaderboard"
 import SkillCharts from "./SkillCharts"
 import SkillDetailDrawer from "./SkillDetailDrawer"
 import ScoringTransparency from "./ScoringTransparency"
 import ResumeVerificationGuard from "./ResumeVerificationGuard"
 import useVerificationSubTab from "./useVerificationSubTab"
+import useConnections from "./useConnections"
 
 const VerificationTab = ({ userId }: VerificationTabProps) => {
   void userId
@@ -37,13 +40,19 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const { summary, isLoading, error, refetch } = useVerificationSummary()
+  const {
+    connections,
+    error: connectionsError,
+    refetch: refetchConnections,
+  } = useConnections()
   const { activeTab } = useVerificationSubTab()
 
   useEffect(() => {
     if (activeTab === "skill-verification") {
       refetch()
+      refetchConnections()
     }
-  }, [activeTab, refetch])
+  }, [activeTab, refetch, refetchConnections])
 
   const skills = useMemo(
     () =>
@@ -96,6 +105,18 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
 
   const handleRerunChecks = () => {
     refetch()
+  }
+
+  const handleConnectAccount = (provider: ConnectionProvider) => {
+    console.info(
+      `[connections] connect requested for "${provider}" (connect flow not implemented yet)`,
+    )
+  }
+
+  const handleDisconnectAccount = (provider: ConnectionProvider) => {
+    console.info(
+      `[connections] disconnect requested for "${provider}" (disconnect flow not implemented yet)`,
+    )
   }
 
   const handleDeleteClaim = async (claimId: string) => {
@@ -160,6 +181,17 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
         data={overview}
         onRerunChecks={handleRerunChecks}
       />
+
+      <ConnectionsPanel
+        connections={connections}
+        onConnect={handleConnectAccount}
+        onDisconnect={handleDisconnectAccount}
+      />
+      {connectionsError && (
+        <p className="text-xs text-muted-foreground">
+          Could not refresh connection state. Showing cached/default values.
+        </p>
+      )}
 
       <SkillLeaderboard
         skills={filteredSkills}
