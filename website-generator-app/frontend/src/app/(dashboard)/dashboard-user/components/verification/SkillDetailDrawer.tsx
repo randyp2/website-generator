@@ -47,6 +47,9 @@ const SkillDetailDrawer = ({
   skill,
   evidence,
   open,
+  isDeletingClaim,
+  deleteError,
+  onDeleteClaim,
   onClose,
 }: SkillDetailDrawerProps) => {
   if (!skill) return null
@@ -274,6 +277,32 @@ const SkillDetailDrawer = ({
             ) : (
               <p className="text-xs text-muted-foreground">
                 No suggested actions for this claim yet.
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2 border-t border-border pt-4">
+            <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider">
+              Claim Controls
+            </h4>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="w-full"
+              disabled={isDeletingClaim}
+              onClick={async () => {
+                const confirmed = window.confirm(
+                  "Delete this claim from your verification list?",
+                )
+                if (!confirmed) return
+                await onDeleteClaim(skill.id)
+              }}
+            >
+              {isDeletingClaim ? "Deleting claim..." : "Delete Claim"}
+            </Button>
+            {deleteError && (
+              <p className="text-xs text-destructive">
+                {deleteError}
               </p>
             )}
           </div>

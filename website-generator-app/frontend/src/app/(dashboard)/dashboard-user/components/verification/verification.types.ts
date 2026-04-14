@@ -140,6 +140,9 @@ export interface SkillDetailDrawerProps {
   skill: SkillVerification | null
   evidence: EvidenceItem[]
   open: boolean
+  isDeletingClaim: boolean
+  deleteError: string | null
+  onDeleteClaim: (claimId: string) => Promise<void>
   onClose: () => void
 }
 

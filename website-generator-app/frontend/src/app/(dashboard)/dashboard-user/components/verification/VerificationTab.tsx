@@ -33,6 +33,8 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
   const [activeFilter, setActiveFilter] = useState<FilterOption>("all")
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [isDeletingClaim, setIsDeletingClaim] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const { summary, isLoading, error, refetch } = useVerificationSummary()
   const { activeTab } = useVerificationSubTab()
@@ -81,6 +83,7 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
   )
 
   const handleSkillClick = (skillId: string) => {
+    setDeleteError(null)
     setSelectedSkillId(skillId)
     setDrawerOpen(true)
   }
@@ -88,10 +91,45 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
   const handleDrawerClose = () => {
     setDrawerOpen(false)
     setSelectedSkillId(null)
+    setDeleteError(null)
   }
 
   const handleRerunChecks = () => {
     refetch()
+  }
+
+  const handleDeleteClaim = async (claimId: string) => {
+    setIsDeletingClaim(true)
+    setDeleteError(null)
+
+    try {
+      const res = await fetch(
+        `/api/profile/resume-verification/claims/${claimId}`,
+        { method: "DELETE" },
+      )
+
+      if (!res.ok) {
+        let message = "Failed to delete claim"
+        try {
+          const body = await res.json()
+          if (typeof body?.error === "string") {
+            message = body.error
+          }
+        } catch {
+          // Fallback to default message
+        }
+        throw new Error(message)
+      }
+
+      handleDrawerClose()
+      refetch()
+    } catch (err) {
+      setDeleteError(
+        err instanceof Error ? err.message : "Failed to delete claim",
+      )
+    } finally {
+      setIsDeletingClaim(false)
+    }
   }
 
   if (isLoading) {
@@ -136,6 +174,9 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
         skill={selectedSkill}
         evidence={[]}
         open={drawerOpen}
+        isDeletingClaim={isDeletingClaim}
+        deleteError={deleteError}
+        onDeleteClaim={handleDeleteClaim}
         onClose={handleDrawerClose}
       />
     </ResumeVerificationGuard>
