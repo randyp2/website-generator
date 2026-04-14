@@ -20,6 +20,13 @@ export type ConnectionStatus =
   | "expired"
   | "pending"
 
+export type ConnectionActionType = "connect" | "disconnect"
+
+export interface ConnectionActionInFlight {
+  provider: ConnectionProvider
+  action: ConnectionActionType
+}
+
 export type EvidenceType =
   | "endorsement"
   | "certification"
@@ -123,6 +130,7 @@ export interface VerificationOverviewProps {
 
 export interface ConnectionsPanelProps {
   connections: ConnectionData[]
+  connectionActionInFlight?: ConnectionActionInFlight | null
   onConnect: (provider: ConnectionProvider) => void
   onDisconnect: (provider: ConnectionProvider) => void
 }

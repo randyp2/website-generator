@@ -1,10 +1,9 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 
 import type {
   FilterOption,
-  ConnectionProvider,
   VerificationTabProps,
 } from "./verification.types"
 import {
@@ -29,6 +28,8 @@ import ScoringTransparency from "./ScoringTransparency"
 import ResumeVerificationGuard from "./ResumeVerificationGuard"
 import useVerificationSubTab from "./useVerificationSubTab"
 import useConnections from "./useConnections"
+import useConnectionActions from "./useConnectionActions"
+import useClaimDeletion from "./useClaimDeletion"
 
 const VerificationTab = ({ userId }: VerificationTabProps) => {
   void userId
@@ -36,8 +37,6 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
   const [activeFilter, setActiveFilter] = useState<FilterOption>("all")
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [isDeletingClaim, setIsDeletingClaim] = useState(false)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const { summary, isLoading, error, refetch } = useVerificationSummary()
   const {
@@ -45,6 +44,26 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
     error: connectionsError,
     refetch: refetchConnections,
   } = useConnections()
+  const {
+    connectionActionInFlight,
+    connectionActionError,
+    connectProvider,
+    disconnectProvider,
+  } = useConnectionActions({ refetchConnections })
+  const handleClaimDeletionSuccess = useCallback(() => {
+    setDrawerOpen(false)
+    setSelectedSkillId(null)
+    refetch()
+  }, [refetch])
+  const {
+    isDeletingClaim,
+    deleteError,
+    clearDeleteError,
+    handleDeleteClaim,
+  } = useClaimDeletion({
+    onSuccess: handleClaimDeletionSuccess,
+  })
+
   const { activeTab } = useVerificationSubTab()
 
   useEffect(() => {
@@ -92,7 +111,7 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
   )
 
   const handleSkillClick = (skillId: string) => {
-    setDeleteError(null)
+    clearDeleteError()
     setSelectedSkillId(skillId)
     setDrawerOpen(true)
   }
@@ -100,57 +119,11 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
   const handleDrawerClose = () => {
     setDrawerOpen(false)
     setSelectedSkillId(null)
-    setDeleteError(null)
+    clearDeleteError()
   }
 
   const handleRerunChecks = () => {
     refetch()
-  }
-
-  const handleConnectAccount = (provider: ConnectionProvider) => {
-    console.info(
-      `[connections] connect requested for "${provider}" (connect flow not implemented yet)`,
-    )
-  }
-
-  const handleDisconnectAccount = (provider: ConnectionProvider) => {
-    console.info(
-      `[connections] disconnect requested for "${provider}" (disconnect flow not implemented yet)`,
-    )
-  }
-
-  const handleDeleteClaim = async (claimId: string) => {
-    setIsDeletingClaim(true)
-    setDeleteError(null)
-
-    try {
-      const res = await fetch(
-        `/api/profile/resume-verification/claims/${claimId}`,
-        { method: "DELETE" },
-      )
-
-      if (!res.ok) {
-        let message = "Failed to delete claim"
-        try {
-          const body = await res.json()
-          if (typeof body?.error === "string") {
-            message = body.error
-          }
-        } catch {
-          // Fallback to default message
-        }
-        throw new Error(message)
-      }
-
-      handleDrawerClose()
-      refetch()
-    } catch (err) {
-      setDeleteError(
-        err instanceof Error ? err.message : "Failed to delete claim",
-      )
-    } finally {
-      setIsDeletingClaim(false)
-    }
   }
 
   if (isLoading) {
@@ -184,9 +157,15 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
 
       <ConnectionsPanel
         connections={connections}
-        onConnect={handleConnectAccount}
-        onDisconnect={handleDisconnectAccount}
+        connectionActionInFlight={connectionActionInFlight}
+        onConnect={connectProvider}
+        onDisconnect={disconnectProvider}
       />
+      {connectionActionError && (
+        <p className="text-xs text-destructive">
+          {connectionActionError}
+        </p>
+      )}
       {connectionsError && (
         <p className="text-xs text-muted-foreground">
           Could not refresh connection state. Showing cached/default values.
