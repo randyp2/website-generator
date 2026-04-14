@@ -28,10 +28,11 @@ const VerificationOverview = ({
   onRerunChecks,
 }: VerificationOverviewProps) => {
   const offset = CIRCUMFERENCE - (data.overallScore / 100) * CIRCUMFERENCE
-  const lastUpdated = new Date(data.lastRunDate)
-  const daysAgo = Math.floor(
-    (Date.now() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24),
-  )
+  const lastCheckedLabel = new Date(data.lastRunDate).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  })
 
   return (
     <Card>
@@ -133,7 +134,7 @@ const VerificationOverview = ({
                 Re-run Checks
               </Button>
               <span className="text-xs text-muted-foreground">
-                Last checked {daysAgo === 0 ? "today" : `${daysAgo}d ago`}
+                Last checked {lastCheckedLabel}
               </span>
             </div>
           </div>

@@ -2,7 +2,7 @@ import { getBackendUrlOrNull } from "@/lib/server-env";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 
-export const GET = async (req: Request) => {
+export const GET = async () => {
     const supabase = await createServerSupabaseClient();
 
     const {

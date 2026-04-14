@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FiPlus, FiX, FiLoader } from "react-icons/fi";
 
-import type { ParsedResumeData, ParsedExperience } from "@/types/resume";
+import type { ParsedResumeData } from "@/types/resume";
 
 interface SkillReviewPanelProps {
     parsedData: ParsedResumeData | null;
