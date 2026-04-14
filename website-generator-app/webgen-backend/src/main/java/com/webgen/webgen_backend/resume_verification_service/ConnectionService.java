@@ -1,6 +1,8 @@
 package com.webgen.webgen_backend.resume_verification_service;
 
+import com.webgen.webgen_backend.dto.profile.verification.connection.ConnectProviderResponseDTO;
 import com.webgen.webgen_backend.dto.profile.verification.connection.ConnectedAccountDTO;
+import com.webgen.webgen_backend.dto.profile.verification.connection.DisconnectProviderResponseDTO;
 
 import java.util.List;
 import java.util.UUID;
@@ -17,6 +19,20 @@ public interface ConnectionService {
     List<ConnectedAccountDTO> getConnections(UUID profileId);
 
 
-    
+    /**
+     *
+     * @param profileId
+     * @param provider
+     * @return
+     */
+    ConnectProviderResponseDTO connectProvider(UUID profileId, String provider);
+
+    /**
+     * 
+     * @param profileId
+     * @param provider
+     * @return
+     */
+    DisconnectProviderResponseDTO disconnectProvider(UUID profileId, String provider);
 
 }
