@@ -85,8 +85,13 @@ public class SkillVerificationScoringKernel {
         // baseNormalizedScore =
         //   (normalizedCoverage * COVERAGE_WEIGHT)
         // + (sourceQuality      * SOURCE_QUALITY_WEIGHT)
-        BigDecimal normalizedScore = normalizedCoverage.multiply(SkillScoringPolicy.COVERAGE_WEIGHT)
+        BigDecimal baseNormalizedScore = normalizedCoverage.multiply(SkillScoringPolicy.COVERAGE_WEIGHT)
                 .add(sourceQuality.multiply(SkillScoringPolicy.SOURCE_QUALITY_WEIGHT));
+
+        // baseNormalizedScore =
+        //   (normalizedCoverage * COVERAGE_WEIGHT)
+        // + (sourceQuality      * SOURCE_QUALITY_WEIGHT)
+        BigDecimal normalizedScore = baseNormalizedScore;
 
         BigDecimal boundedParserConfidence = null;
         if (parserConfidence != null) {
@@ -100,6 +105,44 @@ public class SkillVerificationScoringKernel {
 
         // overallScore = round(finalNormalizedScore * 100)
         int overallScore = scoringPolicy.toPercent(normalizedScore);
+
+        System.out.println(
+                "[BASELINE SCORE] Formula computes initial trust score from canonical coverage and source reliability. "
+                        + "base = 0.70*coverage + 0.30*sourceQuality"
+                        + (boundedParserConfidence == null ? "" : ", final = 0.90*base + 0.10*parserConfidence")
+        );
+        System.out.println(String.format(
+                "[BASELINE SCORE] coverage = matched/total = %d/%d = %s",
+                matchedSkills,
+                totalSkills,
+                normalizedCoverage
+        ));
+        System.out.println(String.format(
+                "[BASELINE SCORE] sourceQuality = sourceWeightSum/total = %s/%d = %s",
+                sourceWeightSum,
+                totalSkills,
+                sourceQuality
+        ));
+        System.out.println(String.format(
+                "[BASELINE SCORE] baseNormalized = (0.70*%s) + (0.30*%s) = %s",
+                normalizedCoverage,
+                sourceQuality,
+                baseNormalizedScore
+        ));
+        if (boundedParserConfidence != null) {
+            System.out.println(String.format(
+                    "[BASELINE SCORE] finalNormalized = (0.90*%s) + (0.10*%s) = %s",
+                    baseNormalizedScore,
+                    boundedParserConfidence,
+                    normalizedScore
+            ));
+        }
+        System.out.println(String.format(
+                "[BASELINE SCORE] overallScore = round(100*%s) = %d (scoreType=%s)",
+                normalizedScore,
+                overallScore,
+                scoreType
+        ));
 
         List<SkillClaimScore> unverifiedClaims = claimScores.stream()
                 .filter(c -> !"verified".equals(c.status()))

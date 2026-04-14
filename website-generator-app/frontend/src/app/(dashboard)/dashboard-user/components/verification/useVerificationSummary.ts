@@ -21,7 +21,9 @@ const useVerificationSummary = (): UseVerificationSummaryReturn => {
     setError(null)
 
     try {
-      const res = await fetch("/api/profile/resume-verification/summary")
+      const res = await fetch("/api/profile/resume-verification/summary", {
+        cache: "no-store",
+      })
 
       if (!res.ok) {
         throw new Error("Failed to fetch verification summary")

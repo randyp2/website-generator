@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import type {
   FilterOption,
@@ -25,6 +25,7 @@ import SkillCharts from "./SkillCharts"
 import SkillDetailDrawer from "./SkillDetailDrawer"
 import ScoringTransparency from "./ScoringTransparency"
 import ResumeVerificationGuard from "./ResumeVerificationGuard"
+import useVerificationSubTab from "./useVerificationSubTab"
 
 const VerificationTab = ({ userId }: VerificationTabProps) => {
   void userId
@@ -34,6 +35,13 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   const { summary, isLoading, error, refetch } = useVerificationSummary()
+  const { activeTab } = useVerificationSubTab()
+
+  useEffect(() => {
+    if (activeTab === "skill-verification") {
+      refetch()
+    }
+  }, [activeTab, refetch])
 
   const skills = useMemo(
     () =>
@@ -97,7 +105,7 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
   if (!summary || summary.totalSkills === 0 || !overview) {
     return (
       <ResumeVerificationGuard>
-        <VerificationEmptyState onStart={() => {}} />
+        <VerificationEmptyState onStart={refetch} />
       </ResumeVerificationGuard>
     )
   }
