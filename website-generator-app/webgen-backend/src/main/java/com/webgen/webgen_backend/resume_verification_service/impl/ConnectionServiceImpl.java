@@ -47,7 +47,7 @@ public class ConnectionServiceImpl implements ConnectionService {
         OffsetDateTime now = OffsetDateTime.now();
 
         ConnectedAccount connectedAccount = connectedAccountRepository
-                .findByProfileIdAndProvider(profileId, provider)
+                .findByProfileIdAndProvider(profileId, normalize)
                 .orElseGet(() -> {
                     ConnectedAccount account = new ConnectedAccount();
                     account.setId(UUID.randomUUID());
@@ -81,10 +81,10 @@ public class ConnectionServiceImpl implements ConnectionService {
     @Transactional
     public DisconnectProviderResponseDTO disconnectProvider(UUID profileId, String provider) {
 
-        String normalizedProvider = normalizeProvider(provider);
+        String normalize = normalizeProvider(provider);
 
         ConnectedAccount connectedAccount = connectedAccountRepository
-                .findByProfileIdAndProvider(profileId, provider)
+                .findByProfileIdAndProvider(profileId, normalize)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Connected account with profile and provider not found"));
 
         // Null/default fill in the fields
@@ -126,7 +126,7 @@ public class ConnectionServiceImpl implements ConnectionService {
         String normalized = provider.trim().toLowerCase(Locale.ROOT);
 
         if (!SUPPORTED_PROVIDERS.contains(normalized))
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "provider is not found");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported provider: " + normalized);
 
         return normalized;
     }
