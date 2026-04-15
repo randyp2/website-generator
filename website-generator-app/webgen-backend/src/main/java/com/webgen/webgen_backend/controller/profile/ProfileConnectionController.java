@@ -5,7 +5,9 @@ import com.webgen.webgen_backend.dto.profile.verification.connection.ConnectedAc
 import com.webgen.webgen_backend.dto.profile.verification.connection.DisconnectProviderResponseDTO;
 import com.webgen.webgen_backend.dto.profile.verification.connection.ProviderCallbackRequestDTO;
 import com.webgen.webgen_backend.dto.profile.verification.connection.ProviderCallbackResponseDTO;
+import com.webgen.webgen_backend.dto.profile.verification.connection.SyncProviderResponseDTO;
 import com.webgen.webgen_backend.resume_verification_service.ConnectionService;
+import com.webgen.webgen_backend.resume_verification_service.ConnectionSyncService;
 import com.webgen.webgen_backend.resume_verification_service.ProviderOAuthCallbackService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +23,7 @@ import java.util.UUID;
 public class ProfileConnectionController {
 
     private final ConnectionService connectionService;
+    private final ConnectionSyncService connectionSyncService;
     private final ProviderOAuthCallbackService providerOAuthCallbackService;
 
     @GetMapping
@@ -43,6 +46,14 @@ public class ProfileConnectionController {
     ) {
         UUID userId = resolveAuthenticatedUserId();
         return ResponseEntity.ok(connectionService.disconnectProvider(userId, provider));
+    }
+
+    @PostMapping("/{provider}/sync")
+    public ResponseEntity<SyncProviderResponseDTO> syncProvider(
+            @PathVariable String provider
+    ) {
+        UUID userId = resolveAuthenticatedUserId();
+        return ResponseEntity.ok(connectionSyncService.syncProvider(userId, provider));
     }
 
     @PostMapping("/{provider}/callback")
