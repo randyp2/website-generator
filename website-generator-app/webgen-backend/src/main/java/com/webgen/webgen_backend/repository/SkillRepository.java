@@ -4,6 +4,7 @@ import com.webgen.webgen_backend.entity.Skill;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -28,5 +29,14 @@ public interface SkillRepository extends JpaRepository<Skill, UUID> {
           WHERE lower(sa.alias) = lower(:alias)
       """)
     Optional<Skill> findByAliasIgnoreCase(String alias);
+
+    /**
+     * Load all alias phrases for a canonical skill id.
+     */
+    @Query("""
+          SELECT sa.alias FROM SkillAlias sa
+          WHERE sa.skillId = :skillId
+      """)
+    List<String> findAliasesBySkillId(UUID skillId);
 
 }
