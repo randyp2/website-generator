@@ -65,6 +65,24 @@ public class ConnectedAccount {
     @Column(name = "last_synced_at")
     private OffsetDateTime lastSyncedAt;
 
+    @Column(name = "last_sync_status", nullable = false)
+    private String lastSyncStatus;
+
+    @Column(name = "last_sync_error")
+    private String lastSyncError;
+
+    @Column(name = "last_sync_started_at")
+    private OffsetDateTime lastSyncStartedAt;
+
+    @Column(name = "last_sync_completed_at")
+    private OffsetDateTime lastSyncCompletedAt;
+
+    @Column(name = "last_sync_imported_count", nullable = false)
+    private Integer lastSyncImportedCount;
+
+    @Column(name = "last_sync_linked_count", nullable = false)
+    private Integer lastSyncLinkedCount;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 

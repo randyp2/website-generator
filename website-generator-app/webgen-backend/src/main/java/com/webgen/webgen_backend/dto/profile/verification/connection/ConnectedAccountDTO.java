@@ -17,6 +17,12 @@ public class ConnectedAccountDTO {
     private String status;
     private List<String> scopes;
     private OffsetDateTime lastSyncedAt;
+    private String lastSyncStatus;
+    private String lastSyncError;
+    private OffsetDateTime lastSyncStartedAt;
+    private OffsetDateTime lastSyncCompletedAt;
+    private Integer lastSyncImportedCount;
+    private Integer lastSyncLinkedCount;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 }
