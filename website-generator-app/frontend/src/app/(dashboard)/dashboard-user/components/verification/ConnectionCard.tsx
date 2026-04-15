@@ -35,6 +35,12 @@ const STATUS_LABELS: Record<string, string> = {
   pending: "Pending",
 }
 
+const CONNECT_BUTTON_CLASSES =
+  "h-7 w-full text-xs bg-emerald-600 text-white hover:bg-emerald-700 hover:cursor-pointer disabled:cursor-not-allowed disabled:bg-emerald-600/70"
+
+const RECONNECT_BUTTON_CLASSES =
+  "h-7 w-full text-xs border-emerald-600 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 hover:cursor-pointer disabled:cursor-not-allowed disabled:text-emerald-700/60"
+
 const ConnectionCard = ({
   connection,
   connectionActionInFlight,
@@ -117,7 +123,7 @@ const ConnectionCard = ({
           <Button
             variant="outline"
             size="sm"
-            className="h-7 w-full text-xs"
+            className={RECONNECT_BUTTON_CLASSES}
             disabled={isBusy}
             onClick={() => onConnect(connection.provider)}
           >
@@ -126,7 +132,7 @@ const ConnectionCard = ({
         ) : (
           <Button
             size="sm"
-            className="h-7 w-full text-xs"
+            className={CONNECT_BUTTON_CLASSES}
             disabled={isBusy}
             onClick={() => onConnect(connection.provider)}
           >
