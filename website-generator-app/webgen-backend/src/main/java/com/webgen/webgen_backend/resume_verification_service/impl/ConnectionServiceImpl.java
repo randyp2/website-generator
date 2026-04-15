@@ -198,7 +198,8 @@ public class ConnectionServiceImpl implements ConnectionService {
             builder.queryParam("scope", scopeParam);
         }
 
-        return builder.build(true).toUriString();
+        // Encode query params (notably space-delimited scopes) into a valid URL.
+        return builder.build().encode().toUriString();
     }
 
     /** Generate a cryptographically secure, URL-safe CSRF state token. */
