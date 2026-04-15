@@ -126,6 +126,8 @@ public class ConnectionServiceImpl implements ConnectionService {
     @Override
     @Transactional
     public DisconnectProviderResponseDTO disconnectProvider(UUID profileId, String provider) {
+        profileRepository.findById(profileId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio not found"));
 
         String normalizedProvider = ProviderNormalizationHelper.normalizeProvider(
                 provider,
@@ -136,18 +138,14 @@ public class ConnectionServiceImpl implements ConnectionService {
                 .findByProfileIdAndProvider(profileId, normalizedProvider)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Connected account with profile and provider not found"));
 
-        // Null/default fill in the fields
-        connectedAccount.setStatus(STATUS_DISCONNECTED);
-        connectedAccount.setProviderUserId(null);
-        connectedAccount.setScopes(new String[0]);
-        connectedAccount.setAccessTokenEncrypted(null);
-        connectedAccount.setRefreshTokenEncrypted(null);
-        connectedAccount.setAccessTokenExpiresAt(null);
-        connectedAccount.setRefreshTokenExpiresAt(null);
-        connectedAccount.setOauthState(null);
-        connectedAccount.setOauthStateExpiresAt(null);
-        connectedAccount.setLastSyncedAt(null);
-        connectedAccount.setUpdatedAt(OffsetDateTime.now());
+        // Idempotent disconnect: avoid writes when row is already fully sanitized.
+        if (isAlreadyDisconnectedAndSanitized(connectedAccount)) {
+            return DisconnectProviderResponseDTO.builder()
+                    .connection(connectedAccountMapper.toDto(connectedAccount))
+                    .build();
+        }
+
+        applyDisconnectedState(connectedAccount, OffsetDateTime.now());
 
         ConnectedAccount saved = connectedAccountRepository.save(connectedAccount);
 
@@ -217,6 +215,35 @@ public class ConnectionServiceImpl implements ConnectionService {
                 .collect(Collectors.toCollection(LinkedHashSet::new))
                 .stream()
                 .collect(Collectors.joining(" "));
+    }
+
+    // Persist disconnected lifecycle state while clearing all sensitive OAuth fields.
+    private void applyDisconnectedState(ConnectedAccount account, OffsetDateTime now) {
+        account.setStatus(STATUS_DISCONNECTED);
+        account.setProviderUserId(null);
+        account.setScopes(new String[0]);
+        account.setAccessTokenEncrypted(null);
+        account.setRefreshTokenEncrypted(null);
+        account.setAccessTokenExpiresAt(null);
+        account.setRefreshTokenExpiresAt(null);
+        account.setOauthState(null);
+        account.setOauthStateExpiresAt(null);
+        account.setLastSyncedAt(null);
+        account.setUpdatedAt(now);
+    }
+
+    // Return true only when repeat disconnect would not change persisted state.
+    private boolean isAlreadyDisconnectedAndSanitized(ConnectedAccount account) {
+        return STATUS_DISCONNECTED.equals(account.getStatus())
+                && account.getProviderUserId() == null
+                && (account.getScopes() == null || account.getScopes().length == 0)
+                && account.getAccessTokenEncrypted() == null
+                && account.getRefreshTokenEncrypted() == null
+                && account.getAccessTokenExpiresAt() == null
+                && account.getRefreshTokenExpiresAt() == null
+                && account.getOauthState() == null
+                && account.getOauthStateExpiresAt() == null
+                && account.getLastSyncedAt() == null;
     }
 
 }
