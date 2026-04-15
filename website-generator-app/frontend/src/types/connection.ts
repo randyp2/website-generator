@@ -9,3 +9,13 @@ export interface ConnectedAccountDTO {
   createdAt: string
   updatedAt: string
 }
+
+export interface ConnectProviderResponseDTO {
+  connection: ConnectedAccountDTO
+  authorizationUrl: string | null
+  state: string | null
+}
+
+export interface DisconnectProviderResponseDTO {
+  connection: ConnectedAccountDTO
+}
