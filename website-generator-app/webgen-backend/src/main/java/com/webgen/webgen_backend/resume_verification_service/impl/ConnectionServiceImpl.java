@@ -56,7 +56,7 @@ public class ConnectionServiceImpl implements ConnectionService {
     @Value("${github.oauth.redirect-uri:}")
     private String githubOauthRedirectUri;
 
-    @Value("${github.oauth.scopes:read:user,user:email}")
+    @Value("${github.oauth.scopes:read:user,user:email,repo}")
     private String githubOauthScopes;
 
     @Value("${github.oauth.state-ttl-seconds:600}")
