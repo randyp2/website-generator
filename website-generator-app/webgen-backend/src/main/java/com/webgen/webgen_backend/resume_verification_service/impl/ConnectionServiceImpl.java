@@ -5,9 +5,11 @@ import com.webgen.webgen_backend.dto.profile.verification.connection.ConnectedAc
 import com.webgen.webgen_backend.dto.profile.verification.connection.DisconnectProviderResponseDTO;
 import com.webgen.webgen_backend.entity.ConnectedAccount;
 import com.webgen.webgen_backend.entity.Profile;
+import com.webgen.webgen_backend.mapper.ConnectedAccountMapper;
 import com.webgen.webgen_backend.repository.ConnectedAccountRepository;
 import com.webgen.webgen_backend.repository.ProfileRepository;
 import com.webgen.webgen_backend.resume_verification_service.ConnectionService;
+import com.webgen.webgen_backend.resume_verification_service.shared.ProviderNormalizationHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -22,7 +24,6 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -33,6 +34,7 @@ public class ConnectionServiceImpl implements ConnectionService {
 
     private final ConnectedAccountRepository connectedAccountRepository;
     private final ProfileRepository profileRepository;
+    private final ConnectedAccountMapper connectedAccountMapper;
 
     private static final Set<String> SUPPORTED_PROVIDERS = Set.of(
             "linkedin",
@@ -67,7 +69,10 @@ public class ConnectionServiceImpl implements ConnectionService {
         Profile profile = profileRepository.findById(profileId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio not found"));
 
-        String normalizedProvider = normalizeProvider(provider);
+        String normalizedProvider = ProviderNormalizationHelper.normalizeProvider(
+                provider,
+                SUPPORTED_PROVIDERS
+        );
 
         OffsetDateTime now = OffsetDateTime.now();
 
@@ -112,7 +117,7 @@ public class ConnectionServiceImpl implements ConnectionService {
         ConnectedAccount savedAccount = connectedAccountRepository.save(connectedAccount);
 
         return ConnectProviderResponseDTO.builder()
-                .connection(toDto(savedAccount))
+                .connection(connectedAccountMapper.toDto(savedAccount))
                 .authorizationUrl(authorizationUrl)
                 .state(oauthState)
                 .build();
@@ -122,7 +127,10 @@ public class ConnectionServiceImpl implements ConnectionService {
     @Transactional
     public DisconnectProviderResponseDTO disconnectProvider(UUID profileId, String provider) {
 
-        String normalizedProvider = normalizeProvider(provider);
+        String normalizedProvider = ProviderNormalizationHelper.normalizeProvider(
+                provider,
+                SUPPORTED_PROVIDERS
+        );
 
         ConnectedAccount connectedAccount = connectedAccountRepository
                 .findByProfileIdAndProvider(profileId, normalizedProvider)
@@ -144,35 +152,17 @@ public class ConnectionServiceImpl implements ConnectionService {
         ConnectedAccount saved = connectedAccountRepository.save(connectedAccount);
 
         return DisconnectProviderResponseDTO.builder()
-                .connection(toDto(saved))
+                .connection(connectedAccountMapper.toDto(saved))
                 .build();
     }
 
     @Override
     public List<ConnectedAccountDTO> getConnections(UUID profileId) {
         return connectedAccountRepository.findByProfileIdOrderByCreatedAtDesc(profileId).stream()
-                .map(this::toDto)
+                .map(connectedAccountMapper::toDto)
                 .toList();
     }
     
-    /**
-     * Normalize a string to the provider
-     * Throw error if no provider is found
-     * @param provider - String to normalize
-     * @return a String representing normalized string
-     */
-    private String normalizeProvider(String provider) {
-        if (provider == null || provider.isBlank())
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "provider is required");
-
-        String normalized = provider.trim().toLowerCase(Locale.ROOT);
-
-        if (!SUPPORTED_PROVIDERS.contains(normalized))
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported provider: " + normalized);
-
-        return normalized;
-    }
-
     /** Fail fast if the minimal GitHub OAuth configuration is missing.*/
     private void validateGithubOauthConfiguration() {
 
@@ -229,18 +219,4 @@ public class ConnectionServiceImpl implements ConnectionService {
                 .collect(Collectors.joining(" "));
     }
 
-    /** Map persistence model to the API-safe connected account response DTO */
-    private ConnectedAccountDTO toDto(ConnectedAccount account) {
-        return ConnectedAccountDTO.builder()
-                .id(account.getId())
-                .profileId(account.getProfile().getId())
-                .provider(account.getProvider())
-                .providerUserId(account.getProviderUserId())
-                .status(account.getStatus())
-                .scopes(account.getScopes() == null ? List.of() : Arrays.asList(account.getScopes()))
-                .lastSyncedAt(account.getLastSyncedAt())
-                .createdAt(account.getCreatedAt())
-                .updatedAt(account.getUpdatedAt())
-                .build();
-    }
 }
