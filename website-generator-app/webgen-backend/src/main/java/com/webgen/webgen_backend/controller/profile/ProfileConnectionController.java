@@ -5,7 +5,6 @@ import com.webgen.webgen_backend.dto.profile.verification.connection.ConnectedAc
 import com.webgen.webgen_backend.dto.profile.verification.connection.DisconnectProviderResponseDTO;
 import com.webgen.webgen_backend.resume_verification_service.ConnectionService;
 import lombok.RequiredArgsConstructor;
-import org.apache.coyote.Response;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;

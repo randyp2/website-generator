@@ -56,6 +56,12 @@ public class ConnectedAccount {
     @Column(name = "refresh_token_expires_at")
     private OffsetDateTime refreshTokenExpiresAt;
 
+    @Column(name = "oauth_state")
+    private String oauthState;
+
+    @Column(name = "oauth_state_expires_at")
+    private OffsetDateTime oauthStateExpiresAt;
+
     @Column(name = "last_synced_at")
     private OffsetDateTime lastSyncedAt;
 
