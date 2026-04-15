@@ -71,6 +71,8 @@ public class ProviderOAuthCallbackServiceImpl implements ProviderOAuthCallbackSe
             String provider,
             ProviderCallbackRequestDTO req
     ) {
+        System.out.println("OAuth callback received: provider=" + provider + ", profileId=" + profileId);
+
         String normalizedProvider = ProviderNormalizationHelper.normalizeProvider(
                 provider,
                 SUPPORTED_PROVIDERS
@@ -85,15 +87,51 @@ public class ProviderOAuthCallbackServiceImpl implements ProviderOAuthCallbackSe
                         HttpStatus.NOT_FOUND,
                         "Connected account not found"
                 ));
+        System.out.println(
+                "OAuth callback account loaded: provider="
+                        + normalizedProvider
+                        + ", profileId="
+                        + profileId
+                        + ", accountId="
+                        + account.getId()
+                        + ", status="
+                        + account.getStatus()
+        );
 
         OffsetDateTime now = OffsetDateTime.now();
         validateOauthState(account, req.getState(), now);
+        System.out.println(
+                "OAuth callback state validated: provider="
+                        + normalizedProvider
+                        + ", profileId="
+                        + profileId
+                        + ", accountId="
+                        + account.getId()
+        );
 
         GithubTokenResponse tokenResponse = exchangeGithubCodeForTokens(
                 req.getCode(),
                 req.getState()
         );
+        System.out.println(
+                "OAuth callback token exchange succeeded: provider="
+                        + normalizedProvider
+                        + ", profileId="
+                        + profileId
+                        + ", accountId="
+                        + account.getId()
+                        + ", refreshTokenPresent="
+                        + !isBlank(tokenResponse.refreshToken())
+        );
         String githubUserId = fetchGithubUserId(tokenResponse.accessToken());
+        System.out.println(
+                "OAuth callback user lookup succeeded: provider="
+                        + normalizedProvider
+                        + ", profileId="
+                        + profileId
+                        + ", accountId="
+                        + account.getId()
+        );
 
         account.setStatus(STATUS_CONNECTED);
         account.setProviderUserId(githubUserId);
@@ -113,6 +151,16 @@ public class ProviderOAuthCallbackServiceImpl implements ProviderOAuthCallbackSe
         account.setUpdatedAt(now);
 
         ConnectedAccount saved = connectedAccountRepository.save(account);
+        System.out.println(
+                "OAuth callback completed: provider="
+                        + normalizedProvider
+                        + ", profileId="
+                        + profileId
+                        + ", accountId="
+                        + saved.getId()
+                        + ", status="
+                        + saved.getStatus()
+        );
         return ProviderCallbackResponseDTO.builder()
                 .connection(connectedAccountMapper.toDto(saved))
                 .build();
@@ -131,6 +179,7 @@ public class ProviderOAuthCallbackServiceImpl implements ProviderOAuthCallbackSe
                 || isBlank(githubOauthClientSecret)
                 || isBlank(githubOauthRedirectUri)
                 || isBlank(githubOauthTokenEncryptionSecret)) {
+            System.out.println("GitHub OAuth callback is misconfigured: required OAuth env values are missing");
             throw new ResponseStatusException(
                     HttpStatus.INTERNAL_SERVER_ERROR,
                     "GitHub OAuth callback is not configured"
@@ -143,6 +192,7 @@ public class ProviderOAuthCallbackServiceImpl implements ProviderOAuthCallbackSe
         if (req == null
                 || req.getCode() == null || req.getCode().isBlank()
                 || req.getState() == null || req.getState().isBlank()) {
+            System.out.println("OAuth callback rejected: code and/or state missing");
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "code and state are required");
         }
     }
@@ -154,12 +204,15 @@ public class ProviderOAuthCallbackServiceImpl implements ProviderOAuthCallbackSe
             OffsetDateTime now
     ) {
         if (account.getOauthState() == null || account.getOauthStateExpiresAt() == null) {
+            System.out.println("OAuth callback rejected: no pending OAuth state for accountId=" + account.getId());
             throw new ResponseStatusException(HttpStatus.CONFLICT, "No pending OAuth state");
         }
         if (now.isAfter(account.getOauthStateExpiresAt())) {
+            System.out.println("OAuth callback rejected: OAuth state expired for accountId=" + account.getId());
             throw new ResponseStatusException(HttpStatus.CONFLICT, "OAuth state expired");
         }
         if (!account.getOauthState().equals(providedState)) {
+            System.out.println("OAuth callback rejected: OAuth state mismatch for accountId=" + account.getId());
             throw new ResponseStatusException(HttpStatus.CONFLICT, "OAuth state mismatch");
         }
     }
@@ -190,6 +243,8 @@ public class ProviderOAuthCallbackServiceImpl implements ProviderOAuthCallbackSe
 
             return getGithubTokenResponse(response);
         } catch (RestClientException exception) {
+            System.out.println("GitHub token exchange request failed: " + exception.getMessage());
+            exception.printStackTrace();
             throw new ResponseStatusException(
                     HttpStatus.BAD_GATEWAY,
                     "GitHub token exchange request failed",
@@ -202,6 +257,7 @@ public class ProviderOAuthCallbackServiceImpl implements ProviderOAuthCallbackSe
     private GithubTokenResponse getGithubTokenResponse(ResponseEntity<GithubTokenResponse> response) {
         GithubTokenResponse tokenResponse = response.getBody();
         if (tokenResponse == null || isBlank(tokenResponse.accessToken())) {
+            System.out.println("GitHub token exchange returned empty access token");
             throw new ResponseStatusException(
                     HttpStatus.BAD_GATEWAY,
                     "GitHub token exchange returned empty access token"
@@ -209,6 +265,7 @@ public class ProviderOAuthCallbackServiceImpl implements ProviderOAuthCallbackSe
         }
 
         if (!isBlank(tokenResponse.error())) {
+            System.out.println("GitHub token exchange returned error=" + tokenResponse.error());
             throw new ResponseStatusException(
                     HttpStatus.BAD_GATEWAY,
                     "GitHub token exchange failed: " + tokenResponse.error()
@@ -234,6 +291,7 @@ public class ProviderOAuthCallbackServiceImpl implements ProviderOAuthCallbackSe
 
             GithubUserResponse githubUser = response.getBody();
             if (githubUser == null || githubUser.id() == null) {
+                System.out.println("GitHub user lookup returned empty id");
                 throw new ResponseStatusException(
                         HttpStatus.BAD_GATEWAY,
                         "GitHub user lookup returned empty id"
@@ -242,6 +300,8 @@ public class ProviderOAuthCallbackServiceImpl implements ProviderOAuthCallbackSe
 
             return String.valueOf(githubUser.id());
         } catch (RestClientException exception) {
+            System.out.println("GitHub user lookup request failed: " + exception.getMessage());
+            exception.printStackTrace();
             throw new ResponseStatusException(
                     HttpStatus.BAD_GATEWAY,
                     "GitHub user lookup request failed",
