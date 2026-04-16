@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.webgen.webgen_backend.dto.profile.verification.connection.SyncEvidenceStatsDTO;
 import com.webgen.webgen_backend.dto.profile.verification.connection.SyncLinkStatsDTO;
 import com.webgen.webgen_backend.dto.profile.verification.connection.SyncProviderResponseDTO;
+import com.webgen.webgen_backend.dto.profile.verification.summary.VerificationSummaryDTO;
 import com.webgen.webgen_backend.entity.Claim;
 import com.webgen.webgen_backend.entity.ClaimEvidenceLink;
 import com.webgen.webgen_backend.entity.ConnectedAccount;
@@ -18,12 +19,15 @@ import com.webgen.webgen_backend.repository.ConnectedAccountRepository;
 import com.webgen.webgen_backend.repository.EvidenceRepository;
 import com.webgen.webgen_backend.repository.SkillRepository;
 import com.webgen.webgen_backend.resume_verification_service.ConnectionSyncService;
+import com.webgen.webgen_backend.resume_verification_service.SkillVerificationSummaryService;
 import com.webgen.webgen_backend.resume_verification_service.provider.github.model.GithubContentResponse;
 import com.webgen.webgen_backend.resume_verification_service.provider.github.model.GithubRepoResponse;
 import com.webgen.webgen_backend.resume_verification_service.provider.github.model.GithubTokenResponse;
 import com.webgen.webgen_backend.resume_verification_service.provider.github.model.GithubUserResponse;
 import com.webgen.webgen_backend.resume_verification_service.shared.ProviderNormalizationHelper;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -48,6 +52,7 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -67,6 +72,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ConnectionSyncServiceImpl implements ConnectionSyncService {
+    private static final Logger log = LoggerFactory.getLogger(ConnectionSyncServiceImpl.class);
 
     private static final Set<String> SUPPORTED_PROVIDERS = Set.of(
             "linkedin",
@@ -91,6 +97,7 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
     private static final int GITHUB_REPOS_PER_PAGE = 100;
     private static final int MAX_GITHUB_REPO_PAGES = 5;
     private static final int MAX_REPOS_WITH_PACKAGE_SCAN = 30;
+    private static final int MAX_REPO_NAMES_IN_SYNC_LOG = 80;
 
     private static final long TOKEN_EXPIRY_SKEW_SECONDS = 60L;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
@@ -122,6 +129,7 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
     private final ClaimRepository claimRepository;
     private final ClaimEvidenceLinkRepository claimEvidenceLinkRepository;
     private final SkillRepository skillRepository;
+    private final SkillVerificationSummaryService skillVerificationSummaryService;
     private final ObjectMapper objectMapper;
 
     @Value("${github.oauth.client-id:}")
@@ -146,6 +154,12 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
                         HttpStatus.NOT_FOUND,
                         "Connected account with profile and provider not found"));
 
+        log.info(
+                "Connection sync started profileId={} provider={} accountId={}",
+                profileId,
+                normalizedProvider,
+                account.getId());
+
         if (!ACCOUNT_STATUS_CONNECTED.equals(account.getStatus())) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
@@ -162,6 +176,11 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
 
         markSyncRunning(account, startedAt);
         connectedAccountRepository.save(account);
+        log.info(
+                "Connection sync marked running profileId={} provider={} startedAt={}",
+                profileId,
+                normalizedProvider,
+                startedAt);
 
         try {
 
@@ -169,6 +188,13 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
                     account,
                     normalizedProvider,
                     startedAt);
+            log.info(
+                    "Connection sync token ready profileId={} provider={} tokenRefreshed={} accessTokenExpiresAt={} refreshTokenExpiresAt={}",
+                    profileId,
+                    normalizedProvider,
+                    tokenRefreshed,
+                    account.getAccessTokenExpiresAt(),
+                    account.getRefreshTokenExpiresAt());
 
             String accessToken = decryptRequiredToken(
                     account.getAccessTokenEncrypted(),
@@ -177,6 +203,15 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
             ProviderSyncSnapshot snapshot = fetchGithubEvidenceSnapshot(
                     accessToken,
                     startedAt);
+            log.info(
+                    "Connection sync fetched provider data profileId={} provider={} githubUserLogin={} githubUserId={} repositoryCount={} repositories={} dependencyScannedCount={}",
+                    profileId,
+                    normalizedProvider,
+                    snapshot.providerUserLogin(),
+                    snapshot.providerUserId(),
+                    snapshot.repositoryNames().size(),
+                    summarizeRepoNamesForLog(snapshot.repositoryNames()),
+                    snapshot.dependencyScannedCount());
 
             EvidenceUpsertResult upsertResult = upsertEvidence(
                     account,
@@ -190,12 +225,28 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
                     .updated(upsertResult.updated())
                     .unchanged(upsertResult.unchanged())
                     .build();
+            log.info(
+                    "Connection sync evidence upsert complete profileId={} provider={} fetched={} inserted={} updated={} unchanged={}",
+                    profileId,
+                    normalizedProvider,
+                    evidenceStats.getFetched(),
+                    evidenceStats.getInserted(),
+                    evidenceStats.getUpdated(),
+                    evidenceStats.getUnchanged());
 
             SyncLinkStatsDTO linkStats = linkEvidenceToClaims(
                     profileId,
                     normalizedProvider,
                     upsertResult.persistedEvidence(),
                     startedAt);
+            log.info(
+                    "Connection sync deterministic linking complete profileId={} provider={} inserted={} updated={} removed={} claimsMatched={}",
+                    profileId,
+                    normalizedProvider,
+                    linkStats.getInserted(),
+                    linkStats.getUpdated(),
+                    linkStats.getRemoved(),
+                    linkStats.getClaimsMatched());
 
             OffsetDateTime completedAt = OffsetDateTime.now();
             int importedCount = safeCount(evidenceStats.getInserted())
@@ -205,6 +256,17 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
 
             markSyncSuccess(account, completedAt, importedCount, linkedCount);
             connectedAccountRepository.save(account);
+            long durationMs = Duration.between(startedAt, completedAt).toMillis();
+
+            logFinalScoreSnapshot(profileId, normalizedProvider);
+            log.info(
+                    "Connection sync completed profileId={} provider={} status={} durationMs={} importedCount={} linkedCount={}",
+                    profileId,
+                    normalizedProvider,
+                    SYNC_STATUS_SUCCESS,
+                    durationMs,
+                    importedCount,
+                    linkedCount);
 
             return SyncProviderResponseDTO.builder()
                     .provider(normalizedProvider)
@@ -227,6 +289,15 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
                 account.setStatus(ACCOUNT_STATUS_EXPIRED);
             }
             connectedAccountRepository.save(account);
+            long durationMs = Duration.between(startedAt, completedAt).toMillis();
+            log.warn(
+                    "Connection sync failed profileId={} provider={} status={} durationMs={} error={}",
+                    profileId,
+                    normalizedProvider,
+                    SYNC_STATUS_FAILED,
+                    durationMs,
+                    error,
+                    exception);
 
             // Build response to notify client sync failed
             return SyncProviderResponseDTO.builder()
@@ -272,6 +343,10 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
         // - users repostiories
         GithubUserResponse profile = fetchGithubUserProfile(accessToken);
         List<GithubRepoResponse> repositories = fetchGithubRepositories(accessToken);
+        List<String> repositoryNames = repositories.stream()
+                .map(GithubRepoResponse::fullName)
+                .filter(name -> !isBlank(name))
+                .toList();
 
         List<EvidenceCandidate> candidates = new ArrayList<>();
         candidates.add(buildGithubProfileCandidate(profile, capturedAt));
@@ -296,7 +371,12 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
 
         }
 
-        return new ProviderSyncSnapshot(candidates);
+        return new ProviderSyncSnapshot(
+                candidates,
+                repositoryNames,
+                dependencyScans,
+                profile.login(),
+                profile.id());
     }
 
     /** Fetches the authenticated GitHub user profile for profile evidence. */
@@ -1390,6 +1470,58 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
         return value == null || value.isBlank();
     }
 
+    /**
+     * Logs current deterministic summary score after sync completion.
+     */
+    private void logFinalScoreSnapshot(UUID profileId, String provider) {
+        try {
+            VerificationSummaryDTO summary = skillVerificationSummaryService
+                    .getSkillVerificationSummary(profileId);
+
+            log.info(
+                    "Connection sync score snapshot profileId={} provider={} overallScore={} totalSkills={} matchedSkills={} unmatchedSkills={} generatedAt={}",
+                    profileId,
+                    provider,
+                    summary.getOverallScore(),
+                    summary.getTotalSkills(),
+                    summary.getMatchedSkills(),
+                    summary.getUnmatchedSkills(),
+                    summary.getGeneratedAt());
+        } catch (Exception exception) {
+            log.warn(
+                    "Connection sync score snapshot failed profileId={} provider={} reason={}",
+                    profileId,
+                    provider,
+                    exception.getMessage());
+        }
+    }
+
+    /**
+     * Produces a bounded repo-name preview to keep sync logs readable.
+     */
+    private String summarizeRepoNamesForLog(List<String> repositoryNames) {
+        if (repositoryNames == null || repositoryNames.isEmpty()) {
+            return "[]";
+        }
+
+        List<String> cleaned = repositoryNames.stream()
+                .filter(name -> !isBlank(name))
+                .distinct()
+                .toList();
+
+        if (cleaned.isEmpty()) {
+            return "[]";
+        }
+
+        int limit = Math.min(cleaned.size(), MAX_REPO_NAMES_IN_SYNC_LOG);
+        List<String> preview = cleaned.subList(0, limit);
+        if (cleaned.size() <= limit) {
+            return preview.toString();
+        }
+
+        return preview + " ... (+" + (cleaned.size() - limit) + " more)";
+    }
+
     private record EvidenceCandidate(
             String externalId,
             String evidenceType,
@@ -1402,7 +1534,11 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
     }
 
     private record ProviderSyncSnapshot(
-            List<EvidenceCandidate> candidates) {
+            List<EvidenceCandidate> candidates,
+            List<String> repositoryNames,
+            int dependencyScannedCount,
+            String providerUserLogin,
+            Long providerUserId) {
     }
 
     private record EvidenceUpsertResult(
