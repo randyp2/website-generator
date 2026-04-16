@@ -42,6 +42,11 @@ const SCORING_RULES = [
       "Matched claims without linked evidence use a reduced match prior to avoid treating extraction as proof.",
   },
   {
+    title: "Expert Reserved for LLM",
+    description:
+      "Until LLM verification is available, claim scores are capped at 80, so Expert (81-100) is intentionally locked.",
+  },
+  {
     title: "Parser Confidence (Optional)",
     description:
       "When available, parser confidence is blended as a 10% nudge to the base score.",

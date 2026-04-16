@@ -254,6 +254,8 @@ public class SkillVerificationScoringKernel {
 
         BigDecimal sourceWeight = scoringPolicy.sourceWeight(source);
         BigDecimal matchValue = resolveMatchValue(matched, evidenceLinksUsed);
+        boolean llmVerified = isLlmVerified(input);
+        int claimScoreCap = resolveClaimScoreCap(llmVerified);
 
         // claimPriorNormalized =
         //   (matchValue   * COVERAGE_WEIGHT)
@@ -261,8 +263,9 @@ public class SkillVerificationScoringKernel {
         BigDecimal baselineClaimNormalized = matchValue.multiply(SkillScoringPolicy.COVERAGE_WEIGHT)
                 .add(sourceWeight.multiply(SkillScoringPolicy.SOURCE_QUALITY_WEIGHT));
 
-        // baselineClaimScore = round(100 * baselineClaimNormalized)
-        int baselineClaimScore = scoringPolicy.toPercent(baselineClaimNormalized);
+        // baselineClaimScore = min(round(100 * baselineClaimNormalized), claimScoreCap)
+        int uncappedBaselineClaimScore = scoringPolicy.toPercent(baselineClaimNormalized);
+        int baselineClaimScore = Math.min(uncappedBaselineClaimScore, claimScoreCap);
 
         System.out.println(String.format(
                 "[CLAIM SCORE] claimId=%s rawValue=%s source=%s matched=%s status=%s",
@@ -345,10 +348,13 @@ public class SkillVerificationScoringKernel {
         }
         finalClaimNormalized = scoringPolicy.clamp01(finalClaimNormalized);
 
-        int finalClaimScore = scoringPolicy.toPercent(finalClaimNormalized);
+        int uncappedFinalClaimScore = scoringPolicy.toPercent(finalClaimNormalized);
+        int finalClaimScore = Math.min(uncappedFinalClaimScore, claimScoreCap);
         int evidenceContribution = evidenceLinksUsed > 0
                 ? finalClaimScore - baselineClaimScore
                 : 0;
+        boolean baselineScoreCapped = baselineClaimScore < uncappedBaselineClaimScore;
+        boolean finalScoreCapped = finalClaimScore < uncappedFinalClaimScore;
 
         EvidenceSignalStats evidenceStats = evidenceLinksUsed > 0
                 ? collectEvidenceSignalStats(evidenceLinks)
@@ -403,6 +409,19 @@ public class SkillVerificationScoringKernel {
                     finalClaimScore
             ));
         }
+        if (baselineScoreCapped || finalScoreCapped) {
+            System.out.println(String.format(
+                    "[CLAIM SCORE][CAP] claimId=%s llmVerified=%s claimScoreCap=%d "
+                            + "uncappedBaseline=%d baselineScore=%d uncappedFinal=%d finalScore=%d",
+                    input.claimId(),
+                    llmVerified,
+                    claimScoreCap,
+                    uncappedBaselineClaimScore,
+                    baselineClaimScore,
+                    uncappedFinalClaimScore,
+                    finalClaimScore
+            ));
+        }
 
         ClaimReasonComputation claimReason = buildClaimReason(
                 matched,
@@ -412,6 +431,13 @@ public class SkillVerificationScoringKernel {
                 evidenceContribution,
                 evidenceStats
         );
+        if (finalScoreCapped) {
+            claimReason = new ClaimReasonComputation(
+                    "expert_reserved_llm",
+                    "Expert-level scores are reserved for LLM verification. This claim is currently capped at "
+                            + claimScoreCap + "."
+            );
+        }
         System.out.println(String.format(
                 "[CLAIM SCORE][REASON] claimId=%s code=%s text=%s",
                 input.claimId(),
@@ -450,6 +476,18 @@ public class SkillVerificationScoringKernel {
             return SkillScoringPolicy.MATCHED_WITH_EVIDENCE_VALUE;
         }
         return SkillScoringPolicy.MATCHED_WITHOUT_EVIDENCE_VALUE;
+    }
+
+    // Placeholder seam for future LLM verification signal integration.
+    private boolean isLlmVerified(SkillClaimInput input) {
+        return false;
+    }
+
+    // Reserves expert-tier claim scores for LLM-verified claims.
+    private int resolveClaimScoreCap(boolean llmVerified) {
+        return llmVerified
+                ? SkillScoringPolicy.MAX_CLAIM_SCORE_WITH_LLM
+                : SkillScoringPolicy.MAX_CLAIM_SCORE_WITHOUT_LLM;
     }
 
     private EvidenceSignalStats collectEvidenceSignalStats(List<EvidenceLinkSignal> evidenceLinks) {

@@ -148,17 +148,18 @@ class SkillVerificationScoringKernelTest {
 
         assertThat(summary.scoreType()).isEqualTo("evidence_enhanced");
         assertThat(summary.baselineOverallScore()).isEqualTo(55);
-        assertThat(summary.overallScore()).isEqualTo(57);
-        assertThat(summary.evidenceDelta()).isEqualTo(2);
+        assertThat(summary.overallScore()).isEqualTo(55);
+        assertThat(summary.evidenceDelta()).isZero();
 
         Map<UUID, SkillClaimScore> byId = summary.claims().stream()
                 .collect(Collectors.toMap(SkillClaimScore::claimId, Function.identity()));
 
         SkillClaimScore evidenceClaim = byId.get(c1);
-        assertThat(evidenceClaim.baselineClaimScore()).isEqualTo(94);
-        assertThat(evidenceClaim.claimScore()).isEqualTo(98);
-        assertThat(evidenceClaim.evidenceContribution()).isEqualTo(4);
+        assertThat(evidenceClaim.baselineClaimScore()).isEqualTo(80);
+        assertThat(evidenceClaim.claimScore()).isEqualTo(80);
+        assertThat(evidenceClaim.evidenceContribution()).isZero();
         assertThat(evidenceClaim.evidenceLinksUsed()).isEqualTo(1);
+        assertThat(evidenceClaim.scoreReasonCode()).isEqualTo("expert_reserved_llm");
     }
 
     @Test
@@ -185,12 +186,12 @@ class SkillVerificationScoringKernelTest {
 
         assertThat(summary.scoreType()).isEqualTo("evidence_enhanced");
         assertThat(summary.baselineOverallScore()).isEqualTo(94);
-        assertThat(summary.overallScore()).isEqualTo(44);
-        assertThat(summary.evidenceDelta()).isEqualTo(-50);
+        assertThat(summary.overallScore()).isEqualTo(58);
+        assertThat(summary.evidenceDelta()).isEqualTo(-36);
 
-        assertThat(claimScore.baselineClaimScore()).isEqualTo(94);
+        assertThat(claimScore.baselineClaimScore()).isEqualTo(80);
         assertThat(claimScore.claimScore()).isEqualTo(44);
-        assertThat(claimScore.evidenceContribution()).isEqualTo(-50);
+        assertThat(claimScore.evidenceContribution()).isEqualTo(-36);
         assertThat(claimScore.evidenceLinksUsed()).isEqualTo(1);
     }
 
