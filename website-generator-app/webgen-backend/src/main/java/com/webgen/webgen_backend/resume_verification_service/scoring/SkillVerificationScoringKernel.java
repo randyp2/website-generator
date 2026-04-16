@@ -6,7 +6,6 @@ import com.webgen.webgen_backend.resume_verification_service.scoring.model.Skill
 import com.webgen.webgen_backend.resume_verification_service.scoring.model.SkillScoreRequest;
 import com.webgen.webgen_backend.resume_verification_service.scoring.model.SkillScoreSummary;
 import com.webgen.webgen_backend.resume_verification_service.scoring.model.SuggestedAction;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -16,13 +15,25 @@ import java.util.Comparator;
 import java.util.List;
 
 @Component
-@RequiredArgsConstructor
 public class SkillVerificationScoringKernel {
 
     private final SkillScoringPolicy scoringPolicy;
     private final SkillSuggestedActionRuleBook actionRuleBook;
+    private final List<SkillScorePostProcessor> scorePostProcessors;
     private static final int STALE_SIGNAL_DAYS_THRESHOLD = 180;
     private static final BigDecimal STRONG_SIGNAL_THRESHOLD = new BigDecimal("0.80");
+
+    public SkillVerificationScoringKernel(
+            SkillScoringPolicy scoringPolicy,
+            SkillSuggestedActionRuleBook actionRuleBook,
+            List<SkillScorePostProcessor> scorePostProcessors
+    ) {
+        this.scoringPolicy = scoringPolicy;
+        this.actionRuleBook = actionRuleBook;
+        this.scorePostProcessors = scorePostProcessors == null
+                ? List.of()
+                : List.copyOf(scorePostProcessors);
+    }
 
     /**
      * Calculates the deterministic score summary for skill claims.
@@ -205,7 +216,7 @@ public class SkillVerificationScoringKernel {
 
         List<SuggestedAction> suggestedActions = buildSuggestedActions(unverifiedClaims);
 
-        return new SkillScoreSummary(
+        SkillScoreSummary deterministicSummary = new SkillScoreSummary(
                 scoreType,
                 baselineOverallScore,
                 evidenceDelta,
@@ -220,6 +231,8 @@ public class SkillVerificationScoringKernel {
                 unverifiedClaims,
                 suggestedActions
         );
+
+        return applyPostProcessors(deterministicSummary, request);
     }
 
     /**
@@ -234,11 +247,15 @@ public class SkillVerificationScoringKernel {
         String category = scoringPolicy.normalizeCategory(input.canonicalCategory());
 
         boolean matched = input.canonicalSkillId() != null;
+        List<EvidenceLinkSignal> evidenceLinks = input.evidenceLinks() == null
+                ? List.of()
+                : input.evidenceLinks();
+        int evidenceLinksUsed = evidenceLinks.size();
 
         BigDecimal sourceWeight = scoringPolicy.sourceWeight(source);
-        BigDecimal matchValue = matched ? SkillScoringPolicy.ONE : SkillScoringPolicy.ZERO;
+        BigDecimal matchValue = resolveMatchValue(matched, evidenceLinksUsed);
 
-        // claimNormalized =
+        // claimPriorNormalized =
         //   (matchValue   * COVERAGE_WEIGHT)
         // + (sourceWeight * SOURCE_QUALITY_WEIGHT)
         BigDecimal baselineClaimNormalized = matchValue.multiply(SkillScoringPolicy.COVERAGE_WEIGHT)
@@ -269,11 +286,6 @@ public class SkillVerificationScoringKernel {
         BigDecimal canonicalWeight = input.canonicalWeight() == null
                 ? SkillScoringPolicy.ZERO
                 : scoringPolicy.clamp01(input.canonicalWeight());
-
-        List<EvidenceLinkSignal> evidenceLinks = input.evidenceLinks() == null
-                ? List.of()
-                : input.evidenceLinks();
-        int evidenceLinksUsed = evidenceLinks.size();
 
         BigDecimal finalClaimNormalized = baselineClaimNormalized;
         BigDecimal evidenceClaimNormalized = null;
@@ -427,6 +439,17 @@ public class SkillVerificationScoringKernel {
         );
 
         return new ClaimScoreComputation(score);
+    }
+
+    // Resolves claim-match prior value from canonical match state and evidence presence.
+    private BigDecimal resolveMatchValue(boolean matched, int evidenceLinksUsed) {
+        if (!matched) {
+            return SkillScoringPolicy.ZERO;
+        }
+        if (evidenceLinksUsed > 0) {
+            return SkillScoringPolicy.MATCHED_WITH_EVIDENCE_VALUE;
+        }
+        return SkillScoringPolicy.MATCHED_WITHOUT_EVIDENCE_VALUE;
     }
 
     private EvidenceSignalStats collectEvidenceSignalStats(List<EvidenceLinkSignal> evidenceLinks) {
@@ -590,6 +613,31 @@ public class SkillVerificationScoringKernel {
             case "language_plus_text_match" -> "language and text";
             default -> "repository";
         };
+    }
+
+    private SkillScoreSummary applyPostProcessors(
+            SkillScoreSummary deterministicSummary,
+            SkillScoreRequest request
+    ) {
+        SkillScoreSummary current = deterministicSummary;
+        for (SkillScorePostProcessor postProcessor : scorePostProcessors) {
+            if (postProcessor == null) {
+                continue;
+            }
+            try {
+                SkillScoreSummary next = postProcessor.apply(current, request);
+                if (next != null) {
+                    current = next;
+                }
+            } catch (Exception exception) {
+                System.out.println(String.format(
+                        "[POST SCORE] processor=%s failed reason=%s",
+                        postProcessor.getClass().getSimpleName(),
+                        exception.getMessage()
+                ));
+            }
+        }
+        return current;
     }
 
     // Combines top-K link strengths into one bounded evidence support score.

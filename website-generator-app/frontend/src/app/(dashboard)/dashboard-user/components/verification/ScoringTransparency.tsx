@@ -37,6 +37,11 @@ const SCORING_RULES = [
       "Initial score = 100 × (0.7 × coverage + 0.3 × sourceQuality).",
   },
   {
+    title: "Evidence-aware Claim Prior",
+    description:
+      "Matched claims without linked evidence use a reduced match prior to avoid treating extraction as proof.",
+  },
+  {
     title: "Parser Confidence (Optional)",
     description:
       "When available, parser confidence is blended as a 10% nudge to the base score.",

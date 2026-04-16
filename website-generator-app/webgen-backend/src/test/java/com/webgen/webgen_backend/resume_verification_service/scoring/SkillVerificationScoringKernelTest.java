@@ -21,7 +21,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 class SkillVerificationScoringKernelTest {
 
     private final SkillVerificationScoringKernel kernel =
-            new SkillVerificationScoringKernel(new SkillScoringPolicy(), new SkillSuggestedActionRuleBook());
+            new SkillVerificationScoringKernel(
+                    new SkillScoringPolicy(),
+                    new SkillSuggestedActionRuleBook(),
+                    List.of()
+            );
 
     @Test
     void emptyClaimsProduceZeroSummary() {
@@ -66,12 +70,12 @@ class SkillVerificationScoringKernelTest {
         Map<UUID, SkillClaimScore> byId = summary.claims().stream()
                 .collect(Collectors.toMap(SkillClaimScore::claimId, Function.identity()));
 
-        assertThat(byId.get(c1).claimScore()).isEqualTo(94);
-        assertThat(byId.get(c1).baselineClaimScore()).isEqualTo(94);
+        assertThat(byId.get(c1).claimScore()).isEqualTo(49);
+        assertThat(byId.get(c1).baselineClaimScore()).isEqualTo(49);
         assertThat(byId.get(c1).evidenceContribution()).isZero();
         assertThat(byId.get(c1).evidenceLinksUsed()).isZero();
         assertThat(byId.get(c2).claimScore()).isEqualTo(24);
-        assertThat(byId.get(c3).claimScore()).isEqualTo(85);
+        assertThat(byId.get(c3).claimScore()).isEqualTo(40);
         assertThat(byId.get(c4).claimScore()).isEqualTo(27);
 
         assertThat(summary.unverifiedClaims()).hasSize(3);

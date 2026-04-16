@@ -31,10 +31,15 @@ import java.util.Map;
  *   + 0.60 * evidenceClaimNormalized
  * </pre>
  *
- * <p>Per-claim score formula:</p>
+ * <p>Per-claim prior formula (before evidence blend):</p>
  *
  * <pre>
- * claimScore = round(100 * (0.70 * isCanonicalMatched + 0.30 * sourceWeight))
+ * matchValue =
+ *   0.00 when unmatched
+ *   0.35 when matched but no linked evidence
+ *   1.00 when matched and linked evidence exists
+ *
+ * claimPrior = 0.70 * matchValue + 0.30 * sourceWeight
  * </pre>
  */
 @Component
@@ -68,6 +73,16 @@ public class SkillScoringPolicy {
      * claim extraction alone.
      */
     public static final BigDecimal EVIDENCE_BLEND_EVIDENCE_WEIGHT = new BigDecimal("0.60");
+
+    /**
+     * Canonical-matched claims without linked evidence keep reduced prior value.
+     * This avoids treating extraction/canonical mapping as proof before accounts
+     * are connected.
+     */
+    public static final BigDecimal MATCHED_WITHOUT_EVIDENCE_VALUE = new BigDecimal("0.35");
+
+    /** Canonical-matched claims with linked evidence use full match value. */
+    public static final BigDecimal MATCHED_WITH_EVIDENCE_VALUE = ONE;
 
     /** Scale used for division to keep deterministic rounding behavior stable. */
     public static final int DIV_SCALE = 6;
