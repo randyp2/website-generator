@@ -104,6 +104,26 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
             "peerDependencies",
             "optionalDependencies");
 
+    /**
+     * Build files that imply JVM/backend projects and should emit Java-related
+     * evidence signals.
+     */
+    private static final Set<String> BACKEND_BUILD_FILE_NAMES = Set.of(
+            "pom.xml",
+            "build.gradle",
+            "build.gradle.kts",
+            "settings.gradle",
+            "settings.gradle.kts");
+
+    /**
+     * Directory traversal bounds for backend build-file discovery.
+     * - depth 0: repository root
+     * - depth 1: one layer below root
+     * - depth 2: two layers below root
+     */
+    private static final int BACKEND_DISCOVERY_MAX_ROOT_DIRS = 40;
+    private static final int BACKEND_DISCOVERY_MAX_SUBDIRS_PER_ROOT = 40;
+
     private static final Map<String, Set<String>> COMMON_TERM_ALIASES = Map.ofEntries(
             Map.entry("react", Set.of("reactjs")),
             Map.entry("reactjs", Set.of("react")),
@@ -390,10 +410,16 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
         for (GithubRepoResponse repo : repositories) {
             Set<String> dependencies = Set.of();
             if (dependencyScans < MAX_REPOS_WITH_PACKAGE_SCAN) {
-                dependencies = fetchGithubPackageDependencies(
+                Set<String> collectedSignals = new LinkedHashSet<>();
+                collectedSignals.addAll(fetchGithubPackageDependencies(
                         accessToken,
                         repo.fullName(),
-                        repo.defaultBranch());
+                        repo.defaultBranch()));
+                collectedSignals.addAll(fetchGithubBackendSignals(
+                        accessToken,
+                        repo.fullName(),
+                        repo.defaultBranch()));
+                dependencies = collectedSignals;
                 dependencyScans++;
             }
 
@@ -401,8 +427,20 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
                     repo,
                     dependencies,
                     capturedAt);
-            if (candidate != null)
+            if (candidate != null) {
                 candidates.add(candidate);
+                logSync(
+                        "Connection sync repo candidate timestamp fullName="
+                                + repo.fullName()
+                                + " pushedAtRaw="
+                                + repo.pushedAt()
+                                + " occurredAt="
+                                + candidate.occurredAt()
+                                + " capturedAt="
+                                + candidate.capturedAt()
+                                + " dependencyCount="
+                                + dependencies.size());
+            }
 
         }
 
@@ -526,40 +564,22 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
             String accessToken,
             String fullName,
             String defaultBranch) {
-        if (isBlank(fullName) || !fullName.contains("/")) {
+        String[] repoParts = splitRepoFullName(fullName);
+        if (repoParts == null) {
             return Set.of();
         }
-
-        String[] parts = fullName.split("/", 2);
-        if (parts.length != 2 || isBlank(parts[0]) || isBlank(parts[1])) {
-            return Set.of();
-        }
-
-        String url = UriComponentsBuilder
-                .fromUriString("https://api.github.com/repos/{owner}/{repo}/contents/package.json")
-                .queryParam("ref", isBlank(defaultBranch) ? "main" : defaultBranch)
-                .buildAndExpand(parts[0], parts[1])
-                .toUriString();
 
         try {
-            ResponseEntity<GithubContentResponse> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    new HttpEntity<>(buildGithubApiHeaders(accessToken)),
-                    GithubContentResponse.class);
-
-            GithubContentResponse body = response.getBody();
-            if (body == null || isBlank(body.content())) {
+            String packageJsonText = fetchGithubTextFile(
+                    accessToken,
+                    repoParts[0],
+                    repoParts[1],
+                    defaultBranch,
+                    "package.json");
+            if (isBlank(packageJsonText)) {
                 return Set.of();
             }
-
-            if (!"base64".equalsIgnoreCase(body.encoding())) {
-                return Set.of();
-            }
-
-            byte[] decoded = Base64.getDecoder().decode(
-                    body.content().replace("\n", ""));
-            JsonNode packageJson = objectMapper.readTree(decoded);
+            JsonNode packageJson = objectMapper.readTree(packageJsonText);
             return extractDependenciesFromPackageJson(packageJson);
         } catch (RestClientResponseException exception) {
             // package.json is optional; treat 404 as no dependency signal.
@@ -577,6 +597,289 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
         } catch (Exception exception) {
             return Set.of();
         }
+    }
+
+    /**
+     * Best-effort JVM/backend signal fetch from common Maven/Gradle files.
+     *
+     * Signals are merged into the same deterministic dependency bucket consumed by
+     * claim matching, which allows backend claims (for example Java, Spring Boot)
+     * to link even when package.json is absent.
+     */
+    private Set<String> fetchGithubBackendSignals(
+            String accessToken,
+            String fullName,
+            String defaultBranch) {
+        String[] repoParts = splitRepoFullName(fullName);
+        if (repoParts == null) {
+            return Set.of();
+        }
+
+        Set<String> signals = new LinkedHashSet<>();
+        List<String> foundPaths = new ArrayList<>();
+        List<String> candidatePaths = discoverBackendBuildFilePaths(
+                accessToken,
+                repoParts[0],
+                repoParts[1],
+                defaultBranch);
+        int attemptedPaths = 0;
+        int notFoundCount = 0;
+        for (String path : candidatePaths) {
+            attemptedPaths++;
+            try {
+                String fileContent = fetchGithubTextFile(
+                        accessToken,
+                        repoParts[0],
+                        repoParts[1],
+                        defaultBranch,
+                        path);
+                if (isBlank(fileContent)) {
+                    continue;
+                }
+
+                String normalized = normalizeForMatch(fileContent);
+                if (isBlank(normalized)) {
+                    continue;
+                }
+
+                foundPaths.add(path);
+
+                // Build file presence itself is a strong JVM backend indicator.
+                addMatchingTerm(signals, "java");
+
+                if (normalized.contains("spring boot")
+                        || normalized.contains("spring-boot")
+                        || normalized.contains("org.springframework.boot")) {
+                    addMatchingTerm(signals, "spring");
+                    addMatchingTerm(signals, "spring boot");
+                    addMatchingTerm(signals, "springboot");
+                }
+            } catch (RestClientResponseException exception) {
+                if (exception.getStatusCode() == HttpStatus.NOT_FOUND) {
+                    notFoundCount++;
+                    continue;
+                }
+                if (exception.getStatusCode() == HttpStatus.UNAUTHORIZED
+                        || exception.getStatusCode() == HttpStatus.FORBIDDEN) {
+                    throw new ResponseStatusException(
+                            HttpStatus.UNAUTHORIZED,
+                            "GitHub backend signal fetch unauthorized. Reconnect is required.",
+                            exception);
+                }
+            } catch (Exception ignored) {
+                // Backend signal extraction is best-effort and should not fail sync.
+            }
+        }
+
+        logSync(
+                "Connection sync backend probe fullName="
+                        + fullName
+                        + " attemptedPaths="
+                        + attemptedPaths
+                        + " candidates="
+                        + candidatePaths
+                        + " notFound="
+                        + notFoundCount
+                        + " foundPaths="
+                        + foundPaths
+                        + " signals="
+                        + signals);
+
+        if (!signals.isEmpty()) {
+            logSync(
+                    "Connection sync backend signals extracted fullName="
+                            + fullName
+                            + " signals="
+                            + signals);
+        }
+
+        return signals;
+    }
+
+    /**
+     * Discovers backend build files by traversing repository directories up to depth 2.
+     *
+     * This replaces hardcoded repository-specific path assumptions and keeps matching
+     * generic across different monorepo layouts.
+     */
+    private List<String> discoverBackendBuildFilePaths(
+            String accessToken,
+            String owner,
+            String repo,
+            String defaultBranch) {
+        LinkedHashSet<String> discovered = new LinkedHashSet<>();
+
+        List<GithubPathEntry> rootEntries = fetchGithubDirectoryEntries(
+                accessToken,
+                owner,
+                repo,
+                defaultBranch,
+                null);
+        addBuildFilePaths(discovered, rootEntries);
+
+        List<GithubPathEntry> rootDirectories = rootEntries.stream()
+                .filter(entry -> "dir".equals(entry.type()))
+                .limit(BACKEND_DISCOVERY_MAX_ROOT_DIRS)
+                .toList();
+
+        for (GithubPathEntry rootDirectory : rootDirectories) {
+            List<GithubPathEntry> levelOneEntries = fetchGithubDirectoryEntries(
+                    accessToken,
+                    owner,
+                    repo,
+                    defaultBranch,
+                    rootDirectory.path());
+            addBuildFilePaths(discovered, levelOneEntries);
+
+            List<GithubPathEntry> levelOneDirectories = levelOneEntries.stream()
+                    .filter(entry -> "dir".equals(entry.type()))
+                    .limit(BACKEND_DISCOVERY_MAX_SUBDIRS_PER_ROOT)
+                    .toList();
+
+            for (GithubPathEntry levelOneDirectory : levelOneDirectories) {
+                List<GithubPathEntry> levelTwoEntries = fetchGithubDirectoryEntries(
+                        accessToken,
+                        owner,
+                        repo,
+                        defaultBranch,
+                        levelOneDirectory.path());
+                addBuildFilePaths(discovered, levelTwoEntries);
+            }
+        }
+
+        return discovered.stream().sorted().toList();
+    }
+
+    // Adds discovered JVM build-file paths from one directory listing response.
+    private void addBuildFilePaths(Set<String> out, List<GithubPathEntry> entries) {
+        if (entries == null || entries.isEmpty()) {
+            return;
+        }
+
+        for (GithubPathEntry entry : entries) {
+            if (entry == null || !"file".equals(entry.type())) {
+                continue;
+            }
+            if (!BACKEND_BUILD_FILE_NAMES.contains(entry.name())) {
+                continue;
+            }
+            if (!isBlank(entry.path())) {
+                out.add(entry.path());
+            }
+        }
+    }
+
+    /**
+     * Lists entries for a repo directory path using GitHub contents API.
+     *
+     * Returns empty list for missing directories or non-directory payloads.
+     */
+    private List<GithubPathEntry> fetchGithubDirectoryEntries(
+            String accessToken,
+            String owner,
+            String repo,
+            String defaultBranch,
+            String directoryPath) {
+        String url;
+        if (isBlank(directoryPath)) {
+            url = UriComponentsBuilder
+                    .fromUriString("https://api.github.com/repos/{owner}/{repo}/contents")
+                    .queryParam("ref", isBlank(defaultBranch) ? "main" : defaultBranch)
+                    .buildAndExpand(owner, repo)
+                    .toUriString();
+        } else {
+            url = UriComponentsBuilder
+                    .fromUriString("https://api.github.com/repos/{owner}/{repo}/contents/{path}")
+                    .queryParam("ref", isBlank(defaultBranch) ? "main" : defaultBranch)
+                    .buildAndExpand(owner, repo, directoryPath)
+                    .toUriString();
+        }
+
+        try {
+            ResponseEntity<JsonNode> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    new HttpEntity<>(buildGithubApiHeaders(accessToken)),
+                    JsonNode.class);
+
+            JsonNode body = response.getBody();
+            if (body == null || !body.isArray()) {
+                return List.of();
+            }
+
+            List<GithubPathEntry> entries = new ArrayList<>();
+            for (JsonNode entry : body) {
+                if (!entry.isObject()) {
+                    continue;
+                }
+
+                String type = readText(entry, "type");
+                String name = readText(entry, "name");
+                String path = readText(entry, "path");
+                if (isBlank(type) || isBlank(name) || isBlank(path)) {
+                    continue;
+                }
+
+                entries.add(new GithubPathEntry(path, name, type));
+            }
+            return entries;
+        } catch (RestClientResponseException exception) {
+            if (exception.getStatusCode() == HttpStatus.NOT_FOUND) {
+                return List.of();
+            }
+            if (exception.getStatusCode() == HttpStatus.UNAUTHORIZED
+                    || exception.getStatusCode() == HttpStatus.FORBIDDEN) {
+                throw new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "GitHub backend directory listing unauthorized. Reconnect is required.",
+                        exception);
+            }
+            return List.of();
+        } catch (Exception exception) {
+            return List.of();
+        }
+    }
+
+    private String fetchGithubTextFile(
+            String accessToken,
+            String owner,
+            String repo,
+            String defaultBranch,
+            String path) {
+        String url = UriComponentsBuilder
+                .fromUriString("https://api.github.com/repos/{owner}/{repo}/contents/{path}")
+                .queryParam("ref", isBlank(defaultBranch) ? "main" : defaultBranch)
+                .buildAndExpand(owner, repo, path)
+                .toUriString();
+
+        ResponseEntity<GithubContentResponse> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                new HttpEntity<>(buildGithubApiHeaders(accessToken)),
+                GithubContentResponse.class);
+
+        GithubContentResponse body = response.getBody();
+        if (body == null || isBlank(body.content())) {
+            return null;
+        }
+        if (!"base64".equalsIgnoreCase(body.encoding())) {
+            return null;
+        }
+
+        byte[] decoded = Base64.getDecoder().decode(body.content().replace("\n", ""));
+        return new String(decoded, StandardCharsets.UTF_8);
+    }
+
+    private String[] splitRepoFullName(String fullName) {
+        if (isBlank(fullName) || !fullName.contains("/")) {
+            return null;
+        }
+
+        String[] parts = fullName.split("/", 2);
+        if (parts.length != 2 || isBlank(parts[0]) || isBlank(parts[1])) {
+            return null;
+        }
+        return parts;
     }
 
     // Reads dependency keys from standard package.json dependency sections.
@@ -687,6 +990,31 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
         for (EvidenceCandidate candidate : candidates) {
             if (candidate == null || isBlank(candidate.externalId())) {
                 continue;
+            }
+
+            int occurredAgeDays = resolveEvidenceAgeDays(
+                    candidate.occurredAt(),
+                    candidate.capturedAt(),
+                    now
+            );
+            if (occurredAgeDays >= 180) {
+                logSync(
+                        "Connection sync stale evidence candidate detected profileId="
+                                + profileId
+                                + " provider="
+                                + provider
+                                + " externalId="
+                                + candidate.externalId()
+                                + " evidenceType="
+                                + candidate.evidenceType()
+                                + " title="
+                                + candidate.title()
+                                + " occurredAt="
+                                + candidate.occurredAt()
+                                + " capturedAt="
+                                + candidate.capturedAt()
+                                + " ageDays="
+                                + occurredAgeDays);
             }
 
             Evidence evidence = evidenceRepository
@@ -823,6 +1151,41 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
                 matchedClaimIds.add(claim.getId());
                 String key = linkKey(claim.getId(), evidence.getId());
                 matchedKeys.add(key);
+
+                int evidenceAgeDays = resolveEvidenceAgeDays(
+                        evidence.getOccurredAt(),
+                        evidence.getCapturedAt(),
+                        now
+                );
+                if ("name_match".equals(match.linkType()) || evidenceAgeDays >= 180) {
+                    logSync(
+                            "Connection sync match detail profileId="
+                                    + profileId
+                                    + " claimId="
+                                    + claim.getId()
+                                    + " claimRawValue="
+                                    + claim.getRawValue()
+                                    + " canonicalSkill="
+                                    + canonicalName
+                                    + " evidenceId="
+                                    + evidence.getId()
+                                    + " evidenceExternalId="
+                                    + evidence.getExternalId()
+                                    + " evidenceTitle="
+                                    + evidence.getTitle()
+                                    + " linkType="
+                                    + match.linkType()
+                                    + " confidence="
+                                    + match.confidence()
+                                    + " reason="
+                                    + match.reason()
+                                    + " occurredAt="
+                                    + evidence.getOccurredAt()
+                                    + " capturedAt="
+                                    + evidence.getCapturedAt()
+                                    + " ageDays="
+                                    + evidenceAgeDays);
+                }
 
                 ClaimEvidenceLink link = claimEvidenceLinkRepository
                         .findByProfileIdAndClaimIdAndEvidenceId(
@@ -1559,6 +1922,26 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
         return cleaned.toString();
     }
 
+    private int resolveEvidenceAgeDays(
+            OffsetDateTime occurredAt,
+            OffsetDateTime capturedAt,
+            OffsetDateTime asOf
+    ) {
+        OffsetDateTime signalTimestamp = occurredAt != null ? occurredAt : capturedAt;
+        if (signalTimestamp == null || asOf == null) {
+            return 0;
+        }
+
+        long ageDays = Duration.between(signalTimestamp, asOf).toDays();
+        if (ageDays <= 0) {
+            return 0;
+        }
+        if (ageDays > Integer.MAX_VALUE) {
+            return Integer.MAX_VALUE;
+        }
+        return (int) ageDays;
+    }
+
     /**
      * Emits sync tracing logs using stdout as requested.
      */
@@ -1590,6 +1973,12 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
             int updated,
             int unchanged,
             List<Evidence> persistedEvidence) {
+    }
+
+    private record GithubPathEntry(
+            String path,
+            String name,
+            String type) {
     }
 
     private record ClaimTermSet(

@@ -346,6 +346,75 @@ public class SkillVerificationScoringKernel {
                     finalClaimScore,
                     evidenceContribution
             ));
+            if (evidenceContribution < 0) {
+                int stale180Count = 0;
+                int stale365Count = 0;
+                BigDecimal strongestStrength = null;
+                BigDecimal weakestStrength = null;
+                String strongestType = null;
+                String weakestType = null;
+                Integer strongestAgeDays = null;
+                Integer weakestAgeDays = null;
+
+                for (EvidenceLinkSignal link : evidenceLinks) {
+                    if (link == null) {
+                        continue;
+                    }
+                    BigDecimal boundedStrength = link.decayedStrength() == null
+                            ? SkillScoringPolicy.ZERO
+                            : scoringPolicy.clamp01(link.decayedStrength());
+                    Integer ageDays = link.ageDays();
+                    if (ageDays != null && ageDays >= 180) {
+                        stale180Count++;
+                    }
+                    if (ageDays != null && ageDays >= 365) {
+                        stale365Count++;
+                    }
+
+                    if (strongestStrength == null || boundedStrength.compareTo(strongestStrength) > 0) {
+                        strongestStrength = boundedStrength;
+                        strongestType = link.linkType();
+                        strongestAgeDays = ageDays;
+                    }
+                    if (weakestStrength == null || boundedStrength.compareTo(weakestStrength) < 0) {
+                        weakestStrength = boundedStrength;
+                        weakestType = link.linkType();
+                        weakestAgeDays = ageDays;
+                    }
+                }
+
+                BigDecimal normalizedGap = evidenceClaimNormalized.subtract(baselineClaimNormalized);
+                BigDecimal weightedGapNormalized = normalizedGap.multiply(
+                        SkillScoringPolicy.EVIDENCE_BLEND_EVIDENCE_WEIGHT);
+                BigDecimal weightedGapPoints = weightedGapNormalized.multiply(SkillScoringPolicy.HUNDRED)
+                        .setScale(4, RoundingMode.HALF_UP);
+
+                System.out.println(String.format(
+                        "[CLAIM SCORE][NEGATIVE] claimId=%s reason=evidence_normalized_below_baseline "
+                                + "baselineNormalized=%s evidenceNormalized=%s normalizedGap=%s "
+                                + "weightedGapPointsApprox=%s",
+                        input.claimId(),
+                        baselineClaimNormalized,
+                        evidenceClaimNormalized,
+                        normalizedGap,
+                        weightedGapPoints
+                ));
+                System.out.println(String.format(
+                        "[CLAIM SCORE][NEGATIVE] claimId=%s linksUsed=%d stale180=%d stale365=%d "
+                                + "strongestSignal={type=%s,strength=%s,ageDays=%s} "
+                                + "weakestSignal={type=%s,strength=%s,ageDays=%s}",
+                        input.claimId(),
+                        evidenceLinksUsed,
+                        stale180Count,
+                        stale365Count,
+                        strongestType,
+                        strongestStrength,
+                        strongestAgeDays,
+                        weakestType,
+                        weakestStrength,
+                        weakestAgeDays
+                ));
+            }
         } else {
             System.out.println(String.format(
                     "[CLAIM SCORE] claimId=%s no evidence links -> finalScore=%d",

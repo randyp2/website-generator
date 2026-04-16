@@ -131,7 +131,7 @@ public class ClaimEvidenceScoringInputAssemblerServiceImpl
                     List<EvidenceLinkSignal> evidenceSignals = linksByClaimId
                             .getOrDefault(claim.getId(), List.of())
                             .stream()
-                            .map(link -> toEvidenceSignal(link, evidenceById.get(link.getEvidenceId()), evaluationTime))
+                            .map(link -> toEvidenceSignal(claim, link, evidenceById.get(link.getEvidenceId()), evaluationTime))
                             .filter(Objects::nonNull)
                             .sorted(this::compareSignals)
                             .limit(TOP_K_PER_CLAIM)
@@ -170,6 +170,7 @@ public class ClaimEvidenceScoringInputAssemblerServiceImpl
      * Converts one persisted claim-evidence link into normalized scoring signal.
      */
     private EvidenceLinkSignal toEvidenceSignal(
+            Claim claim,
             ClaimEvidenceLink link,
             Evidence evidence,
             OffsetDateTime asOf
@@ -207,6 +208,27 @@ public class ClaimEvidenceScoringInputAssemblerServiceImpl
                 .multiply(recencyDecay)
                 .setScale(SIGNAL_SCALE, RoundingMode.HALF_UP);
 
+        if (ageDays >= 180 || "name_match".equals(normalizedLinkType)) {
+            String signalTimestampSource = resolveSignalTimestampSource(evidence);
+            System.out.println(String.format(
+                    "[EvidenceInput] claimId=%s rawValue=%s evidenceId=%s externalId=%s linkType=%s confidence=%s "
+                            + "signalTimestampSource=%s occurredAt=%s capturedAt=%s asOf=%s ageDays=%d recencyDecay=%s decayedStrength=%s",
+                    claim == null ? null : claim.getId(),
+                    claim == null ? null : claim.getRawValue(),
+                    evidence.getId(),
+                    evidence.getExternalId(),
+                    normalizedLinkType,
+                    boundedConfidence,
+                    signalTimestampSource,
+                    evidence.getOccurredAt(),
+                    evidence.getCapturedAt(),
+                    asOf,
+                    ageDays,
+                    recencyDecay,
+                    decayedStrength
+            ));
+        }
+
         return new EvidenceLinkSignal(
                 evidence.getId(),
                 normalizedLinkType,
@@ -231,6 +253,20 @@ public class ClaimEvidenceScoringInputAssemblerServiceImpl
         return evidence.getOccurredAt() != null
                 ? evidence.getOccurredAt()
                 : evidence.getCapturedAt();
+    }
+
+    // Logs which timestamp field was selected as recency signal origin.
+    private String resolveSignalTimestampSource(Evidence evidence) {
+        if (evidence == null) {
+            return "none";
+        }
+        if (evidence.getOccurredAt() != null) {
+            return "occurredAt";
+        }
+        if (evidence.getCapturedAt() != null) {
+            return "capturedAt";
+        }
+        return "none";
     }
 
     // Calculates non-negative integer age in days from signal timestamp to scoring time.
