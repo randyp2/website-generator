@@ -7,6 +7,7 @@ import type { ConnectedAccountDTO } from "@/types/connection";
 import type {
     ConnectionData,
     ConnectionProvider,
+    ConnectionSyncStatus,
     ConnectionStatus,
 } from "./verification.types";
 
@@ -66,6 +67,12 @@ const isConnectionStatus = (value: string): value is ConnectionStatus =>
     value === "expired" ||
     value === "pending";
 
+const isConnectionSyncStatus = (value: string): value is ConnectionSyncStatus =>
+    value === "never" ||
+    value === "running" ||
+    value === "success" ||
+    value === "failed";
+
 const toSupportedProvider = (provider: string): ConnectionProvider => {
     const normalized = provider.trim().toLowerCase();
     return isConnectionProvider(normalized) ? normalized : "other";
@@ -76,6 +83,13 @@ const toSupportedStatus = (status: string): ConnectionStatus => {
     return isConnectionStatus(normalized) ? normalized : "pending";
 };
 
+const toSupportedSyncStatus = (status: string | null | undefined): ConnectionSyncStatus => {
+    const normalized = status?.trim().toLowerCase();
+    return normalized && isConnectionSyncStatus(normalized)
+        ? normalized
+        : "never";
+};
+
 const buildDefaultConnection = (
     provider: ConnectionProvider,
 ): ConnectionData => ({
@@ -83,6 +97,11 @@ const buildDefaultConnection = (
     displayName: PROVIDER_META[provider].displayName,
     status: "disconnected",
     connectedAt: null,
+    lastSyncedAt: null,
+    lastSyncStatus: "never",
+    lastSyncError: null,
+    lastSyncImportedCount: 0,
+    lastSyncLinkedCount: 0,
     profileUrl: null,
     endorsementCount: 0,
     potentialPoints: PROVIDER_META[provider].potentialPoints,
@@ -104,8 +123,13 @@ const mapAccountToConnection = (
         displayName: PROVIDER_META[provider].displayName,
         status,
         connectedAt: status === "connected" ? account.createdAt : null,
+        lastSyncedAt: account.lastSyncedAt,
+        lastSyncStatus: toSupportedSyncStatus(account.lastSyncStatus),
+        lastSyncError: account.lastSyncError,
+        lastSyncImportedCount: account.lastSyncImportedCount ?? 0,
+        lastSyncLinkedCount: account.lastSyncLinkedCount ?? 0,
         profileUrl: null,
-        endorsementCount: 0,
+        endorsementCount: account.lastSyncImportedCount ?? 0,
         potentialPoints: PROVIDER_META[provider].potentialPoints,
         permissionScope: scopeLabel,
     };

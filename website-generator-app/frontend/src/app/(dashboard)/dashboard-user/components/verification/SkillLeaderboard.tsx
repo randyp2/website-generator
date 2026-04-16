@@ -48,9 +48,14 @@ const SkillLeaderboard = ({
               </span>
 
               {/* Skill Name */}
-              <span className="w-28 truncate text-sm font-medium text-foreground">
-                {skill.name}
-              </span>
+              <div className="w-28 min-w-0">
+                <span className="block truncate text-sm font-medium text-foreground">
+                  {skill.name}
+                </span>
+                <span className="block text-[10px] text-muted-foreground">
+                  {skill.evidenceCount} linked evidence
+                </span>
+              </div>
 
               {/* Bar */}
               <div className="flex-1 h-7 bg-muted rounded-md overflow-hidden relative">

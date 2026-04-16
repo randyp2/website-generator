@@ -20,6 +20,8 @@ export type ConnectionStatus =
   | "expired"
   | "pending"
 
+export type ConnectionSyncStatus = "never" | "running" | "success" | "failed"
+
 export type ConnectionActionType = "connect" | "disconnect"
 
 export interface ConnectionActionInFlight {
@@ -56,6 +58,11 @@ export interface ConnectionData {
   displayName: string
   status: ConnectionStatus
   connectedAt: string | null
+  lastSyncedAt: string | null
+  lastSyncStatus: ConnectionSyncStatus
+  lastSyncError: string | null
+  lastSyncImportedCount: number
+  lastSyncLinkedCount: number
   profileUrl: string | null
   endorsementCount: number
   potentialPoints: number

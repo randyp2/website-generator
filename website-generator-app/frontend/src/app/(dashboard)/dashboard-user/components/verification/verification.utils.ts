@@ -15,6 +15,29 @@ import type {
   VerificationTier,
 } from "./verification.types"
 
+export const mapBackendEvidenceTypeToUiType = (
+  evidenceType: string | null | undefined,
+): EvidenceType => {
+  const normalized = (evidenceType ?? "").trim().toLowerCase()
+  if (
+    normalized === "repository" ||
+    normalized === "repo" ||
+    normalized === "project"
+  ) {
+    return "project"
+  }
+  if (normalized === "certification") {
+    return "certification"
+  }
+  if (normalized === "endorsement") {
+    return "endorsement"
+  }
+  if (normalized === "assessment") {
+    return "assessment"
+  }
+  return "self_reported"
+}
+
 export const getTierColor = (tier: VerificationTier): string => {
   const map: Record<VerificationTier, string> = {
     Expert: "text-amber-400",
@@ -229,6 +252,18 @@ export const mapClaimsToSkillVerifications = (
     const tier = tierFromScore(score)
     const status = mapClaimStatus(claim.status)
     const freshness = freshnessFromDate(claim.updatedAt)
+    const linkedEvidence = claim.evidenceSummary?.linkedEvidence ?? []
+    const typeCounts: Record<EvidenceType, number> = {
+      endorsement: 0,
+      certification: 0,
+      project: 0,
+      assessment: 0,
+      self_reported: 0,
+    }
+    linkedEvidence.forEach((item) => {
+      const type = mapBackendEvidenceTypeToUiType(item.evidenceType)
+      typeCounts[type] += 1
+    })
 
     return {
       id: claim.id,
@@ -238,12 +273,12 @@ export const mapClaimsToSkillVerifications = (
       status,
       freshness,
       lastVerified: claim.updatedAt,
-      evidenceCount: claim.source === "resume" ? 1 : 0,
-      endorsementCount: 0,
-      certificationCount: 0,
-      projectCount: 0,
-      assessmentCount: 0,
-      selfReportedCount: claim.source === "resume" ? 1 : 0,
+      evidenceCount: claim.evidenceSummary?.linkedEvidenceCount ?? 0,
+      endorsementCount: typeCounts.endorsement,
+      certificationCount: typeCounts.certification,
+      projectCount: typeCounts.project,
+      assessmentCount: typeCounts.assessment,
+      selfReportedCount: typeCounts.self_reported,
       conflictDetails: null,
       suggestedActions: [],
     }
@@ -253,11 +288,26 @@ export const mapSummaryClaimsToSkillVerifications = (
   claims: VerificationClaimScoreDTO[],
   suggestedActions: VerificationSuggestedActionDTO[],
   generatedAt: string,
+  claimById?: Map<string, ClaimDTO>,
 ): SkillVerification[] =>
   claims.map((claim) => {
     const score = claim.claimScore
     const tier = tierFromScore(score)
     const status = mapClaimStatus(claim.status)
+    const claimEvidence = claimById?.get(claim.id)?.evidenceSummary
+    const linkedEvidence = claimEvidence?.linkedEvidence ?? []
+    const typeCounts: Record<EvidenceType, number> = {
+      endorsement: 0,
+      certification: 0,
+      project: 0,
+      assessment: 0,
+      self_reported: 0,
+    }
+    linkedEvidence.forEach((item) => {
+      const type = mapBackendEvidenceTypeToUiType(item.evidenceType)
+      typeCounts[type] += 1
+    })
+    const linkedEvidenceCount = claimEvidence?.linkedEvidenceCount ?? 0
     const actions = suggestedActions
       .filter((action) => action.claimId === claim.id)
       .sort((a, b) => b.priority - a.priority)
@@ -275,12 +325,12 @@ export const mapSummaryClaimsToSkillVerifications = (
       status,
       freshness: "fresh",
       lastVerified: generatedAt,
-      evidenceCount: 0,
-      endorsementCount: 0,
-      certificationCount: 0,
-      projectCount: 0,
-      assessmentCount: 0,
-      selfReportedCount: claim.source === "imported" ? 0 : 1,
+      evidenceCount: linkedEvidenceCount,
+      endorsementCount: typeCounts.endorsement,
+      certificationCount: typeCounts.certification,
+      projectCount: typeCounts.project,
+      assessmentCount: typeCounts.assessment,
+      selfReportedCount: typeCounts.self_reported,
       conflictDetails: null,
       suggestedActions: actions,
     }

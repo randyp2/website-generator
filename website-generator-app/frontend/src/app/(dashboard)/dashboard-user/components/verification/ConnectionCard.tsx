@@ -35,6 +35,13 @@ const STATUS_LABELS: Record<string, string> = {
   pending: "Pending",
 }
 
+const SYNC_STATUS_LABELS: Record<string, string> = {
+  never: "Never synced",
+  running: "Syncing",
+  success: "Last sync successful",
+  failed: "Last sync failed",
+}
+
 const CONNECT_BUTTON_CLASSES =
   "h-7 w-full text-xs bg-emerald-600 text-white hover:bg-emerald-700 hover:cursor-pointer disabled:cursor-not-allowed disabled:bg-emerald-600/70"
 
@@ -53,6 +60,13 @@ const ConnectionCard = ({
   const busyAction = isBusy ? connectionActionInFlight?.action : null
   const connectedDate = connection.connectedAt
     ? new Date(connection.connectedAt).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : null
+  const lastSyncedDate = connection.lastSyncedAt
+    ? new Date(connection.lastSyncedAt).toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
         year: "numeric",
@@ -90,9 +104,26 @@ const ConnectionCard = ({
           </p>
         )}
 
+        <p className="mb-1 text-xs text-muted-foreground">
+          {SYNC_STATUS_LABELS[connection.lastSyncStatus] ?? "Never synced"}
+          {lastSyncedDate ? ` (${lastSyncedDate})` : ""}
+        </p>
+
+        {connection.lastSyncStatus === "success" && (
+          <p className="mb-1 text-xs text-muted-foreground">
+            Imported {connection.lastSyncImportedCount} evidence, linked {connection.lastSyncLinkedCount}
+          </p>
+        )}
+
+        {connection.lastSyncStatus === "failed" && connection.lastSyncError && (
+          <p className="mb-1 text-xs text-destructive">
+            {connection.lastSyncError}
+          </p>
+        )}
+
         {isConnected && connection.endorsementCount > 0 && (
           <p className="mb-2 text-xs text-muted-foreground">
-            {connection.endorsementCount} endorsements imported
+            {connection.endorsementCount} evidence items imported
           </p>
         )}
 
