@@ -227,6 +227,13 @@ const scoreFromConfidence = (confidence: number | null): number => {
   return Math.round(confidence * 100)
 }
 
+const formatDelta = (delta: number): string => {
+  if (delta > 0) {
+    return `+${delta}`
+  }
+  return `${delta}`
+}
+
 const tierFromScore = (score: number): VerificationTier => {
   for (let i = TIER_ORDER.length - 1; i >= 0; i--) {
     if (score >= TIER_THRESHOLDS[TIER_ORDER[i]]) return TIER_ORDER[i]
@@ -268,6 +275,9 @@ export const mapClaimsToSkillVerifications = (
     return {
       id: claim.id,
       name: claim.canonicalSkillName ?? claim.rawValue,
+      baselineScore: score,
+      evidenceContribution: 0,
+      evidenceLinksUsed: claim.evidenceSummary?.linkedEvidenceCount ?? 0,
       score,
       tier,
       status,
@@ -292,6 +302,8 @@ export const mapSummaryClaimsToSkillVerifications = (
 ): SkillVerification[] =>
   claims.map((claim) => {
     const score = claim.claimScore
+    const baselineScore = claim.baselineClaimScore
+    const evidenceContribution = claim.evidenceContribution
     const tier = tierFromScore(score)
     const status = mapClaimStatus(claim.status)
     const claimEvidence = claimById?.get(claim.id)?.evidenceSummary
@@ -308,6 +320,9 @@ export const mapSummaryClaimsToSkillVerifications = (
       typeCounts[type] += 1
     })
     const linkedEvidenceCount = claimEvidence?.linkedEvidenceCount ?? 0
+    const evidenceLinksUsed = claim.evidenceLinksUsed > 0
+      ? claim.evidenceLinksUsed
+      : linkedEvidenceCount
     const actions = suggestedActions
       .filter((action) => action.claimId === claim.id)
       .sort((a, b) => b.priority - a.priority)
@@ -320,12 +335,15 @@ export const mapSummaryClaimsToSkillVerifications = (
     return {
       id: claim.id,
       name: claim.canonicalSkillName ?? claim.rawValue,
+      baselineScore,
+      evidenceContribution,
+      evidenceLinksUsed,
       score,
       tier,
       status,
       freshness: "fresh",
       lastVerified: generatedAt,
-      evidenceCount: linkedEvidenceCount,
+      evidenceCount: evidenceLinksUsed,
       endorsementCount: typeCounts.endorsement,
       certificationCount: typeCounts.certification,
       projectCount: typeCounts.project,
@@ -352,6 +370,8 @@ export const deriveOverview = (
       : 0
 
   return {
+    baselineOverallScore: avgScore,
+    evidenceDelta: 0,
     overallScore: avgScore,
     tier: tierFromScore(avgScore),
     totalSkills: total,
@@ -367,6 +387,8 @@ export const deriveOverview = (
 export const deriveOverviewFromSummary = (
   summary: VerificationSummaryDTO,
 ): VerificationOverviewData => ({
+  baselineOverallScore: summary.baselineOverallScore,
+  evidenceDelta: summary.evidenceDelta,
   overallScore: summary.overallScore,
   tier: tierFromScore(summary.overallScore),
   totalSkills: summary.totalSkills,
@@ -375,5 +397,7 @@ export const deriveOverviewFromSummary = (
   unverifiedClaimsCount: summary.unverifiedClaims.length,
   lastRunDate: summary.generatedAt,
   trustNote:
-    "Initial deterministic score based on canonical matching and claim source.",
+    summary.evidenceDelta === 0
+      ? `Baseline ${summary.baselineOverallScore} with no evidence adjustment.`
+      : `Baseline ${summary.baselineOverallScore}, evidence delta ${formatDelta(summary.evidenceDelta)}, final ${summary.overallScore}.`,
 })

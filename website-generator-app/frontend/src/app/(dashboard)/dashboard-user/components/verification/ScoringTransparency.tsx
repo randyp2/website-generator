@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import type { VerificationSummaryDTO } from "@/types/verification-summary"
 
 const TIER_SEGMENTS = [
   { label: "Unverified", range: "0-20", color: "bg-zinc-500", width: "20%" },
@@ -40,9 +41,18 @@ const SCORING_RULES = [
     description:
       "When available, parser confidence is blended as a 10% nudge to the base score.",
   },
+  {
+    title: "Evidence Blend (Phase 7)",
+    description:
+      "Per-claim final score = 0.40 × baseline + 0.60 × evidence support. Overall score applies mean claim evidence delta to baseline.",
+  },
 ] as const
 
-const ScoringTransparency = () => {
+interface ScoringTransparencyProps {
+  summary: VerificationSummaryDTO | null
+}
+
+const ScoringTransparency = ({ summary }: ScoringTransparencyProps) => {
   const [expanded, setExpanded] = useState(false)
 
   return (
@@ -112,10 +122,16 @@ const ScoringTransparency = () => {
             ))}
           </div>
 
-          <p className="text-[10px] text-muted-foreground border-t border-border pt-3">
-            Baseline uses deterministic skill-only scoring. Evidence-backed scoring
-            will be layered in a later phase.
-          </p>
+          <div className="text-[10px] text-muted-foreground border-t border-border pt-3 space-y-1">
+            <p>
+              Deterministic scoring is evidence-aware.
+            </p>
+            {summary && (
+              <p>
+                Snapshot: baseline {summary.baselineOverallScore}, evidence delta {summary.evidenceDelta > 0 ? "+" : ""}{summary.evidenceDelta}, final {summary.overallScore} ({summary.scoreType}).
+              </p>
+            )}
+          </div>
         </CardContent>
       )}
     </Card>

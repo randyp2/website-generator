@@ -43,6 +43,8 @@ export type FilterOption = "all" | "verified" | "needs_action" | "conflicts"
 export type ViewState = "empty" | "partial" | "loaded" | "loading" | "error"
 
 export interface VerificationOverviewData {
+  baselineOverallScore: number
+  evidenceDelta: number
   overallScore: number
   tier: VerificationTier
   totalSkills: number
@@ -79,6 +81,9 @@ export interface ConflictDetail {
 export interface SkillVerification {
   id: string
   name: string
+  baselineScore: number
+  evidenceContribution: number
+  evidenceLinksUsed: number
   score: number
   tier: VerificationTier
   status: VerificationStatus

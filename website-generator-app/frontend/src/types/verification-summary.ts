@@ -6,6 +6,9 @@ export interface VerificationClaimScoreDTO {
   source: string
   status: string
   state: string
+  baselineClaimScore: number
+  evidenceContribution: number
+  evidenceLinksUsed: number
   claimScore: number
   canonicalCategory: string | null
   canonicalWeight: number | null
@@ -20,6 +23,8 @@ export interface VerificationSuggestedActionDTO {
 
 export interface VerificationSummaryDTO {
   scoreType: string
+  baselineOverallScore: number
+  evidenceDelta: number
   overallScore: number
   totalSkills: number
   matchedSkills: number

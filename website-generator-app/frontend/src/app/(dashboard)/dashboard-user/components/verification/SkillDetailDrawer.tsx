@@ -136,6 +136,36 @@ const SkillDetailDrawer = ({
             </div>
           </div>
 
+          <div className="rounded-md border border-border bg-muted/30 p-3">
+            <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider mb-2">
+              Score Breakdown
+            </h4>
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <div>
+                <p className="text-muted-foreground">Baseline</p>
+                <p className="font-semibold text-foreground">{skill.baselineScore}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Evidence Delta</p>
+                <p
+                  className={cn(
+                    "font-semibold",
+                    skill.evidenceContribution > 0 && "text-emerald-500",
+                    skill.evidenceContribution < 0 && "text-red-500",
+                    skill.evidenceContribution === 0 && "text-foreground",
+                  )}
+                >
+                  {skill.evidenceContribution > 0 ? "+" : ""}
+                  {skill.evidenceContribution}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Links Used</p>
+                <p className="font-semibold text-foreground">{skill.evidenceLinksUsed}</p>
+              </div>
+            </div>
+          </div>
+
           {/* Evidence Breakdown */}
           <div className="space-y-2">
             <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider">

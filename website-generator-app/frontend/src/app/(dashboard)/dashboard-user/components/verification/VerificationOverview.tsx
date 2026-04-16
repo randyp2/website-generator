@@ -123,6 +123,24 @@ const VerificationOverview = ({
               <p>{data.trustNote}</p>
             </div>
 
+            <div className="mb-4 flex flex-wrap items-center gap-2 text-[11px]">
+              <Badge variant="outline">
+                Baseline {data.baselineOverallScore}
+              </Badge>
+              <Badge
+                variant="outline"
+                className={cn(
+                  data.evidenceDelta > 0 && "text-emerald-600 border-emerald-600/40",
+                  data.evidenceDelta < 0 && "text-red-500 border-red-500/40",
+                )}
+              >
+                Evidence {data.evidenceDelta > 0 ? "+" : ""}{data.evidenceDelta}
+              </Badge>
+              <Badge variant="outline">
+                Final {data.overallScore}
+              </Badge>
+            </div>
+
             {/* Actions */}
             <div className="flex items-center gap-3">
               <Button

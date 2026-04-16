@@ -348,7 +348,7 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
         onTypeFilterChange={setActiveEvidenceTypeFilter}
       />
 
-      <ScoringTransparency />
+      <ScoringTransparency summary={summary} />
 
       <SkillDetailDrawer
         skill={selectedSkill}
