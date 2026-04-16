@@ -22,9 +22,9 @@ const TIER_SEGMENTS = [
 
 const SCORING_RULES = [
   {
-    title: "Canonical Coverage",
+    title: "Coverage Snapshot",
     description:
-      "Coverage measures how many skill claims resolve to canonical skills.",
+      "Coverage still shows recognized skill breadth, but it is no longer the direct baseline score formula.",
   },
   {
     title: "Source Weighting",
@@ -32,14 +32,14 @@ const SCORING_RULES = [
       "Source quality uses deterministic trust weights: resume 0.8, manual 0.5, imported 0.9.",
   },
   {
-    title: "Weighted Blend",
+    title: "Baseline Claim Prior Blend",
     description:
-      "Initial score = 100 × (0.7 × coverage + 0.3 × sourceQuality).",
+      "Per claim prior = 0.70 × matchValue + 0.30 × sourceWeight, and baseline overall is the average of all claim priors.",
   },
   {
     title: "Evidence-aware Claim Prior",
     description:
-      "Matched claims without linked evidence use a reduced match prior to avoid treating extraction as proof.",
+      "matchValue is deterministic: unmatched=0.00, matched without evidence=0.35, matched with evidence=1.00.",
   },
   {
     title: "Expert Reserved for LLM",

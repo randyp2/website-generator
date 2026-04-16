@@ -13,14 +13,13 @@ import java.util.Map;
  * <p>Overall score formula:</p>
  *
  * <pre>
- * coverage      = matchedSkills / totalSkills
- * sourceQuality = average(sourceWeight per claim)
- * base          = 0.70 * coverage + 0.30 * sourceQuality
+ * claimPrior_i  = 0.70 * matchValue_i + 0.30 * sourceWeight_i
+ * base          = average(claimPrior_i)
  *
  * // optional parser-confidence blend when confidence exists
  * finalNormalized = 0.90 * base + 0.10 * parserConfidence
  *
- * overallScore = round(finalNormalized * 100)
+ * baselineOverallScore = round(finalNormalized * 100)
  * </pre>
  *
  * <p>Phase 7 evidence blend (when evidence exists for a claim):</p>

@@ -60,9 +60,9 @@ class SkillVerificationScoringKernelTest {
 
         SkillScoreSummary summary = kernel.score(new SkillScoreRequest(claims, null));
 
-        assertThat(summary.baselineOverallScore()).isEqualTo(58);
+        assertThat(summary.baselineOverallScore()).isEqualTo(35);
         assertThat(summary.evidenceDelta()).isZero();
-        assertThat(summary.overallScore()).isEqualTo(58);
+        assertThat(summary.overallScore()).isEqualTo(35);
         assertThat(summary.totalSkills()).isEqualTo(4);
         assertThat(summary.matchedSkills()).isEqualTo(2);
         assertThat(summary.unmatchedSkills()).isEqualTo(2);
@@ -97,9 +97,9 @@ class SkillVerificationScoringKernelTest {
 
         assertThat(summary.scoreType()).isEqualTo("initial_with_parser_confidence");
         assertThat(summary.parserConfidence()).isEqualByComparingTo("0.90");
-        assertThat(summary.baselineOverallScore()).isEqualTo(58);
+        assertThat(summary.baselineOverallScore()).isEqualTo(38);
         assertThat(summary.evidenceDelta()).isZero();
-        assertThat(summary.overallScore()).isEqualTo(58);
+        assertThat(summary.overallScore()).isEqualTo(38);
     }
 
     @Test

@@ -104,11 +104,14 @@ public class SkillVerificationScoringKernel {
         // sourceQuality = sourceWeightSum / totalSkills
         BigDecimal sourceQuality = scoringPolicy.safeDivide(sourceWeightSum, totalSkills);
 
-        // baseNormalizedScore =
-        //   (normalizedCoverage * COVERAGE_WEIGHT)
-        // + (sourceQuality      * SOURCE_QUALITY_WEIGHT)
-        BigDecimal baseNormalizedScore = normalizedCoverage.multiply(SkillScoringPolicy.COVERAGE_WEIGHT)
-                .add(sourceQuality.multiply(SkillScoringPolicy.SOURCE_QUALITY_WEIGHT));
+        // Baseline overall tracks the average per-claim prior so the profile score
+        // reflects the same evidence-aware prior logic users see on claim cards.
+        // claimPrior_i = (0.70 * matchValue_i) + (0.30 * sourceWeight_i)
+        // baseNormalizedScore = average(claimPrior_i)
+        BigDecimal claimPriorSum = claimComputations.stream()
+                .map(ClaimScoreComputation::baselineClaimNormalized)
+                .reduce(SkillScoringPolicy.ZERO, BigDecimal::add);
+        BigDecimal baseNormalizedScore = scoringPolicy.safeDivide(claimPriorSum, totalSkills);
 
         // Baseline overall before evidence adjustments.
         BigDecimal baselineOverallNormalized = baseNormalizedScore;
@@ -154,8 +157,9 @@ public class SkillVerificationScoringKernel {
         int evidenceDelta = overallScore - baselineOverallScore;
 
         System.out.println(
-                "[BASELINE SCORE] Formula computes initial trust score from canonical coverage and source reliability. "
-                        + "base = 0.70*coverage + 0.30*sourceQuality"
+                "[BASELINE SCORE] Formula computes initial trust score from average per-claim priors. "
+                        + "claimPrior_i = 0.70*matchValue_i + 0.30*sourceWeight_i, "
+                        + "base = average(claimPrior_i)"
                         + (boundedParserConfidence == null ? "" : ", final = 0.90*base + 0.10*parserConfidence")
         );
         System.out.println(String.format(
@@ -171,9 +175,9 @@ public class SkillVerificationScoringKernel {
                 sourceQuality
         ));
         System.out.println(String.format(
-                "[BASELINE SCORE] baseNormalized = (0.70*%s) + (0.30*%s) = %s",
-                normalizedCoverage,
-                sourceQuality,
+                "[BASELINE SCORE] claimPriorAverage = claimPriorSum/total = %s/%d = %s",
+                claimPriorSum,
+                totalSkills,
                 baseNormalizedScore
         ));
         if (boundedParserConfidence != null) {
@@ -471,7 +475,7 @@ public class SkillVerificationScoringKernel {
                 claimReason.text()
         );
 
-        return new ClaimScoreComputation(score, uncappedEvidenceContribution);
+        return new ClaimScoreComputation(score, uncappedEvidenceContribution, baselineClaimNormalized);
     }
 
     // Resolves claim-match prior value from canonical match state and evidence presence.
@@ -841,7 +845,8 @@ public class SkillVerificationScoringKernel {
 
     private record ClaimScoreComputation(
             SkillClaimScore score,
-            int uncappedEvidenceContribution
+            int uncappedEvidenceContribution,
+            BigDecimal baselineClaimNormalized
     ) {
     }
 
