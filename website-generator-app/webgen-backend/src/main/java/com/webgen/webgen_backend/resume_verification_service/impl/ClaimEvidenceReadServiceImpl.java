@@ -28,7 +28,6 @@ public class ClaimEvidenceReadServiceImpl implements ClaimEvidenceReadService {
     public Map<UUID, ClaimEvidenceSummaryDTO> getEvidenceSummariesByClaimIds(
             UUID profileId,
             List<UUID> claimIds) {
-
         if (profileId == null || claimIds == null || claimIds.isEmpty()) {
             return Map.of();
         }
