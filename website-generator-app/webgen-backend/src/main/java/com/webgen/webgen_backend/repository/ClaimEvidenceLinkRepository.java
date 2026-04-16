@@ -19,6 +19,8 @@ public interface ClaimEvidenceLinkRepository extends JpaRepository<ClaimEvidence
 
     List<ClaimEvidenceLink> findByProfileIdAndEvidenceId(UUID profileId, UUID evidenceId);
 
+    List<ClaimEvidenceLink> findByProfileIdAndEvidenceIdIn(UUID profileId, List<UUID> evidenceIds);
+
     List<ClaimEvidenceLink> findByProfileIdAndClaimIdIn(UUID profileId, List<UUID> claimIds);
 
     void deleteByProfileIdAndClaimIdAndEvidenceId(UUID profileId, UUID claimId, UUID evidenceId);
