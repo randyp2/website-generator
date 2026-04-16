@@ -21,6 +21,8 @@ public class SkillVerificationScoringKernel {
 
     private final SkillScoringPolicy scoringPolicy;
     private final SkillSuggestedActionRuleBook actionRuleBook;
+    private static final int STALE_SIGNAL_DAYS_THRESHOLD = 180;
+    private static final BigDecimal STRONG_SIGNAL_THRESHOLD = new BigDecimal("0.80");
 
     /**
      * Calculates the deterministic score summary for skill claims.
@@ -336,6 +338,9 @@ public class SkillVerificationScoringKernel {
                 ? finalClaimScore - baselineClaimScore
                 : 0;
 
+        EvidenceSignalStats evidenceStats = evidenceLinksUsed > 0
+                ? collectEvidenceSignalStats(evidenceLinks)
+                : EvidenceSignalStats.empty();
         if (evidenceLinksUsed > 0) {
             System.out.println(String.format(
                     "[CLAIM SCORE] claimId=%s finalNormalized = (0.40*%s) + (0.60*%s) = %s -> finalScore=%d evidenceContribution=%+d",
@@ -347,42 +352,6 @@ public class SkillVerificationScoringKernel {
                     evidenceContribution
             ));
             if (evidenceContribution < 0) {
-                int stale180Count = 0;
-                int stale365Count = 0;
-                BigDecimal strongestStrength = null;
-                BigDecimal weakestStrength = null;
-                String strongestType = null;
-                String weakestType = null;
-                Integer strongestAgeDays = null;
-                Integer weakestAgeDays = null;
-
-                for (EvidenceLinkSignal link : evidenceLinks) {
-                    if (link == null) {
-                        continue;
-                    }
-                    BigDecimal boundedStrength = link.decayedStrength() == null
-                            ? SkillScoringPolicy.ZERO
-                            : scoringPolicy.clamp01(link.decayedStrength());
-                    Integer ageDays = link.ageDays();
-                    if (ageDays != null && ageDays >= 180) {
-                        stale180Count++;
-                    }
-                    if (ageDays != null && ageDays >= 365) {
-                        stale365Count++;
-                    }
-
-                    if (strongestStrength == null || boundedStrength.compareTo(strongestStrength) > 0) {
-                        strongestStrength = boundedStrength;
-                        strongestType = link.linkType();
-                        strongestAgeDays = ageDays;
-                    }
-                    if (weakestStrength == null || boundedStrength.compareTo(weakestStrength) < 0) {
-                        weakestStrength = boundedStrength;
-                        weakestType = link.linkType();
-                        weakestAgeDays = ageDays;
-                    }
-                }
-
                 BigDecimal normalizedGap = evidenceClaimNormalized.subtract(baselineClaimNormalized);
                 BigDecimal weightedGapNormalized = normalizedGap.multiply(
                         SkillScoringPolicy.EVIDENCE_BLEND_EVIDENCE_WEIGHT);
@@ -405,14 +374,14 @@ public class SkillVerificationScoringKernel {
                                 + "weakestSignal={type=%s,strength=%s,ageDays=%s}",
                         input.claimId(),
                         evidenceLinksUsed,
-                        stale180Count,
-                        stale365Count,
-                        strongestType,
-                        strongestStrength,
-                        strongestAgeDays,
-                        weakestType,
-                        weakestStrength,
-                        weakestAgeDays
+                        evidenceStats.stale180Count(),
+                        evidenceStats.stale365Count(),
+                        evidenceStats.strongestType(),
+                        evidenceStats.strongestStrength(),
+                        evidenceStats.strongestAgeDays(),
+                        evidenceStats.weakestType(),
+                        evidenceStats.weakestStrength(),
+                        evidenceStats.weakestAgeDays()
                 ));
             }
         } else {
@@ -422,6 +391,21 @@ public class SkillVerificationScoringKernel {
                     finalClaimScore
             ));
         }
+
+        ClaimReasonComputation claimReason = buildClaimReason(
+                matched,
+                evidenceLinksUsed,
+                baselineClaimScore,
+                finalClaimScore,
+                evidenceContribution,
+                evidenceStats
+        );
+        System.out.println(String.format(
+                "[CLAIM SCORE][REASON] claimId=%s code=%s text=%s",
+                input.claimId(),
+                claimReason.code(),
+                claimReason.text()
+        ));
 
         SkillClaimScore score = new SkillClaimScore(
                 input.claimId(),
@@ -437,10 +421,175 @@ public class SkillVerificationScoringKernel {
                 baselineClaimScore,
                 evidenceContribution,
                 evidenceLinksUsed,
-                finalClaimScore
+                finalClaimScore,
+                claimReason.code(),
+                claimReason.text()
         );
 
         return new ClaimScoreComputation(score);
+    }
+
+    private EvidenceSignalStats collectEvidenceSignalStats(List<EvidenceLinkSignal> evidenceLinks) {
+        if (evidenceLinks == null || evidenceLinks.isEmpty()) {
+            return EvidenceSignalStats.empty();
+        }
+
+        int stale180Count = 0;
+        int stale365Count = 0;
+        BigDecimal strongestStrength = null;
+        BigDecimal weakestStrength = null;
+        String strongestType = null;
+        String weakestType = null;
+        Integer strongestAgeDays = null;
+        Integer weakestAgeDays = null;
+
+        for (EvidenceLinkSignal link : evidenceLinks) {
+            if (link == null) {
+                continue;
+            }
+            BigDecimal boundedStrength = link.decayedStrength() == null
+                    ? SkillScoringPolicy.ZERO
+                    : scoringPolicy.clamp01(link.decayedStrength());
+            Integer ageDays = link.ageDays();
+            if (ageDays != null && ageDays >= STALE_SIGNAL_DAYS_THRESHOLD) {
+                stale180Count++;
+            }
+            if (ageDays != null && ageDays >= 365) {
+                stale365Count++;
+            }
+
+            if (strongestStrength == null || boundedStrength.compareTo(strongestStrength) > 0) {
+                strongestStrength = boundedStrength;
+                strongestType = link.linkType();
+                strongestAgeDays = ageDays;
+            }
+            if (weakestStrength == null || boundedStrength.compareTo(weakestStrength) < 0) {
+                weakestStrength = boundedStrength;
+                weakestType = link.linkType();
+                weakestAgeDays = ageDays;
+            }
+        }
+
+        return new EvidenceSignalStats(
+                stale180Count,
+                stale365Count,
+                strongestStrength,
+                weakestStrength,
+                strongestType,
+                weakestType,
+                strongestAgeDays,
+                weakestAgeDays
+        );
+    }
+
+    private ClaimReasonComputation buildClaimReason(
+            boolean matched,
+            int evidenceLinksUsed,
+            int baselineClaimScore,
+            int finalClaimScore,
+            int evidenceContribution,
+            EvidenceSignalStats evidenceStats
+    ) {
+        if (evidenceLinksUsed <= 0) {
+            if (matched) {
+                return new ClaimReasonComputation(
+                        "match_no_evidence",
+                        "Recognized from your resume, but no linked project signals yet, so the score stays at baseline."
+                );
+            }
+            return new ClaimReasonComputation(
+                    "no_match_no_evidence",
+                    "This claim is not yet recognized and has no linked project signals to support it."
+            );
+        }
+
+        String linkCountPhrase = evidenceLinksUsed + " linked signal" + (evidenceLinksUsed == 1 ? "" : "s");
+        String strongestTypePhrase = mapLinkTypeToUserFriendlyLabel(evidenceStats.strongestType());
+
+        if (evidenceContribution > 0) {
+            boolean recentStrongSignal = evidenceStats.strongestAgeDays() != null
+                    && evidenceStats.strongestAgeDays() <= 30
+                    && evidenceStats.strongestStrength() != null
+                    && evidenceStats.strongestStrength().compareTo(STRONG_SIGNAL_THRESHOLD) >= 0;
+
+            if (recentStrongSignal) {
+                return new ClaimReasonComputation(
+                        "evidence_boost_recent_strong",
+                        "Recent strong " + strongestTypePhrase + " evidence increased this score by "
+                                + evidenceContribution + " points (" + linkCountPhrase + ")."
+                );
+            }
+
+            return new ClaimReasonComputation(
+                    "evidence_boost",
+                    "Linked evidence increased this score by " + evidenceContribution
+                            + " points, led by " + strongestTypePhrase + " signals."
+            );
+        }
+
+        if (evidenceContribution == 0) {
+            return new ClaimReasonComputation(
+                    "evidence_neutral",
+                    "Linked evidence roughly confirmed the baseline score with no material change."
+            );
+        }
+
+        int absoluteDrop = Math.abs(evidenceContribution);
+        boolean mostlyStale = evidenceStats.stale180Count() * 2 >= evidenceLinksUsed;
+        boolean strongestIsModerateOrWeak = evidenceStats.strongestStrength() == null
+                || evidenceStats.strongestStrength().compareTo(STRONG_SIGNAL_THRESHOLD) < 0;
+
+        if (mostlyStale && strongestIsModerateOrWeak) {
+            return new ClaimReasonComputation(
+                    "evidence_reduced_stale_and_weak",
+                    "Most linked evidence is older and moderate-strength, so the score dropped "
+                            + absoluteDrop + " points from baseline."
+            );
+        }
+
+        if (mostlyStale) {
+            return new ClaimReasonComputation(
+                    "evidence_reduced_stale",
+                    "Most linked evidence is older, which lowered confidence and reduced this score by "
+                            + absoluteDrop + " points."
+            );
+        }
+
+        if (strongestIsModerateOrWeak) {
+            return new ClaimReasonComputation(
+                    "evidence_reduced_strength",
+                    "Evidence is linked, but the current signals are not strong enough yet, so the score is "
+                            + absoluteDrop + " points below baseline."
+            );
+        }
+
+        if (finalClaimScore < baselineClaimScore) {
+            return new ClaimReasonComputation(
+                    "evidence_reduced_mixed",
+                    "Linked evidence is mixed and currently below baseline confidence, reducing this score by "
+                            + absoluteDrop + " points."
+            );
+        }
+
+        return new ClaimReasonComputation(
+                "evidence_neutral",
+                "Linked evidence roughly confirmed the baseline score with no material change."
+        );
+    }
+
+    private String mapLinkTypeToUserFriendlyLabel(String linkType) {
+        if (linkType == null || linkType.isBlank()) {
+            return "repository";
+        }
+
+        return switch (linkType) {
+            case "dependency_match" -> "dependency usage";
+            case "topic_match" -> "repository topic";
+            case "name_match" -> "repository name";
+            case "description_match" -> "repository description";
+            case "language_plus_text_match" -> "language and text";
+            default -> "repository";
+        };
     }
 
     // Combines top-K link strengths into one bounded evidence support score.
@@ -600,6 +749,36 @@ public class SkillVerificationScoringKernel {
     private record ClaimScoreComputation(
             SkillClaimScore score
     ) {
+    }
+
+    private record ClaimReasonComputation(
+            String code,
+            String text
+    ) {
+    }
+
+    private record EvidenceSignalStats(
+            int stale180Count,
+            int stale365Count,
+            BigDecimal strongestStrength,
+            BigDecimal weakestStrength,
+            String strongestType,
+            String weakestType,
+            Integer strongestAgeDays,
+            Integer weakestAgeDays
+    ) {
+        private static EvidenceSignalStats empty() {
+            return new EvidenceSignalStats(
+                    0,
+                    0,
+                    SkillScoringPolicy.ZERO,
+                    SkillScoringPolicy.ZERO,
+                    null,
+                    null,
+                    null,
+                    null
+            );
+        }
     }
 
     private record OverallEvidenceComputation(

@@ -84,6 +84,8 @@ export interface SkillVerification {
   baselineScore: number
   evidenceContribution: number
   evidenceLinksUsed: number
+  scoreReasonCode: string
+  scoreReasonText: string
   score: number
   tier: VerificationTier
   status: VerificationStatus

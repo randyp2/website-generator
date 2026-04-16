@@ -1100,6 +1100,27 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
         return changed;
     }
 
+    /**
+     * Recomputes provider links between skill claims and evidence rows for the current sync run.
+     *
+     * This method is the deterministic join step after evidence upsert.
+     * It evaluates every claim against every evidence candidate from this run, applies
+     * rule-based matching, upserts matching rows in claim_evidence_links, and removes
+     * stale provider-owned links that no longer match.
+     *
+     * Algorithm summary:
+     * 1. Load skill claims for the profile and build normalized term sets per claim.
+     * 2. For each claim and each evidence row, call evaluateEvidenceMatch.
+     * 3. Insert or update link rows for matched pairs and track matched keys.
+     * 4. Delete existing provider links whose claim|evidence key was not matched this run.
+     * 5. Return inserted, updated, removed, and claimsMatched counts for sync telemetry.
+     *
+     * @param profileId profile owner of claims and evidence
+     * @param provider normalized provider key for stale-link cleanup scope
+     * @param currentRunEvidence evidence rows produced by the current provider snapshot
+     * @param now sync evaluation timestamp used for persisted link updates
+     * @return deterministic link mutation stats for the sync response
+     */
     private SyncLinkStatsDTO linkEvidenceToClaims(
             UUID profileId,
             String provider,

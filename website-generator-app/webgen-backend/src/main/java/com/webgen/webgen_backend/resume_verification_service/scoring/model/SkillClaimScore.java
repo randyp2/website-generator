@@ -20,7 +20,9 @@ public record SkillClaimScore(
         int baselineClaimScore,
         int evidenceContribution,
         int evidenceLinksUsed,
-        int claimScore
+        int claimScore,
+        String scoreReasonCode,
+        String scoreReasonText
 ) {
     /**
      * Backward-compatible constructor used by existing baseline scoring flow.
@@ -52,7 +54,11 @@ public record SkillClaimScore(
                 claimScore,
                 0,
                 0,
-                claimScore
+                claimScore,
+                matched ? "match_no_evidence" : "no_match_no_evidence",
+                matched
+                        ? "This skill is recognized from your resume, but no external evidence is linked yet."
+                        : "This skill is not yet recognized and has no external evidence linked yet."
         );
     }
 }

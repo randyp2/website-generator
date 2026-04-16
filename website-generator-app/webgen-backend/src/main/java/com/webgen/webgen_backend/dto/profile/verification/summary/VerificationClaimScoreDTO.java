@@ -18,6 +18,8 @@ public class VerificationClaimScoreDTO {
     private Integer evidenceContribution;
     private Integer evidenceLinksUsed;
     private Integer claimScore;
+    private String scoreReasonCode;
+    private String scoreReasonText;
     private String canonicalCategory;
     private BigDecimal canonicalWeight;
 }

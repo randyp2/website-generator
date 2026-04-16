@@ -278,6 +278,9 @@ export const mapClaimsToSkillVerifications = (
       baselineScore: score,
       evidenceContribution: 0,
       evidenceLinksUsed: claim.evidenceSummary?.linkedEvidenceCount ?? 0,
+      scoreReasonCode: "legacy_claim_confidence_only",
+      scoreReasonText:
+        "Score is based on extracted claim confidence only for this view.",
       score,
       tier,
       status,
@@ -338,6 +341,10 @@ export const mapSummaryClaimsToSkillVerifications = (
       baselineScore,
       evidenceContribution,
       evidenceLinksUsed,
+      scoreReasonCode: claim.scoreReasonCode || "reason_unavailable",
+      scoreReasonText:
+        claim.scoreReasonText ||
+        "Detailed score reason is not available for this claim yet.",
       score,
       tier,
       status,

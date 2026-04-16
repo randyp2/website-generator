@@ -164,6 +164,14 @@ const SkillDetailDrawer = ({
                 <p className="font-semibold text-foreground">{skill.evidenceLinksUsed}</p>
               </div>
             </div>
+            <div className="mt-3 border-t border-border pt-3">
+              <p className="text-[11px] font-medium text-foreground">
+                Why this score
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                {skill.scoreReasonText}
+              </p>
+            </div>
           </div>
 
           {/* Evidence Breakdown */}

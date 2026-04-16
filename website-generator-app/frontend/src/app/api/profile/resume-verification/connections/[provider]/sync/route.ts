@@ -9,6 +9,7 @@ export const POST = async (
     try {
         const { provider } = await params;
 
+        // Authenticate on proxy route (Next.js BFF)
         const supabase = await createServerSupabaseClient();
         const {
             data: { session },
@@ -22,6 +23,7 @@ export const POST = async (
             );
         }
 
+        // Make backend call
         const backendUrl: string = getBackendUrl();
         const response: Response = await fetch(
             `${backendUrl}/api/v1/profile/resume-verification/connections/${encodeURIComponent(provider)}/sync`,

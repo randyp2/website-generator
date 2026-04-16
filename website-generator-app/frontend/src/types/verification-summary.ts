@@ -10,6 +10,8 @@ export interface VerificationClaimScoreDTO {
   evidenceContribution: number
   evidenceLinksUsed: number
   claimScore: number
+  scoreReasonCode: string
+  scoreReasonText: string
   canonicalCategory: string | null
   canonicalWeight: number | null
 }
