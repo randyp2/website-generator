@@ -129,20 +129,21 @@ public class SkillVerificationScoringKernel {
          *
          * 1) Keep baseline overall as the anchor so existing no-evidence behavior
          *    stays byte-for-byte compatible.
-         * 2) Compute mean per-claim evidence contribution in percentage points.
+         * 2) Compute mean per-claim evidence contribution in percentage points
+         *    from uncapped math-path deltas.
          * 3) Apply the rounded mean delta once at overall level.
          *
          * equation:
-         *   meanClaimDelta = average(claim.evidenceContribution)
+         *   meanClaimDelta = average(claim.uncappedEvidenceContribution)
          *   overall        = clamp_0_100(baselineOverallScore + round(meanClaimDelta))
          *
          * Why mean (not sum):
          * - Sum would scale with claim count and over-amplify profiles that simply
          *   have many extracted claims.
          * - Mean keeps adjustments comparable across profiles of different sizes.
-         */
+        */
         OverallEvidenceComputation overallEvidenceComputation = hasAnyEvidence
-                ? computeEvidenceEnhancedOverallScore(baselineOverallScore, claimScores)
+                ? computeEvidenceEnhancedOverallScore(baselineOverallScore, claimComputations)
                 : new OverallEvidenceComputation(
                         baselineOverallScore,
                         SkillScoringPolicy.ZERO,
@@ -192,7 +193,7 @@ public class SkillVerificationScoringKernel {
             System.out.println(String.format(
                     "[EVIDENCE SCORE] meanClaimDelta = totalClaimDelta/claimCount = %s/%d = %s",
                     overallEvidenceComputation.totalClaimDelta(),
-                    claimScores.size(),
+                    claimComputations.size(),
                     overallEvidenceComputation.averageClaimDelta()
             ));
             System.out.println(String.format(
@@ -350,6 +351,9 @@ public class SkillVerificationScoringKernel {
 
         int uncappedFinalClaimScore = scoringPolicy.toPercent(finalClaimNormalized);
         int finalClaimScore = Math.min(uncappedFinalClaimScore, claimScoreCap);
+        int uncappedEvidenceContribution = evidenceLinksUsed > 0
+                ? uncappedFinalClaimScore - uncappedBaselineClaimScore
+                : 0;
         int evidenceContribution = evidenceLinksUsed > 0
                 ? finalClaimScore - baselineClaimScore
                 : 0;
@@ -412,14 +416,17 @@ public class SkillVerificationScoringKernel {
         if (baselineScoreCapped || finalScoreCapped) {
             System.out.println(String.format(
                     "[CLAIM SCORE][CAP] claimId=%s llmVerified=%s claimScoreCap=%d "
-                            + "uncappedBaseline=%d baselineScore=%d uncappedFinal=%d finalScore=%d",
+                            + "uncappedBaseline=%d baselineScore=%d uncappedFinal=%d finalScore=%d "
+                            + "uncappedEvidenceContribution=%+d displayEvidenceContribution=%+d",
                     input.claimId(),
                     llmVerified,
                     claimScoreCap,
                     uncappedBaselineClaimScore,
                     baselineClaimScore,
                     uncappedFinalClaimScore,
-                    finalClaimScore
+                    finalClaimScore,
+                    uncappedEvidenceContribution,
+                    evidenceContribution
             ));
         }
 
@@ -464,7 +471,7 @@ public class SkillVerificationScoringKernel {
                 claimReason.text()
         );
 
-        return new ClaimScoreComputation(score);
+        return new ClaimScoreComputation(score, uncappedEvidenceContribution);
     }
 
     // Resolves claim-match prior value from canonical match state and evidence presence.
@@ -698,12 +705,12 @@ public class SkillVerificationScoringKernel {
     // Applies mean claim delta to baseline overall score and clamps to [0,100].
     private OverallEvidenceComputation computeEvidenceEnhancedOverallScore(
             int baselineOverallScore,
-            List<SkillClaimScore> claimScores
+            List<ClaimScoreComputation> claimComputations
     ) {
-        BigDecimal totalClaimDelta = claimScores.stream()
-                .map(claim -> BigDecimal.valueOf(claim.evidenceContribution()))
+        BigDecimal totalClaimDelta = claimComputations.stream()
+                .map(claim -> BigDecimal.valueOf(claim.uncappedEvidenceContribution()))
                 .reduce(SkillScoringPolicy.ZERO, BigDecimal::add);
-        BigDecimal averageClaimDelta = scoringPolicy.safeDivide(totalClaimDelta, claimScores.size());
+        BigDecimal averageClaimDelta = scoringPolicy.safeDivide(totalClaimDelta, claimComputations.size());
         int roundedAverageDelta = averageClaimDelta.setScale(0, RoundingMode.HALF_UP).intValue();
         int overallScore = clampScoreToPercent(baselineOverallScore + roundedAverageDelta);
         return new OverallEvidenceComputation(
@@ -833,7 +840,8 @@ public class SkillVerificationScoringKernel {
     }
 
     private record ClaimScoreComputation(
-            SkillClaimScore score
+            SkillClaimScore score,
+            int uncappedEvidenceContribution
     ) {
     }
 

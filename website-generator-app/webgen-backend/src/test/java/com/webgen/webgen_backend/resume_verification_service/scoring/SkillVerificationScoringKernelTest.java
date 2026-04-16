@@ -148,8 +148,8 @@ class SkillVerificationScoringKernelTest {
 
         assertThat(summary.scoreType()).isEqualTo("evidence_enhanced");
         assertThat(summary.baselineOverallScore()).isEqualTo(55);
-        assertThat(summary.overallScore()).isEqualTo(55);
-        assertThat(summary.evidenceDelta()).isZero();
+        assertThat(summary.overallScore()).isEqualTo(57);
+        assertThat(summary.evidenceDelta()).isEqualTo(2);
 
         Map<UUID, SkillClaimScore> byId = summary.claims().stream()
                 .collect(Collectors.toMap(SkillClaimScore::claimId, Function.identity()));
@@ -186,8 +186,8 @@ class SkillVerificationScoringKernelTest {
 
         assertThat(summary.scoreType()).isEqualTo("evidence_enhanced");
         assertThat(summary.baselineOverallScore()).isEqualTo(94);
-        assertThat(summary.overallScore()).isEqualTo(58);
-        assertThat(summary.evidenceDelta()).isEqualTo(-36);
+        assertThat(summary.overallScore()).isEqualTo(44);
+        assertThat(summary.evidenceDelta()).isEqualTo(-50);
 
         assertThat(claimScore.baselineClaimScore()).isEqualTo(80);
         assertThat(claimScore.claimScore()).isEqualTo(44);

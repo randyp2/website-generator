@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FiPlus, FiX, FiLoader } from "react-icons/fi";
@@ -24,30 +24,31 @@ const SkillReviewPanel = ({
     ingestError,
     onConfirm,
 }: SkillReviewPanelProps) => {
-    const [skills, setSkills] = useState<string[]>(parsedData?.skills ?? []);
+    const [skills, setSkills] = useState<string[]>([]);
+    const [hasEditedSkills, setHasEditedSkills] = useState(false);
     const [newSkill, setNewSkill] = useState("");
-    const [experiences] = useState(parsedData?.experiences ?? []);
-
-    // Sync skills when parsedData arrives after loading
-    const [lastSyncedData, setLastSyncedData] = useState<ParsedResumeData | null>(null);
-    if (parsedData && parsedData !== lastSyncedData) {
-        setLastSyncedData(parsedData);
-        if (skills.length === 0 && (parsedData.skills?.length ?? 0) > 0) {
-            setSkills(parsedData.skills ?? []);
-        }
-    }
+    const parsedSkills = useMemo(
+        () => parsedData?.skills ?? [],
+        [parsedData],
+    );
+    const effectiveSkills = hasEditedSkills ? skills : parsedSkills;
+    const experiences = parsedData?.experiences ?? [];
 
     const handleAddSkill = useCallback(() => {
         const trimmed = newSkill.trim();
         if (!trimmed) return;
-        if (skills.some((s) => s.toLowerCase() === trimmed.toLowerCase())) return;
-        setSkills((prev) => [...prev, trimmed]);
+        if (effectiveSkills.some((s) => s.toLowerCase() === trimmed.toLowerCase())) return;
+        const base = hasEditedSkills ? skills : parsedSkills;
+        setSkills([...base, trimmed]);
+        setHasEditedSkills(true);
         setNewSkill("");
-    }, [newSkill, skills]);
+    }, [newSkill, effectiveSkills, hasEditedSkills, skills, parsedSkills]);
 
     const handleRemoveSkill = useCallback((index: number) => {
-        setSkills((prev) => prev.filter((_, i) => i !== index));
-    }, []);
+        const base = hasEditedSkills ? skills : parsedSkills;
+        setSkills(base.filter((_, i) => i !== index));
+        setHasEditedSkills(true);
+    }, [hasEditedSkills, skills, parsedSkills]);
 
     const handleKeyDown = useCallback(
         (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -103,7 +104,7 @@ const SkillReviewPanel = ({
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                    {skills.map((skill, index) => (
+                    {effectiveSkills.map((skill, index) => (
                         <span
                             key={`${skill}-${index}`}
                             className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-sm font-medium text-foreground"
@@ -117,7 +118,7 @@ const SkillReviewPanel = ({
                             </button>
                         </span>
                     ))}
-                    {skills.length === 0 ? (
+                    {effectiveSkills.length === 0 ? (
                         <p className="text-sm text-muted-foreground italic">
                             No skills extracted. Add your skills below.
                         </p>
@@ -208,8 +209,8 @@ const SkillReviewPanel = ({
                     </div>
                     <div className="flex flex-col items-end gap-2">
                         <Button
-                            onClick={() => onConfirm(skills)}
-                            disabled={skills.length === 0 || isIngesting}
+                            onClick={() => onConfirm(effectiveSkills)}
+                            disabled={effectiveSkills.length === 0 || isIngesting}
                         >
                             {isIngesting
                                 ? "Saving skills..."
