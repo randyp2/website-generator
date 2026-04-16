@@ -2,6 +2,7 @@ package com.webgen.webgen_backend.resume_verification_service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.dto.profile.verification.ClaimDTO;
+import com.webgen.webgen_backend.dto.profile.verification.evidence.ClaimEvidenceSummaryDTO;
 import com.webgen.webgen_backend.entity.Claim;
 import com.webgen.webgen_backend.entity.Profile;
 import com.webgen.webgen_backend.entity.ResumeVerification;
@@ -10,6 +11,7 @@ import com.webgen.webgen_backend.repository.ClaimRepository;
 import com.webgen.webgen_backend.repository.ProfileRepository;
 import com.webgen.webgen_backend.repository.ResumeVerificationRepository;
 import com.webgen.webgen_backend.repository.SkillRepository;
+import com.webgen.webgen_backend.resume_verification_service.ClaimEvidenceReadService;
 import com.webgen.webgen_backend.resume_verification_service.ClaimIngestionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -33,6 +36,7 @@ public class ClaimIngestionServiceImpl implements ClaimIngestionService {
     private final SkillRepository skillRepository;
     private final ResumeVerificationRepository resumeVerificationRepository;
     private final ProfileRepository profileRepository;
+    private final ClaimEvidenceReadService claimEvidenceReadService;
 
     private final ObjectMapper objectMapper;
 
@@ -134,10 +138,29 @@ public class ClaimIngestionServiceImpl implements ClaimIngestionService {
 
     @Override
     public List<ClaimDTO> getSkillClaims(UUID profileId) {
-        return claimRepository.findByProfileId(profileId).stream()
+        List<Claim> claims = claimRepository.findByProfileId(profileId).stream()
                 .filter(c -> "skill".equals(c.getClaimType()))
+                .toList();
+
+        if (claims.isEmpty()) {
+            return List.of();
+        }
+
+        List<ClaimDTO> dtoList = claims.stream()
                 .map(this::toDto)
                 .toList();
+
+        List<UUID> claimIds = claims.stream().map(Claim::getId).toList();
+        Map<UUID, ClaimEvidenceSummaryDTO> evidenceSummaryByClaimId = claimEvidenceReadService
+                .getEvidenceSummariesByClaimIds(profileId, claimIds);
+
+        dtoList.forEach(dto -> dto.setEvidenceSummary(
+                evidenceSummaryByClaimId.getOrDefault(
+                        dto.getId(),
+                        emptyEvidenceSummary(dto.getId()))
+        ));
+
+        return dtoList;
     }
 
     @Override
@@ -214,6 +237,7 @@ public class ClaimIngestionServiceImpl implements ClaimIngestionService {
         dto.setSource(claim.getSource());
         dto.setConfidence(claim.getConfidence());
         dto.setStatus(claim.getStatus());
+        dto.setEvidenceSummary(emptyEvidenceSummary(claim.getId()));
         dto.setCreatedAt(claim.getCreatedAt());
         dto.setUpdatedAt(claim.getUpdatedAt());
 
@@ -224,6 +248,15 @@ public class ClaimIngestionServiceImpl implements ClaimIngestionService {
         }
 
         return dto;
+    }
+
+    /** Builds a default empty evidence summary for claim DTO hydration. */
+    private ClaimEvidenceSummaryDTO emptyEvidenceSummary(UUID claimId) {
+        return ClaimEvidenceSummaryDTO.builder()
+                .claimId(claimId)
+                .linkedEvidenceCount(0)
+                .linkedEvidence(List.of())
+                .build();
     }
 
     // ── Pre-normalization ──────────────────────────────────────────────
