@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.resume_verification_service.scoring;
 
+import com.webgen.webgen_backend.resume_verification_service.scoring.model.EvidenceLinkSignal;
 import com.webgen.webgen_backend.resume_verification_service.scoring.model.SkillClaimInput;
 import com.webgen.webgen_backend.resume_verification_service.scoring.model.SkillClaimScore;
 import com.webgen.webgen_backend.resume_verification_service.scoring.model.SkillScoreRequest;
@@ -8,6 +9,7 @@ import com.webgen.webgen_backend.resume_verification_service.scoring.model.Sugge
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -26,6 +28,8 @@ class SkillVerificationScoringKernelTest {
         SkillScoreSummary summary = kernel.score(new SkillScoreRequest(List.of(), null));
 
         assertThat(summary.scoreType()).isEqualTo("initial");
+        assertThat(summary.baselineOverallScore()).isZero();
+        assertThat(summary.evidenceDelta()).isZero();
         assertThat(summary.overallScore()).isZero();
         assertThat(summary.totalSkills()).isZero();
         assertThat(summary.matchedSkills()).isZero();
@@ -52,6 +56,8 @@ class SkillVerificationScoringKernelTest {
 
         SkillScoreSummary summary = kernel.score(new SkillScoreRequest(claims, null));
 
+        assertThat(summary.baselineOverallScore()).isEqualTo(58);
+        assertThat(summary.evidenceDelta()).isZero();
         assertThat(summary.overallScore()).isEqualTo(58);
         assertThat(summary.totalSkills()).isEqualTo(4);
         assertThat(summary.matchedSkills()).isEqualTo(2);
@@ -61,6 +67,9 @@ class SkillVerificationScoringKernelTest {
                 .collect(Collectors.toMap(SkillClaimScore::claimId, Function.identity()));
 
         assertThat(byId.get(c1).claimScore()).isEqualTo(94);
+        assertThat(byId.get(c1).baselineClaimScore()).isEqualTo(94);
+        assertThat(byId.get(c1).evidenceContribution()).isZero();
+        assertThat(byId.get(c1).evidenceLinksUsed()).isZero();
         assertThat(byId.get(c2).claimScore()).isEqualTo(24);
         assertThat(byId.get(c3).claimScore()).isEqualTo(85);
         assertThat(byId.get(c4).claimScore()).isEqualTo(27);
@@ -84,6 +93,8 @@ class SkillVerificationScoringKernelTest {
 
         assertThat(summary.scoreType()).isEqualTo("initial_with_parser_confidence");
         assertThat(summary.parserConfidence()).isEqualByComparingTo("0.90");
+        assertThat(summary.baselineOverallScore()).isEqualTo(58);
+        assertThat(summary.evidenceDelta()).isZero();
         assertThat(summary.overallScore()).isEqualTo(58);
     }
 
@@ -108,6 +119,77 @@ class SkillVerificationScoringKernelTest {
                 .anyMatch(a -> a.claimId().equals(matchedClaimId) && a.action().equals("Connect GitHub"));
     }
 
+    @Test
+    void evidenceEnhancementAdjustsClaimAndOverallScores() {
+        UUID c1 = UUID.randomUUID();
+        UUID c2 = UUID.randomUUID();
+        UUID skillOne = UUID.randomUUID();
+
+        List<SkillClaimInput> claims = List.of(
+                claimWithEvidence(
+                        c1,
+                        "React",
+                        skillOne,
+                        "React",
+                        "resume",
+                        "pending",
+                        "engineering",
+                        "1.0",
+                        List.of(evidence("1.0"))
+                ),
+                claim(c2, "Unknown", null, null, "manual", "pending", null, null)
+        );
+
+        SkillScoreSummary summary = kernel.score(new SkillScoreRequest(claims, null));
+
+        assertThat(summary.scoreType()).isEqualTo("evidence_enhanced");
+        assertThat(summary.baselineOverallScore()).isEqualTo(55);
+        assertThat(summary.overallScore()).isEqualTo(57);
+        assertThat(summary.evidenceDelta()).isEqualTo(2);
+
+        Map<UUID, SkillClaimScore> byId = summary.claims().stream()
+                .collect(Collectors.toMap(SkillClaimScore::claimId, Function.identity()));
+
+        SkillClaimScore evidenceClaim = byId.get(c1);
+        assertThat(evidenceClaim.baselineClaimScore()).isEqualTo(94);
+        assertThat(evidenceClaim.claimScore()).isEqualTo(98);
+        assertThat(evidenceClaim.evidenceContribution()).isEqualTo(4);
+        assertThat(evidenceClaim.evidenceLinksUsed()).isEqualTo(1);
+    }
+
+    @Test
+    void weakEvidenceCanDecreaseClaimAndOverallScores() {
+        UUID c1 = UUID.randomUUID();
+        UUID skillOne = UUID.randomUUID();
+
+        List<SkillClaimInput> claims = List.of(
+                claimWithEvidence(
+                        c1,
+                        "React",
+                        skillOne,
+                        "React",
+                        "resume",
+                        "pending",
+                        "engineering",
+                        "1.0",
+                        List.of(evidence("0.10"))
+                )
+        );
+
+        SkillScoreSummary summary = kernel.score(new SkillScoreRequest(claims, null));
+        SkillClaimScore claimScore = summary.claims().getFirst();
+
+        assertThat(summary.scoreType()).isEqualTo("evidence_enhanced");
+        assertThat(summary.baselineOverallScore()).isEqualTo(94);
+        assertThat(summary.overallScore()).isEqualTo(44);
+        assertThat(summary.evidenceDelta()).isEqualTo(-50);
+
+        assertThat(claimScore.baselineClaimScore()).isEqualTo(94);
+        assertThat(claimScore.claimScore()).isEqualTo(44);
+        assertThat(claimScore.evidenceContribution()).isEqualTo(-50);
+        assertThat(claimScore.evidenceLinksUsed()).isEqualTo(1);
+    }
+
     private SkillClaimInput claim(
             UUID claimId,
             String rawValue,
@@ -127,6 +209,48 @@ class SkillVerificationScoringKernelTest {
                 status,
                 category,
                 weight == null ? null : new BigDecimal(weight)
+        );
+    }
+
+    private SkillClaimInput claimWithEvidence(
+            UUID claimId,
+            String rawValue,
+            UUID canonicalSkillId,
+            String canonicalSkillName,
+            String source,
+            String status,
+            String category,
+            String weight,
+            List<EvidenceLinkSignal> evidenceLinks
+    ) {
+        return new SkillClaimInput(
+                claimId,
+                rawValue,
+                canonicalSkillId,
+                canonicalSkillName,
+                source,
+                status,
+                category,
+                weight == null ? null : new BigDecimal(weight),
+                evidenceLinks
+        );
+    }
+
+    private EvidenceLinkSignal evidence(String decayedStrength) {
+        OffsetDateTime now = OffsetDateTime.parse("2026-04-16T00:00:00Z");
+        return new EvidenceLinkSignal(
+                UUID.randomUUID(),
+                "dependency_match",
+                BigDecimal.ONE,
+                BigDecimal.ONE,
+                now,
+                now,
+                0,
+                BigDecimal.ONE,
+                new BigDecimal(decayedStrength),
+                "test",
+                "test-title",
+                "https://example.test"
         );
     }
 }

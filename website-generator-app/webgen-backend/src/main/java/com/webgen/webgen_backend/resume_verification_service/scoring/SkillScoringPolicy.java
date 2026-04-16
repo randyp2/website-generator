@@ -23,6 +23,14 @@ import java.util.Map;
  * overallScore = round(finalNormalized * 100)
  * </pre>
  *
+ * <p>Phase 7 evidence blend (when evidence exists for a claim):</p>
+ *
+ * <pre>
+ * finalClaimNormalized =
+ *     0.40 * baselineClaimNormalized
+ *   + 0.60 * evidenceClaimNormalized
+ * </pre>
+ *
  * <p>Per-claim score formula:</p>
  *
  * <pre>
@@ -48,6 +56,18 @@ public class SkillScoringPolicy {
 
     /** Parser confidence contributes 10% as a small quality nudge, not a dominant signal. */
     public static final BigDecimal PARSER_CONFIDENCE_WEIGHT = new BigDecimal("0.10");
+
+    /**
+     * Baseline keeps minority influence once external evidence is present so
+     * canonical/source priors still matter, but no longer dominate.
+     */
+    public static final BigDecimal EVIDENCE_BLEND_BASELINE_WEIGHT = new BigDecimal("0.40");
+
+    /**
+     * Evidence receives majority influence to avoid overstating confidence from
+     * claim extraction alone.
+     */
+    public static final BigDecimal EVIDENCE_BLEND_EVIDENCE_WEIGHT = new BigDecimal("0.60");
 
     /** Scale used for division to keep deterministic rounding behavior stable. */
     public static final int DIV_SCALE = 6;

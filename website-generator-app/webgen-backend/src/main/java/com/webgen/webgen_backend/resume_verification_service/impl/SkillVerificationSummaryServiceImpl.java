@@ -8,6 +8,7 @@ import com.webgen.webgen_backend.mapper.VerificationSummaryMapper;
 import com.webgen.webgen_backend.repository.ClaimRepository;
 import com.webgen.webgen_backend.repository.ResumeVerificationRepository;
 import com.webgen.webgen_backend.repository.SkillRepository;
+import com.webgen.webgen_backend.resume_verification_service.ClaimEvidenceScoringInputAssemblerService;
 import com.webgen.webgen_backend.resume_verification_service.SkillVerificationSummaryService;
 import com.webgen.webgen_backend.resume_verification_service.scoring.SkillVerificationScoringKernel;
 import com.webgen.webgen_backend.resume_verification_service.scoring.model.SkillClaimInput;
@@ -17,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -32,6 +34,7 @@ public class SkillVerificationSummaryServiceImpl implements SkillVerificationSum
     private final ClaimRepository claimRepository;
     private final SkillRepository skillRepository;
     private final ResumeVerificationRepository resumeVerificationRepository;
+    private final ClaimEvidenceScoringInputAssemblerService claimEvidenceScoringInputAssemblerService;
 
     private final SkillVerificationScoringKernel scoringKernel;
 
@@ -43,12 +46,16 @@ public class SkillVerificationSummaryServiceImpl implements SkillVerificationSum
 
         Map<UUID, Skill> canonicalSkillsById = loadCanonicalSkills(skillClaims);
         BigDecimal parserConfidence = resolveParserConfidence(profileId);
+        OffsetDateTime asOf = OffsetDateTime.now();
 
-        List<SkillClaimInput> inputs = skillClaims.stream()
-                .map(claim -> toInput(claim, canonicalSkillsById.get(claim.getCanonicalSkillId())))
-                .toList();
+        List<SkillClaimInput> inputs = claimEvidenceScoringInputAssemblerService.assembleSkillClaimInputs(
+                profileId,
+                skillClaims,
+                canonicalSkillsById,
+                asOf
+        );
 
-        SkillScoreSummary summary = scoringKernel.score(new SkillScoreRequest(inputs, parserConfidence));
+        SkillScoreSummary summary = scoringKernel.score(new SkillScoreRequest(inputs, parserConfidence, asOf));
         return verificationSummaryMapper.toSummaryDto(summary);
     }
 
@@ -103,23 +110,4 @@ public class SkillVerificationSummaryServiceImpl implements SkillVerificationSum
         return BigDecimal.valueOf(node.asDouble());
     }
 
-    /**
-     * Maps DB claim + optional canonical skill metadata to kernel input.
-     *
-     * @param claim persisted claim
-     * @param skill resolved canonical skill metadata when available
-     * @return kernel input row
-     */
-    private SkillClaimInput toInput(Claim claim, Skill skill) {
-        return new SkillClaimInput(
-                claim.getId(),
-                claim.getRawValue(),
-                claim.getCanonicalSkillId(),
-                skill != null ? skill.getName() : null,
-                claim.getSource(),
-                claim.getStatus(),
-                skill != null ? skill.getCategory() : null,
-                skill != null ? skill.getWeight() : null
-        );
-    }
 }
