@@ -26,8 +26,6 @@ import com.webgen.webgen_backend.resume_verification_service.provider.github.mod
 import com.webgen.webgen_backend.resume_verification_service.provider.github.model.GithubUserResponse;
 import com.webgen.webgen_backend.resume_verification_service.shared.ProviderNormalizationHelper;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -72,7 +70,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ConnectionSyncServiceImpl implements ConnectionSyncService {
-    private static final Logger log = LoggerFactory.getLogger(ConnectionSyncServiceImpl.class);
 
     private static final Set<String> SUPPORTED_PROVIDERS = Set.of(
             "linkedin",
@@ -97,7 +94,6 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
     private static final int GITHUB_REPOS_PER_PAGE = 100;
     private static final int MAX_GITHUB_REPO_PAGES = 5;
     private static final int MAX_REPOS_WITH_PACKAGE_SCAN = 30;
-    private static final int MAX_REPO_NAMES_IN_SYNC_LOG = 80;
 
     private static final long TOKEN_EXPIRY_SKEW_SECONDS = 60L;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
@@ -154,11 +150,13 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
                         HttpStatus.NOT_FOUND,
                         "Connected account with profile and provider not found"));
 
-        log.info(
-                "Connection sync started profileId={} provider={} accountId={}",
-                profileId,
-                normalizedProvider,
-                account.getId());
+        logSync(
+                "Connection sync started profileId="
+                        + profileId
+                        + " provider="
+                        + normalizedProvider
+                        + " accountId="
+                        + account.getId());
 
         if (!ACCOUNT_STATUS_CONNECTED.equals(account.getStatus())) {
             throw new ResponseStatusException(
@@ -176,11 +174,13 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
 
         markSyncRunning(account, startedAt);
         connectedAccountRepository.save(account);
-        log.info(
-                "Connection sync marked running profileId={} provider={} startedAt={}",
-                profileId,
-                normalizedProvider,
-                startedAt);
+        logSync(
+                "Connection sync marked running profileId="
+                        + profileId
+                        + " provider="
+                        + normalizedProvider
+                        + " startedAt="
+                        + startedAt);
 
         try {
 
@@ -188,13 +188,17 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
                     account,
                     normalizedProvider,
                     startedAt);
-            log.info(
-                    "Connection sync token ready profileId={} provider={} tokenRefreshed={} accessTokenExpiresAt={} refreshTokenExpiresAt={}",
-                    profileId,
-                    normalizedProvider,
-                    tokenRefreshed,
-                    account.getAccessTokenExpiresAt(),
-                    account.getRefreshTokenExpiresAt());
+            logSync(
+                    "Connection sync token ready profileId="
+                            + profileId
+                            + " provider="
+                            + normalizedProvider
+                            + " tokenRefreshed="
+                            + tokenRefreshed
+                            + " accessTokenExpiresAt="
+                            + account.getAccessTokenExpiresAt()
+                            + " refreshTokenExpiresAt="
+                            + account.getRefreshTokenExpiresAt());
 
             String accessToken = decryptRequiredToken(
                     account.getAccessTokenEncrypted(),
@@ -203,15 +207,26 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
             ProviderSyncSnapshot snapshot = fetchGithubEvidenceSnapshot(
                     accessToken,
                     startedAt);
-            log.info(
-                    "Connection sync fetched provider data profileId={} provider={} githubUserLogin={} githubUserId={} repositoryCount={} repositories={} dependencyScannedCount={}",
-                    profileId,
-                    normalizedProvider,
-                    snapshot.providerUserLogin(),
-                    snapshot.providerUserId(),
-                    snapshot.repositoryNames().size(),
-                    summarizeRepoNamesForLog(snapshot.repositoryNames()),
-                    snapshot.dependencyScannedCount());
+            logSync(
+                    "Connection sync fetched provider data profileId="
+                            + profileId
+                            + " provider="
+                            + normalizedProvider
+                            + " githubUserLogin="
+                            + snapshot.providerUserLogin()
+                            + " githubUserId="
+                            + snapshot.providerUserId()
+                            + " repositoryCount="
+                            + snapshot.repositoryNames().size()
+                            + " dependencyScannedCount="
+                            + snapshot.dependencyScannedCount());
+            logSync(
+                    "Connection sync repos pulled profileId="
+                            + profileId
+                            + " provider="
+                            + normalizedProvider
+                            + " repositories="
+                            + formatRepoNamesForLog(snapshot.repositoryNames()));
 
             EvidenceUpsertResult upsertResult = upsertEvidence(
                     account,
@@ -225,28 +240,38 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
                     .updated(upsertResult.updated())
                     .unchanged(upsertResult.unchanged())
                     .build();
-            log.info(
-                    "Connection sync evidence upsert complete profileId={} provider={} fetched={} inserted={} updated={} unchanged={}",
-                    profileId,
-                    normalizedProvider,
-                    evidenceStats.getFetched(),
-                    evidenceStats.getInserted(),
-                    evidenceStats.getUpdated(),
-                    evidenceStats.getUnchanged());
+            logSync(
+                    "Connection sync evidence upsert complete profileId="
+                            + profileId
+                            + " provider="
+                            + normalizedProvider
+                            + " fetched="
+                            + evidenceStats.getFetched()
+                            + " inserted="
+                            + evidenceStats.getInserted()
+                            + " updated="
+                            + evidenceStats.getUpdated()
+                            + " unchanged="
+                            + evidenceStats.getUnchanged());
 
             SyncLinkStatsDTO linkStats = linkEvidenceToClaims(
                     profileId,
                     normalizedProvider,
                     upsertResult.persistedEvidence(),
                     startedAt);
-            log.info(
-                    "Connection sync deterministic linking complete profileId={} provider={} inserted={} updated={} removed={} claimsMatched={}",
-                    profileId,
-                    normalizedProvider,
-                    linkStats.getInserted(),
-                    linkStats.getUpdated(),
-                    linkStats.getRemoved(),
-                    linkStats.getClaimsMatched());
+            logSync(
+                    "Connection sync deterministic linking complete profileId="
+                            + profileId
+                            + " provider="
+                            + normalizedProvider
+                            + " inserted="
+                            + linkStats.getInserted()
+                            + " updated="
+                            + linkStats.getUpdated()
+                            + " removed="
+                            + linkStats.getRemoved()
+                            + " claimsMatched="
+                            + linkStats.getClaimsMatched());
 
             OffsetDateTime completedAt = OffsetDateTime.now();
             int importedCount = safeCount(evidenceStats.getInserted())
@@ -259,14 +284,19 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
             long durationMs = Duration.between(startedAt, completedAt).toMillis();
 
             logFinalScoreSnapshot(profileId, normalizedProvider);
-            log.info(
-                    "Connection sync completed profileId={} provider={} status={} durationMs={} importedCount={} linkedCount={}",
-                    profileId,
-                    normalizedProvider,
-                    SYNC_STATUS_SUCCESS,
-                    durationMs,
-                    importedCount,
-                    linkedCount);
+            logSync(
+                    "Connection sync completed profileId="
+                            + profileId
+                            + " provider="
+                            + normalizedProvider
+                            + " status="
+                            + SYNC_STATUS_SUCCESS
+                            + " durationMs="
+                            + durationMs
+                            + " importedCount="
+                            + importedCount
+                            + " linkedCount="
+                            + linkedCount);
 
             return SyncProviderResponseDTO.builder()
                     .provider(normalizedProvider)
@@ -290,14 +320,19 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
             }
             connectedAccountRepository.save(account);
             long durationMs = Duration.between(startedAt, completedAt).toMillis();
-            log.warn(
-                    "Connection sync failed profileId={} provider={} status={} durationMs={} error={}",
-                    profileId,
-                    normalizedProvider,
-                    SYNC_STATUS_FAILED,
-                    durationMs,
-                    error,
-                    exception);
+            logSync(
+                    "Connection sync failed profileId="
+                            + profileId
+                            + " provider="
+                            + normalizedProvider
+                            + " status="
+                            + SYNC_STATUS_FAILED
+                            + " durationMs="
+                            + durationMs
+                            + " error="
+                            + error
+                            + " exceptionType="
+                            + exception.getClass().getSimpleName());
 
             // Build response to notify client sync failed
             return SyncProviderResponseDTO.builder()
@@ -1478,28 +1513,36 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
             VerificationSummaryDTO summary = skillVerificationSummaryService
                     .getSkillVerificationSummary(profileId);
 
-            log.info(
-                    "Connection sync score snapshot profileId={} provider={} overallScore={} totalSkills={} matchedSkills={} unmatchedSkills={} generatedAt={}",
-                    profileId,
-                    provider,
-                    summary.getOverallScore(),
-                    summary.getTotalSkills(),
-                    summary.getMatchedSkills(),
-                    summary.getUnmatchedSkills(),
-                    summary.getGeneratedAt());
+            logSync(
+                    "Connection sync score snapshot profileId="
+                            + profileId
+                            + " provider="
+                            + provider
+                            + " overallScore="
+                            + summary.getOverallScore()
+                            + " totalSkills="
+                            + summary.getTotalSkills()
+                            + " matchedSkills="
+                            + summary.getMatchedSkills()
+                            + " unmatchedSkills="
+                            + summary.getUnmatchedSkills()
+                            + " generatedAt="
+                            + summary.getGeneratedAt());
         } catch (Exception exception) {
-            log.warn(
-                    "Connection sync score snapshot failed profileId={} provider={} reason={}",
-                    profileId,
-                    provider,
-                    exception.getMessage());
+            logSync(
+                    "Connection sync score snapshot failed profileId="
+                            + profileId
+                            + " provider="
+                            + provider
+                            + " reason="
+                            + exception.getMessage());
         }
     }
 
     /**
-     * Produces a bounded repo-name preview to keep sync logs readable.
+     * Formats repository names for readable sync logging.
      */
-    private String summarizeRepoNamesForLog(List<String> repositoryNames) {
+    private String formatRepoNamesForLog(List<String> repositoryNames) {
         if (repositoryNames == null || repositoryNames.isEmpty()) {
             return "[]";
         }
@@ -1513,13 +1556,14 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
             return "[]";
         }
 
-        int limit = Math.min(cleaned.size(), MAX_REPO_NAMES_IN_SYNC_LOG);
-        List<String> preview = cleaned.subList(0, limit);
-        if (cleaned.size() <= limit) {
-            return preview.toString();
-        }
+        return cleaned.toString();
+    }
 
-        return preview + " ... (+" + (cleaned.size() - limit) + " more)";
+    /**
+     * Emits sync tracing logs using stdout as requested.
+     */
+    private void logSync(String message) {
+        System.out.println("[ConnectionSync] " + message);
     }
 
     private record EvidenceCandidate(
