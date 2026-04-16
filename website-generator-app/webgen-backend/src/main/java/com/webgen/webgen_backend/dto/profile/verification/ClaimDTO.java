@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.dto.profile.verification;
 
+import com.webgen.webgen_backend.dto.profile.verification.evidence.ClaimEvidenceSummaryDTO;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -18,6 +19,7 @@ public class ClaimDTO {
     private String source;
     private BigDecimal confidence;
     private String status;
+    private ClaimEvidenceSummaryDTO evidenceSummary;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 }
