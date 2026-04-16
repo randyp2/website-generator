@@ -128,9 +128,15 @@ public class SkillVerificationScoringKernel {
          *   have many extracted claims.
          * - Mean keeps adjustments comparable across profiles of different sizes.
          */
-        int overallScore = hasAnyEvidence
+        OverallEvidenceComputation overallEvidenceComputation = hasAnyEvidence
                 ? computeEvidenceEnhancedOverallScore(baselineOverallScore, claimScores)
-                : baselineOverallScore;
+                : new OverallEvidenceComputation(
+                        baselineOverallScore,
+                        SkillScoringPolicy.ZERO,
+                        SkillScoringPolicy.ZERO,
+                        0
+                );
+        int overallScore = overallEvidenceComputation.overallScore();
         int evidenceDelta = overallScore - baselineOverallScore;
 
         System.out.println(
@@ -169,6 +175,20 @@ public class SkillVerificationScoringKernel {
                 baselineOverallNormalized,
                 baselineOverallScore
         ));
+        if (hasAnyEvidence) {
+            System.out.println(String.format(
+                    "[EVIDENCE SCORE] meanClaimDelta = totalClaimDelta/claimCount = %s/%d = %s",
+                    overallEvidenceComputation.totalClaimDelta(),
+                    claimScores.size(),
+                    overallEvidenceComputation.averageClaimDelta()
+            ));
+            System.out.println(String.format(
+                    "[EVIDENCE SCORE] finalOverallScore = clamp_0_100(%d + %d) = %d",
+                    baselineOverallScore,
+                    overallEvidenceComputation.roundedAverageDelta(),
+                    overallScore
+            ));
+        }
         System.out.println(String.format(
                 "[EVIDENCE SCORE] hasEvidence=%s evidenceDelta=%d finalOverallScore=%d (scoreType=%s)",
                 hasAnyEvidence,
@@ -225,6 +245,23 @@ public class SkillVerificationScoringKernel {
         // baselineClaimScore = round(100 * baselineClaimNormalized)
         int baselineClaimScore = scoringPolicy.toPercent(baselineClaimNormalized);
 
+        System.out.println(String.format(
+                "[CLAIM SCORE] claimId=%s rawValue=%s source=%s matched=%s status=%s",
+                input.claimId(),
+                input.rawValue(),
+                source,
+                matched,
+                status
+        ));
+        System.out.println(String.format(
+                "[CLAIM SCORE] claimId=%s baselineNormalized = (0.70*%s) + (0.30*%s) = %s -> baselineScore=%d",
+                input.claimId(),
+                matchValue,
+                sourceWeight,
+                baselineClaimNormalized,
+                baselineClaimScore
+        ));
+
         String state = resolveClaimState(matched, status);
 
         BigDecimal canonicalWeight = input.canonicalWeight() == null
@@ -237,7 +274,25 @@ public class SkillVerificationScoringKernel {
         int evidenceLinksUsed = evidenceLinks.size();
 
         BigDecimal finalClaimNormalized = baselineClaimNormalized;
+        BigDecimal evidenceClaimNormalized = null;
         if (evidenceLinksUsed > 0) {
+            for (int i = 0; i < evidenceLinksUsed; i++) {
+                EvidenceLinkSignal link = evidenceLinks.get(i);
+                BigDecimal boundedStrength = link == null || link.decayedStrength() == null
+                        ? SkillScoringPolicy.ZERO
+                        : scoringPolicy.clamp01(link.decayedStrength());
+                System.out.println(String.format(
+                        "[CLAIM SCORE] claimId=%s evidence[%d] type=%s rawWeight=%s recencyMultiplier=%s ageDays=%d decayedStrength=%s",
+                        input.claimId(),
+                        i,
+                        link == null ? null : link.linkType(),
+                        link == null ? null : link.linkTypeWeight(),
+                        link == null ? null : link.recencyDecay(),
+                        link == null ? null : link.ageDays(),
+                        boundedStrength
+                ));
+            }
+
             /*
              * Per-claim evidence aggregation:
              *
@@ -252,7 +307,12 @@ public class SkillVerificationScoringKernel {
              * - Diminishing returns: repeated similar links contribute less, which
              *   naturally dampens repository spam effects without hard cliffs.
              */
-            BigDecimal evidenceClaimNormalized = combineEvidenceSignals(evidenceLinks);
+            evidenceClaimNormalized = combineEvidenceSignals(evidenceLinks);
+            System.out.println(String.format(
+                    "[CLAIM SCORE] claimId=%s evidenceNormalized = 1 - Π(1 - linkStrength_i) = %s",
+                    input.claimId(),
+                    evidenceClaimNormalized
+            ));
 
             /*
              * Evidence blend contract (locked in Phase 7 step 1):
@@ -275,6 +335,24 @@ public class SkillVerificationScoringKernel {
         int evidenceContribution = evidenceLinksUsed > 0
                 ? finalClaimScore - baselineClaimScore
                 : 0;
+
+        if (evidenceLinksUsed > 0) {
+            System.out.println(String.format(
+                    "[CLAIM SCORE] claimId=%s finalNormalized = (0.40*%s) + (0.60*%s) = %s -> finalScore=%d evidenceContribution=%+d",
+                    input.claimId(),
+                    baselineClaimNormalized,
+                    evidenceClaimNormalized,
+                    finalClaimNormalized,
+                    finalClaimScore,
+                    evidenceContribution
+            ));
+        } else {
+            System.out.println(String.format(
+                    "[CLAIM SCORE] claimId=%s no evidence links -> finalScore=%d",
+                    input.claimId(),
+                    finalClaimScore
+            ));
+        }
 
         SkillClaimScore score = new SkillClaimScore(
                 input.claimId(),
@@ -314,13 +392,22 @@ public class SkillVerificationScoringKernel {
     }
 
     // Applies mean claim delta to baseline overall score and clamps to [0,100].
-    private int computeEvidenceEnhancedOverallScore(int baselineOverallScore, List<SkillClaimScore> claimScores) {
+    private OverallEvidenceComputation computeEvidenceEnhancedOverallScore(
+            int baselineOverallScore,
+            List<SkillClaimScore> claimScores
+    ) {
         BigDecimal totalClaimDelta = claimScores.stream()
                 .map(claim -> BigDecimal.valueOf(claim.evidenceContribution()))
                 .reduce(SkillScoringPolicy.ZERO, BigDecimal::add);
         BigDecimal averageClaimDelta = scoringPolicy.safeDivide(totalClaimDelta, claimScores.size());
         int roundedAverageDelta = averageClaimDelta.setScale(0, RoundingMode.HALF_UP).intValue();
-        return clampScoreToPercent(baselineOverallScore + roundedAverageDelta);
+        int overallScore = clampScoreToPercent(baselineOverallScore + roundedAverageDelta);
+        return new OverallEvidenceComputation(
+                overallScore,
+                totalClaimDelta,
+                averageClaimDelta,
+                roundedAverageDelta
+        );
     }
 
     private int clampScoreToPercent(int score) {
@@ -443,6 +530,14 @@ public class SkillVerificationScoringKernel {
 
     private record ClaimScoreComputation(
             SkillClaimScore score
+    ) {
+    }
+
+    private record OverallEvidenceComputation(
+            int overallScore,
+            BigDecimal totalClaimDelta,
+            BigDecimal averageClaimDelta,
+            int roundedAverageDelta
     ) {
     }
 }
