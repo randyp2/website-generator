@@ -14,6 +14,9 @@ public class VerificationClaimScoreDTO {
     private String source;
     private String status;
     private String state;
+    private Integer baselineClaimScore;
+    private Integer evidenceContribution;
+    private Integer evidenceLinksUsed;
     private Integer claimScore;
     private String canonicalCategory;
     private BigDecimal canonicalWeight;

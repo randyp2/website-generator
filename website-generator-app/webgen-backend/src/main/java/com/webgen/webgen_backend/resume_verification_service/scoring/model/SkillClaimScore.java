@@ -17,6 +17,42 @@ public record SkillClaimScore(
         String state,
         String canonicalCategory,
         BigDecimal canonicalWeight,
+        int baselineClaimScore,
+        int evidenceContribution,
+        int evidenceLinksUsed,
         int claimScore
 ) {
+    /**
+     * Backward-compatible constructor used by existing baseline scoring flow.
+     */
+    public SkillClaimScore(
+            UUID claimId,
+            String rawValue,
+            UUID canonicalSkillId,
+            String canonicalSkillName,
+            String source,
+            String status,
+            boolean matched,
+            String state,
+            String canonicalCategory,
+            BigDecimal canonicalWeight,
+            int claimScore
+    ) {
+        this(
+                claimId,
+                rawValue,
+                canonicalSkillId,
+                canonicalSkillName,
+                source,
+                status,
+                matched,
+                state,
+                canonicalCategory,
+                canonicalWeight,
+                claimScore,
+                0,
+                0,
+                claimScore
+        );
+    }
 }

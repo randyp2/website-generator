@@ -8,6 +8,8 @@ import java.util.List;
  */
 public record SkillScoreSummary(
         String scoreType,
+        int baselineOverallScore,
+        int evidenceDelta,
         int overallScore,
         int totalSkills,
         int matchedSkills,
@@ -19,4 +21,36 @@ public record SkillScoreSummary(
         List<SkillClaimScore> unverifiedClaims,
         List<SuggestedAction> suggestedActions
 ) {
+    /**
+     * Backward-compatible constructor used by existing baseline scoring flow.
+     */
+    public SkillScoreSummary(
+            String scoreType,
+            int overallScore,
+            int totalSkills,
+            int matchedSkills,
+            int unmatchedSkills,
+            BigDecimal normalizedCoverage,
+            BigDecimal sourceQuality,
+            BigDecimal parserConfidence,
+            List<SkillClaimScore> claims,
+            List<SkillClaimScore> unverifiedClaims,
+            List<SuggestedAction> suggestedActions
+    ) {
+        this(
+                scoreType,
+                overallScore,
+                0,
+                overallScore,
+                totalSkills,
+                matchedSkills,
+                unmatchedSkills,
+                normalizedCoverage,
+                sourceQuality,
+                parserConfidence,
+                claims,
+                unverifiedClaims,
+                suggestedActions
+        );
+    }
 }

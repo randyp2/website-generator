@@ -9,6 +9,8 @@ import java.util.List;
 @Data
 public class VerificationSummaryDTO {
     private String scoreType;
+    private Integer baselineOverallScore;
+    private Integer evidenceDelta;
     private Integer overallScore;
 
     private Integer totalSkills;
