@@ -30,6 +30,7 @@ import useVerificationSubTab from "./useVerificationSubTab"
 import useConnections from "./useConnections"
 import useConnectionActions from "./useConnectionActions"
 import useClaimDeletion from "./useClaimDeletion"
+import { runConnectionSyncRequest } from "./verification.api"
 
 const VerificationTab = ({ userId }: VerificationTabProps) => {
   void userId
@@ -37,6 +38,8 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
   const [activeFilter, setActiveFilter] = useState<FilterOption>("all")
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [isRerunningChecks, setIsRerunningChecks] = useState(false)
+  const [rerunChecksError, setRerunChecksError] = useState<string | null>(null)
 
   const { summary, isLoading, error, refetch } = useVerificationSummary()
   const {
@@ -122,9 +125,31 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
     clearDeleteError()
   }
 
-  const handleRerunChecks = () => {
-    refetch()
-  }
+  const handleRerunChecks = useCallback(async () => {
+    if (isRerunningChecks) return
+
+    setIsRerunningChecks(true)
+    setRerunChecksError(null)
+
+    try {
+      const githubConnection = connections.find(
+        (connection) => connection.provider === "github",
+      )
+
+      if (!githubConnection || githubConnection.status !== "connected") {
+        throw new Error("Connect GitHub before re-running checks")
+      }
+
+      await runConnectionSyncRequest("github")
+      await Promise.all([refetch(), refetchConnections()])
+    } catch (error) {
+      setRerunChecksError(
+        error instanceof Error ? error.message : "Failed to re-run checks",
+      )
+    } finally {
+      setIsRerunningChecks(false)
+    }
+  }, [connections, isRerunningChecks, refetch, refetchConnections])
 
   if (isLoading) {
     return <VerificationLoadingSkeleton />
@@ -153,7 +178,13 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
       <VerificationOverview
         data={overview}
         onRerunChecks={handleRerunChecks}
+        isRerunningChecks={isRerunningChecks}
       />
+      {rerunChecksError && (
+        <p className="text-xs text-destructive">
+          {rerunChecksError}
+        </p>
+      )}
 
       <ConnectionsPanel
         connections={connections}

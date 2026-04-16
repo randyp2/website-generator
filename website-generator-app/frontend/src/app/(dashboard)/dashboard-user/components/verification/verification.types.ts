@@ -125,7 +125,8 @@ export interface ResumeFile {
 
 export interface VerificationOverviewProps {
   data: VerificationOverviewData
-  onRerunChecks: () => void
+  onRerunChecks: () => void | Promise<void>
+  isRerunningChecks?: boolean
 }
 
 export interface ConnectionsPanelProps {

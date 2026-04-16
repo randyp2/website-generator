@@ -7,6 +7,7 @@ import type {
 import type {
     ConnectProviderResponseDTO,
     DisconnectProviderResponseDTO,
+    SyncProviderResponseDTO,
 } from "@/types/connection";
 
 interface ErrorResponseBody {
@@ -27,6 +28,8 @@ const CONNECT_REDIRECT_MISSING_ERROR =
 export interface ConnectionActionResult {
     authorizationUrl: string | null;
 }
+
+const DEFAULT_SYNC_ERROR_MESSAGE = "Failed to sync provider";
 
 export const resolveErrorMessage = async (
     response: Response,
@@ -74,6 +77,33 @@ export const runConnectionActionRequest = async (
 
     (await response.json()) as DisconnectProviderResponseDTO;
     return { authorizationUrl: null };
+};
+
+export const runConnectionSyncRequest = async (
+    provider: ConnectionProvider,
+): Promise<SyncProviderResponseDTO> => {
+    const response: Response = await fetch(
+        `${CONNECTIONS_BASE_PATH}/${provider}/sync`,
+        { method: "POST" },
+    );
+
+    if (!response.ok) {
+        const message = await resolveErrorMessage(
+            response,
+            DEFAULT_SYNC_ERROR_MESSAGE,
+        );
+        throw new Error(message);
+    }
+
+    const payload = (await response.json()) as SyncProviderResponseDTO;
+    if (
+        typeof payload.syncStatus === "string"
+        && payload.syncStatus.toLowerCase() === "failed"
+    ) {
+        throw new Error(payload.error ?? DEFAULT_SYNC_ERROR_MESSAGE);
+    }
+
+    return payload;
 };
 
 export const deleteClaimRequest = async (

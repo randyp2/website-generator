@@ -26,6 +26,7 @@ const KPI_ITEMS = [
 const VerificationOverview = ({
   data,
   onRerunChecks,
+  isRerunningChecks = false,
 }: VerificationOverviewProps) => {
   const offset = CIRCUMFERENCE - (data.overallScore / 100) * CIRCUMFERENCE
   const lastCheckedLabel = new Date(data.lastRunDate).toLocaleDateString("en-US", {
@@ -127,11 +128,14 @@ const VerificationOverview = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={onRerunChecks}
+                onClick={() => {
+                  void onRerunChecks()
+                }}
+                disabled={isRerunningChecks}
                 className="gap-1.5"
               >
-                <RefreshCw className="h-3.5 w-3.5" />
-                Re-run Checks
+                <RefreshCw className={cn("h-3.5 w-3.5", isRerunningChecks && "animate-spin")} />
+                {isRerunningChecks ? "Re-running..." : "Re-run Checks"}
               </Button>
               <span className="text-xs text-muted-foreground">
                 Last checked {lastCheckedLabel}

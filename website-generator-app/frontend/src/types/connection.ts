@@ -6,6 +6,12 @@ export interface ConnectedAccountDTO {
   status: string
   scopes: string[]
   lastSyncedAt: string | null
+  lastSyncStatus: string
+  lastSyncError: string | null
+  lastSyncStartedAt: string | null
+  lastSyncCompletedAt: string | null
+  lastSyncImportedCount: number
+  lastSyncLinkedCount: number
   createdAt: string
   updatedAt: string
 }
@@ -18,4 +24,29 @@ export interface ConnectProviderResponseDTO {
 
 export interface DisconnectProviderResponseDTO {
   connection: ConnectedAccountDTO
+}
+
+export interface SyncEvidenceStatsDTO {
+  fetched: number
+  inserted: number
+  updated: number
+  unchanged: number
+}
+
+export interface SyncLinkStatsDTO {
+  inserted: number
+  updated: number
+  removed: number
+  claimsMatched: number
+}
+
+export interface SyncProviderResponseDTO {
+  provider: string
+  syncStatus: string
+  startedAt: string | null
+  completedAt: string | null
+  tokenRefreshed: boolean
+  evidence: SyncEvidenceStatsDTO
+  links: SyncLinkStatsDTO
+  error: string | null
 }
