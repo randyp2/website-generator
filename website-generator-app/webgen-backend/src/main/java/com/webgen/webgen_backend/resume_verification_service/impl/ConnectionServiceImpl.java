@@ -45,6 +45,8 @@ public class ConnectionServiceImpl implements ConnectionService {
 
     private static final String STATUS_PENDING = "pending";
     private static final String STATUS_DISCONNECTED = "disconnected";
+    private static final String SYNC_STATUS_NEVER = "never";
+    private static final int SYNC_COUNT_ZERO = 0;
     private static final String GITHUB_PROVIDER = "github";
     private static final String GITHUB_AUTHORIZE_URL = "https://github.com/login/oauth/authorize";
     private static final long DEFAULT_STATE_TTL_SECONDS = 600L;
@@ -114,6 +116,8 @@ public class ConnectionServiceImpl implements ConnectionService {
             connectedAccount.setOauthStateExpiresAt(null);
         }
 
+        // Enforce DB not-null sync metadata defaults for both new and legacy rows.
+        ensureSyncMetadataDefaults(connectedAccount);
         ConnectedAccount savedAccount = connectedAccountRepository.save(connectedAccount);
 
         return ConnectProviderResponseDTO.builder()
@@ -146,6 +150,7 @@ public class ConnectionServiceImpl implements ConnectionService {
         }
 
         applyDisconnectedState(connectedAccount, OffsetDateTime.now());
+        ensureSyncMetadataDefaults(connectedAccount);
 
         ConnectedAccount saved = connectedAccountRepository.save(connectedAccount);
 
@@ -230,6 +235,19 @@ public class ConnectionServiceImpl implements ConnectionService {
         account.setOauthStateExpiresAt(null);
         account.setLastSyncedAt(null);
         account.setUpdatedAt(now);
+    }
+
+    // Guarantees required sync metadata fields are never null on persistence boundaries.
+    private void ensureSyncMetadataDefaults(ConnectedAccount account) {
+        if (account.getLastSyncStatus() == null || account.getLastSyncStatus().isBlank()) {
+            account.setLastSyncStatus(SYNC_STATUS_NEVER);
+        }
+        if (account.getLastSyncImportedCount() == null) {
+            account.setLastSyncImportedCount(SYNC_COUNT_ZERO);
+        }
+        if (account.getLastSyncLinkedCount() == null) {
+            account.setLastSyncLinkedCount(SYNC_COUNT_ZERO);
+        }
     }
 
     // Return true only when repeat disconnect would not change persisted state.

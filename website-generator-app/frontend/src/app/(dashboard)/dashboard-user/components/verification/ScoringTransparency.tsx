@@ -39,7 +39,7 @@ const SCORING_RULES = [
   {
     title: "Evidence-aware Claim Prior",
     description:
-      "matchValue is deterministic: unmatched=0.00, matched without evidence=0.35, matched with evidence=1.00.",
+      "matchValue is deterministic: unmatched=0.00, matched=0.35 before external verification evidence.",
   },
   {
     title: "Expert Reserved for LLM",
@@ -52,9 +52,9 @@ const SCORING_RULES = [
       "When available, parser confidence is blended as a 10% nudge to the base score.",
   },
   {
-    title: "Evidence Blend (Phase 7)",
+    title: "Evidence Nudge (Phase 7)",
     description:
-      "Per-claim final score = 0.40 × baseline + 0.60 × evidence support. Overall score applies mean claim evidence delta to baseline.",
+      "Evidence nudges matched claims from baseline toward the pre-LLM cap using strength, recency, and link frequency with diminishing returns. Overall score applies mean claim evidence delta to baseline.",
   },
 ] as const
 

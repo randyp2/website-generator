@@ -256,9 +256,10 @@ public class SkillVerificationScoringKernel {
                 ? List.of()
                 : input.evidenceLinks();
         int evidenceLinksUsed = evidenceLinks.size();
+        int evidenceLinksUsedForScoring = matched ? evidenceLinksUsed : 0;
 
         BigDecimal sourceWeight = scoringPolicy.sourceWeight(source);
-        BigDecimal matchValue = resolveMatchValue(matched, evidenceLinksUsed);
+        BigDecimal matchValue = resolveMatchValue(matched);
         boolean llmVerified = isLlmVerified(input);
         int claimScoreCap = resolveClaimScoreCap(llmVerified);
 
@@ -296,7 +297,7 @@ public class SkillVerificationScoringKernel {
                 : scoringPolicy.clamp01(input.canonicalWeight());
 
         BigDecimal finalClaimNormalized = baselineClaimNormalized;
-        BigDecimal evidenceClaimNormalized = null;
+        EvidenceNudgeComputation evidenceNudge = EvidenceNudgeComputation.none();
         if (evidenceLinksUsed > 0) {
             for (int i = 0; i < evidenceLinksUsed; i++) {
                 EvidenceLinkSignal link = evidenceLinks.get(i);
@@ -315,82 +316,73 @@ public class SkillVerificationScoringKernel {
                 ));
             }
 
-            /*
-             * Per-claim evidence aggregation:
-             *
-             * evidenceClaimNormalized = 1 - Π(1 - linkStrength_i)
-             *
-             * where:
-             *   linkStrength_i = decayedStrength_i in [0,1]
-             *
-             * Why this equation:
-             * - Monotonic: adding evidence can never reduce support.
-             * - Bounded: result always remains in [0,1].
-             * - Diminishing returns: repeated similar links contribute less, which
-             *   naturally dampens repository spam effects without hard cliffs.
-             */
-            evidenceClaimNormalized = combineEvidenceSignals(evidenceLinks);
-            System.out.println(String.format(
-                    "[CLAIM SCORE] claimId=%s evidenceNormalized = 1 - Π(1 - linkStrength_i) = %s",
-                    input.claimId(),
-                    evidenceClaimNormalized
-            ));
-
-            /*
-             * Evidence blend contract (locked in Phase 7 step 1):
-             *
-             * finalClaimNormalized =
-             *     0.40 * baselineClaimNormalized
-             *   + 0.60 * evidenceClaimNormalized
-             *
-             * Design intent:
-             * - Baseline reflects extraction/canonical priors, not proof.
-             * - Evidence receives majority influence once present.
-             */
-            finalClaimNormalized = baselineClaimNormalized
-                    .multiply(SkillScoringPolicy.EVIDENCE_BLEND_BASELINE_WEIGHT)
-                    .add(evidenceClaimNormalized.multiply(SkillScoringPolicy.EVIDENCE_BLEND_EVIDENCE_WEIGHT));
+            if (matched) {
+                evidenceNudge = computeEvidenceNudge(evidenceLinks, baselineClaimNormalized, claimScoreCap);
+                finalClaimNormalized = evidenceNudge.finalClaimNormalized();
+                System.out.println(String.format(
+                        "[CLAIM SCORE] claimId=%s evidenceNudge effectiveEvidence=%s support=%s boostProgress=%s "
+                                + "headroom=%s boostNormalized=%s",
+                        input.claimId(),
+                        evidenceNudge.effectiveEvidenceStrength(),
+                        evidenceNudge.support(),
+                        evidenceNudge.boostProgress(),
+                        evidenceNudge.headroomNormalized(),
+                        evidenceNudge.boostNormalized()
+                ));
+                System.out.println(String.format(
+                        "[CLAIM SCORE] claimId=%s finalNormalized = baseline + (headroom*boostProgress) = %s + (%s*%s) = %s "
+                                + "-> finalScore pending-cap",
+                        input.claimId(),
+                        baselineClaimNormalized,
+                        evidenceNudge.headroomNormalized(),
+                        evidenceNudge.boostProgress(),
+                        finalClaimNormalized
+                ));
+            } else {
+                System.out.println(String.format(
+                        "[CLAIM SCORE] claimId=%s evidence links present but claim is unresolved; skipping evidence nudge until canonical match exists",
+                        input.claimId()
+                ));
+            }
         }
         finalClaimNormalized = scoringPolicy.clamp01(finalClaimNormalized);
 
         int uncappedFinalClaimScore = scoringPolicy.toPercent(finalClaimNormalized);
         int finalClaimScore = Math.min(uncappedFinalClaimScore, claimScoreCap);
-        int uncappedEvidenceContribution = evidenceLinksUsed > 0
+        int uncappedEvidenceContribution = evidenceLinksUsedForScoring > 0
                 ? uncappedFinalClaimScore - uncappedBaselineClaimScore
                 : 0;
-        int evidenceContribution = evidenceLinksUsed > 0
+        int evidenceContribution = evidenceLinksUsedForScoring > 0
                 ? finalClaimScore - baselineClaimScore
                 : 0;
         boolean baselineScoreCapped = baselineClaimScore < uncappedBaselineClaimScore;
         boolean finalScoreCapped = finalClaimScore < uncappedFinalClaimScore;
 
-        EvidenceSignalStats evidenceStats = evidenceLinksUsed > 0
+        EvidenceSignalStats evidenceStats = evidenceLinksUsedForScoring > 0
                 ? collectEvidenceSignalStats(evidenceLinks)
                 : EvidenceSignalStats.empty();
-        if (evidenceLinksUsed > 0) {
+        if (evidenceLinksUsedForScoring > 0) {
             System.out.println(String.format(
-                    "[CLAIM SCORE] claimId=%s finalNormalized = (0.40*%s) + (0.60*%s) = %s -> finalScore=%d evidenceContribution=%+d",
+                    "[CLAIM SCORE] claimId=%s finalScore=%d baselineScore=%d evidenceContribution=%+d linksUsed=%d",
                     input.claimId(),
-                    baselineClaimNormalized,
-                    evidenceClaimNormalized,
-                    finalClaimNormalized,
                     finalClaimScore,
-                    evidenceContribution
+                    baselineClaimScore,
+                    evidenceContribution,
+                    evidenceLinksUsedForScoring
             ));
             if (evidenceContribution < 0) {
-                BigDecimal normalizedGap = evidenceClaimNormalized.subtract(baselineClaimNormalized);
-                BigDecimal weightedGapNormalized = normalizedGap.multiply(
-                        SkillScoringPolicy.EVIDENCE_BLEND_EVIDENCE_WEIGHT);
+                BigDecimal normalizedGap = finalClaimNormalized.subtract(baselineClaimNormalized);
+                BigDecimal weightedGapNormalized = normalizedGap;
                 BigDecimal weightedGapPoints = weightedGapNormalized.multiply(SkillScoringPolicy.HUNDRED)
                         .setScale(4, RoundingMode.HALF_UP);
 
                 System.out.println(String.format(
                         "[CLAIM SCORE][NEGATIVE] claimId=%s reason=evidence_normalized_below_baseline "
-                                + "baselineNormalized=%s evidenceNormalized=%s normalizedGap=%s "
+                                + "baselineNormalized=%s finalNormalized=%s normalizedGap=%s "
                                 + "weightedGapPointsApprox=%s",
                         input.claimId(),
                         baselineClaimNormalized,
-                        evidenceClaimNormalized,
+                        finalClaimNormalized,
                         normalizedGap,
                         weightedGapPoints
                 ));
@@ -410,6 +402,12 @@ public class SkillVerificationScoringKernel {
                         evidenceStats.weakestAgeDays()
                 ));
             }
+        } else if (evidenceLinksUsed > 0) {
+            System.out.println(String.format(
+                    "[CLAIM SCORE] claimId=%s evidence links ignored for unresolved claim -> finalScore=%d",
+                    input.claimId(),
+                    finalClaimScore
+            ));
         } else {
             System.out.println(String.format(
                     "[CLAIM SCORE] claimId=%s no evidence links -> finalScore=%d",
@@ -436,7 +434,7 @@ public class SkillVerificationScoringKernel {
 
         ClaimReasonComputation claimReason = buildClaimReason(
                 matched,
-                evidenceLinksUsed,
+                evidenceLinksUsedForScoring,
                 baselineClaimScore,
                 finalClaimScore,
                 evidenceContribution,
@@ -469,7 +467,7 @@ public class SkillVerificationScoringKernel {
                 canonicalWeight,
                 baselineClaimScore,
                 evidenceContribution,
-                evidenceLinksUsed,
+                evidenceLinksUsedForScoring,
                 finalClaimScore,
                 claimReason.code(),
                 claimReason.text()
@@ -478,15 +476,114 @@ public class SkillVerificationScoringKernel {
         return new ClaimScoreComputation(score, uncappedEvidenceContribution, baselineClaimNormalized);
     }
 
-    // Resolves claim-match prior value from canonical match state and evidence presence.
-    private BigDecimal resolveMatchValue(boolean matched, int evidenceLinksUsed) {
+    // Resolves canonical match prior without using evidence as a binary jump.
+    private BigDecimal resolveMatchValue(boolean matched) {
         if (!matched) {
             return SkillScoringPolicy.ZERO;
         }
-        if (evidenceLinksUsed > 0) {
-            return SkillScoringPolicy.MATCHED_WITH_EVIDENCE_VALUE;
-        }
         return SkillScoringPolicy.MATCHED_WITHOUT_EVIDENCE_VALUE;
+    }
+
+    /**
+     * Computes deterministic evidence nudge toward the claim cap.
+     *
+     * Equation:
+     *
+     * effectiveEvidence = Σ(decayedStrength_i * rankDecay^(i-1))
+     * support           = 1 - exp(-gamma * effectiveEvidence)
+     * boostProgress     = support^curveExponent
+     * headroom          = capNormalized - baselineClaimNormalized
+     * final             = baselineClaimNormalized + (headroom * boostProgress)
+     *
+     * Design intent:
+     * - Low evidence nudges scores up a little.
+     * - More/stronger/fresher evidence increases the nudge.
+     * - Diminishing returns prevent linear inflation from many links.
+     */
+    private EvidenceNudgeComputation computeEvidenceNudge(
+            List<EvidenceLinkSignal> evidenceLinks,
+            BigDecimal baselineClaimNormalized,
+            int claimScoreCap
+    ) {
+        BigDecimal capNormalized = resolveClaimCapNormalized(claimScoreCap);
+        BigDecimal headroomNormalized = capNormalized.subtract(baselineClaimNormalized);
+        if (headroomNormalized.compareTo(SkillScoringPolicy.ZERO) <= 0) {
+            return new EvidenceNudgeComputation(
+                    SkillScoringPolicy.ZERO,
+                    SkillScoringPolicy.ZERO,
+                    SkillScoringPolicy.ZERO,
+                    SkillScoringPolicy.ZERO,
+                    SkillScoringPolicy.ZERO,
+                    scoringPolicy.clamp01(baselineClaimNormalized)
+            );
+        }
+
+        BigDecimal effectiveEvidenceStrength = aggregateEvidenceStrengthWithRankDecay(evidenceLinks);
+        BigDecimal support = computeEvidenceSupport(effectiveEvidenceStrength);
+        BigDecimal boostProgress = computeEvidenceBoostProgress(support);
+        BigDecimal boostNormalized = headroomNormalized.multiply(boostProgress);
+        BigDecimal finalClaimNormalized = scoringPolicy.clamp01(
+                baselineClaimNormalized.add(boostNormalized)
+        );
+
+        return new EvidenceNudgeComputation(
+                effectiveEvidenceStrength,
+                support,
+                boostProgress,
+                headroomNormalized,
+                boostNormalized,
+                finalClaimNormalized
+        );
+    }
+
+    // Builds additive effective evidence while discounting deeper links by rank.
+    private BigDecimal aggregateEvidenceStrengthWithRankDecay(List<EvidenceLinkSignal> evidenceLinks) {
+        if (evidenceLinks == null || evidenceLinks.isEmpty()) {
+            return SkillScoringPolicy.ZERO;
+        }
+
+        BigDecimal total = SkillScoringPolicy.ZERO;
+        for (int i = 0; i < evidenceLinks.size(); i++) {
+            EvidenceLinkSignal link = evidenceLinks.get(i);
+            BigDecimal boundedStrength = link == null || link.decayedStrength() == null
+                    ? SkillScoringPolicy.ZERO
+                    : scoringPolicy.clamp01(link.decayedStrength());
+            BigDecimal rankDecay = BigDecimal.valueOf(
+                    Math.pow(SkillScoringPolicy.EVIDENCE_FREQUENCY_RANK_DECAY.doubleValue(), i)
+            );
+            total = total.add(boundedStrength.multiply(rankDecay));
+        }
+        return total;
+    }
+
+    // Converts effective evidence into bounded support with diminishing returns.
+    private BigDecimal computeEvidenceSupport(BigDecimal effectiveEvidenceStrength) {
+        if (effectiveEvidenceStrength == null || effectiveEvidenceStrength.compareTo(SkillScoringPolicy.ZERO) <= 0) {
+            return SkillScoringPolicy.ZERO;
+        }
+
+        double exponent = SkillScoringPolicy.EVIDENCE_SUPPORT_GROWTH_GAMMA.negate().doubleValue()
+                * effectiveEvidenceStrength.doubleValue();
+        double support = 1.0d - Math.exp(exponent);
+        return scoringPolicy.clamp01(BigDecimal.valueOf(support));
+    }
+
+    // Sharpens small support values so weak evidence creates only small boosts.
+    private BigDecimal computeEvidenceBoostProgress(BigDecimal support) {
+        if (support == null || support.compareTo(SkillScoringPolicy.ZERO) <= 0) {
+            return SkillScoringPolicy.ZERO;
+        }
+        double boostProgress = Math.pow(
+                support.doubleValue(),
+                SkillScoringPolicy.EVIDENCE_BOOST_CURVE_EXPONENT.doubleValue()
+        );
+        return scoringPolicy.clamp01(BigDecimal.valueOf(boostProgress));
+    }
+
+    // Converts an integer claim cap into normalized [0,1] space.
+    private BigDecimal resolveClaimCapNormalized(int claimScoreCap) {
+        return BigDecimal.valueOf(claimScoreCap)
+                .divide(SkillScoringPolicy.HUNDRED, SkillScoringPolicy.DIV_SCALE, RoundingMode.HALF_UP);
     }
 
     // Placeholder seam for future LLM verification signal integration.
@@ -848,6 +945,26 @@ public class SkillVerificationScoringKernel {
             int uncappedEvidenceContribution,
             BigDecimal baselineClaimNormalized
     ) {
+    }
+
+    private record EvidenceNudgeComputation(
+            BigDecimal effectiveEvidenceStrength,
+            BigDecimal support,
+            BigDecimal boostProgress,
+            BigDecimal headroomNormalized,
+            BigDecimal boostNormalized,
+            BigDecimal finalClaimNormalized
+    ) {
+        private static EvidenceNudgeComputation none() {
+            return new EvidenceNudgeComputation(
+                    SkillScoringPolicy.ZERO,
+                    SkillScoringPolicy.ZERO,
+                    SkillScoringPolicy.ZERO,
+                    SkillScoringPolicy.ZERO,
+                    SkillScoringPolicy.ZERO,
+                    SkillScoringPolicy.ZERO
+            );
+        }
     }
 
     private record ClaimReasonComputation(

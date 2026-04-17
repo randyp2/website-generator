@@ -22,21 +22,22 @@ import java.util.Map;
  * baselineOverallScore = round(finalNormalized * 100)
  * </pre>
  *
- * <p>Phase 7 evidence blend (when evidence exists for a claim):</p>
+ * <p>Phase 7 evidence nudge model (when evidence exists for a matched claim):</p>
  *
  * <pre>
- * finalClaimNormalized =
- *     0.40 * baselineClaimNormalized
- *   + 0.60 * evidenceClaimNormalized
+ * effectiveEvidence = Σ(decayedStrength_i * rankDecay^(i-1))
+ * support           = 1 - exp(-gamma * effectiveEvidence)
+ * boostProgress     = support^curveExponent
+ * headroom          = claimCapNormalized - baselineClaimNormalized
+ * finalClaim        = baselineClaimNormalized + (headroom * boostProgress)
  * </pre>
  *
- * <p>Per-claim prior formula (before evidence blend):</p>
+ * <p>Per-claim prior formula (before evidence nudge):</p>
  *
  * <pre>
  * matchValue =
  *   0.00 when unmatched
  *   0.35 when matched but no linked evidence
- *   1.00 when matched and linked evidence exists
  *
  * claimPrior = 0.70 * matchValue + 0.30 * sourceWeight
  * </pre>
@@ -62,26 +63,45 @@ public class SkillScoringPolicy {
     public static final BigDecimal PARSER_CONFIDENCE_WEIGHT = new BigDecimal("0.10");
 
     /**
-     * Baseline keeps minority influence once external evidence is present so
-     * canonical/source priors still matter, but no longer dominate.
-     */
-    public static final BigDecimal EVIDENCE_BLEND_BASELINE_WEIGHT = new BigDecimal("0.40");
-
-    /**
-     * Evidence receives majority influence to avoid overstating confidence from
-     * claim extraction alone.
-     */
-    public static final BigDecimal EVIDENCE_BLEND_EVIDENCE_WEIGHT = new BigDecimal("0.60");
-
-    /**
      * Canonical-matched claims without linked evidence keep reduced prior value.
      * This avoids treating extraction/canonical mapping as proof before accounts
      * are connected.
      */
     public static final BigDecimal MATCHED_WITHOUT_EVIDENCE_VALUE = new BigDecimal("0.35");
 
-    /** Canonical-matched claims with linked evidence use full match value. */
-    public static final BigDecimal MATCHED_WITH_EVIDENCE_VALUE = ONE;
+    /**
+     * Additional evidence links are down-weighted geometrically by rank:
+     *
+     * rankWeight(i) = rankDecay^(i-1)
+     *
+     * with i=1 for the strongest link after deterministic sort.
+     *
+     * Decision rationale:
+     * - first link has full weight (1.0),
+     * - subsequent links still add value,
+     * - repeated links have diminishing marginal impact.
+     */
+    public static final BigDecimal EVIDENCE_FREQUENCY_RANK_DECAY = new BigDecimal("0.75");
+
+    /**
+     * Evidence-support growth rate in:
+     *
+     * support = 1 - exp(-gamma * effectiveEvidence)
+     *
+     * Larger gamma reaches high support sooner; smaller gamma requires more
+     * accumulated evidence strength to approach full support.
+     */
+    public static final BigDecimal EVIDENCE_SUPPORT_GROWTH_GAMMA = new BigDecimal("0.70");
+
+    /**
+     * Boost curve exponent in:
+     *
+     * boostProgress = support^curveExponent
+     *
+     * curveExponent > 1 delays large boosts until evidence support is stronger,
+     * so weak evidence only nudges scores up a little.
+     */
+    public static final BigDecimal EVIDENCE_BOOST_CURVE_EXPONENT = new BigDecimal("1.35");
 
     /**
      * Pre-LLM hard ceiling for claim scores.

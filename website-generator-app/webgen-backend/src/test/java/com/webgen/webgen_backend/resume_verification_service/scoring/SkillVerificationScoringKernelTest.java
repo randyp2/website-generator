@@ -147,19 +147,19 @@ class SkillVerificationScoringKernelTest {
         SkillScoreSummary summary = kernel.score(new SkillScoreRequest(claims, null));
 
         assertThat(summary.scoreType()).isEqualTo("evidence_enhanced");
-        assertThat(summary.baselineOverallScore()).isEqualTo(55);
-        assertThat(summary.overallScore()).isEqualTo(57);
-        assertThat(summary.evidenceDelta()).isEqualTo(2);
+        assertThat(summary.baselineOverallScore()).isEqualTo(32);
+        assertThat(summary.overallScore()).isEqualTo(38);
+        assertThat(summary.evidenceDelta()).isEqualTo(6);
 
         Map<UUID, SkillClaimScore> byId = summary.claims().stream()
                 .collect(Collectors.toMap(SkillClaimScore::claimId, Function.identity()));
 
         SkillClaimScore evidenceClaim = byId.get(c1);
-        assertThat(evidenceClaim.baselineClaimScore()).isEqualTo(80);
-        assertThat(evidenceClaim.claimScore()).isEqualTo(80);
-        assertThat(evidenceClaim.evidenceContribution()).isZero();
+        assertThat(evidenceClaim.baselineClaimScore()).isEqualTo(49);
+        assertThat(evidenceClaim.claimScore()).isEqualTo(61);
+        assertThat(evidenceClaim.evidenceContribution()).isEqualTo(12);
         assertThat(evidenceClaim.evidenceLinksUsed()).isEqualTo(1);
-        assertThat(evidenceClaim.scoreReasonCode()).isEqualTo("expert_reserved_llm");
+        assertThat(evidenceClaim.scoreReasonCode()).isEqualTo("evidence_boost_recent_strong");
     }
 
     @Test
@@ -185,14 +185,59 @@ class SkillVerificationScoringKernelTest {
         SkillClaimScore claimScore = summary.claims().getFirst();
 
         assertThat(summary.scoreType()).isEqualTo("evidence_enhanced");
-        assertThat(summary.baselineOverallScore()).isEqualTo(94);
-        assertThat(summary.overallScore()).isEqualTo(44);
-        assertThat(summary.evidenceDelta()).isEqualTo(-50);
+        assertThat(summary.baselineOverallScore()).isEqualTo(49);
+        assertThat(summary.overallScore()).isEqualTo(49);
+        assertThat(summary.evidenceDelta()).isZero();
 
-        assertThat(claimScore.baselineClaimScore()).isEqualTo(80);
-        assertThat(claimScore.claimScore()).isEqualTo(44);
-        assertThat(claimScore.evidenceContribution()).isEqualTo(-36);
+        assertThat(claimScore.baselineClaimScore()).isEqualTo(49);
+        assertThat(claimScore.claimScore()).isEqualTo(49);
+        assertThat(claimScore.evidenceContribution()).isZero();
         assertThat(claimScore.evidenceLinksUsed()).isEqualTo(1);
+    }
+
+    @Test
+    void moreEvidenceSignalsIncreaseClaimPriorAndFinalScore() {
+        UUID oneLinkClaimId = UUID.randomUUID();
+        UUID manyLinkClaimId = UUID.randomUUID();
+        UUID skillId = UUID.randomUUID();
+
+        SkillScoreSummary summary = kernel.score(new SkillScoreRequest(
+                List.of(
+                        claimWithEvidence(
+                                oneLinkClaimId,
+                                "React",
+                                skillId,
+                                "React",
+                                "resume",
+                                "pending",
+                                "engineering",
+                                "1.0",
+                                List.of(evidence("0.50"))
+                        ),
+                        claimWithEvidence(
+                                manyLinkClaimId,
+                                "React",
+                                skillId,
+                                "React",
+                                "resume",
+                                "pending",
+                                "engineering",
+                                "1.0",
+                                List.of(evidence("0.50"), evidence("0.50"), evidence("0.50"))
+                        )
+                ),
+                null
+        ));
+
+        Map<UUID, SkillClaimScore> byId = summary.claims().stream()
+                .collect(Collectors.toMap(SkillClaimScore::claimId, Function.identity()));
+
+        SkillClaimScore oneLink = byId.get(oneLinkClaimId);
+        SkillClaimScore manyLinks = byId.get(manyLinkClaimId);
+
+        assertThat(manyLinks.baselineClaimScore()).isEqualTo(oneLink.baselineClaimScore());
+        assertThat(manyLinks.evidenceContribution()).isGreaterThan(oneLink.evidenceContribution());
+        assertThat(manyLinks.claimScore()).isGreaterThan(oneLink.claimScore());
     }
 
     private SkillClaimInput claim(
