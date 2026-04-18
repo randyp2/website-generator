@@ -1,22 +1,20 @@
 package com.webgen.webgen_backend.resume_verification_service.scoring;
 
-import com.webgen.webgen_backend.resume_verification_service.scoring.model.EvidenceLinkSignal;
-import com.webgen.webgen_backend.resume_verification_service.scoring.model.SkillClaimInput;
-import com.webgen.webgen_backend.resume_verification_service.scoring.model.SkillClaimScore;
-import com.webgen.webgen_backend.resume_verification_service.scoring.model.SkillScoreRequest;
-import com.webgen.webgen_backend.resume_verification_service.scoring.model.SkillScoreSummary;
-import com.webgen.webgen_backend.resume_verification_service.scoring.model.SuggestedAction;
+import com.webgen.webgen_backend.verification.service.scoring.model.*;
+import com.webgen.webgen_backend.verification.service.scoring.SkillScoringPolicy;
+import com.webgen.webgen_backend.verification.service.scoring.SkillSuggestedActionRuleBook;
+import com.webgen.webgen_backend.verification.service.scoring.SkillVerificationScoringKernel;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class SkillVerificationScoringKernelTest {
 

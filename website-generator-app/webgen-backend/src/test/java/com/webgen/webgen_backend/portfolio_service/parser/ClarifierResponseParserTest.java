@@ -1,14 +1,16 @@
 package com.webgen.webgen_backend.portfolio_service.parser;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.webgen.webgen_backend.dto.portfolio.clarifier.ClarifierResponseDTO;
-import com.webgen.webgen_backend.model.portfolio.clarifier.ChangeIntensity;
-import com.webgen.webgen_backend.model.portfolio.clarifier.ClarifierContext;
+import com.webgen.webgen_backend.portfolio.dto.clarifier.ClarifierResponseDTO;
+import com.webgen.webgen_backend.portfolio.model.clarifier.ChangeIntensity;
+import com.webgen.webgen_backend.portfolio.model.clarifier.ClarifierContext;
+import com.webgen.webgen_backend.portfolio.service.parser.ClarifierResponseParser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ClarifierResponseParserTest {
 

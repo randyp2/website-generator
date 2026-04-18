@@ -1,24 +1,18 @@
 package com.webgen.webgen_backend.resume_verification_service.impl;
 
-import com.webgen.webgen_backend.entity.Claim;
-import com.webgen.webgen_backend.entity.ClaimEvidenceLink;
-import com.webgen.webgen_backend.entity.Evidence;
-import com.webgen.webgen_backend.entity.Profile;
-import com.webgen.webgen_backend.entity.Skill;
-import com.webgen.webgen_backend.repository.ClaimEvidenceLinkRepository;
-import com.webgen.webgen_backend.repository.EvidenceRepository;
-import com.webgen.webgen_backend.resume_verification_service.scoring.model.EvidenceLinkSignal;
-import com.webgen.webgen_backend.resume_verification_service.scoring.model.SkillClaimInput;
+import com.webgen.webgen_backend.profile.entity.Profile;
+import com.webgen.webgen_backend.verification.entity.*;
+import com.webgen.webgen_backend.verification.repository.ClaimEvidenceLinkRepository;
+import com.webgen.webgen_backend.verification.repository.EvidenceRepository;
+import com.webgen.webgen_backend.verification.service.scoring.model.EvidenceLinkSignal;
+import com.webgen.webgen_backend.verification.service.scoring.model.SkillClaimInput;
+import com.webgen.webgen_backend.verification.service.impl.ClaimEvidenceScoringInputAssemblerServiceImpl;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

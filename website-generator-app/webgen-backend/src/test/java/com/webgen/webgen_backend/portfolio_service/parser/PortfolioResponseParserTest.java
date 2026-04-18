@@ -1,13 +1,16 @@
 package com.webgen.webgen_backend.portfolio_service.parser;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.webgen.webgen_backend.dto.portfolio.*;
-import com.webgen.webgen_backend.dto.portfolio.common.*;
+import com.webgen.webgen_backend.portfolio.dto.*;
+import com.webgen.webgen_backend.portfolio.dto.common.*;
+import com.webgen.webgen_backend.portfolio.service.parser.PortfolioResponseParser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class PortfolioResponseParserTest {
 

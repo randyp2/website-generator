@@ -1,17 +1,18 @@
 package com.webgen.webgen_backend.resume_service.confidence;
 
-import com.webgen.webgen_backend.model.ParsedResume;
-import com.webgen.webgen_backend.resume_service.ResumeExtractionService;
+import com.webgen.webgen_backend.resume.model.ParsedResume;
+import com.webgen.webgen_backend.resume.service.confidence.ResumeConfidenceEvaluator;
+import com.webgen.webgen_backend.resume.service.extraction.*;
+import com.webgen.webgen_backend.resume.service.ResumeExtractionService;
 import com.webgen.webgen_backend.resume_service.ResumeTestHelper;
-import com.webgen.webgen_backend.resume_service.extraction.*;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 
 @Tag("requires-fixtures")
 class ResumeConfidenceEvaluatorTest {
@@ -163,7 +164,7 @@ class ResumeConfidenceEvaluatorTest {
 
         @Test
         void validatesStructuredExperienceRequiresTitleCompanyAndDate() {
-            com.webgen.webgen_backend.model.Experience exp = new com.webgen.webgen_backend.model.Experience();
+            com.webgen.webgen_backend.resume.model.Experience exp = new com.webgen.webgen_backend.resume.model.Experience();
 
             // Missing all fields
             assertThat(evaluator.hasStructuredExperience(exp)).isFalse();
@@ -189,7 +190,7 @@ class ResumeConfidenceEvaluatorTest {
         resume.setSummary("Experienced software engineer with over 5 years of experience building scalable systems.");
         resume.setSkills(java.util.List.of("Java", "Python", "React", "Docker"));
 
-        com.webgen.webgen_backend.model.Experience exp = new com.webgen.webgen_backend.model.Experience();
+        com.webgen.webgen_backend.resume.model.Experience exp = new com.webgen.webgen_backend.resume.model.Experience();
         exp.setTitle("Software Engineer");
         exp.setCompany("Acme Corp");
         exp.setStartDate("Jan 2020");
@@ -197,11 +198,11 @@ class ResumeConfidenceEvaluatorTest {
         exp.setBullets(java.util.List.of("Built APIs", "Led team of 5"));
         resume.setExperiences(java.util.List.of(exp));
 
-        com.webgen.webgen_backend.model.Project project = new com.webgen.webgen_backend.model.Project();
+        com.webgen.webgen_backend.resume.model.Project project = new com.webgen.webgen_backend.resume.model.Project();
         project.setHeader("Portfolio Generator");
         resume.setProjects(java.util.List.of(project));
 
-        com.webgen.webgen_backend.model.Education edu = new com.webgen.webgen_backend.model.Education();
+        com.webgen.webgen_backend.resume.model.Education edu = new com.webgen.webgen_backend.resume.model.Education();
         edu.setInstitution("UNLV");
         edu.setDegree("B.S. Computer Science");
         resume.setEducations(java.util.List.of(edu));

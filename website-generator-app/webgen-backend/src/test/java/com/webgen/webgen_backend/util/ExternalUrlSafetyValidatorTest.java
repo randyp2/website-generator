@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.util;
 
+import com.webgen.webgen_backend.shared.util.ExternalUrlSafetyValidator;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
