@@ -248,6 +248,14 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
                         + " contentJsonFields=" + (lockedContentJson != null ? lockedContentJson.fieldNames() : "null"));
             }
 
+            // --- Pre-repair: fix deterministic LLM mistake before validation
+            if (parsedSection.getReactSource() != null
+                    && parsedSection.getReactSource().contains("data.contentJson.")) {
+                String fixed = parsedSection.getReactSource().replace("data.contentJson.", "data.");
+                System.out.println(">>> [SECTION-WORKER] Pre-repair: replaced data.contentJson. → data. in '" + sectionKey + "'");
+                parsedSection.setReactSource(fixed);
+            }
+
             // --- Enforce locked invariants on retries: override with attempt-1 values
             if (attempt > 1) {
                 if (!lockedSectionKey.equals(parsedSection.getSectionKey())) {
