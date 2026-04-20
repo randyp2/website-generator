@@ -17,7 +17,7 @@ const VerificationFilterBar = ({
   onChange,
 }: VerificationFilterBarProps) => {
   return (
-    <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border py-3 -mx-1 px-1">
+    <div className="border-b border-border py-3 -mx-1 px-1">
       <div className="flex gap-2 flex-wrap">
         {(Object.keys(FILTER_LABELS) as FilterOption[]).map((filter) => (
           <button

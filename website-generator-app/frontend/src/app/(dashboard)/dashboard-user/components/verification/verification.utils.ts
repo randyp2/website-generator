@@ -401,7 +401,7 @@ export const deriveOverviewFromSummary = (
   totalSkills: summary.totalSkills,
   matchedSkills: summary.matchedSkills,
   unmatchedSkills: summary.unmatchedSkills,
-  unverifiedClaimsCount: summary.unverifiedClaims.length,
+  unverifiedClaimsCount: summary.claims.filter((c) => c.evidenceLinksUsed === 0).length,
   lastRunDate: summary.generatedAt,
   trustNote:
     summary.profileScoreNarrative ??
