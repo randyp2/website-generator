@@ -22,7 +22,7 @@ import type { EvidenceDTO } from "@/types/evidence";
 import {
     VerificationEmptyState,
     VerificationErrorState,
-    VerificationLoadingSkeleton,
+    ResumeUploadLoadingSkeleton,
 } from "./VerificationEmptyState";
 import VerificationFilterBar from "./VerificationFilterBar";
 import VerificationOverview from "./VerificationOverview";
@@ -298,7 +298,7 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
     ]);
 
     if (isLoading) {
-        return <VerificationLoadingSkeleton />;
+        return <ResumeUploadLoadingSkeleton />;
     }
 
     if (error) {

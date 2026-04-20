@@ -149,8 +149,48 @@ const VerificationLoadingSkeleton = () => {
   )
 }
 
+const ResumeUploadLoadingSkeleton = () => (
+  <div className="flex min-h-[calc(100vh-10rem)]">
+    {/* Left — intro skeleton */}
+    <div className="flex flex-1 flex-col justify-center pr-10">
+      <div className="border-l-2 border-border pl-5 mb-8">
+        <Skeleton className="h-7 w-52 mb-3" />
+        <Skeleton className="h-4 w-full mb-1.5" />
+        <Skeleton className="h-4 w-4/5 mb-1.5" />
+        <Skeleton className="h-4 w-3/5" />
+      </div>
+
+      <Skeleton className="h-3 w-20 mb-4" />
+
+      <div>
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="flex gap-5 border-b border-border py-4 last:border-0">
+            <Skeleton className="h-3 w-5 mt-0.5 shrink-0" />
+            <div className="flex-1 space-y-1.5">
+              <Skeleton className="h-4 w-36" />
+              <Skeleton className="h-3 w-full" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    {/* Divider */}
+    <div className="w-px shrink-0 bg-border" />
+
+    {/* Right — upload area skeleton */}
+    <div className="flex flex-1 flex-col items-center justify-center pl-10">
+      <Skeleton className="h-28 w-28 rounded-full mb-6" />
+      <Skeleton className="h-6 w-44 mb-2" />
+      <Skeleton className="h-4 w-64 mb-10" />
+      <Skeleton className="h-48 w-full max-w-lg rounded-xl" />
+    </div>
+  </div>
+)
+
 export {
   VerificationEmptyState,
   VerificationErrorState,
   VerificationLoadingSkeleton,
+  ResumeUploadLoadingSkeleton,
 }

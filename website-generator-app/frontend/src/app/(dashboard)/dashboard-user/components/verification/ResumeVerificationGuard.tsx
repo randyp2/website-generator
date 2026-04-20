@@ -6,6 +6,7 @@ import ResumePreviewCard from "./ResumePreviewCard";
 import ResumeUploadGate from "./ResumeUploadGate";
 import SkillReviewPanel from "./SkillReviewPanel";
 import VerificationIntro from "./VerificationIntro";
+import { ResumeUploadLoadingSkeleton } from "./VerificationEmptyState";
 import useResumeVerification from "./useResumeVerification";
 import useVerificationSubTab from "./useVerificationSubTab";
 import type { VerificationSubTab } from "./useVerificationSubTab";
@@ -17,6 +18,17 @@ const SUB_TABS: { id: VerificationSubTab; label: string }[] = [
     { id: "skill-review", label: "Skill Review" },
     { id: "skill-verification", label: "Skill Verification" },
 ];
+
+const TAB_ORDER: VerificationSubTab[] = [
+    "resume-review",
+    "skill-review",
+    "skill-verification",
+];
+
+const getVisibleTabs = (activeTab: VerificationSubTab) => {
+    const reached = TAB_ORDER.indexOf(activeTab);
+    return SUB_TABS.filter((_, i) => i <= reached);
+};
 
 // ─── Component ───────────────────────────────────────────────────────
 
@@ -60,11 +72,7 @@ const ResumeVerificationGuard = ({
     // ── Loading spinner while hydrating existing data ────────────────
 
     if (isLoadingExisting) {
-        return (
-            <div className="flex items-center justify-center py-16">
-                <p className="text-sm text-muted-foreground">Loading...</p>
-            </div>
-        );
+        return <ResumeUploadLoadingSkeleton />;
     }
 
     // ── No resume yet — show intro and upload gate side by side ─────
@@ -87,17 +95,17 @@ const ResumeVerificationGuard = ({
 
     return (
         <div className="space-y-8">
-            {/* Sub-tab bar */}
-            <div className="flex w-fit gap-1 rounded-lg bg-muted p-1">
-                {SUB_TABS.map((tab) => {
+            {/* Sub-tab bar — only reveals tabs the user has reached */}
+            <div className="flex gap-6 border-b border-border">
+                {getVisibleTabs(activeTab).map((tab) => {
                     const isActive = activeTab === tab.id;
                     return (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+                            className={`pb-3 text-sm font-medium transition-colors hover:cursor-pointer ${
                                 isActive
-                                    ? "bg-background text-foreground shadow-sm"
+                                    ? "border-b-2 border-primary text-foreground"
                                     : "text-muted-foreground hover:text-foreground"
                             }`}
                         >
