@@ -195,13 +195,24 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
         }
         return selectedClaim.evidenceSummary.linkedEvidence.map((item) => ({
             id: `${selectedClaim.id}:${item.evidenceId}`,
+            evidenceId: item.evidenceId,
             skillId: selectedClaim.id,
             skillName: selectedSkill.name,
             type: mapBackendEvidenceTypeToUiType(item.evidenceType),
             source: item.provider,
+            title: item.title,
+            externalId: item.externalId,
             description: item.title ?? item.reason ?? item.externalId,
             date: item.capturedAt ?? selectedClaim.updatedAt,
+            occurredAt: null,
+            capturedAt: item.capturedAt,
+            createdAt: null,
+            updatedAt: selectedClaim.updatedAt,
             quality: confidenceToQuality(item.linkConfidence),
+            linkType: item.linkType,
+            linkConfidence: item.linkConfidence,
+            linkReason: item.reason,
+            metadata: null,
             url: item.sourceUrl,
         }));
     }, [selectedClaim, selectedSkill]);
@@ -219,13 +230,24 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
                 return [
                     {
                         id: evidence.id,
+                        evidenceId: evidence.id,
                         skillId: "unlinked",
                         skillName: "Unlinked",
                         type: baseType,
                         source: evidence.provider,
+                        title: evidence.title,
+                        externalId: evidence.externalId,
                         description: baseDescription,
                         date: baseDate,
+                        occurredAt: evidence.occurredAt,
+                        capturedAt: evidence.capturedAt,
+                        createdAt: evidence.createdAt,
+                        updatedAt: evidence.updatedAt,
                         quality: "low",
+                        linkType: null,
+                        linkConfidence: null,
+                        linkReason: null,
+                        metadata: evidence.metadata,
                         url: evidence.sourceUrl,
                     },
                 ];
@@ -237,6 +259,7 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
                 );
                 return {
                     id: `${evidence.id}:${link.claimId}`,
+                    evidenceId: evidence.id,
                     skillId: link.claimId,
                     skillName:
                         linkedClaim?.canonicalSkillName ??
@@ -244,9 +267,19 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
                         "Linked claim",
                     type: baseType,
                     source: evidence.provider,
+                    title: evidence.title,
+                    externalId: evidence.externalId,
                     description: link.reason ?? baseDescription,
                     date: baseDate,
+                    occurredAt: evidence.occurredAt,
+                    capturedAt: evidence.capturedAt,
+                    createdAt: evidence.createdAt,
+                    updatedAt: evidence.updatedAt,
                     quality: confidenceToQuality(link.linkConfidence),
+                    linkType: link.linkType,
+                    linkConfidence: link.linkConfidence,
+                    linkReason: link.reason,
+                    metadata: evidence.metadata,
                     url: evidence.sourceUrl,
                 };
             });

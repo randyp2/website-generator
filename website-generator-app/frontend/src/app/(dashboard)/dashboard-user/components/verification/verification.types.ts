@@ -108,13 +108,24 @@ export interface SkillVerification {
 
 export interface EvidenceItem {
   id: string
+  evidenceId: string
   skillId: string
   skillName: string
   type: EvidenceType
   source: string
+  title: string | null
+  externalId: string | null
   description: string
   date: string
+  occurredAt: string | null
+  capturedAt: string | null
+  createdAt: string | null
+  updatedAt: string | null
   quality: QualityFlag
+  linkType: string | null
+  linkConfidence: number | null
+  linkReason: string | null
+  metadata: Record<string, unknown> | null
   url: string | null
 }
 
