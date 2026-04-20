@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import ResumePreviewCard from "./ResumePreviewCard";
 import ResumeUploadGate from "./ResumeUploadGate";
 import SkillReviewPanel from "./SkillReviewPanel";
+import VerificationIntro from "./VerificationIntro";
 import useResumeVerification from "./useResumeVerification";
 import useVerificationSubTab from "./useVerificationSubTab";
 import type { VerificationSubTab } from "./useVerificationSubTab";
@@ -66,10 +67,20 @@ const ResumeVerificationGuard = ({
         );
     }
 
-    // ── No resume yet — show drag-and-drop upload gate ──────────────
+    // ── No resume yet — show intro and upload gate side by side ─────
 
     if (!resume) {
-        return <ResumeUploadGate onResumeUploaded={handleResumeUploaded} />;
+        return (
+            <div className="flex min-h-[calc(100vh-10rem)]">
+                <div className="flex flex-1 flex-col justify-center pr-10">
+                    <VerificationIntro />
+                </div>
+                <div className="w-px shrink-0 bg-border" />
+                <div className="flex flex-1 flex-col justify-center pl-10">
+                    <ResumeUploadGate onResumeUploaded={handleResumeUploaded} />
+                </div>
+            </div>
+        );
     }
 
     // ── Resume present — render the three-step sub-tab workspace ────
