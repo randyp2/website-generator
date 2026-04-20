@@ -141,6 +141,7 @@ const ResumeVerificationGuard = ({
                                         handleContinueToSkillVerification
                                     }
                                     disabled={isUploading}
+                                    className="hover:cursor-pointer"
                                 >
                                     {isUploading
                                         ? "Uploading resume..."
