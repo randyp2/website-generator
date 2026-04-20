@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type {
     EvidenceItem,
@@ -114,12 +114,19 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
 
     const { activeTab } = useVerificationSubTab();
 
+    // Skip refetches on first entry — all hooks already fetch on mount.
+    // Only refetch when the user navigates back to this tab after leaving it.
+    const hasEnteredSkillVerificationRef = useRef(false);
+
     useEffect(() => {
         if (activeTab === "skill-verification") {
-            refetch();
-            refetchClaims();
-            refetchEvidence();
-            refetchConnections();
+            if (hasEnteredSkillVerificationRef.current) {
+                refetch();
+                refetchClaims();
+                refetchEvidence();
+                refetchConnections();
+            }
+            hasEnteredSkillVerificationRef.current = true;
         }
     }, [
         activeTab,
