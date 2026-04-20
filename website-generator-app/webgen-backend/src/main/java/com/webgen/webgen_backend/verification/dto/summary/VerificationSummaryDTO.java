@@ -21,6 +21,8 @@ public class VerificationSummaryDTO {
     private BigDecimal sourceQuality;
     private BigDecimal parserConfidence;
 
+    private String profileScoreNarrative;
+
     private List<VerificationClaimScoreDTO> claims;
     private List<VerificationClaimScoreDTO> unverifiedClaims;
     private List<VerificationSuggestedActionDTO> suggestedActions;

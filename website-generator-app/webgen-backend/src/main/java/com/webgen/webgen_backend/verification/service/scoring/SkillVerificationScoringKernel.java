@@ -67,6 +67,7 @@ public class SkillVerificationScoringKernel {
                     SkillScoringPolicy.ZERO,
                     SkillScoringPolicy.ZERO,
                     boundedParserConfidence,
+                    "Upload your resume or add skills manually to get started.",
                     List.of(),
                     List.of(),
                     List.of()
@@ -221,6 +222,16 @@ public class SkillVerificationScoringKernel {
 
         List<SuggestedAction> suggestedActions = buildSuggestedActions(unverifiedClaims);
 
+        String profileScoreNarrative = buildProfileScoreNarrative(
+                overallScore,
+                baselineOverallScore,
+                evidenceDelta,
+                matchedSkills,
+                totalSkills,
+                unmatchedSkills,
+                scoreType
+        );
+
         SkillScoreSummary deterministicSummary = new SkillScoreSummary(
                 scoreType,
                 baselineOverallScore,
@@ -232,6 +243,7 @@ public class SkillVerificationScoringKernel {
                 normalizedCoverage,
                 sourceQuality,
                 boundedParserConfidence,
+                profileScoreNarrative,
                 claimScores,
                 unverifiedClaims,
                 suggestedActions
@@ -443,8 +455,8 @@ public class SkillVerificationScoringKernel {
         if (finalScoreCapped) {
             claimReason = new ClaimReasonComputation(
                     "expert_reserved_llm",
-                    "Expert-level scores are reserved for LLM verification. This claim is currently capped at "
-                            + claimScoreCap + "."
+                    "You've hit the max score we can give automatically. "
+                            + "Higher scores require a deeper review — that feature is coming soon."
             );
         }
         System.out.println(String.format(
@@ -651,6 +663,52 @@ public class SkillVerificationScoringKernel {
         );
     }
 
+    private String buildProfileScoreNarrative(
+            int overallScore,
+            int baselineOverallScore,
+            int evidenceDelta,
+            int matchedSkills,
+            int totalSkills,
+            int unmatchedSkills,
+            String scoreType
+    ) {
+        boolean isFirstPass = scoreType.equals("initial") || scoreType.equals("initial_with_parser_confidence");
+
+        if (isFirstPass) {
+            if (totalSkills == 0) {
+                return "Upload your resume or add skills manually to get started.";
+            }
+            if (matchedSkills == 0) {
+                return "Your score is low right now because none of your skills could be recognized yet. "
+                        + "Try renaming them to more common terms — once we can recognize them, "
+                        + "connecting GitHub or adding portfolio links will push your score up.";
+            }
+            if (unmatchedSkills > 0) {
+                return "This is your starting score — we pulled your skills from your resume but haven't seen any real-world proof yet. "
+                        + unmatchedSkills + " skill" + (unmatchedSkills == 1 ? " also couldn't" : "s also couldn't")
+                        + " be recognized, which is holding things down. "
+                        + "Connect your GitHub or add portfolio links to start raising your score.";
+            }
+            return "This is your starting score — we pulled your skills from your resume but haven't seen any real-world proof yet. "
+                    + "Every skill here needs real-world proof before recruiters can trust it. "
+                    + "Connect your GitHub or add portfolio links to start pushing these numbers up.";
+        }
+
+        if (evidenceDelta > 0) {
+            return "Your projects are backing you up. We found evidence of your skills across your work, "
+                    + "which added " + evidenceDelta + " point" + (evidenceDelta == 1 ? "" : "s") + " to your score. "
+                    + "Keep adding recent projects to keep building trust.";
+        }
+        if (evidenceDelta < 0) {
+            int drop = Math.abs(evidenceDelta);
+            return "We found some evidence, but most of it is older or too indirect to fully back up your claims — "
+                    + "that pulled your score down by " + drop + " point" + (drop == 1 ? "" : "s") + ". "
+                    + "More recent, hands-on project work will help your score recover.";
+        }
+        return "We found some activity related to your skills, but not enough to move your score significantly yet. "
+                + "More direct proof — like using a skill in a GitHub repo's dependencies — makes a bigger difference.";
+    }
+
     private ClaimReasonComputation buildClaimReason(
             boolean matched,
             int evidenceLinksUsed,
@@ -663,16 +721,17 @@ public class SkillVerificationScoringKernel {
             if (matched) {
                 return new ClaimReasonComputation(
                         "match_no_evidence",
-                        "Recognized from your resume, but no linked project signals yet, so the score stays at baseline."
+                        "We found this skill on your resume, but haven't seen it in any of your projects yet. "
+                                + "Connect your GitHub or add a portfolio link and your score will go up."
                 );
             }
             return new ClaimReasonComputation(
                     "no_match_no_evidence",
-                    "This claim is not yet recognized and has no linked project signals to support it."
+                    "We couldn't recognize this skill name. Try using a more common term — "
+                            + "for example, \"JavaScript\" instead of \"JS\" — so we can find matching proof for it."
             );
         }
 
-        String linkCountPhrase = evidenceLinksUsed + " linked signal" + (evidenceLinksUsed == 1 ? "" : "s");
         String strongestTypePhrase = mapLinkTypeToUserFriendlyLabel(evidenceStats.strongestType());
 
         if (evidenceContribution > 0) {
@@ -684,22 +743,24 @@ public class SkillVerificationScoringKernel {
             if (recentStrongSignal) {
                 return new ClaimReasonComputation(
                         "evidence_boost_recent_strong",
-                        "Recent strong " + strongestTypePhrase + " evidence increased this score by "
-                                + evidenceContribution + " points (" + linkCountPhrase + ")."
+                        "Your recent projects show you're actively using this skill — "
+                                + "that's exactly the kind of proof that matters to recruiters. +"
+                                + evidenceContribution + " points."
                 );
             }
 
             return new ClaimReasonComputation(
                     "evidence_boost",
-                    "Linked evidence increased this score by " + evidenceContribution
-                            + " points, led by " + strongestTypePhrase + " signals."
+                    "We found proof of this skill in your work" +
+                            (strongestTypePhrase != null ? " (strongest signal: " + strongestTypePhrase + ")" : "") +
+                            ". That added +" + evidenceContribution + " points to your score."
             );
         }
 
         if (evidenceContribution == 0) {
             return new ClaimReasonComputation(
                     "evidence_neutral",
-                    "Linked evidence roughly confirmed the baseline score with no material change."
+                    "We found some activity related to this skill, but it wasn't specific enough to move your score yet."
             );
         }
 
@@ -711,38 +772,38 @@ public class SkillVerificationScoringKernel {
         if (mostlyStale && strongestIsModerateOrWeak) {
             return new ClaimReasonComputation(
                     "evidence_reduced_stale_and_weak",
-                    "Most linked evidence is older and moderate-strength, so the score dropped "
-                            + absoluteDrop + " points from baseline."
+                    "The proof we found for this skill is a bit old and indirect. "
+                            + "Using it in a more recent project would help push your score back up."
             );
         }
 
         if (mostlyStale) {
             return new ClaimReasonComputation(
                     "evidence_reduced_stale",
-                    "Most linked evidence is older, which lowered confidence and reduced this score by "
-                            + absoluteDrop + " points."
+                    "The activity we found for this skill is outdated. "
+                            + "More recent work using it would strengthen your score."
             );
         }
 
         if (strongestIsModerateOrWeak) {
             return new ClaimReasonComputation(
                     "evidence_reduced_strength",
-                    "Evidence is linked, but the current signals are not strong enough yet, so the score is "
-                            + absoluteDrop + " points below baseline."
+                    "We found some connections, but nothing concrete enough to fully back this up yet. "
+                            + "Adding this skill to a project's dependencies or README would make a stronger signal."
             );
         }
 
         if (finalClaimScore < baselineClaimScore) {
             return new ClaimReasonComputation(
                     "evidence_reduced_mixed",
-                    "Linked evidence is mixed and currently below baseline confidence, reducing this score by "
-                            + absoluteDrop + " points."
+                    "The signals we found don't clearly confirm this skill. "
+                            + "Cleaner, more direct evidence in your projects would improve this score."
             );
         }
 
         return new ClaimReasonComputation(
                 "evidence_neutral",
-                "Linked evidence roughly confirmed the baseline score with no material change."
+                "We found some activity related to this skill, but it wasn't specific enough to move your score yet."
         );
     }
 
@@ -888,8 +949,8 @@ public class SkillVerificationScoringKernel {
         if (!claim.matched()) {
             out.add(new SuggestedAction(
                     claim.claimId(),
-                    "Review/Rename claim",
-                    "No canonical match found. Normalize claim wording first.",
+                    "Rename this skill",
+                    "We don't recognize this skill name yet. Try a more standard term so we can find matching evidence for it.",
                     100
             ));
         }
@@ -904,8 +965,8 @@ public class SkillVerificationScoringKernel {
                     claim.claimId(),
                     categoryActions.get(i),
                     claim.matched()
-                            ? "Rule-based next step for this skill category."
-                            : "Provide supporting evidence after claim normalization.",
+                            ? "This will give us real evidence to back up this skill on your profile."
+                            : "Once the skill name is fixed, adding evidence will push your score up.",
                     Math.max(1, basePriority - i)
             ));
         }

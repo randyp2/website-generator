@@ -17,6 +17,7 @@ public record SkillScoreSummary(
         BigDecimal normalizedCoverage,
         BigDecimal sourceQuality,
         BigDecimal parserConfidence,
+        String profileScoreNarrative,
         List<SkillClaimScore> claims,
         List<SkillClaimScore> unverifiedClaims,
         List<SuggestedAction> suggestedActions
@@ -48,6 +49,7 @@ public record SkillScoreSummary(
                 normalizedCoverage,
                 sourceQuality,
                 parserConfidence,
+                null,
                 claims,
                 unverifiedClaims,
                 suggestedActions
