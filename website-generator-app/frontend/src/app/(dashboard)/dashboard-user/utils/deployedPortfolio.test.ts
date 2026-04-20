@@ -7,6 +7,7 @@ import {
   formatPortfolioDate,
   getFirstDeployedPortfolio,
   isDeployedPortfolio,
+  isExternalPortfolio,
 } from "./deployedPortfolio"
 
 const makePortfolio = (overrides: Partial<Portfolio> = {}): Portfolio =>
@@ -85,6 +86,46 @@ describe("getFirstDeployedPortfolio", () => {
     expect(getFirstDeployedPortfolio([draft, firstLive, secondLive])).toBe(
       firstLive,
     )
+  })
+})
+
+describe("isExternalPortfolio", () => {
+  it("returns true when source_type is 'external'", () => {
+    expect(isExternalPortfolio(makePortfolio({ source_type: "external" }))).toBe(true)
+  })
+
+  it("returns true when sourceType (camelCase) is 'external'", () => {
+    expect(isExternalPortfolio(makePortfolio({ sourceType: "external" }))).toBe(true)
+  })
+
+  it("normalizes casing on source_type", () => {
+    expect(isExternalPortfolio(makePortfolio({ source_type: "EXTERNAL" }))).toBe(true)
+  })
+
+  it("returns true when source_type is not 'generated' and external_url is present", () => {
+    expect(
+      isExternalPortfolio(makePortfolio({ source_type: "imported", external_url: "https://example.com" })),
+    ).toBe(true)
+  })
+
+  it("returns true when sourceType is not 'generated' and externalUrl (camelCase) is present", () => {
+    expect(
+      isExternalPortfolio(makePortfolio({ sourceType: "imported", externalUrl: "https://example.com" })),
+    ).toBe(true)
+  })
+
+  it("returns false when source_type is 'generated' even with an external_url", () => {
+    expect(
+      isExternalPortfolio(makePortfolio({ source_type: "generated", external_url: "https://example.com" })),
+    ).toBe(false)
+  })
+
+  it("returns false when source_type is absent and external_url is absent", () => {
+    expect(isExternalPortfolio(makePortfolio({ source_type: null, external_url: null }))).toBe(false)
+  })
+
+  it("returns false when external_url is whitespace only", () => {
+    expect(isExternalPortfolio(makePortfolio({ source_type: "imported", external_url: "   " }))).toBe(false)
   })
 })
 
