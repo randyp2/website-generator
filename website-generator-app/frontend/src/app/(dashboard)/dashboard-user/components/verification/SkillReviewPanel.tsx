@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FiPlus, FiX, FiLoader } from "react-icons/fi";
 
-import type { ParsedResumeData } from "@/types/resume";
+import type { ParsedExperience, ParsedResumeData } from "@/types/resume";
 
-type Experience = NonNullable<ParsedResumeData["experiences"]>[number];
+type Experience = ParsedExperience;
 
 // ─── Sub-components ───────────────────────────────────────────────────
 
@@ -160,7 +160,7 @@ interface SkillReviewPanelProps {
     parsingError: string | null;
     isIngesting: boolean;
     ingestError: string | null;
-    onConfirm: (skills: string[]) => void;
+    onConfirm: (skills: string[], experiences: ParsedExperience[]) => void;
 }
 
 const SkillReviewPanel = ({
@@ -312,7 +312,7 @@ const SkillReviewPanel = ({
                     </div>
                     <div className="flex flex-col items-end gap-2">
                         <Button
-                            onClick={() => onConfirm(effectiveSkills)}
+                            onClick={() => onConfirm(effectiveSkills, effectiveExperiences)}
                             disabled={effectiveSkills.length === 0 || isIngesting}
                             className="hover:cursor-pointer"
                         >

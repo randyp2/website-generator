@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { ParsedResumeData } from "@/types/resume";
+import type { ParsedExperience, ParsedResumeData } from "@/types/resume";
 
 import type { ResumeFile } from "./verification.types";
 import type { VerificationSubTab } from "./useVerificationSubTab";
@@ -275,21 +275,36 @@ const useResumeVerification = (
     }, [state.resume, state.hasPersisted, setActiveTab, parseAndPersist]);
 
     /**
-     * Called when the user confirms their reviewed skill list.
-     * Sends the final skills to the ingestion endpoint, then navigates
-     * to the skill-verification tab.
+     * Called when the user confirms their reviewed skill list and experiences.
+     *
+     * 1. PATCHes /review to persist the human-edited parsedJson to the DB so
+     *    the next page load reflects the user's edits, not the raw parser output.
+     * 2. POSTs to /claims/ingest to create Claim records the verification
+     *    system can score against evidence. Provenance (resume vs self_claimed)
+     *    will be added once the backend DTO supports it.
      */
     const handleConfirmSkills = useCallback(
-        async (skills: string[]) => {
+        async (skills: string[], experiences: ParsedExperience[]) => {
             if (!state.resumeVerificationId) return;
 
-            setState((prev) => ({
-                ...prev,
-                isIngesting: true,
-                ingestError: null,
-            }));
+            setState((prev) => ({ ...prev, isIngesting: true, ingestError: null }));
 
             try {
+                // 1. Persist the user-reviewed parsedJson so hydration loads
+                //    the edited version on next visit.
+                const updatedParsedJson: ParsedResumeData = {
+                    ...(state.parsedData ?? ({} as ParsedResumeData)),
+                    skills,
+                    experiences,
+                };
+
+                await fetch("/api/profile/resume-verification/review", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ parsedJson: updatedParsedJson }),
+                });
+
+                // 2. Ingest claims — flat string list until backend supports provenance.
                 const res = await fetch(
                     "/api/profile/resume-verification/claims/ingest",
                     {
@@ -302,9 +317,7 @@ const useResumeVerification = (
                     },
                 );
 
-                if (!res.ok) {
-                    throw new Error("Failed to ingest skill claims");
-                }
+                if (!res.ok) throw new Error("Failed to ingest skill claims");
 
                 setActiveTab("skill-verification");
             } catch (error) {
@@ -320,7 +333,7 @@ const useResumeVerification = (
                 setState((prev) => ({ ...prev, isIngesting: false }));
             }
         },
-        [state.resumeVerificationId, setActiveTab],
+        [state.resumeVerificationId, state.parsedData, setActiveTab],
     );
 
     return {

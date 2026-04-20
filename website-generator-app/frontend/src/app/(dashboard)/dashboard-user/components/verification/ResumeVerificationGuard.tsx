@@ -166,7 +166,7 @@ const ResumeVerificationGuard = ({
                     parsingError={parsingError}
                     isIngesting={isIngesting}
                     ingestError={ingestError}
-                    onConfirm={(skills) => handleConfirmSkills(skills)}
+                    onConfirm={(skills, experiences) => handleConfirmSkills(skills, experiences)}
                 />
             )}
 
