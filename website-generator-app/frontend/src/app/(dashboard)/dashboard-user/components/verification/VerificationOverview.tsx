@@ -25,15 +25,20 @@ const KPI_ITEMS = [
 
 const VerificationOverview = ({
   data,
+  lastRerunAt,
   onRerunChecks,
   isRerunningChecks = false,
 }: VerificationOverviewProps) => {
   const offset = CIRCUMFERENCE - (data.overallScore / 100) * CIRCUMFERENCE
-  const lastCheckedLabel = new Date(data.lastRunDate).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  })
+  const lastRerunLabel = lastRerunAt
+    ? new Date(lastRerunAt).toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    : "Never"
 
   return (
     <Card>
@@ -156,7 +161,7 @@ const VerificationOverview = ({
                 {isRerunningChecks ? "Re-running..." : "Re-run Checks"}
               </Button>
               <span className="text-xs text-muted-foreground">
-                Last checked {lastCheckedLabel}
+                Last re-run {lastRerunLabel}
               </span>
             </div>
           </div>

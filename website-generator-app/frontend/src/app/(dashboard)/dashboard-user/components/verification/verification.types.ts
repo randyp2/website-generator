@@ -61,6 +61,7 @@ export interface ConnectionData {
   status: ConnectionStatus
   connectedAt: string | null
   lastSyncedAt: string | null
+  lastSyncCompletedAt: string | null
   lastSyncStatus: ConnectionSyncStatus
   lastSyncError: string | null
   lastSyncImportedCount: number
@@ -139,6 +140,7 @@ export interface ResumeFile {
 
 export interface VerificationOverviewProps {
   data: VerificationOverviewData
+  lastRerunAt: string | null
   onRerunChecks: () => void | Promise<void>
   isRerunningChecks?: boolean
 }

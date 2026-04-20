@@ -164,6 +164,21 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
         [skills, activeFilter],
     );
 
+    const githubConnection = useMemo(
+        () =>
+            connections.find((connection) => connection.provider === "github")
+            ?? null,
+        [connections],
+    );
+
+    const lastRerunAt = useMemo(
+        () =>
+            githubConnection?.lastSyncCompletedAt
+            ?? githubConnection?.lastSyncedAt
+            ?? null,
+        [githubConnection],
+    );
+
     const selectedSkill = useMemo(
         () => skills.find((s) => s.id === selectedSkillId) ?? null,
         [skills, selectedSkillId],
@@ -268,10 +283,6 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
         setRerunChecksError(null);
 
         try {
-            const githubConnection = connections.find(
-                (connection) => connection.provider === "github",
-            );
-
             if (!githubConnection || githubConnection.status !== "connected") {
                 throw new Error("Connect GitHub before re-running checks");
             }
@@ -295,7 +306,7 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
             setIsRerunningChecks(false);
         }
     }, [
-        connections,
+        githubConnection,
         isRerunningChecks,
         refetch,
         refetchClaims,
@@ -327,6 +338,7 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
 
             <VerificationOverview
                 data={overview}
+                lastRerunAt={lastRerunAt}
                 onRerunChecks={handleRerunChecks}
                 isRerunningChecks={isRerunningChecks}
             />
