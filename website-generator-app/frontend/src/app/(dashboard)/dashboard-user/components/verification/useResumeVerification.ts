@@ -336,12 +336,38 @@ const useResumeVerification = (
         [state.resumeVerificationId, state.parsedData, setActiveTab],
     );
 
+    /** Autosaves the user's edited skills and experiences to the DB.
+     *  Fires on discrete user actions (add skill, remove skill, experience done).
+     *  No-ops if the resume hasn't been uploaded yet. Silent on error — the
+     *  Confirm button is the safety net.
+     */
+    const saveReview = useCallback(async (skills: string[], experiences: ParsedExperience[]) => {
+        if (!state.resumeVerificationId) return;
+
+        const updatedParsedJson: ParsedResumeData = {
+            ...(state.parsedData ?? ({} as ParsedResumeData)),
+            skills,
+            experiences,
+        };
+
+        try {
+            await fetch("/api/profile/resume-verification/review", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ parsedJson: updatedParsedJson }),
+            });
+        } catch (error) {
+            console.error("Failed to autosave review:", error);
+        }
+    }, [state.resumeVerificationId, state.parsedData]);
+
     return {
         ...state,
         handleResumeUploaded,
         handleResumeRemoved,
         handleContinueToSkillVerification,
         handleConfirmSkills,
+        saveReview,
     } as const;
 };
 

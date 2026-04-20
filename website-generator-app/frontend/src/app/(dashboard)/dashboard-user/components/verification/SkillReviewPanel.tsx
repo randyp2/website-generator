@@ -31,12 +31,13 @@ const SkillChip = ({ skill, onRemove }: SkillChipProps) => (
 interface ExperienceItemProps {
     experience: Experience;
     onUpdate: (updates: Partial<Experience>) => void;
+    onDone: (experience: Experience) => void;
 }
 
 const fieldClass =
     "bg-transparent border-b border-border focus:border-primary outline-none pb-0.5 transition-colors";
 
-const ExperienceItem = ({ experience, onUpdate }: ExperienceItemProps) => {
+const ExperienceItem = ({ experience, onUpdate, onDone }: ExperienceItemProps) => {
     const [isEditing, setIsEditing] = useState(false);
 
     const updateBullet = (i: number, value: string) => {
@@ -110,7 +111,7 @@ const ExperienceItem = ({ experience, onUpdate }: ExperienceItemProps) => {
                 </div>
 
                 <button
-                    onClick={() => setIsEditing(false)}
+                    onClick={() => { setIsEditing(false); onDone(experience); }}
                     className="pt-1 text-xs font-medium text-primary hover:cursor-pointer"
                 >
                     Done
@@ -160,6 +161,7 @@ interface SkillReviewPanelProps {
     parsingError: string | null;
     isIngesting: boolean;
     ingestError: string | null;
+    onSave: (skills: string[], experiences: ParsedExperience[]) => void;
     onConfirm: (skills: string[], experiences: ParsedExperience[]) => void;
 }
 
@@ -169,6 +171,7 @@ const SkillReviewPanel = ({
     parsingError,
     isIngesting,
     ingestError,
+    onSave,
     onConfirm,
 }: SkillReviewPanelProps) => {
     const [skills, setSkills] = useState<string[]>([]);
@@ -188,15 +191,19 @@ const SkillReviewPanel = ({
         const trimmed = newSkill.trim();
         if (!trimmed) return;
         if (effectiveSkills.some((s) => s.toLowerCase() === trimmed.toLowerCase())) return;
-        setSkills([...(hasEditedSkills ? skills : parsedSkills), trimmed]);
+        const newSkills = [...(hasEditedSkills ? skills : parsedSkills), trimmed];
+        setSkills(newSkills);
         setHasEditedSkills(true);
         setNewSkill("");
-    }, [newSkill, effectiveSkills, hasEditedSkills, skills, parsedSkills]);
+        onSave(newSkills, effectiveExperiences);
+    }, [newSkill, effectiveSkills, hasEditedSkills, skills, parsedSkills, effectiveExperiences, onSave]);
 
     const handleRemoveSkill = useCallback((index: number) => {
-        setSkills((hasEditedSkills ? skills : parsedSkills).filter((_, i) => i !== index));
+        const newSkills = (hasEditedSkills ? skills : parsedSkills).filter((_, i) => i !== index);
+        setSkills(newSkills);
         setHasEditedSkills(true);
-    }, [hasEditedSkills, skills, parsedSkills]);
+        onSave(newSkills, effectiveExperiences);
+    }, [hasEditedSkills, skills, parsedSkills, effectiveExperiences, onSave]);
 
     const handleKeyDown = useCallback(
         (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -212,6 +219,15 @@ const SkillReviewPanel = ({
             setHasEditedExperiences(true);
         },
         [hasEditedExperiences, editedExperiences, parsedExperiences],
+    );
+
+    const handleExperienceDone = useCallback(
+        (index: number, finalExp: Experience) => {
+            const base = hasEditedExperiences ? editedExperiences : parsedExperiences;
+            const updated = base.map((exp, i) => (i === index ? finalExp : exp));
+            onSave(effectiveSkills, updated);
+        },
+        [hasEditedExperiences, editedExperiences, parsedExperiences, effectiveSkills, onSave],
     );
 
     if (isLoading) {
@@ -274,7 +290,7 @@ const SkillReviewPanel = ({
                         placeholder="Type a skill and press Enter"
                         className="max-w-xs"
                     />
-                    <Button variant="outline" size="sm" onClick={handleAddSkill} disabled={!newSkill.trim()}>
+                    <Button variant="outline" size="sm" onClick={handleAddSkill} disabled={!newSkill.trim()} className="hover:cursor-pointer">
                         <FiPlus className="mr-1 h-4 w-4" /> Add
                     </Button>
                 </div>
@@ -295,6 +311,7 @@ const SkillReviewPanel = ({
                                 key={index}
                                 experience={exp}
                                 onUpdate={(updates) => updateExperience(index, updates)}
+                                onDone={(finalExp) => handleExperienceDone(index, finalExp)}
                             />
                         ))}
                     </div>

@@ -1,12 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 import ResumePreviewCard from "./ResumePreviewCard";
 import ResumeUploadGate from "./ResumeUploadGate";
 import SkillReviewPanel from "./SkillReviewPanel";
 import VerificationIntro from "./VerificationIntro";
-import { ResumeUploadLoadingSkeleton } from "./VerificationEmptyState";
+import { VerificationLoadingSpinner } from "./VerificationEmptyState";
 import useResumeVerification from "./useResumeVerification";
 import useVerificationSubTab from "./useVerificationSubTab";
 import type { VerificationSubTab } from "./useVerificationSubTab";
@@ -25,15 +26,14 @@ const TAB_ORDER: VerificationSubTab[] = [
     "skill-verification",
 ];
 
-const getVisibleTabs = (activeTab: VerificationSubTab) => {
-    const reached = TAB_ORDER.indexOf(activeTab);
-    return SUB_TABS.filter((_, i) => i <= reached);
-};
+const getVisibleTabs = (maxReachedIndex: number) =>
+    SUB_TABS.filter((_, i) => i <= maxReachedIndex);
 
 // ─── Component ───────────────────────────────────────────────────────
 
 interface ResumeVerificationGuardProps {
     children: React.ReactNode;
+    isExternalLoading?: boolean;
 }
 
 /**
@@ -50,8 +50,18 @@ interface ResumeVerificationGuardProps {
  */
 const ResumeVerificationGuard = ({
     children,
+    isExternalLoading = false,
 }: ResumeVerificationGuardProps) => {
-    const { activeTab, setActiveTab } = useVerificationSubTab();
+    const { activeTab, setActiveTab, hasExplicitTab } = useVerificationSubTab();
+
+    const [maxReachedIndex, setMaxReachedIndex] = useState(() =>
+        TAB_ORDER.indexOf(activeTab),
+    );
+
+    useEffect(() => {
+        const idx = TAB_ORDER.indexOf(activeTab);
+        setMaxReachedIndex((prev) => Math.max(prev, idx));
+    }, [activeTab]);
 
     const {
         resume,
@@ -61,18 +71,33 @@ const ResumeVerificationGuard = ({
         parsingError,
         parsedData,
         isLoadingExisting,
+        hasPersisted,
         isIngesting,
         ingestError,
         handleResumeUploaded,
         handleResumeRemoved,
         handleContinueToSkillVerification,
         handleConfirmSkills,
+        saveReview,
     } = useResumeVerification(setActiveTab);
 
-    // ── Loading spinner while hydrating existing data ────────────────
+    // ── Redirect returning users straight to skill-verification ──────
+    // If the user has already completed the flow and arrives without an
+    // explicit tab param, skip the setup steps and land on the analyzer.
+    useEffect(() => {
+        if (!isLoadingExisting && hasPersisted && !hasExplicitTab) {
+            setActiveTab("skill-verification");
+        }
+    }, [isLoadingExisting, hasPersisted, hasExplicitTab, setActiveTab]);
 
-    if (isLoadingExisting) {
-        return <ResumeUploadLoadingSkeleton />;
+    // ── Single loading gate ──────────────────────────────────────────
+    // Block render while: external data (summary) is loading, the
+    // resume-verification GET is in-flight, OR hydration is done but
+    // the redirect to skill-verification hasn't landed in the URL yet
+    // (hasPersisted && !hasExplicitTab). That last condition prevents
+    // a one-frame flash of the resume-review tab before router.replace fires.
+    if (isExternalLoading || isLoadingExisting || (hasPersisted && !hasExplicitTab)) {
+        return <VerificationLoadingSpinner />;
     }
 
     // ── No resume yet — show intro and upload gate side by side ─────
@@ -97,7 +122,7 @@ const ResumeVerificationGuard = ({
         <div className="space-y-8">
             {/* Sub-tab bar — only reveals tabs the user has reached */}
             <div className="flex gap-6 border-b border-border">
-                {getVisibleTabs(activeTab).map((tab) => {
+                {getVisibleTabs(maxReachedIndex).map((tab) => {
                     const isActive = activeTab === tab.id;
                     return (
                         <button
@@ -166,6 +191,7 @@ const ResumeVerificationGuard = ({
                     parsingError={parsingError}
                     isIngesting={isIngesting}
                     ingestError={ingestError}
+                    onSave={saveReview}
                     onConfirm={(skills, experiences) => handleConfirmSkills(skills, experiences)}
                 />
             )}

@@ -150,7 +150,7 @@ const VerificationOverview = ({
                   void onRerunChecks()
                 }}
                 disabled={isRerunningChecks}
-                className="gap-1.5"
+                className="gap-1.5 hover:cursor-pointer"
               >
                 <RefreshCw className={cn("h-3.5 w-3.5", isRerunningChecks && "animate-spin")} />
                 {isRerunningChecks ? "Re-running..." : "Re-run Checks"}

@@ -143,7 +143,7 @@ const ConnectionCard = ({
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 text-xs"
+              className="h-7 text-xs hover:cursor-pointer"
               disabled={isBusy}
               onClick={() => onDisconnect(connection.provider)}
             >

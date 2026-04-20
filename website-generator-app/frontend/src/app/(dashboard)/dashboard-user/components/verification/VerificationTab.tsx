@@ -22,7 +22,6 @@ import type { EvidenceDTO } from "@/types/evidence";
 import {
     VerificationEmptyState,
     VerificationErrorState,
-    ResumeUploadLoadingSkeleton,
 } from "./VerificationEmptyState";
 import VerificationFilterBar from "./VerificationFilterBar";
 import VerificationOverview from "./VerificationOverview";
@@ -297,10 +296,6 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
         refetchEvidence,
     ]);
 
-    if (isLoading) {
-        return <ResumeUploadLoadingSkeleton />;
-    }
-
     if (error) {
         return (
             <VerificationErrorState onRetry={() => window.location.reload()} />
@@ -309,14 +304,14 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
 
     if (!summary || summary.totalSkills === 0 || !overview) {
         return (
-            <ResumeVerificationGuard>
+            <ResumeVerificationGuard isExternalLoading={isLoading}>
                 <VerificationEmptyState onStart={refetch} />
             </ResumeVerificationGuard>
         );
     }
 
     return (
-        <ResumeVerificationGuard>
+        <ResumeVerificationGuard isExternalLoading={isLoading}>
             <VerificationFilterBar
                 active={activeFilter}
                 counts={filterCounts}

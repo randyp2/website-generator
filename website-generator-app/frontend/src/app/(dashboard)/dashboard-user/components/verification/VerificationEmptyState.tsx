@@ -6,6 +6,7 @@ import {
   FileText,
   BarChart3,
   AlertTriangle,
+  Loader2,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -188,9 +189,19 @@ const ResumeUploadLoadingSkeleton = () => (
   </div>
 )
 
+const VerificationLoadingSpinner = () => (
+  <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+    <div className="flex flex-col items-center gap-3">
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <p className="text-sm text-muted-foreground">Loading verification...</p>
+    </div>
+  </div>
+)
+
 export {
   VerificationEmptyState,
   VerificationErrorState,
   VerificationLoadingSkeleton,
   ResumeUploadLoadingSkeleton,
+  VerificationLoadingSpinner,
 }

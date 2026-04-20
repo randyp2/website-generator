@@ -305,7 +305,7 @@ const SkillDetailDrawer = ({
                     key={`${skill.id}-${item.action}-${item.priority}`}
                     variant="outline"
                     size="sm"
-                    className="justify-start gap-2"
+                    className="justify-start gap-2 hover:cursor-pointer"
                   >
                     <Link2 className="h-3.5 w-3.5" />
                     {item.action}
@@ -326,7 +326,7 @@ const SkillDetailDrawer = ({
             <Button
               variant="destructive"
               size="sm"
-              className="w-full"
+              className="w-full hover:cursor-pointer"
               disabled={isDeletingClaim}
               onClick={async () => {
                 const confirmed = window.confirm(

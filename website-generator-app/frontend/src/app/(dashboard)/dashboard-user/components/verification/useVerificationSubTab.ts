@@ -31,9 +31,8 @@ const useVerificationSubTab = () => {
     const searchParams = useSearchParams();
 
     const raw = searchParams.get(QUERY_KEY);
-    const activeTab: VerificationSubTab = isVerificationSubTab(raw)
-        ? raw
-        : DEFAULT_TAB;
+    const hasExplicitTab = isVerificationSubTab(raw);
+    const activeTab: VerificationSubTab = hasExplicitTab ? raw : DEFAULT_TAB;
 
     const setActiveTab = useCallback(
         (nextTab: VerificationSubTab) => {
@@ -46,7 +45,7 @@ const useVerificationSubTab = () => {
         [pathname, router, searchParams],
     );
 
-    return { activeTab, setActiveTab } as const;
+    return { activeTab, setActiveTab, hasExplicitTab } as const;
 };
 
 export default useVerificationSubTab;
