@@ -115,7 +115,7 @@ class SkillVerificationScoringKernelTest {
 
         SuggestedAction first = summary.suggestedActions().getFirst();
         assertThat(first.claimId()).isEqualTo(unresolvedClaimId);
-        assertThat(first.action()).isEqualTo("Review/Rename claim");
+        assertThat(first.action()).isEqualTo("Rename this skill");
 
         assertThat(summary.suggestedActions())
                 .anyMatch(a -> a.claimId().equals(matchedClaimId) && a.action().equals("Connect GitHub"));
