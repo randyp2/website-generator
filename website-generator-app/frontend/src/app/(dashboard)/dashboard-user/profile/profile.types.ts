@@ -16,7 +16,6 @@ export const PROFILE_TABS = [
   "Portfolios",
   "Following",
   "Bookmarked",
-  "Verification",
 ] as const
 
 export type ProfileTab = (typeof PROFILE_TABS)[number]

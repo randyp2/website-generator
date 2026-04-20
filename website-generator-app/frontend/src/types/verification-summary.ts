@@ -34,6 +34,7 @@ export interface VerificationSummaryDTO {
   normalizedCoverage: number
   sourceQuality: number
   parserConfidence: number | null
+  profileScoreNarrative: string | null
   claims: VerificationClaimScoreDTO[]
   unverifiedClaims: VerificationClaimScoreDTO[]
   suggestedActions: VerificationSuggestedActionDTO[]

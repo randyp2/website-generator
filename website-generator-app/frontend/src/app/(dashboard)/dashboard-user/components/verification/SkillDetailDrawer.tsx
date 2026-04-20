@@ -142,11 +142,11 @@ const SkillDetailDrawer = ({
             </h4>
             <div className="grid grid-cols-3 gap-2 text-xs">
               <div>
-                <p className="text-muted-foreground">Baseline</p>
+                <p className="text-muted-foreground">Starting Score</p>
                 <p className="font-semibold text-foreground">{skill.baselineScore}</p>
               </div>
               <div>
-                <p className="text-muted-foreground">Evidence Delta</p>
+                <p className="text-muted-foreground">Boost from Projects</p>
                 <p
                   className={cn(
                     "font-semibold",
@@ -160,13 +160,13 @@ const SkillDetailDrawer = ({
                 </p>
               </div>
               <div>
-                <p className="text-muted-foreground">Links Used</p>
+                <p className="text-muted-foreground">Sources Found</p>
                 <p className="font-semibold text-foreground">{skill.evidenceLinksUsed}</p>
               </div>
             </div>
             <div className="mt-3 border-t border-border pt-3">
               <p className="text-[11px] font-medium text-foreground">
-                Why this score
+                What this means
               </p>
               <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
                 {skill.scoreReasonText}

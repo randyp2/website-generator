@@ -15,6 +15,7 @@ import {
     FiLogOut,
     FiUser,
     FiChevronDown,
+    FiShield,
 } from "react-icons/fi";
 import { MdOutlineCreate } from "react-icons/md";
 import { IconType } from "react-icons";
@@ -111,6 +112,12 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
             label: "Publish",
             icon: FiShare2,
             path: "/dashboard-user/publish",
+        },
+        {
+            id: "verification",
+            label: "Verification",
+            icon: FiShield,
+            path: "/dashboard-user/verification",
         },
     ];
 

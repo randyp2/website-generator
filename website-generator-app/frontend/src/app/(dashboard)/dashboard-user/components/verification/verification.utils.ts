@@ -404,7 +404,8 @@ export const deriveOverviewFromSummary = (
   unverifiedClaimsCount: summary.unverifiedClaims.length,
   lastRunDate: summary.generatedAt,
   trustNote:
-    summary.evidenceDelta === 0
+    summary.profileScoreNarrative ??
+    (summary.evidenceDelta === 0
       ? `Baseline ${summary.baselineOverallScore} with no evidence adjustment.`
-      : `Baseline ${summary.baselineOverallScore}, evidence delta ${formatDelta(summary.evidenceDelta)}, final ${summary.overallScore}.`,
+      : `Baseline ${summary.baselineOverallScore}, evidence delta ${formatDelta(summary.evidenceDelta)}, final ${summary.overallScore}.`),
 })
