@@ -187,8 +187,6 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                             <BrandWordmark
                                 compact
                                 className="text-sm text-sidebar-foreground"
-                                portClassName="hidden"
-                                rnChipClassName="px-1.5 py-0.5"
                             />
                         ) : (
                             <BrandWordmark className="text-base text-sidebar-foreground" />
