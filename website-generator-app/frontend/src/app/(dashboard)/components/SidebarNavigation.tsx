@@ -140,8 +140,8 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     className={`hover:cursor-pointer flex items-center gap-2.5 px-3 py-2 rounded-md group relative ${
                         isActive
-                            ? "bg-sidebar-primary text-black"
-                            : "text-white/85 hover:bg-sidebar-primary/25 hover:text-primary"
+                            ? "bg-sidebar-primary text-primary-foreground"
+                            : "text-sidebar-foreground/85 hover:bg-sidebar-primary/25 hover:text-primary"
                     }`}
                 >
                     <div
@@ -152,8 +152,8 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                         <Icon
                             className={`h-[18px] w-[18px] transition-all duration-200 ${
                                 isActive
-                                    ? "text-black"
-                                    : "text-white/80 group-hover:text-primary"
+                                    ? "text-primary-foreground"
+                                    : "text-sidebar-foreground/80 group-hover:text-primary"
                             }`}
                         />
                     </div>
@@ -163,15 +163,15 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                             <span
                                 className={`relative z-10 flex-1 text-[13px] font-medium transition-all duration-200 ${
                                     isActive
-                                        ? "text-black"
-                                        : "text-white/85 group-hover:text-primary"
+                                        ? "text-primary-foreground"
+                                        : "text-sidebar-foreground/85 group-hover:text-primary"
                                 }`}
                             >
                                 {item.label}
                             </span>
 
                             {item.badge && (
-                                <span className="rounded-sm bg-sidebar-accent px-2 py-0.5 text-[11px] font-bold text-white transition-all duration-200">
+                                <span className="rounded-sm bg-sidebar-accent px-2 py-0.5 text-[11px] font-bold text-sidebar-accent-foreground transition-all duration-200">
                                     {item.badge}
                                 </span>
                             )}
@@ -193,10 +193,10 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                         {collapsed ? (
                             <BrandWordmark
                                 compact
-                                className="text-xs text-white"
+                                className="text-xs text-sidebar-foreground"
                             />
                         ) : (
-                            <BrandWordmark className="text-sm text-white" />
+                            <BrandWordmark className="text-sm text-sidebar-foreground" />
                         )}
                     </Link>
                 </div>
@@ -237,7 +237,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                                 className="h-7 w-7 rounded-full border border-sidebar-border object-cover"
                             />
                         ) : (
-                            <FiUser className="h-4 w-4 text-white/70" />
+                            <FiUser className="h-4 w-4 text-sidebar-foreground/70" />
                         )}
                     </motion.button>
                 ) : (
@@ -253,15 +253,15 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                             />
                         ) : (
                             <div className="flex h-7 w-7 items-center justify-center rounded-full border border-sidebar-border bg-sidebar-accent/30">
-                                <FiUser className="h-4 w-4 text-white/70" />
+                                <FiUser className="h-4 w-4 text-sidebar-foreground/70" />
                             </div>
                         )}
 
                         <div className="min-w-0 flex-1 text-left">
-                            <p className="truncate text-[13px] font-medium text-white">
+                            <p className="truncate text-[13px] font-medium text-sidebar-foreground">
                                 {username || "Account"}
                             </p>
-                            <p className="truncate text-[11px] text-white/70">
+                            <p className="truncate text-[11px] text-sidebar-foreground/70">
                                 {email}
                             </p>
                         </div>
@@ -277,7 +277,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                                     return next;
                                 });
                             }}
-                            className="hover:cursor-pointer flex h-7 w-7 items-center justify-center rounded-md text-white/70 transition-colors hover:bg-sidebar-accent/40 hover:text-primary"
+                            className="hover:cursor-pointer flex h-7 w-7 items-center justify-center rounded-md text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/40 hover:text-primary"
                             aria-expanded={showProfileMenu}
                             aria-label="Open account menu"
                         >
@@ -311,9 +311,9 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                                         router.push(item.path);
                                     }
                                 }}
-                                className="group hover:cursor-pointer w-full flex items-center gap-3 px-4 py-2.5 text-left text-white/85 transition-colors hover:bg-sidebar-accent/40 hover:text-primary"
+                                className="group hover:cursor-pointer w-full flex items-center gap-3 px-4 py-2.5 text-left text-card-foreground/85 transition-colors hover:bg-accent hover:text-primary"
                             >
-                                <item.icon className="h-4 w-4 text-white/70 transition-colors group-hover:text-primary" />
+                                <item.icon className="h-4 w-4 text-card-foreground/70 transition-colors group-hover:text-primary" />
                                 <span className="text-[13px]">{item.label}</span>
                             </button>
                         ))}
@@ -321,11 +321,11 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                         <div className="relative border-t border-sidebar-border">
                             <button
                                 onClick={() => setShowThemeModal((prev) => !prev)}
-                                className="group hover:cursor-pointer flex w-full items-center gap-3 px-4 py-2.5 text-left text-white/85 transition-colors hover:bg-sidebar-accent/40 hover:text-primary"
+                                className="group hover:cursor-pointer flex w-full items-center gap-3 px-4 py-2.5 text-left text-card-foreground/85 transition-colors hover:bg-accent hover:text-primary"
                             >
-                                <FiSettings className="h-4 w-4 text-white/70 transition-colors group-hover:text-primary" />
+                                <FiSettings className="h-4 w-4 text-card-foreground/70 transition-colors group-hover:text-primary" />
                                 <span className="text-[13px]">Theme</span>
-                                <span className="ml-auto text-[11px] uppercase tracking-wide text-white/55 group-hover:text-primary/80">
+                                <span className="ml-auto text-[11px] uppercase tracking-wide text-card-foreground/55 group-hover:text-primary/80">
                                     {currentTheme}
                                 </span>
                             </button>
@@ -344,7 +344,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                                         }`}
                                     >
                                         <div className="border-b border-sidebar-border px-4 py-3">
-                                            <p className="text-sm font-semibold text-white">Theme</p>
+                                            <p className="text-sm font-semibold text-card-foreground">Theme</p>
                                         </div>
 
                                         {([
@@ -359,7 +359,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                                                     setShowThemeModal(false);
                                                     setShowProfileMenu(false);
                                                 }}
-                                                className="group hover:cursor-pointer flex w-full items-center gap-3 px-4 py-3 text-left text-white/85 transition-colors hover:bg-sidebar-accent/40 hover:text-primary"
+                                                className="group hover:cursor-pointer flex w-full items-center gap-3 px-4 py-3 text-left text-card-foreground/85 transition-colors hover:bg-accent hover:text-primary"
                                             >
                                                 <span className="text-[13px]">{option.label}</span>
                                                 {currentTheme === option.value ? (
@@ -424,10 +424,10 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                         >
                             {/* Close Button */}
                             <button
-                                onClick={() => setMobileOpen(false)}
-                                className="absolute top-4 right-4 rounded-lg border border-sidebar-border p-2 transition-colors hover:bg-sidebar-accent/40"
-                            >
-                                <FiX className="h-5 w-5 text-white/80" />
+                            onClick={() => setMobileOpen(false)}
+                            className="absolute top-4 right-4 rounded-lg border border-sidebar-border p-2 transition-colors hover:cursor-pointer hover:bg-sidebar-accent/40"
+                        >
+                                <FiX className="h-5 w-5 text-sidebar-foreground/80" />
                             </button>
 
                             <SidebarContent />

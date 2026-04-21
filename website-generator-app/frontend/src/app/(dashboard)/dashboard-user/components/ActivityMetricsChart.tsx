@@ -65,8 +65,8 @@ export const ActivityMetricsChart: React.FC = () => {
                     >
                       {/* Label and value inside the bar */}
                       <div className="absolute inset-0 flex items-center justify-between px-4">
-                        <span className="text-sm font-medium text-white">{item.label}</span>
-                        <span className="font-bold text-white">{item.value.toLocaleString()}</span>
+                        <span className="text-sm font-medium text-primary-foreground">{item.label}</span>
+                        <span className="font-bold text-primary-foreground">{item.value.toLocaleString()}</span>
                       </div>
                     </motion.div>
                   </div>
