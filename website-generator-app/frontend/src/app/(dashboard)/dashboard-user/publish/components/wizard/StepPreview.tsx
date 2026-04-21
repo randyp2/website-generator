@@ -71,12 +71,12 @@ export const StepPreview = ({
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Browser frame */}
-        <div className="overflow-hidden rounded-xl border border-white/10 bg-[#0b111c]">
-          <div className="flex items-center gap-2 border-b border-white/10 bg-white/5 px-3 py-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
-            <span className="h-2.5 w-2.5 rounded-full bg-white/90" />
-            <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
-            <div className="ml-2 min-w-0 flex-1 rounded-full border border-white/15 bg-[#070b14] px-3 py-1">
+        <div className="overflow-hidden rounded-xl border border-[#32353d] bg-[#1f2128]">
+          <div className="flex items-center gap-2 border-b border-[#32353d] bg-[#2a2d35] px-3 py-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
+            <div className="ml-2 min-w-0 flex-1 rounded-full border border-[#3a3f49] bg-[#17191f] px-3 py-1">
               <p className="truncate text-[11px] text-white/75">
                 {browserUrl}
               </p>

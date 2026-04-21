@@ -119,13 +119,13 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
                 <h3 className="text-lg md:text-xl font-semibold text-foreground">Current Deployed Portfolio</h3>
                 <article className="flex-1 overflow-hidden rounded-2xl border border-border bg-card/80 p-4 md:p-5">
                     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[480px_minmax(0,1fr)] lg:items-start">
-                        <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/40">
-                            <div className="flex items-center gap-2 border-b border-border/60 bg-background/70 px-3 py-2">
-                                <span className="h-2.5 w-2.5 rounded-full bg-destructive" />
-                                <span className="h-2.5 w-2.5 rounded-full bg-ring" />
-                                <span className="h-2.5 w-2.5 rounded-full bg-chart-2" />
-                                <div className="ml-2 min-w-0 flex-1 rounded-full border border-border/60 bg-background/80 px-3 py-1">
-                                    <p className="truncate text-xs text-foreground/75">{browserUrl}</p>
+                        <div className="overflow-hidden rounded-xl border border-[#32353d] bg-[#1f2128]">
+                            <div className="flex items-center gap-2 border-b border-[#32353d] bg-[#2a2d35] px-3 py-2">
+                                <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
+                                <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
+                                <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
+                                <div className="ml-2 min-w-0 flex-1 rounded-full border border-[#3a3f49] bg-[#17191f] px-3 py-1">
+                                    <p className="truncate text-xs text-white/75">{browserUrl}</p>
                                 </div>
                             </div>
 
@@ -134,9 +134,9 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
                                     className="absolute inset-0 bg-cover bg-center"
                                     style={{ backgroundImage: `url(${deployedPortfolio.screenshot_url ?? DEFAULT_DEPLOYED_PORTFOLIO_IMAGE})` }}
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/35 to-background/5" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/10" />
                                 <div className="absolute inset-x-0 bottom-0 p-3">
-                                    <p className="truncate text-sm font-semibold text-foreground">
+                                    <p className="truncate text-sm font-semibold text-white">
                                         {deployedPortfolio.title ?? "Untitled Portfolio"}
                                     </p>
                                 </div>
