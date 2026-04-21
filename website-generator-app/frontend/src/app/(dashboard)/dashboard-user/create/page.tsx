@@ -72,14 +72,13 @@ const TemplateGallery: React.FC = () => {
               <motion.button
                 whileHover={!isLoading ? {
                   scale: 1.05,
-                  backgroundColor: "rgba(255, 255, 255, 0.15)",
-                  boxShadow: "0 0 40px rgba(255, 255, 255, 0.25)"
+                  boxShadow: "0 12px 32px rgba(0, 0, 0, 0.22)"
                 } : {}}
                 whileTap={!isLoading ? { scale: 0.95 } : {}}
                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 onClick={handleContinue}
                 disabled={isLoading}
-                className="hover:cursor-pointer px-8 py-4 bg-white/10 backdrop-blur-xl border border-white/20 text-white rounded-full font-bold shadow-[0_0_30px_rgba(255,255,255,0.15)] flex items-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="hover:cursor-pointer flex items-center gap-3 rounded-full border border-primary/70 bg-primary px-8 py-4 font-bold text-primary-foreground shadow-md transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isLoading ? "Creating..." : "Customize Style"}
                 <FiArrowRight className="w-5 h-5" />

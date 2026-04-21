@@ -11,16 +11,16 @@ export const HeaderSection: React.FC = () => {
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
       className="text-center max-w-3xl mx-auto"
     >
-      <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-white border border-white/20 font-semibold text-sm mb-6 shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+      <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground shadow-sm mb-6">
         Step 1 of 3
       </div>
-      <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 drop-shadow-[0_0_12px_rgba(255,255,255,0.3)]">
+      <h1 className="mb-6 text-4xl font-bold text-foreground md:text-5xl">
         Choose Your Starting Point
       </h1>
-      <p className="text-lg pb-5 text-white/80 leading-relaxed">
+      <p className="pb-5 text-lg leading-relaxed text-muted-foreground">
         Pick a template that matches your style, or start from scratch.
         Customize it further with{" "}
-        <span className="text-2xl font-semibold text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]">AI</span> in the
+        <span className="text-2xl font-semibold text-primary">AI</span> in the
         next step.
       </p>
     </motion.div>

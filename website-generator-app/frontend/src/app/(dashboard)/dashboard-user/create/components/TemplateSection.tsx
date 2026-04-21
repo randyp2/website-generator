@@ -184,10 +184,10 @@ export const TemplateSection: React.FC<TemplateSectionProps> = ({
         className="relative group cursor-pointer"
       >
         <div
-          className={`bg-white/80 backdrop-blur-xl rounded-2xl overflow-hidden border-2 ${
+          className={`rounded-2xl overflow-hidden border-2 bg-card ${
             selectedTemplate === "blank"
-              ? "border-sky-400 shadow-xl shadow-sky-400/30"
-              : "border-dashed border-slate-300 hover:border-sky-400"
+              ? "border-primary shadow-xl shadow-primary/20"
+              : "border-dashed border-border hover:border-primary/70"
           } shadow-lg hover:shadow-2xl transition-all h-full`}
         >
           {/* Selected Indicator */}
@@ -242,18 +242,18 @@ export const TemplateSection: React.FC<TemplateSectionProps> = ({
               <div className="w-8 h-8 bg-linear-to-br from-slate-200 to-slate-300 rounded-lg flex items-center justify-center">
                 <FiUpload className="w-4 h-4 text-slate-600" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900">
+              <h3 className="text-xl font-bold text-foreground">
                 Start from Blank
               </h3>
             </div>
-            <p className="text-sm text-slate-600 mb-4">
+            <p className="mb-4 text-sm text-muted-foreground">
               Build your unique portfolio from scratch with AI assistance
             </p>
             <div className="flex flex-wrap gap-2">
-              <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-full">
+              <span className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
                 Full Control
               </span>
-              <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-full">
+              <span className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
                 AI-Powered
               </span>
             </div>
@@ -297,7 +297,7 @@ export const TemplateSection: React.FC<TemplateSectionProps> = ({
             {/* Popular Badge */}
             {template.popular && (
               <div className="absolute top-4 left-4 z-10">
-                <div className="flex items-center gap-1 px-3 py-1 bg-amber-100 backdrop-blur-sm rounded-full text-xs font-bold text-amber-700">
+                <div className="flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-xs font-bold text-accent-foreground">
                   <FiStar className="w-3 h-3" />
                   Popular
                 </div>
@@ -305,10 +305,10 @@ export const TemplateSection: React.FC<TemplateSectionProps> = ({
             )}
 
             <div
-              className={`bg-white/80 backdrop-blur-xl rounded-2xl overflow-hidden border ${
+              className={`rounded-2xl overflow-hidden border bg-card ${
                 selectedTemplate === template.id
-                  ? "border-sky-400 shadow-xl shadow-sky-400/30"
-                  : "border-white/40"
+                  ? "border-primary shadow-xl shadow-primary/20"
+                  : "border-border"
               } shadow-lg hover:shadow-2xl transition-all h-full`}
             >
               {/* Template Preview */}
@@ -365,18 +365,18 @@ export const TemplateSection: React.FC<TemplateSectionProps> = ({
                   >
                     <Icon className="w-4 h-4" />
                   </div>
-                  <h3 className="text-xl font-bold text-slate-900">
+                  <h3 className="text-xl font-bold text-foreground">
                     {template.name}
                   </h3>
                 </div>
-                <p className="text-xs text-slate-500 mb-3">
+                <p className="mb-3 text-xs text-muted-foreground">
                   {template.category}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {template.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-full"
+                      className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground"
                     >
                       {tag}
                     </span>
