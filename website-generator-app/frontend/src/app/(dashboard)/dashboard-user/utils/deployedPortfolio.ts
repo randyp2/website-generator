@@ -9,6 +9,14 @@ const MISSING_FIELD_PLACEHOLDER = "TBD (schema placeholder)";
 export const isDeployedPortfolio = (portfolio: Portfolio): boolean =>
     DEPLOYED_STATUSES.has((portfolio.status ?? "").toLowerCase().trim());
 
+export const isExternalPortfolio = (portfolio: Portfolio): boolean => {
+    const sourceType = (portfolio.source_type ?? portfolio.sourceType ?? "")
+        .trim()
+        .toLowerCase();
+    const externalUrl = (portfolio.external_url ?? portfolio.externalUrl ?? "").trim();
+    return sourceType === "external" || (sourceType !== "generated" && externalUrl.length > 0);
+};
+
 export const getFirstDeployedPortfolio = (
     portfolios: Portfolio[],
 ): Portfolio | null => portfolios.find(isDeployedPortfolio) ?? null;

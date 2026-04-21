@@ -15,6 +15,7 @@ import {
     FiLogOut,
     FiUser,
     FiChevronDown,
+    FiShield,
 } from "react-icons/fi";
 import { MdOutlineCreate } from "react-icons/md";
 import { IconType } from "react-icons";
@@ -111,6 +112,12 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
             label: "Publish",
             icon: FiShare2,
             path: "/dashboard-user/publish",
+        },
+        {
+            id: "verification",
+            label: "Verification",
+            icon: FiShield,
+            path: "/dashboard-user/verification",
         },
     ];
 
@@ -243,14 +250,19 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                 {showProfileMenu && (
                     <div className="absolute bottom-full left-4 right-4 z-50 mb-2 overflow-hidden rounded-lg border border-sidebar-border bg-sidebar shadow-2xl">
                         {[
-                            { icon: FiUser, label: "Sign Up" },
+                            { icon: FiUser, label: "Profile", path: "/dashboard-user/profile" },
                             { icon: FiSettings, label: "Settings" },
                             { icon: FiShare2, label: "Pricing" },
                             { icon: FiHelpCircle, label: "Help" },
                         ].map((item) => (
                             <button
                                 key={item.label}
-                                onClick={() => setShowProfileMenu(false)}
+                                onClick={() => {
+                                    setShowProfileMenu(false);
+                                    if ("path" in item && item.path) {
+                                        router.push(item.path);
+                                    }
+                                }}
                                 className="w-full flex items-center gap-3 px-4 py-3 text-left text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent/40"
                             >
                                 <item.icon className="h-4 w-4 text-sidebar-foreground/70" />

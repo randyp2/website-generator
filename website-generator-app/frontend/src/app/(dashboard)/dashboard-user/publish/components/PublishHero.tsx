@@ -11,7 +11,8 @@ import {
   FiZap,
 } from "react-icons/fi"
 
-import { LazyImage } from "@/components/ui/lazy-image"
+import { BrowserPreviewFrame } from "@/components/ui/browser-preview-frame"
+import { buildPortfolioUrl } from "@/lib/public-env"
 import { cn } from "@/lib/utils"
 import type { Portfolio } from "@/types/portfolio"
 
@@ -85,8 +86,23 @@ export const PublishHero = ({
   }
 
   const slug = portfolio.slug?.trim() || null
-  const displayUrl = `https://portrn.com/${slug ?? "pending-slug"}`
-  const livePath = slug ? `/portfolio/${slug}` : "/portfolio/pending-slug"
+  const externalUrl = (portfolio.external_url ?? portfolio.externalUrl ?? "").trim()
+  const sourceTypeNormalized = (portfolio.source_type ?? portfolio.sourceType ?? "")
+    .trim()
+    .toLowerCase()
+  const isExternalPortfolio =
+    sourceTypeNormalized === "external" ||
+    (sourceTypeNormalized !== "generated" && externalUrl.length > 0)
+  const displayUrl =
+    isExternalPortfolio && externalUrl
+      ? externalUrl
+      : buildPortfolioUrl(slug ?? "pending-slug")
+  const livePath =
+    isExternalPortfolio && externalUrl
+      ? externalUrl
+      : slug
+        ? `/portfolio/${slug}`
+        : "/portfolio/pending-slug"
   const previewSrc = portfolio.screenshot_url ?? DEFAULT_HERO_IMAGE
   const templateLabel = formatTemplateLabel(portfolio.template_id)
   const lastUpdated = formatPortfolioDate(portfolio.updated_at)
@@ -118,28 +134,12 @@ export const PublishHero = ({
 
       {viewMode === "screenshot" ? (
         <div className="px-6 pt-6">
-          <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#070b14]">
-            <div className="flex items-center gap-2 border-b border-white/10 bg-white/5 px-3 py-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
-              <span className="h-2.5 w-2.5 rounded-full bg-white/90" />
-              <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
-              <div className="ml-2 min-w-0 flex-1 rounded-full border border-white/15 bg-[#040711] px-3 py-1">
-                <p className="truncate text-[11px] text-white/75">{displayUrl}</p>
-              </div>
-            </div>
-            <div className="relative">
-              <LazyImage
-                src={previewSrc}
-                fallback="https://placehold.co/1600x900?text=Portfolio+Preview"
-                inView={true}
-                alt={`${portfolio.title} screenshot`}
-                ratio={21 / 9}
-                aspectRatioClassName="rounded-none border-0"
-                className="rounded-none"
-              />
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-            </div>
-          </div>
+          <BrowserPreviewFrame
+            src={previewSrc}
+            alt={`${portfolio.title} screenshot`}
+            url={displayUrl}
+            className="rounded-2xl"
+          />
         </div>
       ) : (
         <PublishHeroDescriptionPanel
@@ -226,6 +226,14 @@ export const PublishHero = ({
           >
             <FiEyeOff className="h-4 w-4" />
             Unpublish
+          </button>
+          <button
+            type="button"
+            onClick={onOpenWizard}
+            className="inline-flex items-center gap-2 rounded-lg border border-primary bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            <FiZap className="h-4 w-4" />
+            Publish new
           </button>
         </div>
       </div>

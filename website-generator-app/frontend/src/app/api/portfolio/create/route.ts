@@ -71,9 +71,12 @@ export const POST = async (req: Request) => {
         }
 
         // ==============================================================
-        // UPLOAD RESUME (optional)
+        // UPLOAD RESUME (optional) — private bucket, no public URL
         // ==============================================================
-        let publicResumeUrl: string | null = null;
+        const RESUME_BUCKET = "private_resumes";
+        const MAX_RESUME_SIZE_BYTES = 5 * 1024 * 1024;
+        let resumeBucket: string | null = null;
+        let resumePath: string | null = null;
 
         if (resumeFile instanceof File) {
             const ext = resumeFile.name.split(".").pop()?.toLowerCase();
@@ -84,13 +87,20 @@ export const POST = async (req: Request) => {
                 );
             }
 
+            if (resumeFile.size > MAX_RESUME_SIZE_BYTES) {
+                return NextResponse.json(
+                    { error: "Resume exceeds 5MB limit." },
+                    { status: 413 },
+                );
+            }
+
             const bytes = await resumeFile.arrayBuffer();
             const buffer = Buffer.from(bytes);
             const storagePath = `resumes/${portfolioId}/${randomUUID()}.${ext}`;
 
             const { data: uploadData, error: uploadError } =
                 await adminSupabase.storage
-                    .from("portfolio_uploads")
+                    .from(RESUME_BUCKET)
                     .upload(storagePath, buffer, {
                         contentType: resumeFile.type,
                         upsert: false,
@@ -104,11 +114,8 @@ export const POST = async (req: Request) => {
                 );
             }
 
-            const { data: publicResumeUrlData } = adminSupabase.storage
-                .from("portfolio_uploads")
-                .getPublicUrl(uploadData.path);
-
-            publicResumeUrl = publicResumeUrlData.publicUrl;
+            resumeBucket = RESUME_BUCKET;
+            resumePath = uploadData.path;
         }
 
         // ==============================================================
@@ -198,7 +205,8 @@ export const POST = async (req: Request) => {
         const backendUrl = getBackendUrl();
 
         const uploadPayload = {
-            resumeRawFileUrl: publicResumeUrl,
+            resumeRawFileBucket: resumeBucket,
+            resumeRawFilePath: resumePath,
             assets: [...mediaAssets, ...videoAssets],
             templateId,
             lastStep: "review",

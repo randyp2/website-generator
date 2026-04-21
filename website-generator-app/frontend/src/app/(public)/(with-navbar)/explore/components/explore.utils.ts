@@ -82,6 +82,23 @@ export const getPortfolioMetrics = (portfolio: PortfolioCard) => {
   }
 }
 
+export const isExternalPortfolio = (portfolio: {
+  sourceType?: string | null
+  externalUrl?: string | null
+}): boolean => {
+  const normalizedSource = (portfolio.sourceType ?? "").trim().toLowerCase()
+  if (normalizedSource === "external") return true
+  if (normalizedSource === "generated") return false
+  return Boolean(portfolio.externalUrl && portfolio.externalUrl.trim().length > 0)
+}
+
+export const getPortfolioCardHref = (portfolio: PortfolioCard): string => {
+  if (isExternalPortfolio(portfolio) && portfolio.externalUrl) {
+    return portfolio.externalUrl
+  }
+  return `/explore/${portfolio.slug}`
+}
+
 export const matchesPortfolioFilter = (
   portfolio: PortfolioCard,
   activeFilter: "all" | "templated" | "recent",

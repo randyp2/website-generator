@@ -1,6 +1,6 @@
 package com.webgen.webgen_backend.resume_service;
 
-import com.webgen.webgen_backend.resume_service.utils.TextCleaner;
+import com.webgen.webgen_backend.resume.service.utils.TextCleaner;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;

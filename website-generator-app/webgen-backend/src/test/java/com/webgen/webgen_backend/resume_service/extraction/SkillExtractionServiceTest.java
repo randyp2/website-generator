@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.resume_service.extraction;
 
+import com.webgen.webgen_backend.resume.service.extraction.SkillExtractionService;
 import com.webgen.webgen_backend.resume_service.ResumeTestHelper;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
@@ -8,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @Tag("requires-fixtures")
 class SkillExtractionServiceTest {

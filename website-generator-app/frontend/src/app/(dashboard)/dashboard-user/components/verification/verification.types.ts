@@ -1,0 +1,207 @@
+export type VerificationTier =
+  | "Unverified"
+  | "Basic"
+  | "Intermediate"
+  | "Advanced"
+  | "Expert"
+
+export type VerificationStatus =
+  | "verified"
+  | "needs_action"
+  | "conflict"
+  | "pending"
+  | "expired"
+
+export type ConnectionProvider = "linkedin" | "github" | "website" | "other"
+
+export type ConnectionStatus =
+  | "connected"
+  | "disconnected"
+  | "expired"
+  | "pending"
+
+export type ConnectionSyncStatus = "never" | "running" | "success" | "failed"
+
+export type ConnectionActionType = "connect" | "disconnect"
+
+export interface ConnectionActionInFlight {
+  provider: ConnectionProvider
+  action: ConnectionActionType
+}
+
+export type EvidenceType =
+  | "endorsement"
+  | "certification"
+  | "project"
+  | "assessment"
+  | "self_reported"
+
+export type QualityFlag = "high" | "medium" | "low" | "conflicting"
+
+export type FilterOption = "all" | "verified" | "needs_action" | "conflicts"
+
+export type ViewState = "empty" | "partial" | "loaded" | "loading" | "error"
+
+export interface VerificationOverviewData {
+  baselineOverallScore: number
+  evidenceDelta: number
+  overallScore: number
+  tier: VerificationTier
+  totalSkills: number
+  matchedSkills: number
+  unmatchedSkills: number
+  unverifiedClaimsCount: number
+  lastRunDate: string
+  trustNote: string
+}
+
+export interface ConnectionData {
+  provider: ConnectionProvider
+  displayName: string
+  status: ConnectionStatus
+  connectedAt: string | null
+  lastSyncedAt: string | null
+  lastSyncCompletedAt: string | null
+  lastSyncStatus: ConnectionSyncStatus
+  lastSyncError: string | null
+  lastSyncImportedCount: number
+  lastSyncLinkedCount: number
+  profileUrl: string | null
+  endorsementCount: number
+  potentialPoints: number
+  permissionScope: string
+}
+
+export interface ConflictDetail {
+  source: string
+  claim: string
+  counterSource: string
+  counterClaim: string
+}
+
+export interface SkillVerification {
+  id: string
+  name: string
+  baselineScore: number
+  evidenceContribution: number
+  evidenceLinksUsed: number
+  scoreReasonCode: string
+  scoreReasonText: string
+  score: number
+  tier: VerificationTier
+  status: VerificationStatus
+  freshness: "fresh" | "aging" | "stale"
+  lastVerified: string
+  evidenceCount: number
+  endorsementCount: number
+  certificationCount: number
+  projectCount: number
+  assessmentCount: number
+  selfReportedCount: number
+  conflictDetails: ConflictDetail[] | null
+  suggestedActions?: {
+    action: string
+    reason: string
+    priority: number
+  }[]
+}
+
+export interface EvidenceItem {
+  id: string
+  evidenceId: string
+  skillId: string
+  skillName: string
+  type: EvidenceType
+  source: string
+  title: string | null
+  externalId: string | null
+  description: string
+  date: string
+  occurredAt: string | null
+  capturedAt: string | null
+  createdAt: string | null
+  updatedAt: string | null
+  quality: QualityFlag
+  linkType: string | null
+  linkConfidence: number | null
+  linkReason: string | null
+  metadata: Record<string, unknown> | null
+  url: string | null
+}
+
+export interface HistoryEntry {
+  id: string
+  date: string
+  type: "full_run" | "partial_run" | "manual_update"
+  summary: string
+  scoreChange: number
+  skillsAffected: number
+}
+
+export interface VerificationTabProps {
+  userId: string
+}
+
+export interface ResumeFile {
+  name: string
+  size: string
+  url: string
+  file: File
+}
+
+export interface VerificationOverviewProps {
+  data: VerificationOverviewData
+  lastRerunAt: string | null
+  onRerunChecks: () => void | Promise<void>
+  isRerunningChecks?: boolean
+}
+
+export interface ConnectionsPanelProps {
+  connections: ConnectionData[]
+  connectionActionInFlight?: ConnectionActionInFlight | null
+  onConnect: (provider: ConnectionProvider) => void
+  onDisconnect: (provider: ConnectionProvider) => void
+}
+
+export interface SkillLeaderboardProps {
+  skills: SkillVerification[]
+  onSkillClick: (skillId: string) => void
+}
+
+export interface SkillChartsProps {
+  skills: SkillVerification[]
+}
+
+export interface SkillDetailDrawerProps {
+  skill: SkillVerification | null
+  evidence: EvidenceItem[]
+  open: boolean
+  isDeletingClaim: boolean
+  deleteError: string | null
+  onDeleteClaim: (claimId: string) => Promise<void>
+  onClose: () => void
+}
+
+export interface EvidenceTableProps {
+  evidence: EvidenceItem[]
+  activeTypeFilter: EvidenceType | "all"
+  onTypeFilterChange: (type: EvidenceType | "all") => void
+}
+
+export interface VerificationHistoryProps {
+  entries: HistoryEntry[]
+}
+
+export interface VerificationFilterBarProps {
+  active: FilterOption
+  counts: Record<FilterOption, number>
+  onChange: (filter: FilterOption) => void
+}
+
+export interface VerificationEmptyStateProps {
+  onStart: () => void
+}
+
+export interface VerificationErrorStateProps {
+  onRetry: () => void
+}

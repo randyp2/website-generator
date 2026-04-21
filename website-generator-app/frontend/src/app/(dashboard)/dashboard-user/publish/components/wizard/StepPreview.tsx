@@ -3,6 +3,7 @@
 import { Eye, Heart, MessageCircle } from "lucide-react"
 
 import { LazyImage } from "@/components/ui/lazy-image"
+import { buildPortfolioUrl } from "@/lib/public-env"
 
 import type { Portfolio } from "@/types/portfolio"
 import type { PublishSource } from "./StepPick"
@@ -47,7 +48,9 @@ export const StepPreview = ({
     ? "External Website"
     : formatTemplateLabel(portfolio?.template_id)
   const previewSrc = portfolio?.screenshot_url ?? DEFAULT_PREVIEW_IMAGE
-  const browserUrl = isExternal ? externalUrl || "https://yourportfolio.com" : `https://portrn.com/${slug || "your-slug"}`
+  const browserUrl = isExternal
+    ? externalUrl || "https://yourportfolio.com"
+    : buildPortfolioUrl(slug || "your-slug")
   const initials =
     ownerName
       .split(/\s+/)

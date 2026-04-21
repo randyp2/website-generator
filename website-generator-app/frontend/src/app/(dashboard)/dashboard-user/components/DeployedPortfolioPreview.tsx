@@ -4,6 +4,7 @@ import React from "react";
 import type { Portfolio } from "@/types/portfolio";
 import type { UserData } from "@/context/UserContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { buildPortfolioUrl } from "@/lib/public-env";
 import {
     DEFAULT_DEPLOYED_PORTFOLIO_IMAGE,
     formatFieldValue,
@@ -96,8 +97,19 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
     const createdBy = user?.username?.trim() || user?.email?.trim() || "TBD (schema placeholder)";
     const avatarUrl = typeof user?.avatar === "string" ? user.avatar.trim() : "";
     const slug = deployedPortfolio.slug?.trim();
-    const browserUrl = `https://portrn/${slug || "tbd-slug"}`;
-    const publicRoute = `/portfolio/${slug || "tbd-slug"}`;
+    const externalUrl = (deployedPortfolio.external_url ?? deployedPortfolio.externalUrl ?? "").trim();
+    const sourceTypeNormalized = (deployedPortfolio.source_type ?? deployedPortfolio.sourceType ?? "")
+        .trim()
+        .toLowerCase();
+    const isExternalDeployed =
+        sourceTypeNormalized === "external" ||
+        (sourceTypeNormalized !== "generated" && externalUrl.length > 0);
+    const browserUrl = isExternalDeployed && externalUrl
+        ? externalUrl
+        : buildPortfolioUrl(slug || "tbd-slug");
+    const publicRoute = isExternalDeployed && externalUrl
+        ? externalUrl
+        : `/portfolio/${slug || "tbd-slug"}`;
     const lastUpdated = formatPortfolioDate(deployedPortfolio.updated_at);
     const normalizedStatus = normalizeStatus(deployedPortfolio.status);
 

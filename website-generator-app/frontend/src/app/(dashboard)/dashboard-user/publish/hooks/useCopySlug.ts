@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 
 interface UseCopySlugResult {
   copiedSlug: string | null
-  copySlug: (slug: string) => Promise<void>
+  copySlug: (slug: string, explicitUrl?: string | null) => Promise<void>
 }
 
 const COPY_FEEDBACK_MS = 2000
@@ -20,13 +20,19 @@ export const useCopySlug = (): UseCopySlugResult => {
     [],
   )
 
-  const copySlug = useCallback(async (slug: string): Promise<void> => {
-    const origin = window.location.origin
-    await navigator.clipboard.writeText(`${origin}/portfolio/${slug}`)
-    setCopiedSlug(slug)
-    if (timerRef.current) clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => setCopiedSlug(null), COPY_FEEDBACK_MS)
-  }, [])
+  const copySlug = useCallback(
+    async (slug: string, explicitUrl?: string | null): Promise<void> => {
+      const trimmedExplicit = explicitUrl?.trim()
+      const urlToCopy = trimmedExplicit
+        ? trimmedExplicit
+        : `${window.location.origin}/portfolio/${slug}`
+      await navigator.clipboard.writeText(urlToCopy)
+      setCopiedSlug(slug)
+      if (timerRef.current) clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => setCopiedSlug(null), COPY_FEEDBACK_MS)
+    },
+    [],
+  )
 
   return { copiedSlug, copySlug }
 }

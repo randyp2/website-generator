@@ -31,6 +31,13 @@ export const StepPublish = ({
   const isExternal = source === "external"
   const isSuccess = state === "success"
   const isLoading = state === "loading"
+  const trimmedExternalUrl = externalUrl.trim()
+  const successHref = isExternal && trimmedExternalUrl
+    ? trimmedExternalUrl
+    : `/portfolio/${publishedSlug ?? slug}`
+  const successDisplayUrl = isExternal && trimmedExternalUrl
+    ? trimmedExternalUrl
+    : `/portfolio/${publishedSlug ?? slug}`
 
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-6 text-center">
@@ -64,8 +71,8 @@ export const StepPublish = ({
         <p className="mt-1 text-sm text-muted-foreground">
           {isSuccess
             ? isExternal
-              ? `Your external portfolio is now listed at /portfolio/${publishedSlug ?? slug}.`
-              : `Your portfolio is now public at /portfolio/${publishedSlug ?? slug}.`
+              ? `Your external portfolio is now listed at ${successDisplayUrl}.`
+              : `Your portfolio is now public at ${successDisplayUrl}.`
             : isLoading
               ? isExternal
                 ? `Hang tight while we connect ${externalUrl || "your website"} and capture its screenshot.`
@@ -91,7 +98,7 @@ export const StepPublish = ({
             Copy URL
           </button>
           <a
-            href={`/portfolio/${publishedSlug}`}
+            href={successHref}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"

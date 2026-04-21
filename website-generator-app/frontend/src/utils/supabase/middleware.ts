@@ -1,9 +1,16 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+const SUPABASE_OAUTH_CODE_EXCHANGE_PATHS = new Set<string>([
+    "/dashboard-user",
+]);
+
+const shouldExchangeSupabaseOAuthCode = (pathname: string): boolean =>
+    SUPABASE_OAUTH_CODE_EXCHANGE_PATHS.has(pathname);
+
 /**
  * - Create supabase client that can read and write cookies
- * - Check for OAuth "code" in URL
+ * - Check for Supabase OAuth "code" in URL on allowed callback paths
  *    - If found, exchange it for session tokens
  * - If not, just validate existing session
  *
@@ -39,11 +46,12 @@ export const updateSession = async (request: NextRequest) => {
     );
 
     // Get the request URL
-    const { searchParams } = new URL(request.url);
+    const requestUrl = new URL(request.url);
+    const { searchParams, pathname } = requestUrl;
     // Search for "code" param (OAuth redirect)
     const code = searchParams.get("code");
 
-    if (code) {
+    if (code && shouldExchangeSupabaseOAuthCode(pathname)) {
         await supabase.auth.exchangeCodeForSession(code);
 
         const nextUrl = new URL(request.url);
