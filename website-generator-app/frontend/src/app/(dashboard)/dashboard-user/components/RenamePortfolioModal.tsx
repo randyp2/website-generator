@@ -29,43 +29,43 @@ export const RenamePortfolioModal: React.FC<RenamePortfolioModalProps> = ({
             <motion.div
                 initial={{ opacity: 0, y: 10, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                className="relative w-full max-w-md mx-4 rounded-2xl border border-white/10 bg-[#121419] shadow-2xl p-6"
+                className="relative mx-4 w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl"
             >
                 <div className="flex items-start justify-between gap-4">
                     <div>
-                        <h3 className="text-xl font-semibold text-white">
+                        <h3 className="text-xl font-semibold text-card-foreground">
                             Rename portfolio
                         </h3>
-                        <p className="mt-2 text-sm text-white/60">
+                        <p className="mt-2 text-sm text-muted-foreground">
                             Update the title to keep things organized.
                         </p>
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center">
-                        <FiEdit3 className="w-5 h-5 text-blue-200" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/30 bg-primary/15">
+                        <FiEdit3 className="h-5 w-5 text-primary" />
                     </div>
                 </div>
                 <div className="mt-5">
-                    <label className="text-xs font-semibold text-white/60 uppercase">
+                    <label className="text-xs font-semibold uppercase text-muted-foreground">
                         Portfolio name
                     </label>
                     <input
                         value={renameTitle}
                         onChange={(e) => onTitleChange(e.target.value)}
                         placeholder="e.g. Product Designer Portfolio"
-                        className="mt-2 w-full rounded-lg bg-white/10 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:border-white/30 transition-colors"
+                        className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors"
                     />
                 </div>
                 <div className="mt-6 flex items-center justify-end gap-3">
                     <button
                         onClick={onCancel}
-                        className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors cursor-pointer"
+                        className="cursor-pointer rounded-lg border border-border bg-muted px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/80"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={onConfirm}
                         disabled={isRenaming || !renameTitle.trim()}
-                        className="px-4 py-2 rounded-lg bg-blue-500/80 hover:bg-blue-500 text-white text-sm font-semibold transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="cursor-pointer rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {isRenaming ? "Saving..." : "Save"}
                     </button>

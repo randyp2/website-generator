@@ -112,7 +112,11 @@ export const PortfolioToolbar: React.FC<PortfolioToolbarProps> = ({
                                         onClick={() => setShowArchived(!showArchived)}
                                         className={`relative h-6 w-12 cursor-pointer rounded-full transition-colors ${showArchived ? "bg-primary" : "bg-muted"}`}
                                     >
-                                        <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${showArchived ? "translate-x-6" : "translate-x-0"}`} />
+                                        <div
+                                            className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full border border-border bg-background transition-transform ${
+                                                showArchived ? "translate-x-6" : "translate-x-0"
+                                            }`}
+                                        />
                                     </button>
                                 </div>
                                 <p className="mt-1 text-xs text-muted-foreground">

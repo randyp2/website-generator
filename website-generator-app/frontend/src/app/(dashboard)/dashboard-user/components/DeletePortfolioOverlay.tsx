@@ -31,34 +31,34 @@ export const DeletePortfolioOverlay: React.FC<DeletePortfolioOverlayProps> = ({
       <motion.div
         initial={{ opacity: 0, y: 10, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="relative w-full max-w-md mx-4 rounded-2xl border border-white/10 bg-[#121419] shadow-2xl p-6"
+        className="relative mx-4 w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h3 className="text-xl font-semibold text-white">
+            <h3 className="text-xl font-semibold text-card-foreground">
               Delete portfolio?
             </h3>
-            <p className="mt-2 text-sm text-white/60">
+            <p className="mt-2 text-sm text-muted-foreground">
               You are about to permanently delete{" "}
-              <span className="text-white/90 font-medium">
+              <span className="font-medium text-foreground">
                 {portfolioTitle || "this portfolio"}
               </span>
               . This action cannot be undone.
             </p>
           </div>
-          <FiTrash2 className="w-5 h-5 text-red-300" />
+          <FiTrash2 className="h-5 w-5 text-destructive" />
         </div>
         <div className="mt-6 flex items-center justify-end gap-3">
           <button
             onClick={onCancel}
-            className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors cursor-pointer"
+            className="cursor-pointer rounded-lg border border-border bg-muted px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/80"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={isDeleting}
-            className="px-4 py-2 rounded-lg bg-red-500/80 hover:bg-red-500 text-white text-sm font-semibold transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            className="cursor-pointer rounded-lg bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isDeleting ? "Deleting..." : "Delete"}
           </button>

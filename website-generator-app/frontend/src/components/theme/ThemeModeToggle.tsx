@@ -18,7 +18,7 @@ type ThemeMode = "light" | "dark" | "system"
 type ThemeModeToggleProps = {
   collapsed?: boolean
   className?: string
-  variant?: "dropdown" | "inline"
+  variant?: "dropdown" | "inline" | "compact"
 }
 
 function renderModeIcon(mode: ThemeMode) {
@@ -60,6 +60,37 @@ export function ThemeModeToggle({
       ? theme
       : "system"
 
+  if (variant === "compact") {
+    const themeModes: ThemeMode[] = ["light", "dark", "system"]
+
+    return (
+      <div
+        className={cn(
+          "grid grid-cols-3 gap-1 rounded-md border border-sidebar-border bg-sidebar-accent/20 p-1",
+          className,
+        )}
+      >
+        {themeModes.map((themeMode) => (
+          <button
+            key={themeMode}
+            type="button"
+            onClick={() => setTheme(themeMode)}
+            title={renderModeLabel(themeMode)}
+            aria-label={`Set theme to ${renderModeLabel(themeMode)}`}
+            className={cn(
+              "hover:cursor-pointer inline-flex h-8 items-center justify-center rounded-md transition-colors",
+              mode === themeMode
+                ? "bg-sidebar-accent/70 text-primary"
+                : "text-white/75 hover:bg-sidebar-accent/40 hover:text-primary",
+            )}
+          >
+            {renderModeIcon(themeMode)}
+          </button>
+        ))}
+      </div>
+    )
+  }
+
   if (variant === "inline") {
     const themeModes: ThemeMode[] = ["light", "dark", "system"]
 
@@ -71,7 +102,7 @@ export function ThemeModeToggle({
             type="button"
             onClick={() => setTheme(themeMode)}
             className={cn(
-              "flex w-full items-center rounded-md px-4 py-3 text-left text-sm transition-colors hover:bg-sidebar-accent/40",
+              "hover:cursor-pointer flex w-full items-center rounded-md px-4 py-3 text-left text-sm transition-colors hover:bg-sidebar-accent/40",
               mode === themeMode
                 ? "bg-sidebar-accent/50 text-sidebar-foreground"
                 : "text-sidebar-foreground/80",
