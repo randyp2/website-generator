@@ -12,7 +12,7 @@ import {
 import { cn } from "@/lib/utils"
 
 import type { VerificationOverviewProps } from "./verification.types"
-import { getTierColor, getTierBgColor } from "./verification.utils"
+import { getTierColor, getTierBgColor, getTierRingColor } from "./verification.utils"
 
 const CIRCUMFERENCE = 2 * Math.PI * 52
 
@@ -62,7 +62,7 @@ const VerificationOverview = ({
                 r="52"
                 fill="none"
                 stroke="currentColor"
-                className="text-amber-500"
+                className={getTierRingColor(data.tier)}
                 strokeWidth="8"
                 strokeLinecap="round"
                 strokeDasharray={CIRCUMFERENCE}

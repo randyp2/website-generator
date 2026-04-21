@@ -26,6 +26,7 @@ import type { EvidenceType, SkillDetailDrawerProps } from "./verification.types"
 import {
   getTierColor,
   getTierBgColor,
+  getTierRingColor,
   getFreshnessLabel,
   getEvidenceMixForSkill,
   getQualityBadgeVariant,
@@ -103,7 +104,7 @@ const SkillDetailDrawer = ({
                 r="36"
                 fill="none"
                 stroke="currentColor"
-                className="text-amber-500"
+                className={getTierRingColor(skill.tier)}
                 strokeWidth="6"
                 strokeLinecap="round"
                 strokeDasharray={CIRCUMFERENCE}

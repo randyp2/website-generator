@@ -14,10 +14,10 @@ import type { VerificationSummaryDTO } from "@/types/verification-summary"
 
 const TIER_SEGMENTS = [
   { label: "Unverified", range: "0-20", color: "bg-zinc-500", width: "20%" },
-  { label: "Basic", range: "21-40", color: "bg-blue-400", width: "20%" },
-  { label: "Intermediate", range: "41-60", color: "bg-yellow-500", width: "20%" },
-  { label: "Advanced", range: "61-80", color: "bg-amber-500", width: "20%" },
-  { label: "Expert", range: "81-100", color: "bg-amber-400", width: "20%" },
+  { label: "Basic", range: "21-40", color: "bg-amber-400", width: "20%" },
+  { label: "Intermediate", range: "41-60", color: "bg-orange-400", width: "20%" },
+  { label: "Advanced", range: "61-80", color: "bg-orange-600", width: "20%" },
+  { label: "Expert", range: "81-100", color: "bg-rose-500", width: "20%" },
 ] as const
 
 const SCORING_RULES = [

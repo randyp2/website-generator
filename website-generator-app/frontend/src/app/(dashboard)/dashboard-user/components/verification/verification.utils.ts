@@ -38,38 +38,55 @@ export const mapBackendEvidenceTypeToUiType = (
   return "self_reported"
 }
 
-export const getTierColor = (tier: VerificationTier): string => {
-  const map: Record<VerificationTier, string> = {
-    Expert: "text-amber-400",
-    Advanced: "text-amber-500",
-    Intermediate: "text-yellow-500",
-    Basic: "text-blue-400",
-    Unverified: "text-zinc-500",
-  }
-  return map[tier]
+const TIER_STYLE_MAP: Record<VerificationTier, {
+  text: string
+  bg: string
+  bar: string
+  ring: string
+}> = {
+  Unverified: {
+    text: "text-zinc-600 dark:text-zinc-400",
+    bg: "bg-zinc-500/20",
+    bar: "bg-zinc-500",
+    ring: "text-zinc-500",
+  },
+  Basic: {
+    text: "text-amber-700 dark:text-amber-400",
+    bg: "bg-amber-500/20",
+    bar: "bg-amber-400",
+    ring: "text-amber-400",
+  },
+  Intermediate: {
+    text: "text-orange-600 dark:text-orange-400",
+    bg: "bg-orange-500/20",
+    bar: "bg-orange-400",
+    ring: "text-orange-400",
+  },
+  Advanced: {
+    text: "text-orange-700 dark:text-orange-500",
+    bg: "bg-orange-600/20",
+    bar: "bg-orange-600",
+    ring: "text-orange-500",
+  },
+  Expert: {
+    text: "text-rose-700 dark:text-rose-500",
+    bg: "bg-rose-500/20",
+    bar: "bg-rose-500",
+    ring: "text-rose-500",
+  },
 }
 
-export const getTierBgColor = (tier: VerificationTier): string => {
-  const map: Record<VerificationTier, string> = {
-    Expert: "bg-amber-400/20",
-    Advanced: "bg-amber-500/20",
-    Intermediate: "bg-yellow-500/20",
-    Basic: "bg-blue-400/20",
-    Unverified: "bg-zinc-500/20",
-  }
-  return map[tier]
-}
+export const getTierColor = (tier: VerificationTier): string =>
+  TIER_STYLE_MAP[tier].text
 
-export const getTierBarColor = (tier: VerificationTier): string => {
-  const map: Record<VerificationTier, string> = {
-    Expert: "bg-amber-400",
-    Advanced: "bg-amber-500",
-    Intermediate: "bg-yellow-500",
-    Basic: "bg-blue-400",
-    Unverified: "bg-zinc-500",
-  }
-  return map[tier]
-}
+export const getTierBgColor = (tier: VerificationTier): string =>
+  TIER_STYLE_MAP[tier].bg
+
+export const getTierBarColor = (tier: VerificationTier): string =>
+  TIER_STYLE_MAP[tier].bar
+
+export const getTierRingColor = (tier: VerificationTier): string =>
+  TIER_STYLE_MAP[tier].ring
 
 export const getStatusColor = (
   status: VerificationStatus,
