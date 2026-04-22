@@ -176,8 +176,8 @@ const NavbarClient: React.FC = () => {
                 <NavigationMenuItem key={item.label}>
                   <NavigationMenuTrigger
                     className={cn(
-                      "h-10 rounded-none bg-transparent px-4 text-sm font-medium text-white shadow-none hover:bg-transparent hover:text-white/80 focus:bg-transparent data-[active]:bg-transparent data-[state=open]:bg-transparent",
-                      active && "text-white",
+                      "h-10 rounded-none bg-transparent px-4 text-sm font-medium text-foreground shadow-none hover:bg-transparent hover:text-primary focus:bg-transparent focus:text-primary data-[active]:bg-transparent data-[state=open]:bg-transparent",
+                      active && "font-semibold text-foreground",
                     )}
                   >
                     {item.label}
@@ -204,8 +204,8 @@ const NavbarClient: React.FC = () => {
                   <Link
                     href={item.href}
                     className={cn(
-                      "inline-flex h-10 items-center rounded-none px-4 text-sm font-medium text-white transition-colors hover:bg-transparent hover:text-white/80",
-                      active ? "text-white" : "text-white",
+                      "inline-flex h-10 items-center rounded-none px-4 text-sm font-medium text-foreground transition-colors hover:bg-transparent hover:text-primary",
+                      active && "font-semibold text-foreground",
                     )}
                   >
                     {item.label}

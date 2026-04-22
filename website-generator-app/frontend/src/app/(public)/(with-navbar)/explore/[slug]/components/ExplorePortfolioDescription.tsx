@@ -1,4 +1,5 @@
 import ReactMarkdown, { type Components } from "react-markdown";
+import remarkBreaks from "remark-breaks";
 
 import { getPortfolioDescription } from "../explore-portfolio-detail.utils";
 import type { ExplorePortfolioDetail } from "../explore-portfolio-detail.types";
@@ -64,7 +65,9 @@ export const ExplorePortfolioDescription = ({
       </h2>
       {hasMarkdownDescription ? (
         <div className="mt-4 space-y-3">
-          <ReactMarkdown components={markdownComponents}>{markdownDescription}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkBreaks]} components={markdownComponents}>
+            {markdownDescription}
+          </ReactMarkdown>
         </div>
       ) : (
         descriptionParagraphs.map((paragraph, index) => (

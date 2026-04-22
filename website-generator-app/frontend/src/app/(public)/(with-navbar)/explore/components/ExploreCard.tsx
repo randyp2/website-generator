@@ -30,7 +30,7 @@ export const ExploreCard = ({ portfolio }: ExploreCardProps) => {
   return (
     <Link
       href={href}
-      className="group flex flex-col gap-2 rounded-lg p-2 duration-75 hover:bg-accent/60 active:bg-accent"
+      className="group flex flex-col gap-2 rounded-lg p-2 duration-75 hover:bg-accent-foreground/10 active:bg-accent-foreground/15 dark:hover:bg-accent/60 dark:active:bg-accent"
     >
       <LazyImage
         src={portfolio.screenshotUrl ?? DEFAULT_PREVIEW_IMAGE}

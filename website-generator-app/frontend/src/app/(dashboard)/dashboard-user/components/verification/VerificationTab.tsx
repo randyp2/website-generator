@@ -363,12 +363,6 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
 
     return (
         <ResumeVerificationGuard isExternalLoading={isLoading}>
-            <VerificationFilterBar
-                active={activeFilter}
-                counts={filterCounts}
-                onChange={setActiveFilter}
-            />
-
             <VerificationOverview
                 data={overview}
                 lastRerunAt={lastRerunAt}
@@ -378,6 +372,12 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
             {rerunChecksError && (
                 <p className="text-xs text-destructive">{rerunChecksError}</p>
             )}
+
+            <VerificationFilterBar
+                active={activeFilter}
+                counts={filterCounts}
+                onChange={setActiveFilter}
+            />
 
             <ConnectionsPanel
                 connections={connections}

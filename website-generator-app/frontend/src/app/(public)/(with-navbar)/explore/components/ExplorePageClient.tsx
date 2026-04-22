@@ -44,7 +44,7 @@ const NAV_SECTIONS = [
 ] as const
 
 const navTriggerClassName =
-  "h-10 rounded-none bg-transparent px-4 text-sm font-medium text-foreground shadow-none hover:bg-transparent hover:text-foreground/75 focus:bg-transparent focus:text-foreground/75 data-[active]:bg-transparent data-[state=open]:bg-transparent"
+  "h-10 rounded-none bg-transparent px-4 text-sm font-medium text-foreground shadow-none hover:bg-transparent hover:text-primary focus:bg-transparent focus:text-primary data-[active]:bg-transparent data-[state=open]:bg-transparent"
 
 const PAGE_SIZE = 12
 
@@ -108,7 +108,7 @@ export const ExplorePageClient = () => {
       <div className="mx-auto w-full max-w-[112rem] grow">
         <div
           aria-hidden="true"
-          className="absolute inset-0 isolate -z-10 overflow-hidden opacity-60"
+          className="absolute inset-0 isolate -z-10 overflow-hidden opacity-0 dark:opacity-60"
         >
           <div className="absolute left-0 top-0 h-[80rem] w-[35rem] -translate-y-[21.875rem] -rotate-45 rounded-full [background:radial-gradient(68.54%_68.72%_at_55.02%_31.46%,color-mix(in_oklab,var(--foreground)_6%,transparent)_0%,color-mix(in_oklab,var(--foreground)_2%,transparent)_50%,color-mix(in_oklab,var(--foreground)_1%,transparent)_80%)]" />
           <div className="absolute left-0 top-0 h-[80rem] w-[15rem] translate-x-[5%] -translate-y-[50%] -rotate-45 rounded-full [background:radial-gradient(50%_50%_at_50%_50%,color-mix(in_oklab,var(--foreground)_4%,transparent)_0%,color-mix(in_oklab,var(--foreground)_1%,transparent)_80%,transparent_100%)]" />
@@ -135,7 +135,7 @@ export const ExplorePageClient = () => {
                         <NavigationMenuTrigger
                           className={cn(
                             navTriggerClassName,
-                            selectedValue !== "All" && "text-primary",
+                            selectedValue !== "All" && "font-semibold text-foreground",
                           )}
                         >
                           {section.label}

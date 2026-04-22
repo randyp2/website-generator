@@ -41,8 +41,16 @@ const VerificationOverview = ({
     : "Never"
 
   return (
-    <Card>
-      <CardContent className="p-6">
+    <Card className="relative overflow-hidden border border-border/70">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-orange-300/12 via-orange-200/6 to-transparent dark:from-orange-300/14 dark:via-orange-200/6"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -bottom-12 right-0 h-24 w-24 rounded-full bg-orange-300/12 blur-3xl dark:bg-orange-200/12"
+      />
+      <CardContent className="relative z-10 p-6">
         <div className="flex flex-col lg:flex-row gap-6 items-center lg:items-start">
           {/* Verification Ring */}
           <div className="flex flex-col items-center gap-2 shrink-0">

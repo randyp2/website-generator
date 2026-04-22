@@ -1,6 +1,7 @@
 "use client"
 
-import { Github, Linkedin, Globe, Link2, Lock } from "lucide-react"
+import { Globe, Link2, Lock } from "lucide-react"
+import { FaGithub, FaLinkedinIn } from "react-icons/fa"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -21,11 +22,35 @@ interface ConnectionCardProps {
   onDisconnect: (provider: ConnectionProvider) => void
 }
 
-const PROVIDER_ICONS: Record<ConnectionProvider, React.ElementType> = {
-  linkedin: Linkedin,
-  github: Github,
-  website: Globe,
-  other: Link2,
+const PROVIDER_ICON_CONFIG: Record<
+  ConnectionProvider,
+  {
+    Icon: React.ElementType
+    wrapperClassName: string
+    iconClassName: string
+  }
+> = {
+  linkedin: {
+    Icon: FaLinkedinIn,
+    wrapperClassName: "bg-[#0A66C2]/12 ring-1 ring-[#0A66C2]/25",
+    iconClassName: "h-5 w-5 text-[#0A66C2]",
+  },
+  github: {
+    Icon: FaGithub,
+    wrapperClassName:
+      "bg-zinc-900/10 ring-1 ring-zinc-900/20 dark:bg-zinc-100/10 dark:ring-zinc-100/20",
+    iconClassName: "h-5 w-5 text-zinc-900 dark:text-zinc-100",
+  },
+  website: {
+    Icon: Globe,
+    wrapperClassName: "bg-muted",
+    iconClassName: "h-5 w-5 text-foreground",
+  },
+  other: {
+    Icon: Link2,
+    wrapperClassName: "bg-muted",
+    iconClassName: "h-5 w-5 text-foreground",
+  },
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -43,10 +68,13 @@ const SYNC_STATUS_LABELS: Record<string, string> = {
 }
 
 const CONNECT_BUTTON_CLASSES =
-  "h-7 w-full text-xs bg-emerald-600 text-white hover:bg-emerald-700 hover:cursor-pointer disabled:cursor-not-allowed disabled:bg-emerald-600/70"
+  "h-7 w-full text-xs bg-green-700 text-white hover:bg-green-800 focus-visible:ring-green-700 hover:cursor-pointer disabled:cursor-not-allowed disabled:bg-green-700/70"
 
 const RECONNECT_BUTTON_CLASSES =
-  "h-7 w-full text-xs border-emerald-600 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 hover:cursor-pointer disabled:cursor-not-allowed disabled:text-emerald-700/60"
+  "h-7 w-full text-xs border-green-700 text-green-700 hover:bg-green-50 hover:text-green-800 focus-visible:ring-green-700 hover:cursor-pointer disabled:cursor-not-allowed disabled:text-green-700/60"
+
+const DISCONNECT_BUTTON_CLASSES =
+  "h-7 text-xs bg-red-700 text-white hover:bg-red-800 focus-visible:ring-red-700 hover:cursor-pointer disabled:cursor-not-allowed disabled:bg-red-700/70"
 
 const ConnectionCard = ({
   connection,
@@ -54,7 +82,8 @@ const ConnectionCard = ({
   onConnect,
   onDisconnect,
 }: ConnectionCardProps) => {
-  const Icon = PROVIDER_ICONS[connection.provider]
+  const { Icon, wrapperClassName, iconClassName } =
+    PROVIDER_ICON_CONFIG[connection.provider]
   const isConnected = connection.status === "connected"
   const isBusy = connectionActionInFlight?.provider === connection.provider
   const busyAction = isBusy ? connectionActionInFlight?.action : null
@@ -78,8 +107,8 @@ const ConnectionCard = ({
       <CardContent className="p-4">
         <div className="mb-3 flex items-start justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="rounded-lg bg-muted p-2">
-              <Icon className="h-5 w-5 text-foreground" />
+            <div className={cn("rounded-lg p-2", wrapperClassName)}>
+              <Icon className={iconClassName} />
             </div>
             <div>
               <p className="text-sm font-medium text-foreground">
@@ -141,9 +170,8 @@ const ConnectionCard = ({
         {isConnected ? (
           <div className="flex gap-2">
             <Button
-              variant="ghost"
               size="sm"
-              className="h-7 text-xs hover:cursor-pointer"
+              className={DISCONNECT_BUTTON_CLASSES}
               disabled={isBusy}
               onClick={() => onDisconnect(connection.provider)}
             >

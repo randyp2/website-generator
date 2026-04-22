@@ -110,7 +110,9 @@ export const StepPreview = ({
             <h3 className="line-clamp-2 text-base font-semibold leading-5 tracking-tight text-foreground">
               {portfolioTitle}
             </h3>
-            <p className="line-clamp-3 text-sm text-muted-foreground">{summary}</p>
+            <p className="line-clamp-3 whitespace-pre-line text-sm text-muted-foreground">
+              {summary}
+            </p>
             {isExternal && externalUrl.trim() && (
               <p className="truncate text-[11px] text-primary">{externalUrl.trim()}</p>
             )}

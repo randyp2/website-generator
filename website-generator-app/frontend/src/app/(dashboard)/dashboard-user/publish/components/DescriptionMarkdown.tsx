@@ -1,6 +1,7 @@
 "use client"
 
 import ReactMarkdown, { type Components } from "react-markdown"
+import remarkBreaks from "remark-breaks"
 
 import { cn } from "@/lib/utils"
 
@@ -80,7 +81,9 @@ export const DescriptionMarkdown = ({
 }: DescriptionMarkdownProps) => {
   return (
     <div className={cn("space-y-3", className)}>
-      <ReactMarkdown components={markdownComponents}>{content}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkBreaks]} components={markdownComponents}>
+        {content}
+      </ReactMarkdown>
     </div>
   )
 }
