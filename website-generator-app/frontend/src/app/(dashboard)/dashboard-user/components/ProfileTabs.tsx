@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
-import type { PortfolioCard } from "@/app/(public)/(with-navbar)/explore/components/explore.types"
+import type { PortfolioCard } from "@/app/(public)/(site)/explore/components/explore.types"
 import type { Portfolio } from "@/types/portfolio"
 
 import { PROFILE_TABS } from "../profile/profile.types"

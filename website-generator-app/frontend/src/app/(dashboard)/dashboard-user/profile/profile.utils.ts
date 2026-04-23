@@ -1,4 +1,4 @@
-import type { PortfolioCard } from "@/app/(public)/(with-navbar)/explore/components/explore.types"
+import type { PortfolioCard } from "@/app/(public)/(site)/explore/components/explore.types"
 
 import type { ApiPortfolio } from "./profile.types"
 

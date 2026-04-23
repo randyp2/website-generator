@@ -2,8 +2,8 @@
 
 import { motion } from "framer-motion"
 
-import { ExploreCard } from "@/app/(public)/(with-navbar)/explore/components/ExploreCard"
-import type { PortfolioCard } from "@/app/(public)/(with-navbar)/explore/components/explore.types"
+import { ExploreCard } from "@/app/(public)/(site)/explore/components/ExploreCard"
+import type { PortfolioCard } from "@/app/(public)/(site)/explore/components/explore.types"
 
 interface ProfilePortfoliosGridProps {
   portfolios: PortfolioCard[]
