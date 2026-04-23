@@ -294,7 +294,9 @@ const SkillReviewPanel = ({
                     size="sm"
                     variant={isGlobalEditing ? "default" : "outline"}
                     onClick={handleToggleGlobalEdit}
-                    className="w-fit hover:cursor-pointer"
+                    className={`w-fit hover:cursor-pointer ${
+                        isGlobalEditing ? "" : "px-8"
+                    }`}
                 >
                     {isGlobalEditing ? "Done Editing" : "Edit"}
                 </Button>
