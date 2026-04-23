@@ -251,7 +251,7 @@ const NavbarClient: React.FC = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="size-9 rounded-md bg-background/80 p-0 hover:cursor-pointer hover:bg-background/80 focus-visible:ring-0 focus-visible:ring-offset-0 md:ml-1"
+                    className="size-9 rounded-full bg-transparent p-0 hover:cursor-pointer hover:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 md:ml-1"
                   >
                     <Avatar className="size-9">
                       <AvatarImage src={avatarUrl ?? undefined} alt={user.email ?? "User avatar"} />

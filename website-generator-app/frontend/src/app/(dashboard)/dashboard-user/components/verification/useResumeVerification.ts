@@ -27,6 +27,9 @@ interface ResumeVerificationState {
     /** Structured data returned by the resume parser. */
     parsedData: ParsedResumeData | null;
 
+    /** Last backend update timestamp for the resume verification row. */
+    resumeUpdatedAt: string | null;
+
     /** True while the initial GET for an existing verification is in-flight. */
     isLoadingExisting: boolean;
 
@@ -64,6 +67,7 @@ const useResumeVerification = (
         isParsing: false,
         parsingError: null,
         parsedData: null,
+        resumeUpdatedAt: null,
         isLoadingExisting: true,
         hasPersisted: false,
         isIngesting: false,
@@ -96,6 +100,10 @@ const useResumeVerification = (
                     ...prev,
                     hasPersisted: true,
                     resumeVerificationId: data.id ?? null,
+                    resumeUpdatedAt:
+                        typeof data.updatedAt === "string"
+                            ? data.updatedAt
+                            : null,
                     resume: {
                         name: data.originalFileName ?? "Resume",
                         size: data.fileSizeBytes
@@ -155,6 +163,7 @@ const useResumeVerification = (
             resume: null,
             resumeVerificationId: null,
             parsedData: null,
+            resumeUpdatedAt: null,
             parsingError: null,
             hasPersisted: false,
             uploadError: null,
@@ -193,14 +202,33 @@ const useResumeVerification = (
                 setState((prev) => ({ ...prev, parsedData: parsed }));
 
                 // Persist parsed data to the backend in the background.
-                await fetch("/api/profile/resume-verification/parsed", {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        extractedText: parsed.normalizedText ?? null,
-                        parsedJson: parsed,
-                    }),
-                });
+                const persistResponse = await fetch(
+                    "/api/profile/resume-verification/parsed",
+                    {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            extractedText: parsed.normalizedText ?? null,
+                            parsedJson: parsed,
+                        }),
+                    },
+                );
+
+                if (persistResponse.ok) {
+                    const persistedPayload: { updatedAt?: unknown } | null =
+                        await persistResponse.json().catch(() => null);
+                    const updatedAt =
+                        typeof persistedPayload?.updatedAt === "string"
+                            ? persistedPayload.updatedAt
+                            : null;
+
+                    if (updatedAt) {
+                        setState((prev) => ({
+                            ...prev,
+                            resumeUpdatedAt: updatedAt,
+                        }));
+                    }
+                }
             }
         } catch (error) {
             console.error("Resume verification parsing failed:", error);
@@ -253,11 +281,19 @@ const useResumeVerification = (
                 throw new Error(message);
             }
 
-            const uploadData = await res.json();
+            const uploadData: { id?: unknown; updatedAt?: unknown } =
+                await res.json();
             setState((prev) => ({
                 ...prev,
                 hasPersisted: true,
-                resumeVerificationId: uploadData.id ?? null,
+                resumeVerificationId:
+                    typeof uploadData.id === "string"
+                        ? uploadData.id
+                        : null,
+                resumeUpdatedAt:
+                    typeof uploadData.updatedAt === "string"
+                        ? uploadData.updatedAt
+                        : prev.resumeUpdatedAt,
             }));
 
             // Navigate first so the user sees progress, then parse.
@@ -298,11 +334,30 @@ const useResumeVerification = (
                     experiences,
                 };
 
-                await fetch("/api/profile/resume-verification/review", {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ parsedJson: updatedParsedJson }),
-                });
+                const reviewResponse = await fetch(
+                    "/api/profile/resume-verification/review",
+                    {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ parsedJson: updatedParsedJson }),
+                    },
+                );
+
+                if (reviewResponse.ok) {
+                    const reviewPayload: { updatedAt?: unknown } | null =
+                        await reviewResponse.json().catch(() => null);
+                    const updatedAt =
+                        typeof reviewPayload?.updatedAt === "string"
+                            ? reviewPayload.updatedAt
+                            : null;
+
+                    if (updatedAt) {
+                        setState((prev) => ({
+                            ...prev,
+                            resumeUpdatedAt: updatedAt,
+                        }));
+                    }
+                }
 
                 // 2. Ingest claims — flat string list until backend supports provenance.
                 const res = await fetch(
@@ -351,11 +406,30 @@ const useResumeVerification = (
         };
 
         try {
-            await fetch("/api/profile/resume-verification/review", {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ parsedJson: updatedParsedJson }),
-            });
+            const response = await fetch(
+                "/api/profile/resume-verification/review",
+                {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ parsedJson: updatedParsedJson }),
+                },
+            );
+
+            if (response.ok) {
+                const reviewPayload: { updatedAt?: unknown } | null =
+                    await response.json().catch(() => null);
+                const updatedAt =
+                    typeof reviewPayload?.updatedAt === "string"
+                        ? reviewPayload.updatedAt
+                        : null;
+
+                if (updatedAt) {
+                    setState((prev) => ({
+                        ...prev,
+                        resumeUpdatedAt: updatedAt,
+                    }));
+                }
+            }
         } catch (error) {
             console.error("Failed to autosave review:", error);
         }

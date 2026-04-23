@@ -9,37 +9,66 @@ import type { ParsedExperience, ParsedResumeData } from "@/types/resume";
 
 type Experience = ParsedExperience;
 
+const formatRelativeTimestamp = (timestamp: string | null): string => {
+    if (!timestamp) return "Not available";
+
+    const date = new Date(timestamp);
+    if (Number.isNaN(date.getTime())) return "Not available";
+
+    const diffMs = Date.now() - date.getTime();
+    const minutes = Math.floor(diffMs / 60000);
+
+    if (minutes < 60) return `${Math.max(minutes, 1)}m ago`;
+
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+
+    return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+    });
+};
+
 // ─── Sub-components ───────────────────────────────────────────────────
 
 interface SkillChipProps {
     skill: string;
     onRemove: () => void;
+    canRemove: boolean;
 }
 
-const SkillChip = ({ skill, onRemove }: SkillChipProps) => (
+const SkillChip = ({ skill, onRemove, canRemove }: SkillChipProps) => (
     <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-sm font-medium text-foreground">
         {skill}
-        <button
-            onClick={onRemove}
-            className="rounded-full p-0.5 transition-colors hover:cursor-pointer hover:bg-destructive/20 hover:text-destructive"
-        >
-            <FiX className="h-3 w-3" />
-        </button>
+        {canRemove ? (
+            <button
+                onClick={onRemove}
+                className="rounded-full p-0.5 transition-colors hover:cursor-pointer hover:bg-destructive/20 hover:text-destructive"
+            >
+                <FiX className="h-3 w-3" />
+            </button>
+        ) : null}
     </span>
 );
 
 interface ExperienceItemProps {
     experience: Experience;
     onUpdate: (updates: Partial<Experience>) => void;
-    onDone: (experience: Experience) => void;
+    canEdit: boolean;
 }
 
 const fieldClass =
-    "bg-transparent border-b border-border focus:border-primary outline-none pb-0.5 transition-colors";
+    "bg-transparent border-0 border-b border-black dark:border-border focus:border-primary outline-none pb-0.5 transition-colors";
 
-const ExperienceItem = ({ experience, onUpdate, onDone }: ExperienceItemProps) => {
-    const [isEditing, setIsEditing] = useState(false);
-
+const ExperienceItem = ({
+    experience,
+    onUpdate,
+    canEdit,
+}: ExperienceItemProps) => {
     const updateBullet = (i: number, value: string) => {
         const bullets = [...(experience.bullets ?? [])];
         bullets[i] = value;
@@ -54,7 +83,7 @@ const ExperienceItem = ({ experience, onUpdate, onDone }: ExperienceItemProps) =
 
     const dateLabel = [experience.startDate, experience.endDate].filter(Boolean).join(" – ");
 
-    if (isEditing) {
+    if (canEdit) {
         return (
             <div className="border-l-2 border-primary/25 pl-4 space-y-2">
                 <input
@@ -110,12 +139,6 @@ const ExperienceItem = ({ experience, onUpdate, onDone }: ExperienceItemProps) =
                     </button>
                 </div>
 
-                <button
-                    onClick={() => { setIsEditing(false); onDone(experience); }}
-                    className="pt-1 text-xs font-medium text-primary hover:cursor-pointer"
-                >
-                    Done
-                </button>
             </div>
         );
     }
@@ -128,12 +151,6 @@ const ExperienceItem = ({ experience, onUpdate, onDone }: ExperienceItemProps) =
                 </h4>
                 <div className="ml-4 flex shrink-0 items-center gap-3">
                     <span className="text-xs font-medium text-primary">{dateLabel}</span>
-                    <button
-                        onClick={() => setIsEditing(true)}
-                        className="text-xs text-muted-foreground transition-colors hover:cursor-pointer hover:text-foreground"
-                    >
-                        Edit
-                    </button>
                 </div>
             </div>
             {experience.company ? (
@@ -157,6 +174,7 @@ const ExperienceItem = ({ experience, onUpdate, onDone }: ExperienceItemProps) =
 
 interface SkillReviewPanelProps {
     parsedData: ParsedResumeData | null;
+    lastUpdatedAt: string | null;
     isLoading: boolean;
     parsingError: string | null;
     isIngesting: boolean;
@@ -167,6 +185,7 @@ interface SkillReviewPanelProps {
 
 const SkillReviewPanel = ({
     parsedData,
+    lastUpdatedAt,
     isLoading,
     parsingError,
     isIngesting,
@@ -177,6 +196,7 @@ const SkillReviewPanel = ({
     const [skills, setSkills] = useState<string[]>([]);
     const [hasEditedSkills, setHasEditedSkills] = useState(false);
     const [newSkill, setNewSkill] = useState("");
+    const [isGlobalEditing, setIsGlobalEditing] = useState(false);
 
     const [editedExperiences, setEditedExperiences] = useState<Experience[]>([]);
     const [hasEditedExperiences, setHasEditedExperiences] = useState(false);
@@ -186,6 +206,10 @@ const SkillReviewPanel = ({
 
     const parsedExperiences = useMemo(() => parsedData?.experiences ?? [], [parsedData]);
     const effectiveExperiences = hasEditedExperiences ? editedExperiences : parsedExperiences;
+    const lastUpdatedLabel = useMemo(
+        () => formatRelativeTimestamp(lastUpdatedAt),
+        [lastUpdatedAt],
+    );
 
     const handleAddSkill = useCallback(() => {
         const trimmed = newSkill.trim();
@@ -221,14 +245,19 @@ const SkillReviewPanel = ({
         [hasEditedExperiences, editedExperiences, parsedExperiences],
     );
 
-    const handleExperienceDone = useCallback(
-        (index: number, finalExp: Experience) => {
-            const base = hasEditedExperiences ? editedExperiences : parsedExperiences;
-            const updated = base.map((exp, i) => (i === index ? finalExp : exp));
-            onSave(effectiveSkills, updated);
-        },
-        [hasEditedExperiences, editedExperiences, parsedExperiences, effectiveSkills, onSave],
-    );
+    const handleToggleGlobalEdit = useCallback(() => {
+        setIsGlobalEditing((prev) => {
+            const next = !prev;
+            if (!next) {
+                onSave(effectiveSkills, effectiveExperiences);
+            }
+            return next;
+        });
+    }, [effectiveSkills, effectiveExperiences, onSave]);
+
+    const editableCardClass = isGlobalEditing
+        ? "rounded-xl border-2 border-t-0 border-r-0 border-zinc-300/90 border-l-[6px] border-l-zinc-300/90 dark:border-zinc-700 dark:border-l-zinc-700 bg-white dark:bg-card p-6"
+        : "rounded-xl border-2 border-zinc-300/90 dark:border-zinc-700 bg-white dark:bg-card p-6 shadow-[0_0_0_1px_rgba(161,161,170,0.16),0_1px_1px_rgba(24,24,27,0.04)] dark:shadow-[0_0_0_1px_rgba(0,0,0,0.5),0_1px_1px_rgba(0,0,0,0.22)]";
 
     if (isLoading) {
         return (
@@ -259,8 +288,23 @@ const SkillReviewPanel = ({
                 </p>
             ) : null}
 
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <Button
+                    type="button"
+                    size="sm"
+                    variant={isGlobalEditing ? "default" : "outline"}
+                    onClick={handleToggleGlobalEdit}
+                    className="w-fit hover:cursor-pointer"
+                >
+                    {isGlobalEditing ? "Done Editing" : "Edit"}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                    Last updated: {lastUpdatedLabel}
+                </p>
+            </div>
+
             {/* Skills */}
-            <div className="rounded-xl border bg-card p-6 space-y-4">
+            <div className={`${editableCardClass} space-y-4`}>
                 <div className="space-y-1">
                     <h3 className="text-lg font-semibold text-primary">Skills</h3>
                     <p className="text-sm text-muted-foreground">
@@ -277,28 +321,41 @@ const SkillReviewPanel = ({
                             <SkillChip
                                 key={`${skill}-${index}`}
                                 skill={skill}
+                                canRemove={isGlobalEditing}
                                 onRemove={() => handleRemoveSkill(index)}
                             />
                         ))
                     )}
                 </div>
-                <div className="flex gap-2">
-                    <Input
-                        value={newSkill}
-                        onChange={(e) => setNewSkill(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        placeholder="Type a skill and press Enter"
-                        className="max-w-xs"
-                    />
-                    <Button variant="outline" size="sm" onClick={handleAddSkill} disabled={!newSkill.trim()} className="hover:cursor-pointer">
-                        <FiPlus className="mr-1 h-4 w-4" /> Add
-                    </Button>
-                </div>
+                {isGlobalEditing ? (
+                    <div className="flex gap-2">
+                        <Input
+                            value={newSkill}
+                            onChange={(e) => setNewSkill(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            placeholder="Type a skill and press Enter"
+                            className="max-w-xs border-black dark:border-input"
+                        />
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleAddSkill}
+                            disabled={!newSkill.trim()}
+                            className="hover:cursor-pointer"
+                        >
+                            <FiPlus className="mr-1 h-4 w-4" /> Add
+                        </Button>
+                    </div>
+                ) : (
+                    <p className="text-xs text-muted-foreground">
+                        Turn on edit mode to add or remove skills.
+                    </p>
+                )}
             </div>
 
             {/* Work Experience */}
             {effectiveExperiences.length > 0 ? (
-                <div className="rounded-xl border bg-card p-6 space-y-4">
+                <div className={`${editableCardClass} space-y-4`}>
                     <div className="space-y-1">
                         <h3 className="text-lg font-semibold text-primary">Work Experience</h3>
                         <p className="text-sm text-muted-foreground">
@@ -310,8 +367,8 @@ const SkillReviewPanel = ({
                             <ExperienceItem
                                 key={index}
                                 experience={exp}
+                                canEdit={isGlobalEditing}
                                 onUpdate={(updates) => updateExperience(index, updates)}
-                                onDone={(finalExp) => handleExperienceDone(index, finalExp)}
                             />
                         ))}
                     </div>

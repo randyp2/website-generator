@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 import ResumePreviewCard from "./ResumePreviewCard";
@@ -53,15 +53,16 @@ const ResumeVerificationGuard = ({
     isExternalLoading = false,
 }: ResumeVerificationGuardProps) => {
     const { activeTab, setActiveTab, hasExplicitTab } = useVerificationSubTab();
-
     const [maxReachedIndex, setMaxReachedIndex] = useState(() =>
         TAB_ORDER.indexOf(activeTab),
     );
-
-    useEffect(() => {
-        const idx = TAB_ORDER.indexOf(activeTab);
-        setMaxReachedIndex((prev) => Math.max(prev, idx));
-    }, [activeTab]);
+    const setActiveTabAndTrack = useCallback(
+        (tab: VerificationSubTab) => {
+            setMaxReachedIndex((prev) => Math.max(prev, TAB_ORDER.indexOf(tab)));
+            setActiveTab(tab);
+        },
+        [setActiveTab],
+    );
 
     const {
         resume,
@@ -70,6 +71,7 @@ const ResumeVerificationGuard = ({
         isParsing,
         parsingError,
         parsedData,
+        resumeUpdatedAt,
         isLoadingExisting,
         hasPersisted,
         isIngesting,
@@ -79,7 +81,7 @@ const ResumeVerificationGuard = ({
         handleContinueToSkillVerification,
         handleConfirmSkills,
         saveReview,
-    } = useResumeVerification(setActiveTab);
+    } = useResumeVerification(setActiveTabAndTrack);
 
     // ── Redirect returning users straight to skill-verification ──────
     // If the user has already completed the flow and arrives without an
@@ -122,12 +124,12 @@ const ResumeVerificationGuard = ({
         <div className="space-y-8">
             {/* Sub-tab bar — only reveals tabs the user has reached */}
             <div className="flex gap-6 border-b border-border">
-                {getVisibleTabs(maxReachedIndex).map((tab) => {
+                {getVisibleTabs(Math.max(maxReachedIndex, TAB_ORDER.indexOf(activeTab))).map((tab) => {
                     const isActive = activeTab === tab.id;
                     return (
                         <button
                             key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
+                            onClick={() => setActiveTabAndTrack(tab.id)}
                             className={`pb-3 text-sm font-medium transition-colors hover:cursor-pointer ${
                                 isActive
                                     ? "border-b-2 border-primary text-foreground"
@@ -187,6 +189,7 @@ const ResumeVerificationGuard = ({
             {activeTab === "skill-review" && (
                 <SkillReviewPanel
                     parsedData={parsedData}
+                    lastUpdatedAt={resumeUpdatedAt}
                     isLoading={isParsing}
                     parsingError={parsingError}
                     isIngesting={isIngesting}
