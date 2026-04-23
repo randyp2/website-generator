@@ -21,7 +21,7 @@ export const ExplorePortfolioPreviewCard = ({
       : buildPortfolioUrl(portfolio.slug);
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-border bg-card/80 p-3 shadow-sm sm:p-4">
+    <article>
       <BrowserPreviewFrame
         src={portfolio.screenshotUrl ?? DEFAULT_PREVIEW_IMAGE}
         alt={`${portfolio.title} preview`}

@@ -26,7 +26,7 @@ export const ExplorePortfolioSidebar = ({
   const sectionCount = portfolio.sections.length;
 
   return (
-    <aside className="flex h-fit flex-col gap-5 xl:sticky xl:top-24">
+    <aside className="flex h-fit flex-col gap-5">
       <div className="rounded-xl border border-border bg-card p-6 shadow-sm sm:p-8">
         <p className="text-xs font-semibold tracking-[0.24em] text-primary uppercase">
           Portfolio Details

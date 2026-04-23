@@ -93,7 +93,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${interSans.variable} ${sourceSerif.variable} ${jetBrainsMono.variable} font-sans overflow-x-hidden relative flex flex-col min-h-screen bg-background text-foreground`}
+        className={`${interSans.variable} ${sourceSerif.variable} ${jetBrainsMono.variable} font-sans overflow-x-clip relative flex flex-col min-h-screen bg-background text-foreground`}
       >
         <AppThemeProvider>
           {children}
