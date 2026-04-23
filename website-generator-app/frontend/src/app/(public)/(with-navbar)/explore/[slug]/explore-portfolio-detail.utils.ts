@@ -3,6 +3,7 @@ import type {
   ExplorePortfolioMetrics,
   TimeAgoParts,
 } from "./explore-portfolio-detail.types";
+import { buildPortfolioPath } from "@/lib/public-env";
 
 export const DEFAULT_PREVIEW_IMAGE =
   "https://images.unsplash.com/photo-1545665277-5937489579f2?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
@@ -115,7 +116,7 @@ export const getPortfolioFullHref = (portfolio: ExplorePortfolioDetail): string 
   if (isExternalExplorePortfolio(portfolio) && portfolio.externalUrl) {
     return portfolio.externalUrl;
   }
-  return `/portfolio/${portfolio.slug}`;
+  return buildPortfolioPath(portfolio.slug, portfolio.ownerName);
 };
 
 export const getPortfolioDescriptionSnippet = (

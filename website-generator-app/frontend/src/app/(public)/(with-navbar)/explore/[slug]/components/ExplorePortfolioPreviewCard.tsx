@@ -18,16 +18,14 @@ export const ExplorePortfolioPreviewCard = ({
   const displayUrl =
     isExternal && portfolio.externalUrl
       ? portfolio.externalUrl
-      : buildPortfolioUrl(portfolio.slug);
+      : buildPortfolioUrl(portfolio.slug, portfolio.ownerName);
 
   return (
-    <article>
-      <BrowserPreviewFrame
-        src={portfolio.screenshotUrl ?? DEFAULT_PREVIEW_IMAGE}
-        alt={`${portfolio.title} preview`}
-        url={displayUrl}
-        fallback="https://placehold.co/1200x675?text=Portfolio+Preview"
-      />
-    </article>
+    <BrowserPreviewFrame
+      src={portfolio.screenshotUrl ?? DEFAULT_PREVIEW_IMAGE}
+      alt={`${portfolio.title} preview`}
+      url={displayUrl}
+      fallback="https://placehold.co/1200x675?text=Portfolio+Preview"
+    />
   );
 };
