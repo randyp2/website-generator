@@ -52,7 +52,7 @@ const ExplorePortfolioDetailPage = async ({ params }: Props) => {
   return (
     <section className="min-h-screen bg-background px-6 py-10 sm:px-8 lg:px-12">
       <div className="mx-auto w-full max-w-[96rem]">
-        <div className="grid gap-x-6 gap-y-8 xl:grid-cols-[minmax(0,1.8fr)_320px]">
+        <div className="grid items-start gap-x-6 gap-y-8 lg:grid-cols-[minmax(0,1.8fr)_320px]">
           <div className="flex min-w-0 flex-col gap-8">
             <div className="space-y-2">
               <Link

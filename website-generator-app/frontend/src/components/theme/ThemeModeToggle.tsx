@@ -150,17 +150,26 @@ export function ThemeModeToggle({
         avoidCollisions={false}
         className="w-44 rounded-xl"
       >
-        <DropdownMenuItem onClick={() => setTheme("light")}>
+        <DropdownMenuItem
+          className="hover:cursor-pointer"
+          onClick={() => setTheme("light")}
+        >
           <Sun className="mr-2 size-4" />
           Light
           {mode === "light" ? <Check className="ml-auto size-4" /> : null}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>
+        <DropdownMenuItem
+          className="hover:cursor-pointer"
+          onClick={() => setTheme("dark")}
+        >
           <Moon className="mr-2 size-4" />
           Dark
           {mode === "dark" ? <Check className="ml-auto size-4" /> : null}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>
+        <DropdownMenuItem
+          className="hover:cursor-pointer"
+          onClick={() => setTheme("system")}
+        >
           <Laptop className="mr-2 size-4" />
           System
           {mode === "system" ? <Check className="ml-auto size-4" /> : null}

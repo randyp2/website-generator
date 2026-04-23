@@ -221,7 +221,7 @@ const NavbarClient: React.FC = () => {
       <div className="ml-auto flex items-center gap-2 pl-2 md:justify-self-end md:pl-0">
         <ThemeModeToggle
           collapsed
-          className="size-9 border-border/70 bg-background/80 text-foreground hover:bg-background/80 hover:text-foreground"
+          className="size-9 border-border/70 bg-background/80 text-foreground hover:cursor-pointer hover:bg-background/80 hover:text-foreground"
         />
         {user ? (
           <>
@@ -230,7 +230,7 @@ const NavbarClient: React.FC = () => {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="size-9 rounded-md border border-border/70 bg-background/80 hover:bg-accent/60"
+                className="size-9 rounded-md border border-border/70 bg-background/80 hover:cursor-pointer hover:bg-accent/60"
                 aria-label="Inbox"
               >
                 <Inbox className="size-4" />
@@ -239,7 +239,7 @@ const NavbarClient: React.FC = () => {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="size-9 rounded-md border border-border/70 bg-background/80 hover:bg-accent/60"
+                className="size-9 rounded-md border border-border/70 bg-background/80 hover:cursor-pointer hover:bg-accent/60"
                 aria-label="Notifications"
               >
                 <Bell className="size-4" />
@@ -251,7 +251,7 @@ const NavbarClient: React.FC = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="size-9 rounded-md bg-background/80 p-0 hover:bg-background/80 focus-visible:ring-0 focus-visible:ring-offset-0 md:ml-1"
+                    className="size-9 rounded-md bg-background/80 p-0 hover:cursor-pointer hover:bg-background/80 focus-visible:ring-0 focus-visible:ring-offset-0 md:ml-1"
                   >
                     <Avatar className="size-9">
                       <AvatarImage src={avatarUrl ?? undefined} alt={user.email ?? "User avatar"} />
@@ -268,16 +268,23 @@ const NavbarClient: React.FC = () => {
                   avoidCollisions={false}
                   className="w-48 rounded-xl"
                 >
-                  <DropdownMenuItem onClick={() => router.push("/dashboard-user")}>
+                  <DropdownMenuItem
+                    className="hover:cursor-pointer"
+                    onClick={() => router.push("/dashboard-user")}
+                  >
                     <LayoutDashboard className="mr-2 size-4" />
                     Dashboard
                   </DropdownMenuItem>
-                  <DropdownMenuItem disabled>
+                  <DropdownMenuItem
+                    className="hover:cursor-pointer"
+                    onClick={() => router.push("/dashboard-user/profile")}
+                  >
                     <UserCircle2 className="mr-2 size-4" />
                     Profile
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
+                    className="hover:cursor-pointer"
                     onClick={async () => {
                       await signoutClient()
                       router.push("/")
