@@ -8,6 +8,7 @@ import { PublishListCard } from "./PublishListCard"
 
 interface PublishLiveColumnProps {
   live: Portfolio[]
+  ownerName: string
   featuredPortfolioId: string | null
   copiedSlug: string | null
   onSelectFeatured: (portfolioId: string) => void
@@ -17,6 +18,7 @@ interface PublishLiveColumnProps {
 
 export const PublishLiveColumn = ({
   live,
+  ownerName,
   featuredPortfolioId,
   copiedSlug,
   onSelectFeatured,
@@ -52,6 +54,7 @@ export const PublishLiveColumn = ({
               key={portfolioId}
               portfolio={portfolio}
               variant="live"
+              ownerName={ownerName}
               isFeatured={portfolioId === featuredPortfolioId}
               copied={copiedSlug !== null && copiedSlug === slug}
               onClick={() => onSelectFeatured(portfolioId)}

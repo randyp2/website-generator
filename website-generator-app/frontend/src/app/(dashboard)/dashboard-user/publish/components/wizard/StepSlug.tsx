@@ -1,8 +1,10 @@
 "use client"
 
 import { FiCheck, FiLoader } from "react-icons/fi"
+import { toDecorativeProfileSegment } from "@/lib/public-env"
 
 interface StepSlugProps {
+  ownerName: string
   slugInput: string
   slugIsValid: boolean
   slugAvailable: boolean | null
@@ -12,6 +14,7 @@ interface StepSlugProps {
 }
 
 export const StepSlug = ({
+  ownerName,
   slugInput,
   slugIsValid,
   slugAvailable,
@@ -19,6 +22,8 @@ export const StepSlug = ({
   isUnchanged,
   onChange,
 }: StepSlugProps) => {
+  const profileSegment = toDecorativeProfileSegment(ownerName)
+
   return (
     <div className="space-y-3">
       <div>
@@ -30,7 +35,7 @@ export const StepSlug = ({
       </div>
       <div className="flex items-center overflow-hidden rounded-xl border border-border bg-background transition-colors focus-within:border-primary">
         <span className="whitespace-nowrap border-r border-border bg-muted px-3 py-3 font-mono text-xs text-muted-foreground">
-          /portfolio/
+          /{profileSegment}/
         </span>
         <input
           type="text"

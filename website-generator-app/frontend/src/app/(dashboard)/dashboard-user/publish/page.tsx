@@ -67,8 +67,8 @@ const PublishPage = () => {
             featuredPortfolio.external_url ??
             featuredPortfolio.externalUrl ??
             null;
-        void copySlug(featuredPortfolio.slug, externalUrl);
-    }, [featuredPortfolio, copySlug]);
+        void copySlug(featuredPortfolio.slug, externalUrl, ownerName);
+    }, [featuredPortfolio, copySlug, ownerName]);
 
     const handleUnpublishFeatured = useCallback((): void => {
         if (featuredPortfolio) void unpublish(String(featuredPortfolio.id));
@@ -76,9 +76,9 @@ const PublishPage = () => {
 
     const handleCopySlug = useCallback(
         (slug: string, externalUrl?: string | null): void => {
-            void copySlug(slug, externalUrl ?? null);
+            void copySlug(slug, externalUrl ?? null, ownerName);
         },
-        [copySlug],
+        [copySlug, ownerName],
     );
 
     const handleUnpublishPortfolio = useCallback(
@@ -95,6 +95,7 @@ const PublishPage = () => {
             <div>
                 <PublishHero
                     portfolio={featuredPortfolio}
+                    ownerName={ownerName}
                     liveCount={live.length}
                     viewMode={heroViewMode}
                     onViewModeChange={setHeroViewMode}
@@ -111,9 +112,10 @@ const PublishPage = () => {
             </div>
 
             <div className="grid gap-6 xl:grid-cols-2">
-                <PublishDraftsColumn drafts={drafts} />
+                <PublishDraftsColumn drafts={drafts} ownerName={ownerName} />
                 <PublishLiveColumn
                     live={live}
+                    ownerName={ownerName}
                     featuredPortfolioId={featuredPortfolioId}
                     copiedSlug={copiedSlug}
                     onSelectFeatured={setFeaturedPortfolioId}

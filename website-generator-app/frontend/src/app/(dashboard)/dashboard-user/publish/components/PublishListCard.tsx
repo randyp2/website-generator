@@ -9,6 +9,7 @@ import {
   FiStar,
 } from "react-icons/fi"
 
+import { buildPortfolioPath } from "@/lib/public-env"
 import { cn } from "@/lib/utils"
 import type { Portfolio } from "@/types/portfolio"
 
@@ -17,6 +18,7 @@ import { formatPortfolioDate } from "../../utils/deployedPortfolio"
 interface PublishListCardProps {
   portfolio: Portfolio
   variant: "draft" | "live"
+  ownerName?: string
   isFeatured?: boolean
   copied?: boolean
   onClick?: () => void
@@ -27,6 +29,7 @@ interface PublishListCardProps {
 export const PublishListCard = ({
   portfolio,
   variant,
+  ownerName,
   isFeatured = false,
   copied = false,
   onClick,
@@ -43,8 +46,16 @@ export const PublishListCard = ({
   const isExternal =
     sourceTypeNormalized === "external" ||
     (sourceTypeNormalized !== "generated" && externalUrl.length > 0)
-  const displayUrl = isExternal && externalUrl ? externalUrl : slug ? `/portfolio/${slug}` : ""
-  const openHref = isExternal && externalUrl ? externalUrl : slug ? `/portfolio/${slug}` : ""
+  const displayUrl = isExternal && externalUrl
+    ? externalUrl
+    : slug
+      ? buildPortfolioPath(slug, ownerName)
+      : ""
+  const openHref = isExternal && externalUrl
+    ? externalUrl
+    : slug
+      ? buildPortfolioPath(slug, ownerName)
+      : ""
 
   return (
     <article

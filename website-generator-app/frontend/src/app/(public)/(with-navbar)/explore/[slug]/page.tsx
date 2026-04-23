@@ -5,6 +5,7 @@ import { ArrowLeft, SquareArrowOutUpRight } from "lucide-react";
 
 import { fetchPublicPortfolio } from "@/lib/api/publicPortfolio";
 import { ExplorePortfolioDescription } from "./components/ExplorePortfolioDescription";
+import { ExplorePortfolioPlaceholderCard } from "./components/ExplorePortfolioPlaceholderCard";
 import { ExplorePortfolioPreviewCard } from "./components/ExplorePortfolioPreviewCard";
 import { ExplorePortfolioSidebar } from "./components/ExplorePortfolioSidebar";
 import PortfolioComments from "./components/PortfolioComments";
@@ -51,7 +52,7 @@ const ExplorePortfolioDetailPage = async ({ params }: Props) => {
   return (
     <section className="min-h-screen bg-background px-6 py-10 sm:px-8 lg:px-12">
       <div className="mx-auto w-full max-w-[96rem]">
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.8fr)_320px]">
+        <div className="grid gap-x-6 gap-y-8 xl:grid-cols-[minmax(0,1.8fr)_320px]">
           <div className="flex min-w-0 flex-col gap-8">
             <div className="space-y-2">
               <Link
@@ -92,10 +93,6 @@ const ExplorePortfolioDetailPage = async ({ params }: Props) => {
             </div>
 
             <ExplorePortfolioPreviewCard portfolio={portfolio} />
-
-            <ExplorePortfolioDescription portfolio={portfolio} />
-
-            <PortfolioComments />
           </div>
 
           <ExplorePortfolioSidebar
@@ -103,6 +100,13 @@ const ExplorePortfolioDetailPage = async ({ params }: Props) => {
             metrics={metrics}
             updatedTime={updatedTime}
           />
+
+          <div className="flex min-w-0 flex-col gap-8">
+            <ExplorePortfolioDescription portfolio={portfolio} />
+            <PortfolioComments />
+          </div>
+
+          <ExplorePortfolioPlaceholderCard />
         </div>
       </div>
     </section>

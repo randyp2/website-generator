@@ -4,6 +4,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiArrowLeft, FiArrowRight, FiGlobe, FiX } from "react-icons/fi";
 
+import { buildPortfolioUrl } from "@/lib/public-env";
 import { cn } from "@/lib/utils";
 import type { Portfolio } from "@/types/portfolio";
 
@@ -249,12 +250,11 @@ export const PublishWizardModal = ({
 
     const handleCopyUrl = async () => {
         if (!publishedSlug) return;
-        const origin = window.location.origin;
         const trimmedExternalUrl = externalUrl.trim();
         const urlToCopy =
             source === "external" && trimmedExternalUrl
                 ? trimmedExternalUrl
-                : `${origin}/portfolio/${publishedSlug}`;
+                : buildPortfolioUrl(publishedSlug, ownerName);
         await navigator.clipboard.writeText(urlToCopy);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
@@ -342,6 +342,7 @@ export const PublishWizardModal = ({
                                 )}
                                 {currentStep === 1 && (
                                     <StepSlug
+                                        ownerName={ownerName}
                                         slugInput={slugInput}
                                         slugIsValid={slugIsValid}
                                         slugAvailable={slugAvailable}
@@ -374,6 +375,7 @@ export const PublishWizardModal = ({
                                         error={publishError}
                                         slug={slugInput}
                                         externalUrl={externalUrl}
+                                        ownerName={ownerName}
                                         publishedSlug={publishedSlug}
                                         onCopyUrl={handleCopyUrl}
                                         copied={copied}

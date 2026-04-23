@@ -1,10 +1,15 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { buildPortfolioUrl } from "@/lib/public-env"
 
 interface UseCopySlugResult {
   copiedSlug: string | null
-  copySlug: (slug: string, explicitUrl?: string | null) => Promise<void>
+  copySlug: (
+    slug: string,
+    explicitUrl?: string | null,
+    profile?: string | null,
+  ) => Promise<void>
 }
 
 const COPY_FEEDBACK_MS = 2000
@@ -21,11 +26,15 @@ export const useCopySlug = (): UseCopySlugResult => {
   )
 
   const copySlug = useCallback(
-    async (slug: string, explicitUrl?: string | null): Promise<void> => {
+    async (
+      slug: string,
+      explicitUrl?: string | null,
+      profile?: string | null,
+    ): Promise<void> => {
       const trimmedExplicit = explicitUrl?.trim()
       const urlToCopy = trimmedExplicit
         ? trimmedExplicit
-        : `${window.location.origin}/portfolio/${slug}`
+        : buildPortfolioUrl(slug, profile)
       await navigator.clipboard.writeText(urlToCopy)
       setCopiedSlug(slug)
       if (timerRef.current) clearTimeout(timerRef.current)

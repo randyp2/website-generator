@@ -50,7 +50,7 @@ export const StepPreview = ({
   const previewSrc = portfolio?.screenshot_url ?? DEFAULT_PREVIEW_IMAGE
   const browserUrl = isExternal
     ? externalUrl || "https://yourportfolio.com"
-    : buildPortfolioUrl(slug || "your-slug")
+    : buildPortfolioUrl(slug || "your-slug", ownerName)
   const initials =
     ownerName
       .split(/\s+/)

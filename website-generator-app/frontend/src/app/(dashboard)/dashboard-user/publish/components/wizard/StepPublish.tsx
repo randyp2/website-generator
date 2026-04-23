@@ -2,6 +2,7 @@
 
 import { FiCheck, FiCopy, FiExternalLink, FiGlobe, FiLoader } from "react-icons/fi"
 
+import { buildPortfolioPath } from "@/lib/public-env"
 import { cn } from "@/lib/utils"
 import type { PublishSource } from "./StepPick"
 
@@ -13,6 +14,7 @@ interface StepPublishProps {
   error: string | null
   slug: string
   externalUrl: string
+  ownerName: string
   publishedSlug: string | null
   onCopyUrl: () => void
   copied: boolean
@@ -24,6 +26,7 @@ export const StepPublish = ({
   error,
   slug,
   externalUrl,
+  ownerName,
   publishedSlug,
   onCopyUrl,
   copied,
@@ -34,10 +37,10 @@ export const StepPublish = ({
   const trimmedExternalUrl = externalUrl.trim()
   const successHref = isExternal && trimmedExternalUrl
     ? trimmedExternalUrl
-    : `/portfolio/${publishedSlug ?? slug}`
+    : buildPortfolioPath(publishedSlug ?? slug, ownerName)
   const successDisplayUrl = isExternal && trimmedExternalUrl
     ? trimmedExternalUrl
-    : `/portfolio/${publishedSlug ?? slug}`
+    : buildPortfolioPath(publishedSlug ?? slug, ownerName)
 
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-6 text-center">

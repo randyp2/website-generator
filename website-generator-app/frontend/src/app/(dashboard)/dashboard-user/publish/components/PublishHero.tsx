@@ -12,7 +12,7 @@ import {
 } from "react-icons/fi"
 
 import { BrowserPreviewFrame } from "@/components/ui/browser-preview-frame"
-import { buildPortfolioUrl } from "@/lib/public-env"
+import { buildPortfolioPath, buildPortfolioUrl } from "@/lib/public-env"
 import { cn } from "@/lib/utils"
 import type { Portfolio } from "@/types/portfolio"
 
@@ -35,6 +35,7 @@ const formatTemplateLabel = (templateId: string | null | undefined): string => {
 
 interface PublishHeroProps {
   portfolio: Portfolio | null
+  ownerName: string
   liveCount: number
   viewMode: PublishHeroViewMode
   onViewModeChange: (mode: PublishHeroViewMode) => void
@@ -48,6 +49,7 @@ interface PublishHeroProps {
 
 export const PublishHero = ({
   portfolio,
+  ownerName,
   liveCount,
   viewMode,
   onViewModeChange,
@@ -96,13 +98,13 @@ export const PublishHero = ({
   const displayUrl =
     isExternalPortfolio && externalUrl
       ? externalUrl
-      : buildPortfolioUrl(slug ?? "pending-slug")
+      : buildPortfolioUrl(slug ?? "pending-slug", ownerName)
   const livePath =
     isExternalPortfolio && externalUrl
       ? externalUrl
       : slug
-        ? `/portfolio/${slug}`
-        : "/portfolio/pending-slug"
+        ? buildPortfolioPath(slug, ownerName)
+        : buildPortfolioPath("pending-slug", ownerName)
   const previewSrc = portfolio.screenshot_url ?? DEFAULT_HERO_IMAGE
   const templateLabel = formatTemplateLabel(portfolio.template_id)
   const lastUpdated = formatPortfolioDate(portfolio.updated_at)
