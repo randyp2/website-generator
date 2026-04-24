@@ -62,4 +62,7 @@ public class Profile {
 
     @Column(name = "github_url")
     private String githubUrl;
+
+    @Column(name = "onboarding_complete", nullable = false)
+    private Boolean onboardingComplete;
 }

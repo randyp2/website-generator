@@ -23,4 +23,5 @@ public class ProfileMeDTO {
     private String websiteUrl;
     private String linkedinUrl;
     private String githubUrl;
+    private Boolean onboardingComplete;
 }
