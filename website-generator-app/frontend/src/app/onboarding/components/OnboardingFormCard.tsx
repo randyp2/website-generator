@@ -1,5 +1,17 @@
 import { motion } from "framer-motion";
-import { Loader2 } from "lucide-react";
+import {
+    AlignLeft,
+    BookOpen,
+    BriefcaseBusiness,
+    Building2,
+    Github,
+    Globe,
+    GraduationCap,
+    Linkedin,
+    Loader2,
+    MapPin,
+    type LucideIcon,
+} from "lucide-react";
 import { type ChangeEvent, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -35,6 +47,42 @@ type OnboardingFormCardProps = {
     ) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
     onUsernameChange: (event: ChangeEvent<HTMLInputElement>) => void;
 };
+
+type FieldLabelProps = {
+    htmlFor: string;
+    label: string;
+    icon: LucideIcon;
+};
+
+type SimpleLabelProps = {
+    htmlFor: string;
+    label: string;
+};
+
+const iconCircleClassName =
+    "inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#f59e0b]/18 text-[#f59e0b] dark:bg-[#fb923c]/20 dark:text-[#fdba74]";
+const inputClassName = "h-12 text-base";
+
+const SimpleLabel = ({ htmlFor, label }: SimpleLabelProps) => (
+    <Label
+        htmlFor={htmlFor}
+        className="inline-flex items-center text-[0.95rem] font-medium text-foreground"
+    >
+        {label}
+    </Label>
+);
+
+const FieldLabel = ({ htmlFor, label, icon: Icon }: FieldLabelProps) => (
+    <Label
+        htmlFor={htmlFor}
+        className="inline-flex items-center gap-2 text-[0.95rem] font-medium text-foreground"
+    >
+        <span className={iconCircleClassName}>
+            <Icon className="h-4 w-4" />
+        </span>
+        {label}
+    </Label>
+);
 
 const OnboardingFormCard = ({
     form,
@@ -82,9 +130,9 @@ const OnboardingFormCard = ({
                 </CardHeader>
 
                 <CardContent>
-                    <form onSubmit={onSubmit} className="space-y-6">
+                    <form onSubmit={onSubmit} className="space-y-7">
                         <div className="space-y-2">
-                            <Label htmlFor="username">Username</Label>
+                            <SimpleLabel htmlFor="username" label="Username" />
                             <Input
                                 id="username"
                                 name="username"
@@ -94,11 +142,12 @@ const OnboardingFormCard = ({
                                 placeholder="your-name"
                                 maxLength={32}
                                 aria-invalid={usernameState.status === "unavailable"}
+                                className={inputClassName}
                                 required
                             />
                             <p
                                 className={cn(
-                                    "text-sm",
+                                    "text-[0.95rem]",
                                     usernameState.status === "available" && "text-primary",
                                     usernameState.status === "checking" && "text-muted-foreground",
                                     usernameState.status === "unavailable" && "text-destructive",
@@ -108,99 +157,123 @@ const OnboardingFormCard = ({
                             </p>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                             <div className="space-y-2">
-                                <Label htmlFor="fullName">Full Name</Label>
+                                <SimpleLabel htmlFor="firstName" label="First Name" />
                                 <Input
-                                    id="fullName"
-                                    value={form.fullName}
-                                    onChange={onFieldChange("fullName")}
-                                    placeholder="Alex Johnson"
+                                    id="firstName"
+                                    value={form.firstName}
+                                    onChange={onFieldChange("firstName")}
+                                    autoComplete="given-name"
+                                    placeholder="Alex"
+                                    className={inputClassName}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="location">Location</Label>
+                                <SimpleLabel htmlFor="lastName" label="Last Name" />
+                                <Input
+                                    id="lastName"
+                                    value={form.lastName}
+                                    onChange={onFieldChange("lastName")}
+                                    autoComplete="family-name"
+                                    placeholder="Johnson"
+                                    className={inputClassName}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <FieldLabel htmlFor="location" label="Location" icon={MapPin} />
                                 <Input
                                     id="location"
                                     value={form.location}
                                     onChange={onFieldChange("location")}
                                     placeholder="San Francisco, CA"
+                                    className={inputClassName}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="school">School</Label>
+                                <FieldLabel htmlFor="school" label="School" icon={GraduationCap} />
                                 <Input
                                     id="school"
                                     value={form.school}
                                     onChange={onFieldChange("school")}
                                     placeholder="University name"
+                                    className={inputClassName}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="degree">Degree</Label>
+                                <FieldLabel htmlFor="degree" label="Degree" icon={BookOpen} />
                                 <Input
                                     id="degree"
                                     value={form.degree}
                                     onChange={onFieldChange("degree")}
                                     placeholder="B.S. Computer Science"
+                                    className={inputClassName}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="jobTitle">Job Title</Label>
+                                <FieldLabel htmlFor="jobTitle" label="Job Title" icon={Building2} />
                                 <Input
                                     id="jobTitle"
                                     value={form.jobTitle}
                                     onChange={onFieldChange("jobTitle")}
                                     placeholder="Frontend Engineer"
+                                    className={inputClassName}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="company">Company</Label>
+                                <FieldLabel htmlFor="company" label="Company" icon={BriefcaseBusiness} />
                                 <Input
                                     id="company"
                                     value={form.company}
                                     onChange={onFieldChange("company")}
                                     placeholder="Company name"
+                                    className={inputClassName}
                                 />
                             </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
                             <div className="space-y-2">
-                                <Label htmlFor="websiteUrl">Website URL</Label>
+                                <FieldLabel htmlFor="websiteUrl" label="Website URL" icon={Globe} />
                                 <Input
                                     id="websiteUrl"
                                     type="url"
                                     value={form.websiteUrl}
                                     onChange={onFieldChange("websiteUrl")}
                                     placeholder="https://your-site.com"
+                                    className={inputClassName}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="linkedinUrl">LinkedIn URL</Label>
+                                <FieldLabel htmlFor="linkedinUrl" label="LinkedIn URL" icon={Linkedin} />
                                 <Input
                                     id="linkedinUrl"
                                     type="url"
                                     value={form.linkedinUrl}
                                     onChange={onFieldChange("linkedinUrl")}
                                     placeholder="https://linkedin.com/in/you"
+                                    className={inputClassName}
                                 />
                             </div>
-                            <div className="space-y-2 md:col-span-2">
-                                <Label htmlFor="githubUrl">GitHub URL</Label>
+                            <div className="space-y-2">
+                                <FieldLabel htmlFor="githubUrl" label="GitHub URL" icon={Github} />
                                 <Input
                                     id="githubUrl"
                                     type="url"
                                     value={form.githubUrl}
                                     onChange={onFieldChange("githubUrl")}
                                     placeholder="https://github.com/you"
+                                    className={inputClassName}
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <Label htmlFor="bio">Bio</Label>
+                                <FieldLabel htmlFor="bio" label="Bio" icon={AlignLeft} />
                                 <span
                                     className={cn(
-                                        "text-xs text-muted-foreground",
+                                        "text-[0.85rem] text-muted-foreground",
                                         bioLength > BIO_MAX_LENGTH && "text-destructive",
                                     )}
                                 >
@@ -213,19 +286,23 @@ const OnboardingFormCard = ({
                                 onChange={onFieldChange("bio")}
                                 placeholder="A short introduction to your work and interests."
                                 maxLength={BIO_MAX_LENGTH}
-                                className="min-h-28"
+                                className="min-h-32 text-base"
                             />
                         </div>
 
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                             {submitError && (
-                                <p className="text-sm text-destructive">{submitError}</p>
+                                <p className="text-[0.95rem] text-destructive">{submitError}</p>
                             )}
                             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                <p className="text-sm text-muted-foreground">
+                                <p className="text-[0.95rem] text-muted-foreground">
                                     You can edit all of this later.
                                 </p>
-                                <Button type="submit" disabled={!canSubmit} className="sm:min-w-44">
+                                <Button
+                                    type="submit"
+                                    disabled={!canSubmit}
+                                    className="h-12 text-base sm:min-w-44"
+                                >
                                     {isSubmitting ? (
                                         <span className="inline-flex items-center gap-2">
                                             <Loader2 className="h-4 w-4 animate-spin" />
