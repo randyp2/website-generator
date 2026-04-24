@@ -154,11 +154,13 @@ export interface VerificationOverviewProps {
   lastRerunAt: string | null
   onRerunChecks: () => void | Promise<void>
   isRerunningChecks?: boolean
+  showActions?: boolean
 }
 
 export interface ConnectionsPanelProps {
   connections: ConnectionData[]
   connectionActionInFlight?: ConnectionActionInFlight | null
+  readOnly?: boolean
   onConnect: (provider: ConnectionProvider) => void
   onDisconnect: (provider: ConnectionProvider) => void
 }
@@ -178,6 +180,7 @@ export interface SkillDetailDrawerProps {
   open: boolean
   isDeletingClaim: boolean
   deleteError: string | null
+  showClaimControls?: boolean
   onDeleteClaim: (claimId: string) => Promise<void>
   onClose: () => void
 }

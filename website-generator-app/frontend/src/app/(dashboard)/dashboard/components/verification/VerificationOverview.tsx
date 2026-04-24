@@ -28,6 +28,7 @@ const VerificationOverview = ({
   lastRerunAt,
   onRerunChecks,
   isRerunningChecks = false,
+  showActions = true,
 }: VerificationOverviewProps) => {
   const offset = CIRCUMFERENCE - (data.overallScore / 100) * CIRCUMFERENCE
   const lastRerunLabel = lastRerunAt
@@ -154,24 +155,29 @@ const VerificationOverview = ({
               </Badge>
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  void onRerunChecks()
-                }}
-                disabled={isRerunningChecks}
-                className="gap-1.5 hover:cursor-pointer"
-              >
-                <RefreshCw className={cn("h-3.5 w-3.5", isRerunningChecks && "animate-spin")} />
-                {isRerunningChecks ? "Re-running..." : "Re-run Checks"}
-              </Button>
+            {showActions ? (
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    void onRerunChecks()
+                  }}
+                  disabled={isRerunningChecks}
+                  className="gap-1.5 hover:cursor-pointer"
+                >
+                  <RefreshCw className={cn("h-3.5 w-3.5", isRerunningChecks && "animate-spin")} />
+                  {isRerunningChecks ? "Re-running..." : "Re-run Checks"}
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  Last re-run {lastRerunLabel}
+                </span>
+              </div>
+            ) : (
               <span className="text-xs text-muted-foreground">
                 Last re-run {lastRerunLabel}
               </span>
-            </div>
+            )}
           </div>
         </div>
       </CardContent>

@@ -50,6 +50,7 @@ const SkillDetailDrawer = ({
   open,
   isDeletingClaim,
   deleteError,
+  showClaimControls = true,
   onDeleteClaim,
   onClose,
 }: SkillDetailDrawerProps) => {
@@ -320,31 +321,33 @@ const SkillDetailDrawer = ({
             )}
           </div>
 
-          <div className="space-y-2 border-t border-border pt-4">
-            <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider">
-              Claim Controls
-            </h4>
-            <Button
-              variant="destructive"
-              size="sm"
-              className="w-full hover:cursor-pointer"
-              disabled={isDeletingClaim}
-              onClick={async () => {
-                const confirmed = window.confirm(
-                  "Delete this claim from your verification list?",
-                )
-                if (!confirmed) return
-                await onDeleteClaim(skill.id)
-              }}
-            >
-              {isDeletingClaim ? "Deleting claim..." : "Delete Claim"}
-            </Button>
-            {deleteError && (
-              <p className="text-xs text-destructive">
-                {deleteError}
-              </p>
-            )}
-          </div>
+          {showClaimControls && (
+            <div className="space-y-2 border-t border-border pt-4">
+              <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider">
+                Claim Controls
+              </h4>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="w-full hover:cursor-pointer"
+                disabled={isDeletingClaim}
+                onClick={async () => {
+                  const confirmed = window.confirm(
+                    "Delete this claim from your verification list?",
+                  )
+                  if (!confirmed) return
+                  await onDeleteClaim(skill.id)
+                }}
+              >
+                {isDeletingClaim ? "Deleting claim..." : "Delete Claim"}
+              </Button>
+              {deleteError && (
+                <p className="text-xs text-destructive">
+                  {deleteError}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </SheetContent>
     </Sheet>

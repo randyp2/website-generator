@@ -18,6 +18,7 @@ import { getConnectionStatusColor } from "./verification.utils"
 interface ConnectionCardProps {
   connection: ConnectionData
   connectionActionInFlight: ConnectionActionInFlight | null
+  readOnly?: boolean
   onConnect: (provider: ConnectionProvider) => void
   onDisconnect: (provider: ConnectionProvider) => void
 }
@@ -79,6 +80,7 @@ const DISCONNECT_BUTTON_CLASSES =
 const ConnectionCard = ({
   connection,
   connectionActionInFlight,
+  readOnly = false,
   onConnect,
   onDisconnect,
 }: ConnectionCardProps) => {
@@ -156,7 +158,7 @@ const ConnectionCard = ({
           </p>
         )}
 
-        {!isConnected && (
+        {!isConnected && !readOnly && (
           <p className="mb-2 text-xs text-amber-500/80">
             Can add up to +{connection.potentialPoints} points
           </p>
@@ -167,7 +169,7 @@ const ConnectionCard = ({
           {connection.permissionScope}
         </div>
 
-        {isConnected ? (
+        {readOnly ? null : isConnected ? (
           <div className="flex gap-2">
             <Button
               size="sm"

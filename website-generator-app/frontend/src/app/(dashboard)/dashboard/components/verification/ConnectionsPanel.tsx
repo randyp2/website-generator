@@ -8,6 +8,7 @@ import ConnectionCard from "./ConnectionCard"
 const ConnectionsPanel = ({
   connections,
   connectionActionInFlight = null,
+  readOnly = false,
   onConnect,
   onDisconnect,
 }: ConnectionsPanelProps) => {
@@ -22,6 +23,7 @@ const ConnectionsPanel = ({
             key={conn.provider}
             connection={conn}
             connectionActionInFlight={connectionActionInFlight}
+            readOnly={readOnly}
             onConnect={onConnect}
             onDisconnect={onDisconnect}
           />
