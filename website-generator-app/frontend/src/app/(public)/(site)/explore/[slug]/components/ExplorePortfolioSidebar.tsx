@@ -21,7 +21,7 @@ export const ExplorePortfolioSidebar = ({
   metrics,
   updatedTime,
 }: ExplorePortfolioSidebarProps) => {
-  const ownerName = getPortfolioOwnerName(portfolio);
+  const ownerName = portfolio.ownerUsername ?? getPortfolioOwnerName(portfolio);
   const templateLabel = getTemplateLabel(portfolio.templateId);
   const sectionCount = portfolio.sections.length;
 

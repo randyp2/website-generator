@@ -1,16 +1,20 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 
 import {
   deriveOverviewFromSummary,
   getTierBarColor,
   getTierBgColor,
-  getTierColor,
-  getTierRingColor,
   mapSummaryClaimsToSkillVerifications,
+  getTierColor,
+  getStatusBgColor,
+  getStatusColor,
 } from "@/app/(dashboard)/dashboard/components/verification/verification.utils";
-import type { VerificationTier } from "@/app/(dashboard)/dashboard/components/verification/verification.types";
+import VerificationScoreRing from "@/app/(dashboard)/dashboard/components/verification/VerificationScoreRing";
+import type { SkillVerification } from "@/app/(dashboard)/dashboard/components/verification/verification.types";
 import type { PublicVerificationSummaryDTO } from "@/types/public-verification";
 import type { VerificationSummaryDTO } from "@/types/verification-summary";
 
@@ -19,65 +23,17 @@ interface ExplorePortfolioPlaceholderCardProps {
 }
 
 const MAX_TOP_SKILLS = 5;
-const RING_RADIUS = 52;
-const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+const HOVER_CARD_WIDTH = 260;
+const HOVER_CARD_HEIGHT = 180;
+const HOVER_CURSOR_OFFSET = 18;
+const HOVER_VIEWPORT_PADDING = 12;
 
-interface VerificationScoreRingProps {
-  score: number;
-  tier: VerificationTier;
-}
-
-const VerificationScoreRing = ({
-  score,
-  tier,
-}: VerificationScoreRingProps) => {
-  const clampedScore = Math.max(0, Math.min(100, score));
-  const offset =
-    RING_CIRCUMFERENCE - (clampedScore / 100) * RING_CIRCUMFERENCE;
-
-  return (
-    <div className="flex items-center justify-center">
-      <svg
-        aria-label={`Overall verification score ${clampedScore}`}
-        viewBox="0 0 120 120"
-        className="h-32 w-32 sm:h-36 sm:w-36"
-      >
-        <circle
-          cx="60"
-          cy="60"
-          r={RING_RADIUS}
-          fill="none"
-          stroke="currentColor"
-          className="text-muted/60"
-          strokeWidth="8"
-        />
-        <circle
-          cx="60"
-          cy="60"
-          r={RING_RADIUS}
-          fill="none"
-          stroke="currentColor"
-          className={getTierRingColor(tier)}
-          strokeWidth="8"
-          strokeLinecap="round"
-          strokeDasharray={RING_CIRCUMFERENCE}
-          strokeDashoffset={offset}
-          transform="rotate(-90 60 60)"
-        />
-        <text
-          x="60"
-          y="61"
-          textAnchor="middle"
-          dominantBaseline="central"
-          className="fill-foreground text-[2rem] font-semibold tracking-tight"
-          style={{ fontSize: "32px", fontWeight: 600 }}
-        >
-          {clampedScore}
-        </text>
-      </svg>
-    </div>
-  );
-};
+const formatStatusLabel = (status: string): string =>
+  status
+    .replaceAll("_", " ")
+    .split(" ")
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(" ");
 
 const useExploreVerificationSummary = (username: string | null) => {
   const [summary, setSummary] = useState<VerificationSummaryDTO | null>(null);
@@ -132,6 +88,9 @@ export const ExplorePortfolioPlaceholderCard = ({
 }: ExplorePortfolioPlaceholderCardProps) => {
   const { summary, isLoading, error, refetch } =
     useExploreVerificationSummary(username);
+  const [hoveredSkill, setHoveredSkill] = useState<SkillVerification | null>(null);
+  const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
+  const canUseDom = typeof window !== "undefined" && typeof document !== "undefined";
 
   const overview = useMemo(() => {
     if (!summary) {
@@ -141,7 +100,7 @@ export const ExplorePortfolioPlaceholderCard = ({
     return deriveOverviewFromSummary(summary);
   }, [summary]);
 
-  const topSkills = useMemo(() => {
+  const topSkills = useMemo<SkillVerification[]>(() => {
     if (!summary) {
       return [];
     }
@@ -164,6 +123,32 @@ export const ExplorePortfolioPlaceholderCard = ({
       })
       .slice(0, MAX_TOP_SKILLS);
   }, [summary]);
+
+  const hoverCardPosition = useMemo(() => {
+    if (!canUseDom) {
+      return null;
+    }
+
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    let left = cursorPosition.x + HOVER_CURSOR_OFFSET;
+    let top = cursorPosition.y + HOVER_CURSOR_OFFSET;
+
+    if (left + HOVER_CARD_WIDTH + HOVER_VIEWPORT_PADDING > viewportWidth) {
+      left = cursorPosition.x - HOVER_CARD_WIDTH - HOVER_CURSOR_OFFSET;
+    }
+    if (top + HOVER_CARD_HEIGHT + HOVER_VIEWPORT_PADDING > viewportHeight) {
+      top = viewportHeight - HOVER_CARD_HEIGHT - HOVER_VIEWPORT_PADDING;
+    }
+    if (left < HOVER_VIEWPORT_PADDING) {
+      left = HOVER_VIEWPORT_PADDING;
+    }
+    if (top < HOVER_VIEWPORT_PADDING) {
+      top = HOVER_VIEWPORT_PADDING;
+    }
+
+    return { left, top };
+  }, [canUseDom, cursorPosition]);
 
   return (
     <div className="self-start">
@@ -203,19 +188,13 @@ export const ExplorePortfolioPlaceholderCard = ({
                 This profile has not published verification signals yet.
               </p>
             ) : (
-              <div className="space-y-5">
-                <div className="space-y-2">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:items-center md:gap-8">
+                <div className="flex justify-center md:justify-start">
                   <VerificationScoreRing
                     score={overview.overallScore}
                     tier={overview.tier}
+                    className="mx-auto md:mx-0"
                   />
-                  <div className="flex justify-center">
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-semibold ${getTierBgColor(overview.tier)} ${getTierColor(overview.tier)}`}
-                    >
-                      {overview.tier}
-                    </span>
-                  </div>
                 </div>
 
                 <section className="space-y-2">
@@ -227,23 +206,34 @@ export const ExplorePortfolioPlaceholderCard = ({
                       No scored skills available yet.
                     </p>
                   ) : (
-                    <ul className="space-y-2">
+                    <ul className="space-y-1.5">
                       {topSkills.map((skill) => (
-                        <li key={skill.id} className="flex items-start gap-3">
+                        <li
+                          key={skill.id}
+                          className="flex items-start gap-3 rounded-md px-2 py-1 transition-colors hover:bg-background/60"
+                          onMouseEnter={(event) => {
+                            setHoveredSkill(skill);
+                            setCursorPosition({
+                              x: event.clientX,
+                              y: event.clientY,
+                            });
+                          }}
+                          onMouseMove={(event) => {
+                            setCursorPosition({
+                              x: event.clientX,
+                              y: event.clientY,
+                            });
+                          }}
+                          onMouseLeave={() => {
+                            setHoveredSkill(null);
+                          }}
+                        >
                           <span
                             className={`mt-[0.42rem] size-2 shrink-0 ${getTierBarColor(skill.tier)}`}
                             aria-hidden
                           />
-                          <span className="min-w-0 text-sm leading-6 text-foreground">
-                            <span
-                              className={`font-medium ${getTierColor(skill.tier)}`}
-                            >
-                              {skill.name}
-                            </span>
-                            <span className="text-muted-foreground">
-                              {" "}
-                              · {skill.score}/100 · {skill.tier}
-                            </span>
+                          <span className="min-w-0 text-sm leading-6 font-medium text-foreground">
+                            {skill.name}
                           </span>
                         </li>
                       ))}
@@ -255,6 +245,67 @@ export const ExplorePortfolioPlaceholderCard = ({
           </div>
         </div>
       </article>
+
+      {canUseDom
+        ? createPortal(
+            <AnimatePresence>
+              {hoveredSkill && hoverCardPosition ? (
+                <motion.div
+                  key={hoveredSkill.id}
+                  initial={{ opacity: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ duration: 0.12, ease: "easeOut" }}
+                  style={{
+                    left: hoverCardPosition.left,
+                    top: hoverCardPosition.top,
+                  }}
+                  className="pointer-events-none fixed z-[80] w-[260px] rounded-xl border border-border bg-card/95 p-3 shadow-xl backdrop-blur-sm"
+                >
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-foreground">
+                      {hoveredSkill.name}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${getTierBgColor(hoveredSkill.tier)} ${getTierColor(hoveredSkill.tier)}`}
+                      >
+                        {hoveredSkill.tier}
+                      </span>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${getStatusBgColor(hoveredSkill.status)} ${getStatusColor(hoveredSkill.status)}`}
+                      >
+                        {formatStatusLabel(hoveredSkill.status)}
+                      </span>
+                    </div>
+                    <dl className="space-y-1 text-xs text-muted-foreground">
+                      <div className="flex items-center justify-between gap-3">
+                        <dt>Claim score</dt>
+                        <dd className="font-medium text-foreground">
+                          {hoveredSkill.score}/100
+                        </dd>
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <dt>Baseline</dt>
+                        <dd className="font-medium text-foreground">
+                          {hoveredSkill.baselineScore}/100
+                        </dd>
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <dt>Evidence boost</dt>
+                        <dd className="font-medium text-foreground">
+                          {hoveredSkill.evidenceContribution >= 0 ? "+" : ""}
+                          {hoveredSkill.evidenceContribution}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>,
+            document.body,
+          )
+        : null}
     </div>
   );
 };

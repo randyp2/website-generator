@@ -1,6 +1,5 @@
 "use client"
 
-import { motion } from "framer-motion"
 import { RefreshCw, Info } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -12,9 +11,7 @@ import {
 import { cn } from "@/lib/utils"
 
 import type { VerificationOverviewProps } from "./verification.types"
-import { getTierColor, getTierBgColor, getTierRingColor } from "./verification.utils"
-
-const CIRCUMFERENCE = 2 * Math.PI * 52
+import VerificationScoreRing from "./VerificationScoreRing"
 
 const KPI_ITEMS = [
   { key: "totalSkills", label: "Total Skills", accent: "" },
@@ -30,7 +27,6 @@ const VerificationOverview = ({
   isRerunningChecks = false,
   showActions = true,
 }: VerificationOverviewProps) => {
-  const offset = CIRCUMFERENCE - (data.overallScore / 100) * CIRCUMFERENCE
   const lastRerunLabel = lastRerunAt
     ? new Date(lastRerunAt).toLocaleString("en-US", {
         month: "short",
@@ -54,63 +50,7 @@ const VerificationOverview = ({
       <CardContent className="relative z-10 p-6">
         <div className="flex flex-col lg:flex-row gap-6 items-center lg:items-start">
           {/* Verification Ring */}
-          <div className="flex flex-col items-center gap-2 shrink-0">
-            <svg viewBox="0 0 120 120" className="h-28 w-28">
-              <circle
-                cx="60"
-                cy="60"
-                r="52"
-                fill="none"
-                stroke="currentColor"
-                className="text-muted"
-                strokeWidth="8"
-              />
-              <motion.circle
-                cx="60"
-                cy="60"
-                r="52"
-                fill="none"
-                stroke="currentColor"
-                className={getTierRingColor(data.tier)}
-                strokeWidth="8"
-                strokeLinecap="round"
-                strokeDasharray={CIRCUMFERENCE}
-                initial={{ strokeDashoffset: CIRCUMFERENCE }}
-                animate={{ strokeDashoffset: offset }}
-                transition={{ duration: 1, ease: "easeOut" }}
-                transform="rotate(-90 60 60)"
-              />
-              <text
-                x="60"
-                y="56"
-                textAnchor="middle"
-                dominantBaseline="central"
-                className="fill-foreground text-2xl font-bold"
-                style={{ fontSize: "24px", fontWeight: 700 }}
-              >
-                {data.overallScore}
-              </text>
-              <text
-                x="60"
-                y="74"
-                textAnchor="middle"
-                dominantBaseline="central"
-                className="fill-muted-foreground"
-                style={{ fontSize: "10px" }}
-              >
-                / 100
-              </text>
-            </svg>
-            <Badge
-              className={cn(
-                "text-xs font-semibold",
-                getTierBgColor(data.tier),
-                getTierColor(data.tier),
-              )}
-            >
-              {data.tier}
-            </Badge>
-          </div>
+          <VerificationScoreRing score={data.overallScore} tier={data.tier} />
 
           {/* KPI Cards */}
           <div className="flex-1 w-full">
