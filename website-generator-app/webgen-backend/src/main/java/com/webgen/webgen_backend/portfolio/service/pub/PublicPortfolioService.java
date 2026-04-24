@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.Optional;
+import java.util.UUID;
 
 public interface PublicPortfolioService {
 
@@ -33,4 +34,13 @@ public interface PublicPortfolioService {
      * @return page of published portfolio card summaries
      */
     Page<PublicPortfolioCardDTO> listPublished(Pageable pageable);
+
+    /**
+     * Returns a paginated list of published portfolios for a specific profile.
+     *
+     * @param userId profile id that owns the portfolios
+     * @param pageable pagination and sorting parameters
+     * @return page of published portfolio card summaries
+     */
+    Page<PublicPortfolioCardDTO> listPublishedByUserId(UUID userId, Pageable pageable);
 }

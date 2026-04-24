@@ -9,6 +9,8 @@ import { GradientWaveBanner } from "./GradientWaveBanner"
 interface ProfileHeaderProps {
   username: string
   avatarUrl: string | null
+  bio?: string | null
+  showEditProfileButton?: boolean
 }
 
 const getInitials = (name: string): string => {
@@ -20,8 +22,14 @@ const getInitials = (name: string): string => {
     .toUpperCase()
 }
 
-const ProfileHeader = ({ username, avatarUrl }: ProfileHeaderProps) => {
+const ProfileHeader = ({
+  username,
+  avatarUrl,
+  bio,
+  showEditProfileButton = false,
+}: ProfileHeaderProps) => {
   const initials = getInitials(username)
+  const displayBio = bio?.trim() || PROFILE_MOCK_DATA.bio
 
   return (
     <div>
@@ -75,7 +83,7 @@ const ProfileHeader = ({ username, avatarUrl }: ProfileHeaderProps) => {
 
           {/* Bio */}
           <p className="max-w-md text-center text-sm text-muted-foreground sm:text-left">
-            {PROFILE_MOCK_DATA.bio}
+            {displayBio}
           </p>
 
           {/* Action Buttons */}
@@ -86,6 +94,15 @@ const ProfileHeader = ({ username, avatarUrl }: ProfileHeaderProps) => {
             <button className="rounded-full border border-border px-6 py-2 text-sm font-medium text-foreground transition-colors hover:cursor-pointer hover:bg-muted">
               Get in touch
             </button>
+            {showEditProfileButton && (
+              <button
+                type="button"
+                disabled
+                className="rounded-full border border-border px-6 py-2 text-sm font-medium text-muted-foreground opacity-70"
+              >
+                Edit profile
+              </button>
+            )}
           </div>
         </div>
 

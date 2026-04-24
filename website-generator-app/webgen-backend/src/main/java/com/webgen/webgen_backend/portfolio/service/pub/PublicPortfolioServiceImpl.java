@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -132,23 +133,36 @@ public class PublicPortfolioServiceImpl implements PublicPortfolioService {
     public Page<PublicPortfolioCardDTO> listPublished(Pageable pageable) {
         Page<Portfolio> portfolios = portfolioRepository.findByStatusAndSlugIsNotNull("publish", pageable);
 
-        return portfolios.map(portfolio -> {
-            PublicPortfolioCardDTO card = new PublicPortfolioCardDTO();
-            card.setTitle(portfolio.getTitle());
-            card.setSlug(portfolio.getSlug());
-            card.setTemplateId(portfolio.getTemplateId());
-            card.setDescription(portfolio.getDescription());
-            card.setSourceType(portfolio.getSourceType());
-            card.setExternalUrl(portfolio.getExternalUrl());
-            card.setPublishedAt(portfolio.getUpdatedAt());
-            card.setScreenshotUrl(portfolio.getScreenshotUrl());
+        return portfolios.map(this::toPublicCard);
+    }
 
-            profileRepository.findById(portfolio.getUserId()).ifPresent(profile -> {
-                card.setOwnerName(profile.getFullName());
-                card.setOwnerAvatarUrl(profile.getAvatarUrl());
-            });
+    @Override
+    public Page<PublicPortfolioCardDTO> listPublishedByUserId(UUID userId, Pageable pageable) {
+        Page<Portfolio> portfolios = portfolioRepository.findByUserIdAndStatusAndSlugIsNotNull(
+                userId,
+                "publish",
+                pageable
+        );
 
-            return card;
+        return portfolios.map(this::toPublicCard);
+    }
+
+    private PublicPortfolioCardDTO toPublicCard(Portfolio portfolio) {
+        PublicPortfolioCardDTO card = new PublicPortfolioCardDTO();
+        card.setTitle(portfolio.getTitle());
+        card.setSlug(portfolio.getSlug());
+        card.setTemplateId(portfolio.getTemplateId());
+        card.setDescription(portfolio.getDescription());
+        card.setSourceType(portfolio.getSourceType());
+        card.setExternalUrl(portfolio.getExternalUrl());
+        card.setPublishedAt(portfolio.getUpdatedAt());
+        card.setScreenshotUrl(portfolio.getScreenshotUrl());
+
+        profileRepository.findById(portfolio.getUserId()).ifPresent(profile -> {
+            card.setOwnerName(profile.getFullName());
+            card.setOwnerAvatarUrl(profile.getAvatarUrl());
         });
+
+        return card;
     }
 }
