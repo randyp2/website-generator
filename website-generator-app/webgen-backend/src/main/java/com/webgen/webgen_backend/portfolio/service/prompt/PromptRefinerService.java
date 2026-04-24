@@ -21,6 +21,16 @@ public class PromptRefinerService {
     private final OpenAiChatModel openAiChatModel;
     private final ObjectMapper objectMapper;
 
+    /**
+     * Calls OpenAI to rewrite the user's raw prompt into a richer creative brief
+     * that the downstream portfolio generator can act on more precisely.
+     * Falls back to the original prompt if the API call fails or returns blank.
+     *
+     * @param rawPrompt  user-supplied prompt (may be null or minimal)
+     * @param resume     parsed resume used to infer creative direction when prompt is vague
+     * @param stylePrefs style chat answers used as additional context
+     * @return refined prompt string ready for the portfolio generator
+     */
     public String refineUserPrompt(
             String rawPrompt,
             ParsedResumeDTO resume,
@@ -136,26 +146,16 @@ public class PromptRefinerService {
     }
 
 
-    /**
-     *  Build a brief summary of resume
-     *  Important fields for context: Name, Summary, Skills
-     * @param resume - parsed resume
-     * @return Summary of resume
-     */
+    /** Builds a compact resume summary for prompt context (name, summary, skills only). */
     private String buildResumeSummary(ParsedResumeDTO resume) {
         if (resume == null)
             return "none";
 
         return "Name: %s | Summary: %s | Skills: %s"
                 .formatted(
-                        safe(resume.getFullName()),
-                        safe(resume.getSummary()),
+                        resume.getFullName() == null ? "none" : resume.getFullName(),
+                        resume.getSummary() == null ? "none" : resume.getSummary(),
                         resume.getSkills() == null ? "none" : String.join(", ", resume.getSkills())
                 );
-    }
-
-    // Helper to normalize null
-    private String safe(String text) {
-        return text == null ? "none" : text;
     }
 }

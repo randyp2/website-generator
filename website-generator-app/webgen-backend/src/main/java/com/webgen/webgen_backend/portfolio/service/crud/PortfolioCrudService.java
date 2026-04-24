@@ -43,6 +43,12 @@ public interface PortfolioCrudService {
      */
     PortfolioDTO updatePortfolio(UUID userId, UUID portfolioId, UpdatePortfolioRequestDTO request);
 
+    /**
+     * Permanently delete a portfolio and all its associated data.
+     *
+     * @param userId      - UUID of the authenticated user (for ownership check)
+     * @param portfolioId - UUID of the portfolio to delete
+     */
     void deletePortfolio(UUID userId, UUID portfolioId);
 
     /**

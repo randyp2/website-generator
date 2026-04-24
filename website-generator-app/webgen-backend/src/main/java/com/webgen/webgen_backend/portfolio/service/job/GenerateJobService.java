@@ -33,7 +33,15 @@ public class GenerateJobService {
     private final ObjectMapper objectMapper;
     private final RabbitTemplate rabbitTemplate;
 
-    // Create and queue a generation job for a worker to pick up
+    /**
+     * Creates a job in Redis and immediately publishes a generation message to RabbitMQ
+     * for an orchestration worker to pick up.
+     *
+     * @param portfolioId portfolio to generate for
+     * @param userId      authenticated user id for ownership checks inside the worker
+     * @param req         original generation request forwarded to the worker
+     * @return newly created jobId for status polling
+     */
     public String createJobAndQueue(
             UUID portfolioId,
             UUID userId,
@@ -95,7 +103,15 @@ public class GenerateJobService {
         }
     }
 
-    // Push a completed section job to a list
+    /* ============== SECTION TRACKING ============== */
+
+    /**
+     * Appends a completed section's JSON to the Redis list for this job.
+     * The frontend polls this list to stream section results as they complete.
+     *
+     * @param jobId      active job ID
+     * @param sectionDTO completed section to serialize and store
+     */
     public void pushCompletedSection(String jobId, SectionDTO sectionDTO) {
         try {
             String sectionJson = objectMapper.writeValueAsString(sectionDTO);
@@ -110,7 +126,14 @@ public class GenerateJobService {
         }
     }
 
-    // Get the list of compeleted sections
+    /**
+     * Fetches newly completed sections starting at the given offset, supporting
+     * incremental polling by the frontend without re-fetching already seen sections.
+     *
+     * @param jobId  active job ID
+     * @param offset index of the first new section to return
+     * @return JSON strings of sections from offset to end of the list
+     */
     public List<String> getCompletedSections(String jobId, long offset) {
         String key = KEY_PREFIX + jobId + ":sections";
         Long size = redisTemplate.opsForList().size(key);
@@ -123,6 +146,15 @@ public class GenerateJobService {
         return resultSections != null ? resultSections : List.of();
     }
 
+    /* ============== JOB STATUS MANAGEMENT ============== */
+
+    /**
+     * Updates the top-level status field on the job record (QUEUED, IN_PROGRESS, DONE, FAILED).
+     * No-ops silently if the job no longer exists in Redis.
+     *
+     * @param jobId  active job ID
+     * @param status new status to apply
+     */
     public void updateStatus(String jobId, JobStatusDTO.Status status) {
         // Job check
         JobStatusDTO jobStatusDTO = getJob(jobId);
@@ -158,6 +190,13 @@ public class GenerateJobService {
         return newCount != null ? newCount.intValue() : -1;
     }
 
+    /**
+     * Records the total number of sections being generated so the frontend can
+     * show a progress fraction (completedCount / totalSections).
+     *
+     * @param jobId active job ID
+     * @param total total number of section generation tasks fanned out
+     */
     public void setTotalSections(String jobId, int total) {
         JobStatusDTO jobStatusDTO = getJob(jobId);
         if (jobStatusDTO == null)
@@ -191,6 +230,13 @@ public class GenerateJobService {
         return keys != null ? keys : List.of();
     }
 
+    /**
+     * Marks the job as FAILED and stores the error message for the client to display.
+     * No-ops silently if the job no longer exists in Redis.
+     *
+     * @param jobId active job ID
+     * @param error human-readable error description
+     */
     public void failJob(String jobId, String error) {
         JobStatusDTO jobStatusDTO = getJob(jobId);
         if (jobStatusDTO == null)
@@ -201,6 +247,12 @@ public class GenerateJobService {
         saveToRedis(jobStatusDTO);
     }
 
+    /**
+     * Retrieves the current job status from Redis.
+     *
+     * @param jobId active job ID
+     * @return job status DTO, or null if not found or deserialization fails
+     */
     public JobStatusDTO getJob(String jobId) {
         String key = KEY_PREFIX + jobId;
 

@@ -30,6 +30,13 @@ public class JsxValidatorService {
     @Value("${jsx.validator.node.path:node}")
     private String nodePath;
 
+    /**
+     * Validates a single AI-generated section's JSX by delegating to the Node.js validator script.
+     * Returns an error result immediately if reactSource is blank.
+     *
+     * @param section section DTO containing sectionKey, reactSource, and contentJson
+     * @return validation result with a list of errors (empty when valid)
+     */
     public ValidationResult validateGeneratedSection(SectionDTO section) {
         ValidationResult result = new ValidationResult();
         result.setValid(true);
@@ -52,6 +59,13 @@ public class JsxValidatorService {
         return result;
     }
 
+    /**
+     * Validates all modified sections in a builder request, collecting errors across sections.
+     * Sections with a blank reactSource are skipped (treated as pass-through with no code change).
+     *
+     * @param sections list of modified sections from a builder refinement request
+     * @return aggregated validation result across all sections
+     */
     public ValidationResult validateSections(List<ModifiedSectionDTO> sections) {
         ValidationResult result = new ValidationResult();
         result.setValid(true);
@@ -81,6 +95,12 @@ public class JsxValidatorService {
         return result;
     }
 
+    /*
+     * Spawns a Node.js subprocess to validate JSX syntax using Babel.
+     * JSX parsing cannot be done in the JVM, so we delegate to scripts/validate-jsx.js
+     * via stdin/stdout. The script receives a JSON payload and writes back a JSON result.
+     * A 30-second hard timeout prevents stalled processes from blocking worker threads.
+     */
     private ValidationResult validateSingleSection(String sectionKey, String reactSource, JsonNode contentJson) {
         try {
             ProcessBuilder pb = new ProcessBuilder(nodePath, scriptPath);
