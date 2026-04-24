@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/navigation-menu"
 import { signoutClient } from "@/lib/logout-client"
 import { cn } from "@/lib/utils"
+import useMyProfilePath from "@/hooks/useMyProfilePath"
 import { createClient } from "@/utils/supabase/client"
 
 const actionButtonMotion = {
@@ -134,6 +135,7 @@ const NavbarClient: React.FC = () => {
   const supabase = React.useMemo(() => createClient(), [])
   const avatarUrl = React.useMemo(() => getUserAvatarUrl(user), [user])
   const userInitials = React.useMemo(() => getUserInitials(user), [user])
+  const { profilePath } = useMyProfilePath(Boolean(user))
 
   React.useEffect(() => {
     const initUser = async () => {
@@ -277,7 +279,7 @@ const NavbarClient: React.FC = () => {
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     className="hover:cursor-pointer"
-                    onClick={() => router.push("/dashboard/profile")}
+                    onClick={() => router.push(profilePath ?? "/dashboard/profile")}
                   >
                     <UserCircle2 className="mr-2 size-4" />
                     Profile

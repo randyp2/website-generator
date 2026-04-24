@@ -24,6 +24,7 @@ import { useTheme } from "next-themes";
 import { signoutClient } from "@/lib/logout-client";
 import { useUser } from "@/context/UserContext";
 import BrandWordmark from "@/components/branding/BrandWordmark";
+import useMyProfilePath from "@/hooks/useMyProfilePath";
 
 interface NavItem {
     id: string;
@@ -53,6 +54,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
 
     const pathname = usePathname();
     const router = useRouter();
+    const { profilePath } = useMyProfilePath(true);
     const { theme, setTheme } = useTheme();
     const [portfoliosCount, setPortfoliosCount] = useState<number>(0);
     const [showProfileMenu, setShowProfileMenu] = useState<boolean>(false);
@@ -297,7 +299,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                         }`}
                     >
                         {[
-                            { icon: FiUser, label: "Profile", path: "/dashboard/profile" },
+                            { icon: FiUser, label: "Profile", path: profilePath ?? "/dashboard/profile" },
                             { icon: FiSettings, label: "Settings" },
                             { icon: FiShare2, label: "Pricing" },
                             { icon: FiHelpCircle, label: "Help" },
