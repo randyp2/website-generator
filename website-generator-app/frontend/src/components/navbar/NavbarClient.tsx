@@ -279,7 +279,7 @@ const NavbarClient: React.FC = () => {
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     className="hover:cursor-pointer"
-                    onClick={() => router.push(profilePath ?? "/dashboard/profile")}
+                    onClick={() => router.push(profilePath ?? "/dashboard")}
                   >
                     <UserCircle2 className="mr-2 size-4" />
                     Profile

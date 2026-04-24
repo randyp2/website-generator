@@ -3,8 +3,14 @@
 import Image from "next/image"
 import { FiUser } from "react-icons/fi"
 
-import { PROFILE_MOCK_DATA } from "../profile/profile.types"
 import { GradientWaveBanner } from "./GradientWaveBanner"
+
+const PROFILE_MOCK_DATA = {
+  bio: "Creative designer and developer passionate about building beautiful digital experiences. Specializing in portfolio design and web development.",
+  followers: 2985,
+  following: 132,
+  likes: 548,
+} as const
 
 interface ProfileHeaderProps {
   username: string

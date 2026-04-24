@@ -299,7 +299,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                         }`}
                     >
                         {[
-                            { icon: FiUser, label: "Profile", path: profilePath ?? "/dashboard/profile" },
+                            { icon: FiUser, label: "Profile", path: profilePath ?? "/dashboard" },
                             { icon: FiSettings, label: "Settings" },
                             { icon: FiShare2, label: "Pricing" },
                             { icon: FiHelpCircle, label: "Help" },
