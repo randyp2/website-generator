@@ -2,7 +2,7 @@ import { getBackendUrl } from "@/lib/server-env";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 
-const DASHBOARD_PATH = "/dashboard-user";
+const DASHBOARD_PATH = "/dashboard";
 const VERIFICATION_TAB = "skill-verification";
 const OAUTH_PROVIDER = "github";
 

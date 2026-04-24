@@ -41,7 +41,7 @@ const TemplateGallery: React.FC = () => {
       setTemplateId(selectedTemplate);
       if (portfolioId) setPortfolioId(portfolioId);
 
-      router.push(`/dashboard-user/create/style?portfolioId=${portfolioId}`);
+      router.push(`/dashboard/create/style?portfolioId=${portfolioId}`);
     } catch (error) {
       console.error("Draft creation failed:", error);
       alert("Failed to create draft. Please try again.");

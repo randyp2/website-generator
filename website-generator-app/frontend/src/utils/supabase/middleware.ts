@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const SUPABASE_OAUTH_CODE_EXCHANGE_PATHS = new Set<string>([
     "/",
-    "/dashboard-user",
+    "/dashboard",
     "/auth/post-login",
 ]);
 

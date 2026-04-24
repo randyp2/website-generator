@@ -31,10 +31,10 @@ const StyleDiscussionPage: React.FC = () => {
     const handleContinueToResume = async () => {
         if (!portfolioId) {
             if (templateId) {
-                router.push(`/dashboard-user/create/upload?templateId=${templateId}`);
+                router.push(`/dashboard/create/upload?templateId=${templateId}`);
                 return;
             }
-            router.push("/dashboard-user/create/upload");
+            router.push("/dashboard/create/upload");
             return;
         }
 
@@ -55,11 +55,11 @@ const StyleDiscussionPage: React.FC = () => {
             }).catch(() => null);
 
             if (!hasReviewableResume) {
-                router.push(`/dashboard-user/create/upload?portfolioId=${portfolioId}`);
+                router.push(`/dashboard/create/upload?portfolioId=${portfolioId}`);
                 return;
             }
 
-            router.push(`/dashboard-user/create/review?portfolioId=${portfolioId}`);
+            router.push(`/dashboard/create/review?portfolioId=${portfolioId}`);
         } catch {
             if (portfolioId) {
                 await fetch(`/api/portfolio/${portfolioId}/update`, {
@@ -68,7 +68,7 @@ const StyleDiscussionPage: React.FC = () => {
                     body: JSON.stringify({ last_step: "upload" }),
                 }).catch(() => null);
             }
-            router.push(`/dashboard-user/create/upload?portfolioId=${portfolioId}`);
+            router.push(`/dashboard/create/upload?portfolioId=${portfolioId}`);
         }
     };
 

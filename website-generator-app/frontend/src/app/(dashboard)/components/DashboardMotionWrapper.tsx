@@ -7,7 +7,7 @@ export default function DashboardMotionWrapper({ children }: { children: React.R
   const pathname = usePathname();
 
   // Pages that need full width without max-width constraint
-  const fullWidthPages = ["/dashboard-user/create/refine"];
+  const fullWidthPages = ["/dashboard/create/refine"];
   const isFullWidth = fullWidthPages.some((page) => pathname.includes(page));
 
   return (

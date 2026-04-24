@@ -21,19 +21,19 @@ export const ActionSection: React.FC = () => {
           {
             title: "Browse Templates",
             desc: "Start from a preset",
-            action: () => router.push("/dashboard-user/create"),
+            action: () => router.push("/dashboard/create"),
             icon: <FiLayout className="h-7 w-7 text-primary" />,
           },
           {
             title: "View Portfolios",
             desc: "Manage your work",
-            action: () => router.push("/dashboard-user/portfolios"),
+            action: () => router.push("/dashboard/portfolios"),
             icon: <FiLayers className="h-7 w-7 text-primary" />,
           },
           {
             title: "Customize Theme",
             desc: "Tune styles",
-            action: () => router.push("/dashboard-user/theme"),
+            action: () => router.push("/dashboard/theme"),
             icon: <FiSettings className="h-7 w-7 text-primary" />,
           },
         ].map((action) => (

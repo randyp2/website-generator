@@ -35,7 +35,7 @@ export async function login(formData: FormData) {
     redirect("/error");
   }
 
-  revalidatePath("/dashboard-user", "layout");
+  revalidatePath("/dashboard", "layout");
   redirect("/auth/post-login");
 }
 

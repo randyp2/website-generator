@@ -7,7 +7,8 @@ import {
 
 export const DEFAULT_FORM: FormState = {
     username: "",
-    fullName: "",
+    firstName: "",
+    lastName: "",
     bio: "",
     location: "",
     school: "",
@@ -34,9 +35,33 @@ export const normalizeOptional = (value: string): string | undefined => {
 
 export const normalizeUsername = (value: string): string => value.trim().toLowerCase();
 
+const composeFullName = (form: FormState): string | undefined => {
+    const firstName = form.firstName.trim();
+    const lastName = form.lastName.trim();
+    const fullName = [firstName, lastName].filter(Boolean).join(" ");
+    return fullName.length > 0 ? fullName : undefined;
+};
+
+const splitFullName = (value: string | null | undefined): Pick<FormState, "firstName" | "lastName"> => {
+    const normalized = value?.trim() ?? "";
+    if (normalized.length === 0) {
+        return {
+            firstName: "",
+            lastName: "",
+        };
+    }
+
+    const parts = normalized.split(/\s+/);
+    const [firstName, ...rest] = parts;
+    return {
+        firstName: firstName ?? "",
+        lastName: rest.join(" "),
+    };
+};
+
 export const toPayload = (form: FormState): ProfileUpdatePayload => ({
     username: normalizeUsername(form.username),
-    fullName: normalizeOptional(form.fullName),
+    fullName: composeFullName(form),
     bio: normalizeOptional(form.bio),
     location: normalizeOptional(form.location),
     school: normalizeOptional(form.school),
@@ -48,19 +73,23 @@ export const toPayload = (form: FormState): ProfileUpdatePayload => ({
     githubUrl: normalizeOptional(form.githubUrl),
 });
 
-export const mapProfileToForm = (profile: ProfileMeResponse): FormState => ({
-    username: profile.username ?? "",
-    fullName: profile.fullName ?? "",
-    bio: profile.bio ?? "",
-    location: profile.location ?? "",
-    school: profile.school ?? "",
-    degree: profile.degree ?? "",
-    jobTitle: profile.jobTitle ?? "",
-    company: profile.company ?? "",
-    websiteUrl: profile.websiteUrl ?? "",
-    linkedinUrl: profile.linkedinUrl ?? "",
-    githubUrl: profile.githubUrl ?? "",
-});
+export const mapProfileToForm = (profile: ProfileMeResponse): FormState => {
+    const { firstName, lastName } = splitFullName(profile.fullName);
+    return {
+        username: profile.username ?? "",
+        firstName,
+        lastName,
+        bio: profile.bio ?? "",
+        location: profile.location ?? "",
+        school: profile.school ?? "",
+        degree: profile.degree ?? "",
+        jobTitle: profile.jobTitle ?? "",
+        company: profile.company ?? "",
+        websiteUrl: profile.websiteUrl ?? "",
+        linkedinUrl: profile.linkedinUrl ?? "",
+        githubUrl: profile.githubUrl ?? "",
+    };
+};
 
 export const hasCompletedOnboarding = (
     profile: ProfileMeResponse | null,

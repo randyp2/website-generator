@@ -99,32 +99,32 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
             id: "home",
             label: "Dashboard",
             icon: FiGrid,
-            path: "/dashboard-user",
+            path: "/dashboard",
         },
         {
             id: "portfolios",
             label: "My Portfolios",
             icon: FiFolder,
-            path: "/dashboard-user/portfolios",
+            path: "/dashboard/portfolios",
             badge: portfoliosCount,
         },
         {
             id: "create",
             label: "Create New",
             icon: MdOutlineCreate,
-            path: "/dashboard-user/create",
+            path: "/dashboard/create",
         },
         {
             id: "publish",
             label: "Publish",
             icon: FiShare2,
-            path: "/dashboard-user/publish",
+            path: "/dashboard/publish",
         },
         {
             id: "verification",
             label: "Verification",
             icon: FiShield,
-            path: "/dashboard-user/verification",
+            path: "/dashboard/verification",
         },
     ];
 
@@ -297,7 +297,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                         }`}
                     >
                         {[
-                            { icon: FiUser, label: "Profile", path: "/dashboard-user/profile" },
+                            { icon: FiUser, label: "Profile", path: "/dashboard/profile" },
                             { icon: FiSettings, label: "Settings" },
                             { icon: FiShare2, label: "Pricing" },
                             { icon: FiHelpCircle, label: "Help" },

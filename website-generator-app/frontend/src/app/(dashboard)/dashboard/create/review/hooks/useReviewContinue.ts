@@ -44,7 +44,7 @@ export const useReviewContinue = ({
                 body: JSON.stringify({ last_step: "refine" }),
             });
 
-            router.push(`/dashboard-user/create/refine?portfolioId=${portfolioId}`);
+            router.push(`/dashboard/create/refine?portfolioId=${portfolioId}`);
         } catch (error) {
             console.error("Error saving resume data:", error);
             alert("Failed to save resume data. Please try again.");

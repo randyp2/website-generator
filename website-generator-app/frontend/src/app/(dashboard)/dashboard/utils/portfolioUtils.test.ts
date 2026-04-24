@@ -57,49 +57,49 @@ describe("resolveResumePath", () => {
 
   it('routes "template" to the create entry point without a portfolio id', () => {
     expect(resolveResumePath({ ...portfolio, last_step: "template" })).toBe(
-      "/dashboard-user/create",
+      "/dashboard/create",
     )
   })
 
   it('routes "style" to the style step with portfolio id', () => {
     expect(resolveResumePath({ ...portfolio, last_step: "style" })).toBe(
-      `/dashboard-user/create/style?portfolioId=${id}`,
+      `/dashboard/create/style?portfolioId=${id}`,
     )
   })
 
   it('routes "upload" to the upload step with portfolio id', () => {
     expect(resolveResumePath({ ...portfolio, last_step: "upload" })).toBe(
-      `/dashboard-user/create/upload?portfolioId=${id}`,
+      `/dashboard/create/upload?portfolioId=${id}`,
     )
   })
 
   it('routes "review" to the review step with portfolio id', () => {
     expect(resolveResumePath({ ...portfolio, last_step: "review" })).toBe(
-      `/dashboard-user/create/review?portfolioId=${id}`,
+      `/dashboard/create/review?portfolioId=${id}`,
     )
   })
 
   it('routes "refine" to the refine step with portfolio id', () => {
     expect(resolveResumePath({ ...portfolio, last_step: "refine" })).toBe(
-      `/dashboard-user/create/refine?portfolioId=${id}`,
+      `/dashboard/create/refine?portfolioId=${id}`,
     )
   })
 
   it("defaults to the refine step when last_step is missing", () => {
     expect(resolveResumePath({ ...portfolio, last_step: null })).toBe(
-      `/dashboard-user/create/refine?portfolioId=${id}`,
+      `/dashboard/create/refine?portfolioId=${id}`,
     )
     const { last_step: _omit, ...withoutStep } = portfolio
     void _omit
     expect(resolveResumePath(withoutStep as Portfolio)).toBe(
-      `/dashboard-user/create/refine?portfolioId=${id}`,
+      `/dashboard/create/refine?portfolioId=${id}`,
     )
   })
 
   it("falls through to refine for unknown steps", () => {
     expect(
       resolveResumePath({ ...portfolio, last_step: "mystery-step" }),
-    ).toBe(`/dashboard-user/create/refine?portfolioId=${id}`)
+    ).toBe(`/dashboard/create/refine?portfolioId=${id}`)
   })
 })
 

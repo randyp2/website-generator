@@ -93,7 +93,7 @@ export const useOnboardingSubmit = ({
 
             const updated = await parseJsonSafely<ProfileMeResponse>(response);
             if (hasCompletedOnboarding(updated)) {
-                router.replace("/dashboard-user");
+                router.replace("/dashboard");
                 return;
             }
 

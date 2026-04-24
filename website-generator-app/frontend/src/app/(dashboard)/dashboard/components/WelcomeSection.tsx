@@ -31,7 +31,7 @@ export const WelcomeSection: React.FC = () => {
                 <motion.button
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => router.push("/dashboard-user/create")}
+                    onClick={() => router.push("/dashboard/create")}
                     className="group flex cursor-pointer items-center gap-2 rounded-xl border border-primary/40 bg-primary px-6 py-3 font-semibold text-primary-foreground shadow-lg shadow-primary/30 transition-colors hover:bg-primary/90"
                 >
                     <FiPlus className="h-5 w-5" />

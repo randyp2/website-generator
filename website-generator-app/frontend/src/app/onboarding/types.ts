@@ -27,7 +27,8 @@ export type UsernameAvailabilityResponse = {
 
 export type FormState = {
     username: string;
-    fullName: string;
+    firstName: string;
+    lastName: string;
     bio: string;
     location: string;
     school: string;

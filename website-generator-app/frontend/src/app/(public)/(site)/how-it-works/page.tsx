@@ -219,7 +219,7 @@ export default function HowItWorksPage() {
                   Go to home
                 </Link>
                 <Link
-                  href="/dashboard-user"
+                  href="/dashboard"
                   className="inline-flex items-center gap-2 bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
                 >
                   Open dashboard

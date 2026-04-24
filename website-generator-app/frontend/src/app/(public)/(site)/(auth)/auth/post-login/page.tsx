@@ -57,7 +57,7 @@ const PostLoginResolverPage = async () => {
         redirect("/onboarding");
     }
 
-    redirect("/dashboard-user");
+    redirect("/dashboard");
 };
 
 export default PostLoginResolverPage;

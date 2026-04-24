@@ -65,7 +65,7 @@ export const useOnboardingBootstrap = (): UseOnboardingBootstrapReturn => {
                 }
 
                 if (hasCompletedOnboarding(profile)) {
-                    router.replace("/dashboard-user");
+                    router.replace("/dashboard");
                     return;
                 }
 

@@ -528,7 +528,7 @@ const UploadPage: React.FC = () => {
 
             // -- Navigate IMMEDIATELY - don't wait for parsing
             router.push(
-                `/dashboard-user/create/review?portfolioId=${createdPortfolioId}`,
+                `/dashboard/create/review?portfolioId=${createdPortfolioId}`,
             );
         } catch (error) {
             console.error("Error during portfolio creation:", error);
@@ -549,7 +549,7 @@ const UploadPage: React.FC = () => {
                 body: JSON.stringify({ last_step: "refine" }),
             }).catch(() => null);
         }
-        router.push(`/dashboard-user/create/refine?portfolioId=${portfolioId}`);
+        router.push(`/dashboard/create/refine?portfolioId=${portfolioId}`);
     };
 
     return (

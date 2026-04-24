@@ -21,11 +21,11 @@ export const normalizeStatus = (status?: string | null): "active" | "draft" | "a
 
 export const resolveResumePath = (portfolio: Portfolio): string => {
     const step = portfolio.last_step ?? "refine";
-    if (step === "template") return "/dashboard-user/create";
-    if (step === "style") return `/dashboard-user/create/style?portfolioId=${portfolio.id}`;
-    if (step === "upload") return `/dashboard-user/create/upload?portfolioId=${portfolio.id}`;
-    if (step === "review") return `/dashboard-user/create/review?portfolioId=${portfolio.id}`;
-    return `/dashboard-user/create/refine?portfolioId=${portfolio.id}`;
+    if (step === "template") return "/dashboard/create";
+    if (step === "style") return `/dashboard/create/style?portfolioId=${portfolio.id}`;
+    if (step === "upload") return `/dashboard/create/upload?portfolioId=${portfolio.id}`;
+    if (step === "review") return `/dashboard/create/review?portfolioId=${portfolio.id}`;
+    return `/dashboard/create/refine?portfolioId=${portfolio.id}`;
 };
 
 export const getDateValue = (timestamp?: unknown | null): number => {

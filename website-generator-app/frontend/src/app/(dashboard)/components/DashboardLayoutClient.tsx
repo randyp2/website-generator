@@ -13,11 +13,11 @@ interface DashboardLayoutClientProps {
 
 const getActiveTabLabel = (pathname: string): string => {
   const routeLabelMap: Array<{ prefix: string; label: string }> = [
-    { prefix: "/dashboard-user/profile", label: "Profile" },
-    { prefix: "/dashboard-user/portfolios", label: "My Portfolios" },
-    { prefix: "/dashboard-user/create", label: "Create New" },
-    { prefix: "/dashboard-user/publish", label: "Publish" },
-    { prefix: "/dashboard-user", label: "Dashboard" },
+    { prefix: "/dashboard/profile", label: "Profile" },
+    { prefix: "/dashboard/portfolios", label: "My Portfolios" },
+    { prefix: "/dashboard/create", label: "Create New" },
+    { prefix: "/dashboard/publish", label: "Publish" },
+    { prefix: "/dashboard", label: "Dashboard" },
   ];
 
   const matched = routeLabelMap.find(
