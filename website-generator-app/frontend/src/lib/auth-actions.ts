@@ -36,7 +36,7 @@ export async function login(formData: FormData) {
   }
 
   revalidatePath("/dashboard-user", "layout");
-  redirect("/dashboard-user");
+  redirect("/auth/post-login");
 }
 
 export async function signup(formData: FormData) {
@@ -85,7 +85,7 @@ export async function signInWithGoogle() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard-user`, // where to redirect to after oauth 
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/post-login`, // where to redirect to after oauth 
       queryParams: {
         access_type: "offline",
         prompt: "consent",

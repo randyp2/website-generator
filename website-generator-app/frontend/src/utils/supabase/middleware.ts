@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const SUPABASE_OAUTH_CODE_EXCHANGE_PATHS = new Set<string>([
     "/dashboard-user",
+    "/auth/post-login",
 ]);
 
 const shouldExchangeSupabaseOAuthCode = (pathname: string): boolean =>
@@ -67,7 +68,7 @@ export const updateSession = async (request: NextRequest) => {
         }
 
         // Default redirect
-        const redirectResponse = NextResponse.redirect(nextUrl); // If we came from /dashboard, keep that path
+        const redirectResponse = NextResponse.redirect(nextUrl); // If we came from allowed callback path, keep that path
         for (const cookie of response.cookies.getAll()) {
             redirectResponse.cookies.set(cookie);
         }
