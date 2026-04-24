@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 import { AppThemeProvider } from "@/components/theme/AppThemeProvider";
 import { Toaster } from "@/components/ui/toaster";
+import { getPublicSiteUrl } from "@/lib/public-env";
 
 
 
@@ -21,11 +22,18 @@ const jetBrainsMono = JetBrains_Mono({
   subsets: ["latin"],
 });
 
+const resolveMetadataBase = (): URL => {
+  try {
+    return new URL(getPublicSiteUrl());
+  } catch {
+    return new URL("http://localhost:3000");
+  }
+};
+
 // ---- GLOBAL METADATA ----- 
 // Generates meta tag when redering this route/layoutwhat doe
 export const metadata: Metadata = {
-
-  // metadataBase: new URL('http://localhost:3000'), // Change to our domain name later
+  metadataBase: resolveMetadataBase(),
   title: {
     default: "Portfolio Generator | Create Professional AI Portfolios",
     template: "%s | Portfolio Generator", // Insert tiitle for each page 
