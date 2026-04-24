@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -49,6 +50,7 @@ public class ProfileServiceImpl implements ProfileService {
     @Transactional
     public ProfileMeDTO getOrCreateMyProfile(UUID profileId) {
         Profile profile = getOrCreateProfile(profileId);
+        profile = syncOnboardingComplete(profile);
         return profileMapper.toMeDto(profile);
     }
 
@@ -78,6 +80,7 @@ public class ProfileServiceImpl implements ProfileService {
         if (request.getWebsiteUrl() != null) profile.setWebsiteUrl(normalizeOptionalText(request.getWebsiteUrl()));
         if (request.getLinkedinUrl() != null) profile.setLinkedinUrl(normalizeOptionalText(request.getLinkedinUrl()));
         if (request.getGithubUrl() != null) profile.setGithubUrl(normalizeOptionalText(request.getGithubUrl()));
+        profile.setOnboardingComplete(deriveOnboardingComplete(profile));
 
         try {
             Profile saved = profileRepository.save(profile);
@@ -142,11 +145,28 @@ public class ProfileServiceImpl implements ProfileService {
 
     private Profile getOrCreateProfile(UUID profileId) {
         return profileRepository.findById(profileId)
+                .map(existing -> {
+                    if (existing.getOnboardingComplete() == null) {
+                        existing.setOnboardingComplete(deriveOnboardingComplete(existing));
+                        return profileRepository.save(existing);
+                    }
+                    return existing;
+                })
                 .orElseGet(() -> {
                     Profile profile = new Profile();
                     profile.setId(profileId);
+                    profile.setOnboardingComplete(false);
                     return profileRepository.save(profile);
                 });
+    }
+
+    private Profile syncOnboardingComplete(Profile profile) {
+        boolean derivedOnboardingComplete = deriveOnboardingComplete(profile);
+        if (!Objects.equals(profile.getOnboardingComplete(), derivedOnboardingComplete)) {
+            profile.setOnboardingComplete(derivedOnboardingComplete);
+            return profileRepository.save(profile);
+        }
+        return profile;
     }
 
     private void ensureUsernameAvailabilityForProfile(String username, UUID profileId) {
@@ -201,6 +221,13 @@ public class ProfileServiceImpl implements ProfileService {
 
     private boolean isReservedUsername(String username) {
         return RESERVED_USERNAMES.contains(username);
+    }
+
+    private boolean deriveOnboardingComplete(Profile profile) {
+        String normalizedUsername = normalizeUsernameForAvailability(profile.getUsername());
+        return normalizedUsername != null
+                && USERNAME_PATTERN.matcher(normalizedUsername).matches()
+                && !isReservedUsername(normalizedUsername);
     }
 
     private String normalizeBio(String bio) {
