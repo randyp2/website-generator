@@ -2,6 +2,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 const SUPABASE_OAUTH_CODE_EXCHANGE_PATHS = new Set<string>([
+    "/",
     "/dashboard-user",
     "/auth/post-login",
 ]);
@@ -65,6 +66,10 @@ export const updateSession = async (request: NextRequest) => {
                 redirectResponse.cookies.set(cookie);
             }
             return redirectResponse;
+        }
+
+        if (pathname === "/") {
+            nextUrl.pathname = "/auth/post-login";
         }
 
         // Default redirect
