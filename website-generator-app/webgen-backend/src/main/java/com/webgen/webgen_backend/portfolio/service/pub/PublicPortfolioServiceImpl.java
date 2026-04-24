@@ -71,16 +71,19 @@ public class PublicPortfolioServiceImpl implements PublicPortfolioService {
         // Load owner profile
         String ownerName = null;
         String ownerAvatarUrl = null;
+        String ownerUsername = null;
         Optional<Profile> profileOpt = profileRepository.findById(portfolio.getUserId());
         if (profileOpt.isPresent()) {
             Profile profile = profileOpt.get();
             ownerName = profile.getFullName();
             ownerAvatarUrl = profile.getAvatarUrl();
+            ownerUsername = profile.getUsername();
         }
 
         PublicPortfolioDTO dto = new PublicPortfolioDTO();
         dto.setPortfolioId(portfolio.getId().toString());
         dto.setUserId(portfolio.getUserId().toString());
+        dto.setOwnerUsername(ownerUsername);
         dto.setTitle(portfolio.getTitle());
         dto.setSlug(portfolio.getSlug());
         dto.setTemplateId(portfolio.getTemplateId());

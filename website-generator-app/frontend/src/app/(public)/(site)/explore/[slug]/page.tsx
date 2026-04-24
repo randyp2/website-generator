@@ -106,7 +106,7 @@ const ExplorePortfolioDetailPage = async ({ params }: Props) => {
             <PortfolioComments />
           </div>
 
-          <ExplorePortfolioPlaceholderCard />
+          <ExplorePortfolioPlaceholderCard username={portfolio.ownerUsername} />
         </div>
       </div>
     </section>

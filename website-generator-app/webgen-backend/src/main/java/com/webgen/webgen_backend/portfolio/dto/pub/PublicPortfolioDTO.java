@@ -10,6 +10,7 @@ import java.util.List;
 public class PublicPortfolioDTO {
     private String portfolioId;
     private String userId;
+    private String ownerUsername;
     private String title;
     private String slug;
     private String templateId;

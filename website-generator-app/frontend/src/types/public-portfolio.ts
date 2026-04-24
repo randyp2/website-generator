@@ -9,6 +9,7 @@ export interface PublicSectionDTO {
 export interface PublicPortfolioDTO {
     portfolioId: string;
     userId: string;
+    ownerUsername: string | null;
     title: string;
     slug: string;
     templateId: string | null;
