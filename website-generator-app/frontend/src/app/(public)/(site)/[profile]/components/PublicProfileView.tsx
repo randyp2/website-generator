@@ -30,7 +30,7 @@ const PublicProfileView = ({
     );
 
     return (
-        <div className="space-y-8 px-4 py-8 md:px-6">
+        <div className="space-y-8 px-8 py-8 sm:px-10 md:px-14 lg:px-20 xl:px-28 2xl:px-36">
             <ProfileHeader
                 username={displayName}
                 avatarUrl={profile.avatarUrl}
