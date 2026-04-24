@@ -47,6 +47,8 @@ const navTriggerClassName =
   "h-10 rounded-none bg-transparent px-4 text-sm font-medium text-foreground shadow-none hover:bg-transparent hover:text-primary focus:bg-transparent focus:text-primary data-[active]:bg-transparent data-[state=open]:bg-transparent"
 
 const PAGE_SIZE = 12
+const PAGE_HORIZONTAL_PADDING_CLASSNAME =
+  "px-8 sm:px-10 md:px-14 lg:px-20 xl:px-28 2xl:px-36"
 
 export const ExplorePageClient = () => {
   const [portfolios, setPortfolios] = useState<PortfolioCard[]>([])
@@ -115,7 +117,7 @@ export const ExplorePageClient = () => {
           <div className="absolute left-0 top-0 h-[80rem] w-[15rem] -translate-y-[21.875rem] -rotate-45 rounded-full [background:radial-gradient(50%_50%_at_50%_50%,color-mix(in_oklab,var(--foreground)_4%,transparent)_0%,color-mix(in_oklab,var(--foreground)_1%,transparent)_80%,transparent_100%)]" />
         </div>
 
-        <div className="px-6 py-8 sm:px-8 lg:px-10">
+        <div className={cn(PAGE_HORIZONTAL_PADDING_CLASSNAME, "py-8")}>
           <div className="flex w-full flex-col gap-4 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center">
             <div className="hidden md:block" />
 
@@ -236,11 +238,16 @@ export const ExplorePageClient = () => {
         <div className="absolute inset-x-0 h-px w-full border-b border-dashed border-border" />
 
         {filtered.length === 0 && !isLoading ? (
-          <div className="px-6 py-4 sm:px-8 lg:px-10">
+          <div className={cn(PAGE_HORIZONTAL_PADDING_CLASSNAME, "py-4")}>
             <ExploreEmptyState hasQuery={deferredSearchQuery.length > 0} />
           </div>
         ) : (
-          <div className="z-10 grid gap-4 px-6 py-4 sm:px-8 lg:px-10 md:grid-cols-2 lg:grid-cols-3">
+          <div
+            className={cn(
+              PAGE_HORIZONTAL_PADDING_CLASSNAME,
+              "z-10 grid gap-4 py-4 md:grid-cols-2 lg:grid-cols-3",
+            )}
+          >
             {filtered.map((portfolio) => (
               <ExploreCard key={portfolio.slug} portfolio={portfolio} />
             ))}
