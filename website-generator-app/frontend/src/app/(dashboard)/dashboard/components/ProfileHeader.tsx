@@ -154,7 +154,7 @@ const ProfileHeader = ({
 
           {/* Handle */}
           {showHandle && (
-            <p className="text-sm text-muted-foreground">@{cleanHandle}</p>
+            <p className="text-sm font-medium text-primary">@{cleanHandle}</p>
           )}
 
           {/* Identity meta */}
@@ -162,19 +162,19 @@ const ProfileHeader = ({
             <div className="flex flex-col items-center gap-1 text-sm text-muted-foreground sm:items-start">
               {jobLine && (
                 <div className="flex items-center gap-1.5">
-                  <BriefcaseBusiness className="h-3.5 w-3.5 text-foreground/70" />
+                  <BriefcaseBusiness className="h-3.5 w-3.5 text-primary" />
                   <span>{jobLine}</span>
                 </div>
               )}
               {educationLine && (
                 <div className="flex items-center gap-1.5">
-                  <GraduationCap className="h-3.5 w-3.5 text-foreground/70" />
+                  <GraduationCap className="h-3.5 w-3.5 text-primary" />
                   <span>{educationLine}</span>
                 </div>
               )}
               {cleanLocation && (
                 <div className="flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5 text-foreground/70" />
+                  <MapPin className="h-3.5 w-3.5 text-primary" />
                   <span>{cleanLocation}</span>
                 </div>
               )}
