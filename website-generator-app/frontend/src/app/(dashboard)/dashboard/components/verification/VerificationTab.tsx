@@ -72,7 +72,7 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
         null,
     );
 
-    const { summary, isLoading, error, refetch } = useVerificationSummary();
+    const { summary, isInitialLoading, error, refetch } = useVerificationSummary();
     const {
         claims,
         isLoading: isClaimsLoading,
@@ -355,14 +355,14 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
 
     if (!summary || summary.totalSkills === 0 || !overview) {
         return (
-            <ResumeVerificationGuard isExternalLoading={isLoading}>
+            <ResumeVerificationGuard isExternalLoading={isInitialLoading}>
                 <VerificationEmptyState onStart={refetch} />
             </ResumeVerificationGuard>
         );
     }
 
     return (
-        <ResumeVerificationGuard isExternalLoading={isLoading}>
+        <ResumeVerificationGuard isExternalLoading={isInitialLoading}>
             <VerificationOverview
                 data={overview}
                 lastRerunAt={lastRerunAt}

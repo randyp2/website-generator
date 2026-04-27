@@ -1,12 +1,13 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 import type { VerificationSummaryDTO } from "@/types/verification-summary"
 
 interface UseVerificationSummaryReturn {
   summary: VerificationSummaryDTO | null
   isLoading: boolean
+  isInitialLoading: boolean
   error: string | null
   refetch: () => void
 }
@@ -15,6 +16,7 @@ const useVerificationSummary = (): UseVerificationSummaryReturn => {
   const [summary, setSummary] = useState<VerificationSummaryDTO | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const hasLoadedOnceRef = useRef(false)
 
   const fetchSummary = useCallback(async () => {
     setIsLoading(true)
@@ -39,6 +41,7 @@ const useVerificationSummary = (): UseVerificationSummaryReturn => {
           : "Failed to fetch verification summary",
       )
     } finally {
+      hasLoadedOnceRef.current = true
       setIsLoading(false)
     }
   }, [])
@@ -47,7 +50,13 @@ const useVerificationSummary = (): UseVerificationSummaryReturn => {
     fetchSummary()
   }, [fetchSummary])
 
-  return { summary, isLoading, error, refetch: fetchSummary }
+  return {
+    summary,
+    isLoading,
+    isInitialLoading: isLoading && !hasLoadedOnceRef.current,
+    error,
+    refetch: fetchSummary,
+  }
 }
 
 export default useVerificationSummary
