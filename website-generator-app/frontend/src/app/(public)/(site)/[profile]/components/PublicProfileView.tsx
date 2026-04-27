@@ -1,11 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import ProfileHeader from "@/app/(dashboard)/dashboard/components/ProfileHeader";
 import ProfilePortfoliosGrid from "@/app/(dashboard)/dashboard/components/ProfilePortfoliosGrid";
 import type { PortfolioCard } from "@/app/(public)/(site)/explore/components/explore.types";
 import type { PublicProfileDTO } from "@/types/public-profile";
+import EditProfileModal, {
+    type EditableProfileFields,
+} from "./EditProfileModal";
 import PublicVerificationTab from "./PublicVerificationTab";
 
 const PUBLIC_PROFILE_TABS = ["Portfolios", "Verification"] as const;
@@ -24,18 +27,41 @@ const PublicProfileView = ({
     isOwner,
 }: PublicProfileViewProps) => {
     const [activeTab, setActiveTab] = useState<PublicProfileTab>("Portfolios");
+    const [displayedProfile, setDisplayedProfile] = useState(profile);
+    const [isEditOpen, setIsEditOpen] = useState(false);
+
+    useEffect(() => {
+        setDisplayedProfile(profile);
+    }, [profile]);
+
     const displayName = useMemo(
-        () => profile.fullName?.trim() || profile.username,
-        [profile.fullName, profile.username],
+        () => displayedProfile.fullName?.trim() || displayedProfile.username,
+        [displayedProfile.fullName, displayedProfile.username],
     );
+
+    const handleProfileSaved = (updated: EditableProfileFields) => {
+        setDisplayedProfile((prev) => ({ ...prev, ...updated }));
+    };
 
     return (
         <div className="space-y-8 px-8 py-8 sm:px-10 md:px-14 lg:px-20 xl:px-28 2xl:px-36">
             <ProfileHeader
                 username={displayName}
-                avatarUrl={profile.avatarUrl}
-                bio={profile.bio}
+                handle={displayedProfile.username}
+                avatarUrl={displayedProfile.avatarUrl}
+                bio={displayedProfile.bio}
+                jobTitle={displayedProfile.jobTitle}
+                company={displayedProfile.company}
+                school={displayedProfile.school}
+                degree={displayedProfile.degree}
+                location={displayedProfile.location}
+                websiteUrl={displayedProfile.websiteUrl}
+                linkedinUrl={displayedProfile.linkedinUrl}
+                githubUrl={displayedProfile.githubUrl}
                 showEditProfileButton={isOwner}
+                onEditProfile={
+                    isOwner ? () => setIsEditOpen(true) : undefined
+                }
             />
 
             <div className="space-y-6">
@@ -63,7 +89,7 @@ const PublicProfileView = ({
                             loading={false}
                         />
                     ) : activeTab === "Verification" ? (
-                        <PublicVerificationTab username={profile.username} />
+                        <PublicVerificationTab username={displayedProfile.username} />
                     ) : (
                         <div className="flex flex-col items-center justify-center py-20">
                             <p className="text-lg font-medium text-foreground">{activeTab}</p>
@@ -74,6 +100,15 @@ const PublicProfileView = ({
                     )}
                 </div>
             </div>
+
+            {isOwner && (
+                <EditProfileModal
+                    open={isEditOpen}
+                    onOpenChange={setIsEditOpen}
+                    profile={displayedProfile}
+                    onSaved={handleProfileSaved}
+                />
+            )}
         </div>
     );
 };
