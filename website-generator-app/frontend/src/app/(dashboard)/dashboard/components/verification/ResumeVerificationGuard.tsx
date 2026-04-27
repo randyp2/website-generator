@@ -35,6 +35,7 @@ const getVisibleTabs = (maxReachedIndex: number) =>
 interface ResumeVerificationGuardProps {
     children: React.ReactNode;
     isExternalLoading?: boolean;
+    onPostConfirmRefresh?: () => Promise<void> | void;
 }
 
 /**
@@ -52,6 +53,7 @@ interface ResumeVerificationGuardProps {
 const ResumeVerificationGuard = ({
     children,
     isExternalLoading = false,
+    onPostConfirmRefresh,
 }: ResumeVerificationGuardProps) => {
     const { activeTab, setActiveTab, hasExplicitTab } = useVerificationSubTab();
     const [maxReachedIndex, setMaxReachedIndex] = useState(() =>
@@ -84,7 +86,9 @@ const ResumeVerificationGuard = ({
         handleContinueToSkillVerification,
         handleConfirmSkills,
         saveReview,
-    } = useResumeVerification(setActiveTabAndTrack);
+    } = useResumeVerification(setActiveTabAndTrack, {
+        onConfirmIngested: onPostConfirmRefresh,
+    });
     const shouldShowUploadReminder =
         !hasPersisted &&
         (activeTab === "skill-review" || activeTab === "skill-verification");

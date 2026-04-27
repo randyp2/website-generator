@@ -41,6 +41,14 @@ interface ResumeVerificationState {
     ingestError: string | null;
 }
 
+interface UseResumeVerificationOptions {
+    /**
+     * Optional callback fired after claim ingestion succeeds and before
+     * navigating to the skill-verification subtab.
+     */
+    onConfirmIngested?: () => Promise<void> | void;
+}
+
 // ─── Hook ────────────────────────────────────────────────────────────
 
 /**
@@ -58,7 +66,9 @@ interface ResumeVerificationState {
  */
 const useResumeVerification = (
     setActiveTab: (tab: VerificationSubTab) => void,
+    options: UseResumeVerificationOptions = {},
 ) => {
+    const { onConfirmIngested } = options;
     const [state, setState] = useState<ResumeVerificationState>({
         resume: null,
         resumeVerificationId: null,
@@ -374,6 +384,18 @@ const useResumeVerification = (
 
                 if (!res.ok) throw new Error("Failed to ingest skill claims");
 
+                if (onConfirmIngested) {
+                    try {
+                        await onConfirmIngested();
+                    } catch (refreshError) {
+                        // Navigation should still continue even if refresh fails.
+                        console.error(
+                            "Post-confirm verification refresh failed:",
+                            refreshError,
+                        );
+                    }
+                }
+
                 setActiveTab("skill-verification");
             } catch (error) {
                 console.error("Claim ingestion failed:", error);
@@ -388,7 +410,12 @@ const useResumeVerification = (
                 setState((prev) => ({ ...prev, isIngesting: false }));
             }
         },
-        [state.resumeVerificationId, state.parsedData, setActiveTab],
+        [
+            state.resumeVerificationId,
+            state.parsedData,
+            setActiveTab,
+            onConfirmIngested,
+        ],
     );
 
     /** Autosaves the user's edited skills and experiences to the DB.

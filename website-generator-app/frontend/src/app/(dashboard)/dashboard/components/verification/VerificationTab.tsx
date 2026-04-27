@@ -347,6 +347,17 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
         refetchEvidence,
     ]);
 
+    // Refresh verification data right after claim ingestion succeeds so the
+    // first entry into skill-verification reflects new baseline scores.
+    const handlePostConfirmRefresh = useCallback(async () => {
+        await Promise.all([
+            refetch(),
+            refetchClaims(),
+            refetchEvidence(),
+            refetchConnections(),
+        ]);
+    }, [refetch, refetchClaims, refetchEvidence, refetchConnections]);
+
     if (error) {
         return (
             <VerificationErrorState onRetry={() => window.location.reload()} />
@@ -355,14 +366,20 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
 
     if (!summary || summary.totalSkills === 0 || !overview) {
         return (
-            <ResumeVerificationGuard isExternalLoading={isInitialLoading}>
+            <ResumeVerificationGuard
+                isExternalLoading={isInitialLoading}
+                onPostConfirmRefresh={handlePostConfirmRefresh}
+            >
                 <VerificationEmptyState />
             </ResumeVerificationGuard>
         );
     }
 
     return (
-        <ResumeVerificationGuard isExternalLoading={isInitialLoading}>
+        <ResumeVerificationGuard
+            isExternalLoading={isInitialLoading}
+            onPostConfirmRefresh={handlePostConfirmRefresh}
+        >
             <VerificationOverview
                 data={overview}
                 lastRerunAt={lastRerunAt}
