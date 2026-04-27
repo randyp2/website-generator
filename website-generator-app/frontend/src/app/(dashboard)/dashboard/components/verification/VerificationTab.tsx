@@ -356,7 +356,7 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
     if (!summary || summary.totalSkills === 0 || !overview) {
         return (
             <ResumeVerificationGuard isExternalLoading={isInitialLoading}>
-                <VerificationEmptyState onStart={refetch} />
+                <VerificationEmptyState />
             </ResumeVerificationGuard>
         );
     }

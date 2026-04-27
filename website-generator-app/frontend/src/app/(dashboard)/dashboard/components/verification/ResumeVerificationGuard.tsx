@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import ResumePreviewCard from "./ResumePreviewCard";
@@ -58,7 +59,9 @@ const ResumeVerificationGuard = ({
     );
     const setActiveTabAndTrack = useCallback(
         (tab: VerificationSubTab) => {
-            setMaxReachedIndex((prev) => Math.max(prev, TAB_ORDER.indexOf(tab)));
+            setMaxReachedIndex((prev) =>
+                Math.max(prev, TAB_ORDER.indexOf(tab)),
+            );
             setActiveTab(tab);
         },
         [setActiveTab],
@@ -82,6 +85,9 @@ const ResumeVerificationGuard = ({
         handleConfirmSkills,
         saveReview,
     } = useResumeVerification(setActiveTabAndTrack);
+    const shouldShowUploadReminder =
+        !hasPersisted &&
+        (activeTab === "skill-review" || activeTab === "skill-verification");
 
     // ── Redirect returning users straight to skill-verification ──────
     // If the user has already completed the flow and arrives without an
@@ -98,7 +104,11 @@ const ResumeVerificationGuard = ({
     // the redirect to skill-verification hasn't landed in the URL yet
     // (hasPersisted && !hasExplicitTab). That last condition prevents
     // a one-frame flash of the resume-review tab before router.replace fires.
-    if (isExternalLoading || isLoadingExisting || (hasPersisted && !hasExplicitTab)) {
+    if (
+        isExternalLoading ||
+        isLoadingExisting ||
+        (hasPersisted && !hasExplicitTab)
+    ) {
         return <VerificationLoadingSpinner />;
     }
 
@@ -124,7 +134,9 @@ const ResumeVerificationGuard = ({
         <div className="space-y-8">
             {/* Sub-tab bar — only reveals tabs the user has reached */}
             <div className="flex gap-6 border-b border-border">
-                {getVisibleTabs(Math.max(maxReachedIndex, TAB_ORDER.indexOf(activeTab))).map((tab) => {
+                {getVisibleTabs(
+                    Math.max(maxReachedIndex, TAB_ORDER.indexOf(activeTab)),
+                ).map((tab) => {
                     const isActive = activeTab === tab.id;
                     return (
                         <button
@@ -141,6 +153,16 @@ const ResumeVerificationGuard = ({
                     );
                 })}
             </div>
+            {shouldShowUploadReminder && (
+                <div className="inline-flex w-fit max-w-full items-center gap-2 rounded-full border border-primary/60 bg-primary/15 px-4 py-1.5 text-xs text-black dark:text-white">
+                    <Info className="h-3.5 w-3.5 shrink-0" />
+                    <p>
+                        Note: Upload your resume and click &quot;Continue to
+                        Skill Verification&quot; in Resume Review to begin this
+                        step.
+                    </p>
+                </div>
+            )}
 
             {/* Step 1 — Review the uploaded resume and continue to parsing */}
             {activeTab === "resume-review" && (
@@ -164,9 +186,7 @@ const ResumeVerificationGuard = ({
                             </div>
                             <div className="flex flex-col items-end gap-2">
                                 <Button
-                                    onClick={
-                                        handleContinueToSkillVerification
-                                    }
+                                    onClick={handleContinueToSkillVerification}
                                     disabled={isUploading}
                                     className="hover:cursor-pointer"
                                 >
@@ -195,7 +215,9 @@ const ResumeVerificationGuard = ({
                     isIngesting={isIngesting}
                     ingestError={ingestError}
                     onSave={saveReview}
-                    onConfirm={(skills, experiences) => handleConfirmSkills(skills, experiences)}
+                    onConfirm={(skills, experiences) =>
+                        handleConfirmSkills(skills, experiences)
+                    }
                 />
             )}
 

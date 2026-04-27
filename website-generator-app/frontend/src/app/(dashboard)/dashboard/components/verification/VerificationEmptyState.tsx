@@ -2,89 +2,55 @@
 
 import {
   ShieldCheck,
-  Link,
   FileText,
-  BarChart3,
+  Sparkles,
   AlertTriangle,
   Loader2,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 
 import type {
-  VerificationEmptyStateProps,
   VerificationErrorStateProps,
 } from "./verification.types"
 
-const ONBOARDING_STEPS = [
-  {
-    icon: Link,
-    title: "Connect Your Accounts",
-    description:
-      "Link your GitHub, LinkedIn, and other platforms to import evidence automatically.",
-  },
-  {
-    icon: FileText,
-    title: "Upload Your Resume",
-    description:
-      "We'll extract skills and cross-reference them against your connected accounts.",
-  },
-  {
-    icon: BarChart3,
-    title: "Get Your Verification Score",
-    description:
-      "See a detailed breakdown of how your claims are backed by real evidence.",
-  },
-] as const
-
-const VerificationEmptyState = ({ onStart }: VerificationEmptyStateProps) => {
+const VerificationEmptyState = () => {
   return (
-    <div className="flex flex-col items-center justify-center py-16">
-      <div className="rounded-full bg-primary/10 p-6 mb-6">
-        <ShieldCheck className="h-16 w-16 text-primary" />
-      </div>
-      <h2 className="text-2xl font-bold text-foreground mb-2">
-        Verify Your Skills
-      </h2>
-      <p className="text-muted-foreground text-center max-w-md mb-10">
-        Build trust with employers and collaborators by verifying your skills
-        through connected accounts, certifications, and project evidence.
-      </p>
+    <div className="flex min-h-[calc(100vh-16rem)] w-full items-center justify-center">
+      <div className="mx-auto w-full max-w-3xl text-center">
+        <div className="mx-auto mb-7 flex h-28 w-28 items-center justify-center rounded-full bg-primary/10">
+          <ShieldCheck className="h-16 w-16 text-primary" />
+        </div>
+        <h2 className="text-2xl font-bold text-foreground">Skill Verification</h2>
+        <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground">
+          This subtab is your evidence workspace. It compares resume claims
+          against connected-source signals, then shows what is verified, what
+          still needs evidence, and why each score moved.
+        </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-3xl mb-10">
-        {ONBOARDING_STEPS.map((step, index) => (
-          <Card key={step.title} className="relative">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                  {index + 1}
-                </div>
-                <step.icon className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <CardTitle className="text-base">{step.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>{step.description}</CardDescription>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="flex gap-3">
-        <Button onClick={onStart} size="lg">
-          Start Verification
-        </Button>
-        <Button variant="ghost" size="lg">
-          Learn More
-        </Button>
+        <div className="mx-auto mt-6 grid max-w-2xl gap-4 text-left md:grid-cols-2">
+          <div>
+            <p className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              What you will see here
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Claim-by-claim status, linked evidence, score impact, and action
+              suggestions.
+            </p>
+          </div>
+          <div>
+            <p className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
+              <Sparkles className="h-4 w-4 text-muted-foreground" />
+              Why this tab exists
+            </p>
+            <p className="text-xs text-muted-foreground">
+              It turns resume claims into transparent, evidence-backed signals
+              that are easier for reviewers to trust.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   )

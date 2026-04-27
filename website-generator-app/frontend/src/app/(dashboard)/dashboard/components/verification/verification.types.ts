@@ -201,10 +201,6 @@ export interface VerificationFilterBarProps {
   onChange: (filter: FilterOption) => void
 }
 
-export interface VerificationEmptyStateProps {
-  onStart: () => void
-}
-
 export interface VerificationErrorStateProps {
   onRetry: () => void
 }
