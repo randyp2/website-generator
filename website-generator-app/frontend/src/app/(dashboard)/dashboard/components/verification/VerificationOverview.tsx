@@ -1,0 +1,128 @@
+"use client"
+
+import { RefreshCw, Info } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import {
+  Card,
+  CardContent,
+} from "@/components/ui/card"
+import { cn } from "@/lib/utils"
+
+import type { VerificationOverviewProps } from "./verification.types"
+import VerificationScoreRing from "./VerificationScoreRing"
+
+const KPI_ITEMS = [
+  { key: "totalSkills", label: "Total Skills", accent: "" },
+  { key: "matchedSkills", label: "Matched", accent: "border-l-2 border-l-emerald-400" },
+  { key: "unmatchedSkills", label: "Unmatched", accent: "border-l-2 border-l-yellow-400" },
+  { key: "unverifiedClaimsCount", label: "Unverified", accent: "border-l-2 border-l-zinc-400" },
+] as const
+
+const VerificationOverview = ({
+  data,
+  lastRerunAt,
+  onRerunChecks,
+  isRerunningChecks = false,
+  showActions = true,
+}: VerificationOverviewProps) => {
+  const lastRerunLabel = lastRerunAt
+    ? new Date(lastRerunAt).toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    : "Never"
+
+  return (
+    <Card className="relative overflow-hidden border border-border/70">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-orange-300/12 via-orange-200/6 to-transparent dark:from-orange-300/14 dark:via-orange-200/6"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -bottom-12 right-0 h-24 w-24 rounded-full bg-orange-300/12 blur-3xl dark:bg-orange-200/12"
+      />
+      <CardContent className="relative z-10 p-6">
+        <div className="flex flex-col lg:flex-row gap-6 items-center lg:items-start">
+          {/* Verification Ring */}
+          <VerificationScoreRing score={data.overallScore} tier={data.tier} />
+
+          {/* KPI Cards */}
+          <div className="flex-1 w-full">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+              {KPI_ITEMS.map((item) => (
+                <div
+                  key={item.key}
+                  className={cn(
+                    "rounded-lg bg-muted/50 p-3",
+                    item.accent,
+                  )}
+                >
+                  <p className="text-2xl font-bold text-foreground">
+                    {data[item.key]}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{item.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Trust note */}
+            <div className="flex items-start gap-2 text-xs text-muted-foreground mb-3">
+              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <p>{data.trustNote}</p>
+            </div>
+
+            <div className="mb-4 flex flex-wrap items-center gap-2 text-[11px]">
+              <Badge variant="outline">
+                Starting Score {data.baselineOverallScore}
+              </Badge>
+              <Badge
+                variant="outline"
+                className={cn(
+                  data.evidenceDelta > 0 && "text-emerald-600 border-emerald-600/40",
+                  data.evidenceDelta < 0 && "text-red-500 border-red-500/40",
+                )}
+              >
+                Project Boost {data.evidenceDelta > 0 ? "+" : ""}{data.evidenceDelta}
+              </Badge>
+              <Badge variant="outline">
+                Your Score {data.overallScore}
+              </Badge>
+            </div>
+
+            {showActions ? (
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    void onRerunChecks()
+                  }}
+                  disabled={isRerunningChecks}
+                  className="gap-1.5 hover:cursor-pointer"
+                >
+                  <RefreshCw className={cn("h-3.5 w-3.5", isRerunningChecks && "animate-spin")} />
+                  {isRerunningChecks ? "Re-running..." : "Re-run Checks"}
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  Last re-run {lastRerunLabel}
+                </span>
+              </div>
+            ) : (
+              <span className="text-xs text-muted-foreground">
+                Last re-run {lastRerunLabel}
+              </span>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+export default VerificationOverview

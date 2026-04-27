@@ -27,12 +27,12 @@ const productGroups = {
     {
       title: "Section Builder",
       description: "Assemble hero, about, work, and contact sections with structure.",
-      href: "/dashboard-user/create",
+      href: "/dashboard/create",
     },
     {
       title: "Version History",
       description: "Keep iterations of your portfolio and switch between revisions safely.",
-      href: "/dashboard-user",
+      href: "/dashboard",
     },
   ] satisfies NavLeafItem[],
   resources: [

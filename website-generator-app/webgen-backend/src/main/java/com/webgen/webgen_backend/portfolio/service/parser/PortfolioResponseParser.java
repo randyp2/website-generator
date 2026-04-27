@@ -22,6 +22,14 @@ public class PortfolioResponseParser {
 
     private final ObjectMapper objectMapper;
 
+    /**
+     * Parses the LLM's blueprint JSON into a BlueprintDTO.
+     * Validates that globalTheme and sectionPlan are present before returning.
+     *
+     * @param rawJson raw JSON string from the LLM (may include markdown fences)
+     * @return parsed blueprint with globalTheme, sectionPlan, designDirective, and assistantMessage
+     * @throws IllegalArgumentException if the JSON is malformed or required fields are missing
+     */
     public BlueprintDTO parseBlueprintResponse(String rawJson) {
         System.out.println(">>> [PARSER] parseBlueprintResponse () started");
         System.out.println(">>> [PARSER] Raw JSON length: " + (rawJson != null ? rawJson.length() : 0));
@@ -103,6 +111,13 @@ public class PortfolioResponseParser {
         }
     }
 
+    /**
+     * Parses a single section's JSON response from the per-section generation step.
+     *
+     * @param rawJson raw JSON string from the LLM (may include markdown fences)
+     * @return SectionDTO with sectionKey, title, orderIndex, contentJson, and reactSource
+     * @throws IllegalArgumentException if the JSON is malformed
+     */
     public SectionDTO parseSingleSectionResponse(String rawJson) {
         System.out.println(">>> [PARSER] parseSectionResponse() started");
         rawJson = stripMarkdownFence(rawJson);
@@ -125,6 +140,14 @@ public class PortfolioResponseParser {
         }
     }
 
+    /**
+     * Parses the full one-shot portfolio generation response into a PortfolioGenerateResponseDTO.
+     * Expects globalTheme, sections array, and assistantMessage in the LLM JSON output.
+     *
+     * @param rawJson raw JSON string from the LLM (may include markdown fences)
+     * @return fully populated response DTO
+     * @throws IllegalArgumentException if the JSON is malformed or required fields are missing
+     */
     public PortfolioGenerateResponseDTO parseGenerateResponse(String rawJson) {
         System.out.println(">>> [PARSER] parseGenerateResponse() started");
         System.out.println(">>> [PARSER] Raw JSON length: " + (rawJson != null ? rawJson.length() : 0));
@@ -206,6 +229,15 @@ public class PortfolioResponseParser {
         }
     }
 
+    /**
+     * Validates the structure of a parsed portfolio generation response.
+     * Checks that sections are non-empty, navbar is first, footer is last,
+     * all section keys are present, all reactSource strings are non-blank,
+     * and the assistantMessage is included.
+     *
+     * @param response parsed response to validate
+     * @throws IllegalArgumentException if any structural requirement is violated
+     */
     public void validateGenerateResponse(PortfolioGenerateResponseDTO response) {
         if (response.getSections() == null || response.getSections().isEmpty())
             throw new IllegalArgumentException("AI returned no sections.");
@@ -229,21 +261,28 @@ public class PortfolioResponseParser {
             throw new IllegalArgumentException("Assistant message is missing");
     }
 
+    /* ============== PARSING HELPERS ============== */
+
+    /** Lowercases and trims the sectionKey to ensure consistent matching across parser and DB. */
     private String normalizeSectionKey(String sectionKey) {
         return sectionKey == null ? null : sectionKey.trim().toLowerCase();
     }
 
+    /*
+     * LLMs sometimes wrap JSON in markdown code fences (```json ... ```).
+     * This strips the fence so Jackson can parse the content directly.
+     */
     private String stripMarkdownFence(String raw) {
         if (raw == null) return null;
         var matcher = MARKDOWN_FENCE.matcher(raw);
         return matcher.matches() ? matcher.group(1).trim() : raw.trim();
     }
 
+    /** Strips ASCII control characters (except newline, carriage return, tab) to prevent JSX parse failures. */
     private String sanitizeReactSource(String reactSource) {
         if (reactSource == null) {
             return null;
         }
-        // Remove ASCII control characters that can break parsing/rendering.
         return reactSource.replaceAll("[\\p{Cntrl}&&[^\r\n\t]]", "");
     }
 }

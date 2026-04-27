@@ -86,6 +86,12 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
     private static final String SYNC_STATUS_SUCCESS = "success";
     private static final String SYNC_STATUS_FAILED = "failed";
 
+    private static final String CLAIM_STATUS_PENDING = "pending";
+    private static final String CLAIM_STATUS_VERIFIED = "verified";
+    private static final String CLAIM_STATUS_NEEDS_EVIDENCE = "needs_evidence";
+    private static final String CLAIM_STATUS_USER_CONFIRMED = "user_confirmed";
+    private static final String CLAIM_STATUS_REJECTED = "rejected";
+
     private static final String GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token";
     private static final String GITHUB_USER_URL = "https://api.github.com/user";
     private static final String GITHUB_REPOS_URL = "https://api.github.com/user/repos";
@@ -292,6 +298,15 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
                             + linkStats.getRemoved()
                             + " claimsMatched="
                             + linkStats.getClaimsMatched());
+
+            int claimStatusesUpdated = reconcileClaimStatusesAfterSync(profileId, startedAt);
+            logSync(
+                    "Connection sync claim status reconciliation complete profileId="
+                            + profileId
+                            + " provider="
+                            + normalizedProvider
+                            + " updated="
+                            + claimStatusesUpdated);
 
             OffsetDateTime completedAt = OffsetDateTime.now();
             int importedCount = safeCount(evidenceStats.getInserted())
@@ -1269,6 +1284,80 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
                 .removed(removed)
                 .claimsMatched(matchedClaimIds.size())
                 .build();
+    }
+
+    /**
+     * Reconciles claim workflow statuses based on canonical resolution + current linked evidence.
+     *
+     * Rules:
+     * - manual review states (user_confirmed/rejected) are preserved
+     * - unresolved claims stay pending
+     * - resolved claims with evidence become verified
+     * - resolved claims without evidence become needs_evidence
+     *
+     * @param profileId profile owner whose skill claims should be reconciled
+     * @param now timestamp used for updated_at when status changes
+     * @return number of claim rows whose status changed
+     */
+    private int reconcileClaimStatusesAfterSync(UUID profileId, OffsetDateTime now) {
+        List<Claim> claims = claimRepository.findSkillClaimsByProfileId(profileId);
+        if (claims.isEmpty()) {
+            return 0;
+        }
+
+        List<UUID> claimIds = claims.stream().map(Claim::getId).toList();
+        Map<UUID, Boolean> hasEvidenceByClaimId = claimEvidenceLinkRepository
+                .findByProfileIdAndClaimIdIn(profileId, claimIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        ClaimEvidenceLink::getClaimId,
+                        link -> true,
+                        (left, right) -> left
+                ));
+
+        List<Claim> changedClaims = new ArrayList<>();
+        for (Claim claim : claims) {
+            String currentStatus = normalizeClaimStatus(claim.getStatus());
+            if (isManualClaimStatus(currentStatus)) {
+                continue;
+            }
+
+            String nextStatus = resolveSyncedClaimStatus(claim, hasEvidenceByClaimId);
+            if (!Objects.equals(currentStatus, nextStatus)) {
+                claim.setStatus(nextStatus);
+                claim.setUpdatedAt(now);
+                changedClaims.add(claim);
+            }
+        }
+
+        if (!changedClaims.isEmpty()) {
+            claimRepository.saveAll(changedClaims);
+        }
+        return changedClaims.size();
+    }
+
+    // Keeps unknown/null persisted values deterministic for sync reconciliation.
+    private String normalizeClaimStatus(String status) {
+        if (status == null || status.isBlank()) {
+            return CLAIM_STATUS_PENDING;
+        }
+        return status.trim().toLowerCase(Locale.ROOT);
+    }
+
+    // Manual review states are controlled outside provider sync and should not be overwritten.
+    private boolean isManualClaimStatus(String status) {
+        return CLAIM_STATUS_USER_CONFIRMED.equals(status)
+                || CLAIM_STATUS_REJECTED.equals(status);
+    }
+
+    // Provider sync derives status from canonical resolution and linked evidence presence.
+    private String resolveSyncedClaimStatus(Claim claim, Map<UUID, Boolean> hasEvidenceByClaimId) {
+        if (claim.getCanonicalSkillId() == null) {
+            return CLAIM_STATUS_PENDING;
+        }
+
+        boolean hasEvidence = hasEvidenceByClaimId.getOrDefault(claim.getId(), false);
+        return hasEvidence ? CLAIM_STATUS_VERIFIED : CLAIM_STATUS_NEEDS_EVIDENCE;
     }
 
     /**

@@ -10,11 +10,14 @@ import java.util.UUID;
 public interface ProviderOAuthCallbackService {
 
     /**
+     * Handles the OAuth callback from an external provider after the user approves access.
+     * Exchanges the authorization code for an access token, fetches the provider user info,
+     * and persists the connected account for the authenticated user.
      *
-     * @param profileId
-     * @param provider
-     * @param req
-     * @return
+     * @param profileId authenticated profile id from JWT principal
+     * @param provider  OAuth provider key (e.g. "github")
+     * @param req       callback payload containing the authorization code and state
+     * @return response containing the connected account metadata and sync status
      */
     ProviderCallbackResponseDTO handleProviderCallback(
             UUID profileId,

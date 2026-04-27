@@ -351,9 +351,16 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
      * @return publish response containing slug/status/source metadata
      */
     private PublishResponseDTO publishGeneratedPortfolio(UUID userId, PublishRequestDTO request) {
-        // Required portfolioId
-        // - Generated portfolios should already have a row in portfolios
-        UUID portfolioId = parsePortfolioId(request.getPortfolioId());
+        String rawPortfolioId = request.getPortfolioId();
+        if (rawPortfolioId == null || rawPortfolioId.isBlank())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "portfolioId is required for generated publish");
+
+        UUID portfolioId;
+        try {
+            portfolioId = UUID.fromString(rawPortfolioId.trim());
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid portfolioId format");
+        }
 
         // Ownership check
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
@@ -478,24 +485,6 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
     }
 
     /**
-     * Parses and validates a portfolio id from publish request.
-     *
-     * @param rawPortfolioId portfolio id as a string
-     * @return parsed UUID portfolio id
-     */
-    private UUID parsePortfolioId(String rawPortfolioId) {
-        if (rawPortfolioId == null || rawPortfolioId.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "portfolioId is required for generated publish");
-        }
-
-        try {
-            return UUID.fromString(rawPortfolioId.trim());
-        } catch (IllegalArgumentException ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid portfolioId format");
-        }
-    }
-
-    /**
      * Queues screenshot generation for generated or external portfolios.
      *
      * @param portfolioId portfolio id associated with screenshot
@@ -549,6 +538,9 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         portfolioRepository.save(portfolio);
     }
 
+    /* ============== PUBLISH HELPERS ============== */
+
+    /** Trims and validates description length; returns null for blank input. */
     private String normalizeDescription(String rawDescription) {
         if (rawDescription == null) return null;
 
@@ -564,6 +556,10 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         return normalized;
     }
 
+    /*
+     * Retries slug generation up to 5 times with a random suffix to avoid collisions.
+     * Asking the user to pick manually is the fallback when all attempts collide.
+     */
     private String generateUniqueSlug(String baseName) {
         for (int attempt = 0; attempt < 5; attempt++) {
             String slug = SlugUtil.generateSlug(baseName);

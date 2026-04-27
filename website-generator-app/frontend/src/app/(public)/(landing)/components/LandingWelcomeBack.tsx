@@ -59,7 +59,7 @@ const LandingWelcomeBack = ({
             <div className="w-full space-y-4">
                 <button
                     type="button"
-                    onClick={() => router.push("/dashboard-user")}
+                    onClick={() => router.push("/auth/post-login")}
                     className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-3.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:cursor-pointer hover:bg-primary/90"
                 >
                     Continue

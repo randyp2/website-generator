@@ -42,19 +42,19 @@ export const BrowserPreviewFrame = ({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-xl border border-white/10 bg-[#070b14]",
+        "overflow-hidden rounded-xl border border-[#32353d] bg-[#1f2128]",
         className,
       )}
     >
-      <div className="flex items-center gap-2 border-b border-white/10 bg-white/5 px-3 py-2">
-        <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
-        <span className="h-2.5 w-2.5 rounded-full bg-white/90" />
-        <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
-        <div className="ml-2 min-w-0 flex-1 rounded-full border border-white/15 bg-[#040711] px-3 py-1">
+      <div className="flex items-center gap-2 border-b border-[#32353d] bg-[#2a2d35] px-3 py-2">
+        <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
+        <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
+        <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
+        <div className="ml-2 min-w-0 flex-1 rounded-full border border-[#3a3f49] bg-[#17191f] px-3 py-1">
           <p className="truncate text-[11px] text-white/75">{url}</p>
         </div>
       </div>
-      <div className="relative bg-[#0b111c]">
+      <div className="relative bg-[#13161d]">
         {isLoading && (
           <div className="absolute inset-0 animate-pulse bg-accent/20" />
         )}

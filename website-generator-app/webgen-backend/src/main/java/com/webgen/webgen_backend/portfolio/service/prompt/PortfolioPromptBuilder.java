@@ -23,6 +23,15 @@ public class PortfolioPromptBuilder {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    /**
+     * Builds a one-shot prompt that generates the complete portfolio in a single LLM call.
+     * Used as an alternative to the blueprint + per-section flow for templates that
+     * support atomic generation.
+     *
+     * @param req           original generation request with resume, assets, and style prefs
+     * @param refinedPrompt user prompt already processed by PromptRefinerService
+     * @return prompt containing system rules and user context for full portfolio generation
+     */
     public Prompt buildOneShotPrompt(PortfolioGenerateRequestDTO req, String refinedPrompt) {
 
         ParsedResumeDTO resume = req.getResume();
@@ -864,6 +873,9 @@ public class PortfolioPromptBuilder {
 
     }
 
+    /* ============== STYLE PREFS HELPERS ============== */
+
+    /** Serializes the stylePrefs map into a flat semicolon-delimited string for the prompt. */
     private String formatStylePrefs(Map<String, String> stylePrefs) {
         if (stylePrefs == null || stylePrefs.isEmpty())
             return "none";
@@ -873,7 +885,7 @@ public class PortfolioPromptBuilder {
                 .collect(Collectors.joining("; "));
     }
 
-    // Extract the custom notes that are nested w/in styleprefs
+    /** Pulls the free-text "customNotes" key out of stylePrefs; returns empty string when absent. */
     private String extractCustomNotes(Map<String, String> stylePrefs) {
         if (stylePrefs == null)
             return "";
@@ -884,21 +896,29 @@ public class PortfolioPromptBuilder {
         return trimmed.isBlank() ? "" : trimmed;
     }
 
-    // Concat custom notes to prompt
+    /** Appends customNotes to the refined prompt so the LLM treats them as hard design requirements. */
     private String applyCustomNotes(String refinedPrompt, String customNotes) {
         if (customNotes == null || customNotes.isBlank())
             return refinedPrompt;
         return refinedPrompt + "\n\nCUSTOM STYLE NOTES (must implement): " + customNotes;
     }
 
+    /* ============== RESUME DATA FORMATTING HELPERS ============== */
+
+    /** Formats a nullable string list as a comma-separated value for prompt injection. */
     private String formatList(List<String> list) {
         return list == null || list.isEmpty() ? "none" : String.join(", ", list);
     }
 
+    /** Returns the string value or "none" when null, preventing literal "null" in prompts. */
     private String safe(String text) {
         return text == null ? "none" : text;
     }
 
+    /*
+     * Builds a compact contact info string (email, phone, location) for prompt injection.
+     * Only includes fields that are present; returns "none" when all are missing.
+     */
     private String formatContactInfo(ParsedResumeDTO resume) {
         if (resume == null)
             return "none";
@@ -926,6 +946,7 @@ public class PortfolioPromptBuilder {
         return info.toString();
     }
 
+    /** Serializes the asset list to JSON for embedding in the prompt as structured metadata. */
     private String serializeAssets(List<AssetDTO> assets) {
         if (assets == null || assets.isEmpty())
             return "[]";
@@ -936,6 +957,8 @@ public class PortfolioPromptBuilder {
             throw new IllegalStateException("Failed to serialize assets for prompt", e);
         }
     }
+
+    /* ============== STRING UTILITIES ============== */
 
     /**
      * Retry prompt — sends errors, failed code, and the LOCKED contentJson.
@@ -1073,6 +1096,10 @@ public class PortfolioPromptBuilder {
         return new Prompt(List.of(system, user));
     }
 
+    /**
+     * Converts a hyphenated sectionKey into PascalCase for the React component function name.
+     * Example: "work-experience" becomes "WorkExperience", used as "WorkExperienceSection".
+     */
     private String toPascalCase(String sectionKey) {
         if (sectionKey == null || sectionKey.isBlank()) return "Unknown";
         StringBuilder sb = new StringBuilder();

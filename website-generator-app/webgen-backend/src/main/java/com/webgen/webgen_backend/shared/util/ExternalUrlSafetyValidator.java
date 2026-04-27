@@ -90,6 +90,8 @@ public final class ExternalUrlSafetyValidator {
         return host != null && !host.isBlank() && isPublicHost(host);
     }
 
+    /* ============== URL PARSING HELPERS ============== */
+
     private static URI parseAbsoluteUri(String value) {
         try {
             URI uri = new URI(value);
@@ -111,6 +113,13 @@ public final class ExternalUrlSafetyValidator {
         return SCHEME_HTTP.equals(scheme) || SCHEME_HTTPS.equals(scheme);
     }
 
+    /* ============== HOST / IP BLOCKING HELPERS ============== */
+
+    /*
+     * Resolves all IPs for the hostname and rejects any that map to a non-public address.
+     * Checking all addresses (not just the first) guards against DNS rebinding attacks
+     * where one resolved IP is public but another is private.
+     */
     private static boolean isPublicHost(String rawHost) {
         String host = rawHost.toLowerCase(Locale.ROOT).trim();
 
@@ -218,6 +227,10 @@ public final class ExternalUrlSafetyValidator {
         return first == 0x20 && second == 0x01 && third == 0x0D && fourth == 0xB8;
     }
 
+    /**
+     * Returns true when the 16-byte IPv6 address is an IPv4-mapped address (::ffff:x.x.x.x).
+     * The format is: 10 zero bytes, 2 0xFF bytes, then the 4 IPv4 bytes.
+     */
     private static boolean isIpv4MappedIpv6(byte[] bytes) {
         if (bytes.length != 16) return false;
         for (int i = 0; i < 10; i++) {

@@ -11,18 +11,20 @@ import {
     FiShare2,
     FiSettings,
     FiHelpCircle,
+    FiCheck,
     FiX,
     FiLogOut,
     FiUser,
-    FiChevronDown,
+    FiMoreHorizontal,
     FiShield,
 } from "react-icons/fi";
 import { MdOutlineCreate } from "react-icons/md";
 import { IconType } from "react-icons";
+import { useTheme } from "next-themes";
 import { signoutClient } from "@/lib/logout-client";
 import { useUser } from "@/context/UserContext";
 import BrandWordmark from "@/components/branding/BrandWordmark";
-import { ThemeModeToggle } from "@/components/theme/ThemeModeToggle";
+import useMyProfilePath from "@/hooks/useMyProfilePath";
 
 interface NavItem {
     id: string;
@@ -52,8 +54,15 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
 
     const pathname = usePathname();
     const router = useRouter();
+    const { profilePath } = useMyProfilePath(true);
+    const { theme, setTheme } = useTheme();
     const [portfoliosCount, setPortfoliosCount] = useState<number>(0);
     const [showProfileMenu, setShowProfileMenu] = useState<boolean>(false);
+    const [showThemeModal, setShowThemeModal] = useState<boolean>(false);
+    const currentTheme =
+        theme === "light" || theme === "dark" || theme === "system"
+            ? theme
+            : "system";
 
     // Make GET request to fetch portfolios count
     useEffect(() => {
@@ -92,32 +101,32 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
             id: "home",
             label: "Dashboard",
             icon: FiGrid,
-            path: "/dashboard-user",
+            path: "/dashboard",
         },
         {
             id: "portfolios",
             label: "My Portfolios",
             icon: FiFolder,
-            path: "/dashboard-user/portfolios",
+            path: "/dashboard/portfolios",
             badge: portfoliosCount,
         },
         {
             id: "create",
             label: "Create New",
             icon: MdOutlineCreate,
-            path: "/dashboard-user/create",
+            path: "/dashboard/create",
         },
         {
             id: "publish",
             label: "Publish",
             icon: FiShare2,
-            path: "/dashboard-user/publish",
+            path: "/dashboard/publish",
         },
         {
             id: "verification",
             label: "Verification",
             icon: FiShield,
-            path: "/dashboard-user/verification",
+            path: "/dashboard/verification",
         },
     ];
 
@@ -131,10 +140,10 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                     whileHover={{ scale: collapsed ? 1.05 : 1 }}
                     whileTap={{ scale: 0.98 }}
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-md group relative ${
+                    className={`hover:cursor-pointer flex items-center gap-2.5 px-3 py-2 rounded-md group relative ${
                         isActive
-                            ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                            : "text-sidebar-foreground/70 hover:bg-sidebar-primary/25 hover:text-sidebar-primary-foreground"
+                            ? "bg-sidebar-primary text-primary-foreground"
+                            : "text-sidebar-foreground/85 hover:bg-sidebar-primary/25 hover:text-primary"
                     }`}
                 >
                     <div
@@ -143,10 +152,10 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                         }`}
                     >
                         <Icon
-                            className={`w-5 h-5 transition-all duration-200 ${
+                            className={`h-[18px] w-[18px] transition-all duration-200 ${
                                 isActive
-                                    ? "text-sidebar-primary-foreground"
-                                    : "text-sidebar-foreground/70 group-hover:text-sidebar-primary-foreground"
+                                    ? "text-primary-foreground"
+                                    : "text-sidebar-foreground/80 group-hover:text-primary"
                             }`}
                         />
                     </div>
@@ -154,17 +163,17 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                     {!collapsed && (
                         <>
                             <span
-                                className={`flex-1 text-sm font-medium relative z-10 transition-all duration-200 ${
+                                className={`relative z-10 flex-1 text-[13px] font-medium transition-all duration-200 ${
                                     isActive
-                                        ? "text-sidebar-primary-foreground"
-                                        : "text-sidebar-foreground/70 group-hover:text-sidebar-primary-foreground"
+                                        ? "text-primary-foreground"
+                                        : "text-sidebar-foreground/85 group-hover:text-primary"
                                 }`}
                             >
                                 {item.label}
                             </span>
 
                             {item.badge && (
-                                <span className="rounded-sm bg-sidebar-accent px-2 py-0.5 text-xs font-bold text-sidebar-accent-foreground transition-all duration-200">
+                                <span className="rounded-sm bg-sidebar-accent px-2 py-0.5 text-[11px] font-bold text-sidebar-accent-foreground transition-all duration-200">
                                     {item.badge}
                                 </span>
                             )}
@@ -179,78 +188,118 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
         <div className="flex flex-col h-full">
             {/* Logo / Brand */}
             <div
-                className={`border-b border-sidebar-border ${collapsed ? "px-3 py-4" : "px-5 pt-5 pb-4"}`}
+                className={`border-b border-sidebar-border ${collapsed ? "px-3 py-3.5" : "px-5 pt-4 pb-3.5"}`}
             >
                 <div className={`flex ${collapsed ? "justify-center" : "px-3"}`}>
                     <Link href="/">
                         {collapsed ? (
                             <BrandWordmark
                                 compact
-                                className="text-sm text-sidebar-foreground"
-                                portClassName="hidden"
-                                rnChipClassName="px-1.5 py-0.5"
+                                className="text-xs text-sidebar-foreground"
                             />
                         ) : (
-                            <BrandWordmark className="text-base text-sidebar-foreground" />
+                            <BrandWordmark className="text-sm text-sidebar-foreground" />
                         )}
                     </Link>
                 </div>
             </div>
 
             {/* Main Navigation */}
-            <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5">
+            <div className="flex-1 overflow-y-auto px-3 py-3.5 space-y-1.5">
                 {navItems.map((item) => (
                     <NavItemComponent key={item.id} item={item} />
                 ))}
             </div>
 
             {/* Profile Menu */}
-            <div className="relative border-t border-sidebar-border p-4">
-                <motion.button
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.98 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                    onClick={() => setShowProfileMenu(!showProfileMenu)}
-                    className={`hover:cursor-pointer w-full flex items-center gap-3 px-1 py-1.5 transition-colors hover:text-sidebar-foreground ${
-                        collapsed ? "justify-center" : ""
-                    }`}
-                >
-                    {avatar ? (
-                        <Image
-                            src={avatar}
-                            alt="User Avatar"
-                            width={32}
-                            height={32}
-                            unoptimized
-                            className="h-8 w-8 rounded-full border border-sidebar-border object-cover"
-                        />
-                    ) : (
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full border border-sidebar-border bg-sidebar-accent/30">
-                            <FiUser className="h-4 w-4 text-sidebar-foreground/70" />
-                        </div>
-                    )}
-
-                    {!collapsed && (
-                        <>
-                            <div className="min-w-0 flex-1 text-left">
-                                <p className="truncate text-sm font-medium text-sidebar-foreground">
-                                    {username || "Account"}
-                                </p>
-                                <p className="truncate text-xs text-sidebar-foreground/60">
-                                    {email}
-                                </p>
-                            </div>
-                            <FiChevronDown
-                                className={`h-4 w-4 text-sidebar-foreground/70 transition-transform ${showProfileMenu ? "rotate-180" : ""}`}
+            <div className="relative border-t border-sidebar-border p-3.5">
+                {collapsed ? (
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.98 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                        onClick={() => {
+                            setShowProfileMenu((prev) => {
+                                const next = !prev;
+                                if (!next) setShowThemeModal(false);
+                                return next;
+                            });
+                        }}
+                        className="hover:cursor-pointer mx-auto flex h-7 w-7 items-center justify-center rounded-full border border-sidebar-border bg-sidebar-accent/20"
+                        aria-expanded={showProfileMenu}
+                        aria-label="Open account menu"
+                    >
+                        {avatar ? (
+                            <Image
+                                src={avatar}
+                                alt="User Avatar"
+                                width={32}
+                                height={32}
+                                unoptimized
+                                className="h-7 w-7 rounded-full border border-sidebar-border object-cover"
                             />
-                        </>
-                    )}
-                </motion.button>
+                        ) : (
+                            <FiUser className="h-4 w-4 text-sidebar-foreground/70" />
+                        )}
+                    </motion.button>
+                ) : (
+                    <div className="w-full flex items-center gap-2.5 px-1 py-1 transition-colors hover:text-primary">
+                        {avatar ? (
+                            <Image
+                                src={avatar}
+                                alt="User Avatar"
+                                width={32}
+                                height={32}
+                                unoptimized
+                                className="h-7 w-7 rounded-full border border-sidebar-border object-cover"
+                            />
+                        ) : (
+                            <div className="flex h-7 w-7 items-center justify-center rounded-full border border-sidebar-border bg-sidebar-accent/30">
+                                <FiUser className="h-4 w-4 text-sidebar-foreground/70" />
+                            </div>
+                        )}
+
+                        <div className="min-w-0 flex-1 text-left">
+                            <p className="truncate text-[13px] font-medium text-sidebar-foreground">
+                                {username || "Account"}
+                            </p>
+                            <p className="truncate text-[11px] text-sidebar-foreground/70">
+                                {email}
+                            </p>
+                        </div>
+
+                        <motion.button
+                            whileHover={{ scale: 1.08 }}
+                            whileTap={{ scale: 0.95 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                            onClick={() => {
+                                setShowProfileMenu((prev) => {
+                                    const next = !prev;
+                                    if (!next) setShowThemeModal(false);
+                                    return next;
+                                });
+                            }}
+                            className="hover:cursor-pointer flex h-7 w-7 items-center justify-center rounded-md text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/40 hover:text-primary"
+                            aria-expanded={showProfileMenu}
+                            aria-label="Open account menu"
+                        >
+                            <FiMoreHorizontal className="h-4 w-4" />
+                        </motion.button>
+                    </div>
+                )}
 
                 {showProfileMenu && (
-                    <div className="absolute bottom-full left-4 right-4 z-50 mb-2 overflow-hidden rounded-lg border border-sidebar-border bg-sidebar shadow-2xl">
+                    <div
+                        className={`absolute z-50 overflow-visible rounded-xl border border-border bg-card shadow-2xl ${
+                            mobileOpen
+                                ? "bottom-full left-0 mb-2 w-full"
+                                : collapsed
+                                  ? "bottom-2 left-full ml-2 w-72"
+                                  : "bottom-2 left-full ml-3 w-72"
+                        }`}
+                    >
                         {[
-                            { icon: FiUser, label: "Profile", path: "/dashboard-user/profile" },
+                            { icon: FiUser, label: "Profile", path: profilePath ?? "/dashboard" },
                             { icon: FiSettings, label: "Settings" },
                             { icon: FiShare2, label: "Pricing" },
                             { icon: FiHelpCircle, label: "Help" },
@@ -259,34 +308,83 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                                 key={item.label}
                                 onClick={() => {
                                     setShowProfileMenu(false);
+                                    setShowThemeModal(false);
                                     if ("path" in item && item.path) {
                                         router.push(item.path);
                                     }
                                 }}
-                                className="w-full flex items-center gap-3 px-4 py-3 text-left text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent/40"
+                                className="group hover:cursor-pointer w-full flex items-center gap-3 px-4 py-2.5 text-left text-card-foreground/85 transition-colors hover:bg-accent hover:text-primary"
                             >
-                                <item.icon className="h-4 w-4 text-sidebar-foreground/70" />
-                                <span className="text-sm">{item.label}</span>
+                                <item.icon className="h-4 w-4 text-card-foreground/70 transition-colors group-hover:text-primary" />
+                                <span className="text-[13px]">{item.label}</span>
                             </button>
                         ))}
 
-                        <div className="border-t border-sidebar-border px-1 py-2">
-                            <p className="px-3 pb-1 text-xs font-medium uppercase tracking-[0.2em] text-sidebar-foreground/50">
-                                Theme
-                            </p>
-                            <ThemeModeToggle variant="inline" />
+                        <div className="relative border-t border-sidebar-border">
+                            <button
+                                onClick={() => setShowThemeModal((prev) => !prev)}
+                                className="group hover:cursor-pointer flex w-full items-center gap-3 px-4 py-2.5 text-left text-card-foreground/85 transition-colors hover:bg-accent hover:text-primary"
+                            >
+                                <FiSettings className="h-4 w-4 text-card-foreground/70 transition-colors group-hover:text-primary" />
+                                <span className="text-[13px]">Theme</span>
+                                <span className="ml-auto text-[11px] uppercase tracking-wide text-card-foreground/55 group-hover:text-primary/80">
+                                    {currentTheme}
+                                </span>
+                            </button>
+
+                            <AnimatePresence>
+                                {showThemeModal && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 4, scale: 0.98 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                                        transition={{ type: "spring", stiffness: 360, damping: 30 }}
+                                        className={`absolute z-[70] overflow-hidden rounded-xl border border-border bg-card shadow-2xl ${
+                                            mobileOpen
+                                                ? "bottom-full left-0 mb-2 w-full"
+                                                : "bottom-2 left-full ml-2 w-56"
+                                        }`}
+                                    >
+                                        <div className="border-b border-sidebar-border px-4 py-3">
+                                            <p className="text-sm font-semibold text-card-foreground">Theme</p>
+                                        </div>
+
+                                        {([
+                                            { value: "light", label: "Light Theme" },
+                                            { value: "dark", label: "Dark Theme" },
+                                            { value: "system", label: "System" },
+                                        ] as const).map((option) => (
+                                            <button
+                                                key={option.value}
+                                                onClick={() => {
+                                                    setTheme(option.value);
+                                                    setShowThemeModal(false);
+                                                    setShowProfileMenu(false);
+                                                }}
+                                                className="group hover:cursor-pointer flex w-full items-center gap-3 px-4 py-3 text-left text-card-foreground/85 transition-colors hover:bg-accent hover:text-primary"
+                                            >
+                                                <span className="text-[13px]">{option.label}</span>
+                                                {currentTheme === option.value ? (
+                                                    <FiCheck className="ml-auto h-4 w-4 text-primary" />
+                                                ) : null}
+                                            </button>
+                                        ))}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
 
                         <button
                             onClick={async () => {
                                 setShowProfileMenu(false);
+                                setShowThemeModal(false);
                                 await signoutClient();
                                 router.push("/");
                             }}
-                            className="w-full flex items-center gap-3 border-t border-sidebar-border px-4 py-3 text-left text-red-300 transition-colors hover:bg-red-500/10"
+                            className="hover:cursor-pointer w-full flex items-center gap-3 border-t border-sidebar-border px-4 py-2.5 text-left text-red-300 transition-colors hover:bg-red-500/10"
                         >
                             <FiLogOut className="h-4 w-4" />
-                            <span className="text-sm">Sign Out</span>
+                            <span className="text-[13px]">Sign Out</span>
                         </button>
                     </div>
                 )}
@@ -328,9 +426,9 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                         >
                             {/* Close Button */}
                             <button
-                                onClick={() => setMobileOpen(false)}
-                                className="absolute top-4 right-4 rounded-lg border border-sidebar-border p-2 transition-colors hover:bg-sidebar-accent/40"
-                            >
+                            onClick={() => setMobileOpen(false)}
+                            className="absolute top-4 right-4 rounded-lg border border-sidebar-border p-2 transition-colors hover:cursor-pointer hover:bg-sidebar-accent/40"
+                        >
                                 <FiX className="h-5 w-5 text-sidebar-foreground/80" />
                             </button>
 

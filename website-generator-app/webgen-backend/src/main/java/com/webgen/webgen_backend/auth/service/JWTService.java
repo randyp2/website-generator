@@ -87,29 +87,38 @@ public class JWTService {
         }
     }
 
+    /**
+     * Extracts the user ID (JWT subject claim) from a raw token string.
+     * Does not validate the signature; call isValid first when authentication is required.
+     *
+     * @param token raw JWT string
+     * @return subject claim value (Supabase user UUID as a string)
+     * @throws Exception if the token cannot be parsed
+     */
     public String extractUserId(String token) throws Exception {
         SignedJWT signedJWT = SignedJWT.parse(token);
         return signedJWT.getJWTClaimsSet().getSubject();
     }
 
     /* ============== HELPER FUNCTIONS ============== */
-    private ECKey getKey(SignedJWT jwt) throws Exception {
 
-        // Extract "kid" from JWT header
+    /*
+     * Looks up the EC public key by "kid" header from the cached JWKS set.
+     * Nimbus handles remote key fetching and in-memory caching internally,
+     * so this call is fast on cache hits and makes a network request on misses.
+     */
+    private ECKey getKey(SignedJWT jwt) throws Exception {
         String keyId = jwt.getHeader().getKeyID();
 
-        // Query JWKS for this specific key ID
         JWKSelector selector = new JWKSelector(
                 new JWKMatcher.Builder().keyID(keyId).build());
 
-        // List of matching keys from JWKS
         var keys = jwkSet.get(selector, null);
 
         if (keys == null || keys.isEmpty()) {
             throw new JOSEException("No matching 'kid' found in JWKS: " + keyId);
         }
 
-        // Cast the first match to RSA public key
         return (ECKey) keys.getFirst();
     }
 

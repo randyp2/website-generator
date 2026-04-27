@@ -13,11 +13,10 @@ interface DashboardLayoutClientProps {
 
 const getActiveTabLabel = (pathname: string): string => {
   const routeLabelMap: Array<{ prefix: string; label: string }> = [
-    { prefix: "/dashboard-user/profile", label: "Profile" },
-    { prefix: "/dashboard-user/portfolios", label: "My Portfolios" },
-    { prefix: "/dashboard-user/create", label: "Create New" },
-    { prefix: "/dashboard-user/publish", label: "Publish" },
-    { prefix: "/dashboard-user", label: "Dashboard" },
+{ prefix: "/dashboard/portfolios", label: "My Portfolios" },
+    { prefix: "/dashboard/create", label: "Create New" },
+    { prefix: "/dashboard/publish", label: "Publish" },
+    { prefix: "/dashboard", label: "Dashboard" },
   ];
 
   const matched = routeLabelMap.find(
@@ -66,7 +65,7 @@ const DashboardLayoutClientInner: React.FC<DashboardLayoutClientProps> = ({
                 onClick={() => setMobileOpen(true)}
                 aria-label="Open sidebar"
                 title="Open sidebar"
-                className="inline-flex h-7 w-7 items-center justify-center text-muted-foreground transition-colors hover:text-foreground md:hidden"
+                className="inline-flex h-7 w-7 items-center justify-center text-muted-foreground transition-colors hover:cursor-pointer hover:text-foreground md:hidden"
               >
                 <PanelLeftOpen className="h-4 w-4" />
               </button>
@@ -76,7 +75,7 @@ const DashboardLayoutClientInner: React.FC<DashboardLayoutClientProps> = ({
                 onClick={handleToggleCollapse}
                 aria-label={collapsed ? "Open sidebar" : "Close sidebar"}
                 title={collapsed ? "Open sidebar" : "Close sidebar"}
-                className="hidden h-7 w-7 items-center justify-center text-muted-foreground transition-colors hover:text-foreground md:inline-flex"
+                className="hidden h-7 w-7 items-center justify-center text-muted-foreground transition-colors hover:cursor-pointer hover:text-foreground md:inline-flex"
               >
                 {collapsed ? (
                   <PanelLeftOpen className="h-4 w-4" />

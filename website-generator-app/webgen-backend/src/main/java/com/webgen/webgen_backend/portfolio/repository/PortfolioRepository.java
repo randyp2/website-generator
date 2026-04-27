@@ -15,4 +15,5 @@ public interface PortfolioRepository extends JpaRepository<Portfolio, UUID> {
     Optional<Portfolio> findBySlugAndStatus(String slug, String status);
     boolean existsBySlug(String slug);
     Page<Portfolio> findByStatusAndSlugIsNotNull(String status, Pageable pageable);
+    Page<Portfolio> findByUserIdAndStatusAndSlugIsNotNull(UUID userId, String status, Pageable pageable);
 }

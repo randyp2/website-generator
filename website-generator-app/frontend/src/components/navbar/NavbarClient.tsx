@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/navigation-menu"
 import { signoutClient } from "@/lib/logout-client"
 import { cn } from "@/lib/utils"
+import useMyProfilePath from "@/hooks/useMyProfilePath"
 import { createClient } from "@/utils/supabase/client"
 
 const actionButtonMotion = {
@@ -134,6 +135,7 @@ const NavbarClient: React.FC = () => {
   const supabase = React.useMemo(() => createClient(), [])
   const avatarUrl = React.useMemo(() => getUserAvatarUrl(user), [user])
   const userInitials = React.useMemo(() => getUserInitials(user), [user])
+  const { profilePath } = useMyProfilePath(Boolean(user))
 
   React.useEffect(() => {
     const initUser = async () => {
@@ -176,8 +178,8 @@ const NavbarClient: React.FC = () => {
                 <NavigationMenuItem key={item.label}>
                   <NavigationMenuTrigger
                     className={cn(
-                      "h-10 rounded-none bg-transparent px-4 text-sm font-medium text-white shadow-none hover:bg-transparent hover:text-white/80 focus:bg-transparent data-[active]:bg-transparent data-[state=open]:bg-transparent",
-                      active && "text-white",
+                      "h-10 rounded-none bg-transparent px-4 text-sm font-medium text-foreground shadow-none hover:bg-transparent hover:text-primary focus:bg-transparent focus:text-primary data-[active]:bg-transparent data-[state=open]:bg-transparent",
+                      active && "font-semibold text-foreground",
                     )}
                   >
                     {item.label}
@@ -204,8 +206,8 @@ const NavbarClient: React.FC = () => {
                   <Link
                     href={item.href}
                     className={cn(
-                      "inline-flex h-10 items-center rounded-none px-4 text-sm font-medium text-white transition-colors hover:bg-transparent hover:text-white/80",
-                      active ? "text-white" : "text-white",
+                      "inline-flex h-10 items-center rounded-none px-4 text-sm font-medium text-foreground transition-colors hover:bg-transparent hover:text-primary",
+                      active && "font-semibold text-foreground",
                     )}
                   >
                     {item.label}
@@ -221,7 +223,7 @@ const NavbarClient: React.FC = () => {
       <div className="ml-auto flex items-center gap-2 pl-2 md:justify-self-end md:pl-0">
         <ThemeModeToggle
           collapsed
-          className="size-9 border-border/70 bg-background/80 text-foreground hover:bg-background/80 hover:text-foreground"
+          className="size-9 border-border/70 bg-background/80 text-foreground hover:cursor-pointer hover:bg-background/80 hover:text-foreground"
         />
         {user ? (
           <>
@@ -230,7 +232,7 @@ const NavbarClient: React.FC = () => {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="size-9 rounded-md border border-border/70 bg-background/80 hover:bg-accent/60"
+                className="size-9 rounded-md border border-border/70 bg-background/80 hover:cursor-pointer hover:bg-accent/60"
                 aria-label="Inbox"
               >
                 <Inbox className="size-4" />
@@ -239,7 +241,7 @@ const NavbarClient: React.FC = () => {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="size-9 rounded-md border border-border/70 bg-background/80 hover:bg-accent/60"
+                className="size-9 rounded-md border border-border/70 bg-background/80 hover:cursor-pointer hover:bg-accent/60"
                 aria-label="Notifications"
               >
                 <Bell className="size-4" />
@@ -251,7 +253,7 @@ const NavbarClient: React.FC = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="size-9 rounded-md bg-background/80 p-0 hover:bg-background/80 focus-visible:ring-0 focus-visible:ring-offset-0 md:ml-1"
+                    className="size-9 rounded-full bg-transparent p-0 hover:cursor-pointer hover:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 md:ml-1"
                   >
                     <Avatar className="size-9">
                       <AvatarImage src={avatarUrl ?? undefined} alt={user.email ?? "User avatar"} />
@@ -268,16 +270,23 @@ const NavbarClient: React.FC = () => {
                   avoidCollisions={false}
                   className="w-48 rounded-xl"
                 >
-                  <DropdownMenuItem onClick={() => router.push("/dashboard-user")}>
+                  <DropdownMenuItem
+                    className="hover:cursor-pointer"
+                    onClick={() => router.push("/dashboard")}
+                  >
                     <LayoutDashboard className="mr-2 size-4" />
                     Dashboard
                   </DropdownMenuItem>
-                  <DropdownMenuItem disabled>
+                  <DropdownMenuItem
+                    className="hover:cursor-pointer"
+                    onClick={() => router.push(profilePath ?? "/dashboard")}
+                  >
                     <UserCircle2 className="mr-2 size-4" />
                     Profile
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
+                    className="hover:cursor-pointer"
                     onClick={async () => {
                       await signoutClient()
                       router.push("/")
