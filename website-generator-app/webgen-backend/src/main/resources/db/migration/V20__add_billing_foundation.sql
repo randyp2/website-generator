@@ -69,6 +69,70 @@ COMMENT ON COLUMN public.billing_credit_ledger_entries.metadata IS
     'Structured audit payload for billing reconciliation/debug.';
 
 -- ---------------------------------------------------------------------
+-- billing_subscriptions: mirrored Stripe subscription state
+-- ---------------------------------------------------------------------
+
+CREATE TABLE public.billing_subscriptions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    profile_id uuid NOT NULL,
+    stripe_customer_id text NOT NULL,
+    stripe_subscription_id text NOT NULL,
+    plan_key text,
+    price_id text NOT NULL,
+    status text NOT NULL,
+    current_period_start timestamp with time zone,
+    current_period_end timestamp with time zone,
+    cancel_at_period_end boolean DEFAULT false NOT NULL,
+    canceled_at timestamp with time zone,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT billing_subscriptions_pkey PRIMARY KEY (id),
+    CONSTRAINT billing_subscriptions_profile_id_fkey
+        FOREIGN KEY (profile_id) REFERENCES public.profiles(id) ON DELETE CASCADE,
+    CONSTRAINT billing_subscriptions_stripe_subscription_id_key
+        UNIQUE (stripe_subscription_id),
+    CONSTRAINT billing_subscriptions_stripe_customer_id_not_blank
+        CHECK (btrim(stripe_customer_id) <> ''::text),
+    CONSTRAINT billing_subscriptions_stripe_subscription_id_not_blank
+        CHECK (btrim(stripe_subscription_id) <> ''::text),
+    CONSTRAINT billing_subscriptions_plan_key_not_blank
+        CHECK (plan_key IS NULL OR btrim(plan_key) <> ''::text),
+    CONSTRAINT billing_subscriptions_price_id_not_blank
+        CHECK (btrim(price_id) <> ''::text),
+    CONSTRAINT billing_subscriptions_status_not_blank
+        CHECK (btrim(status) <> ''::text),
+    CONSTRAINT billing_subscriptions_metadata_object_check
+        CHECK (jsonb_typeof(metadata) = 'object'::text)
+);
+
+CREATE INDEX billing_subscriptions_profile_status_idx
+    ON public.billing_subscriptions USING btree (profile_id, status);
+
+CREATE INDEX billing_subscriptions_profile_plan_key_idx
+    ON public.billing_subscriptions USING btree (profile_id, plan_key);
+
+CREATE INDEX billing_subscriptions_stripe_customer_status_idx
+    ON public.billing_subscriptions USING btree (stripe_customer_id, status);
+
+CREATE INDEX billing_subscriptions_profile_active_period_end_idx
+    ON public.billing_subscriptions USING btree (profile_id, current_period_end DESC)
+    WHERE status IN ('trialing'::text, 'active'::text, 'past_due'::text, 'unpaid'::text);
+
+COMMENT ON TABLE public.billing_subscriptions IS
+    'Mirrors Stripe subscription lifecycle state to support local entitlement checks.';
+COMMENT ON COLUMN public.billing_subscriptions.plan_key IS
+    'Internal plan identifier for app-level gating (for example website_generator_pro).';
+COMMENT ON COLUMN public.billing_subscriptions.price_id IS
+    'Stripe price id currently attached to the subscription.';
+COMMENT ON COLUMN public.billing_subscriptions.status IS
+    'Raw Stripe subscription status (for example active, trialing, past_due, canceled).';
+COMMENT ON COLUMN public.billing_subscriptions.cancel_at_period_end IS
+    'When true, subscription will terminate at current_period_end.';
+COMMENT ON COLUMN public.billing_subscriptions.metadata IS
+    'Raw/normalized Stripe fields preserved for audit and reconciliation.';
+
+-- ---------------------------------------------------------------------
 -- stripe_webhook_events: webhook idempotency + audit log
 -- ---------------------------------------------------------------------
 
