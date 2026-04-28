@@ -16,7 +16,7 @@ interface PlanComparisonRow {
 }
 
 const PLAN_COMPARISON_ROWS: readonly PlanComparisonRow[] = [
-    { feature: "Price", free: "$0 / mo", annual: "$50 / yr", monthly: "$10 / mo" },
+    { feature: "Price", free: "$0 / mo", annual: "$240 / yr", monthly: "$24 / mo" },
     {
         feature: "Credits included",
         free: "0 / mo",
@@ -26,8 +26,8 @@ const PLAN_COMPARISON_ROWS: readonly PlanComparisonRow[] = [
     {
         feature: "Effective monthly rate",
         free: "$0.00",
-        annual: "$4.17",
-        monthly: "$10.00",
+        annual: "$20.00",
+        monthly: "$24.00",
     },
     { feature: "1 active portfolio", free: true, annual: true, monthly: true },
     {
