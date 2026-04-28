@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { usePublicAuthGate } from "@/context/PublicAuthGateContext";
 import { useToast } from "@/hooks/useToast";
 import type {
@@ -34,61 +34,104 @@ const BillingPageContent: React.FC = () => {
     const [mode, setMode] = useState<BillingMode>("subscription");
     const [isCheckingOut, setIsCheckingOut] = useState<boolean>(false);
     const { addToast } = useToast();
-    const { openAuthModal, requireAuth, isAuthReady } = usePublicAuthGate();
+    const {
+        authIntent,
+        clearAuthIntent,
+        isAuthReady,
+        isAuthenticated,
+        openAuthModal,
+        requireAuth,
+    } = usePublicAuthGate();
 
-    const handleCheckout = async (priceKey: PriceKey): Promise<void> => {
-        if (!requireAuth("pricing")) {
-            return;
-        }
+    const runCheckout = useCallback(
+        async (priceKey: PriceKey): Promise<void> => {
+            setIsCheckingOut(true);
 
-        setIsCheckingOut(true);
+            try {
+                const response = await fetch("/api/billing/checkout/session", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ priceKey }),
+                });
 
-        try {
-            const response = await fetch("/api/billing/checkout/session", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ priceKey }),
-            });
+                if (response.status === 401) {
+                    if (isAuthenticated) {
+                        openAuthModal("pricing");
+                        return;
+                    }
 
-            if (response.status === 401) {
-                openAuthModal("pricing");
+                    openAuthModal("pricing", {
+                        type: "pricing_checkout",
+                        priceKey,
+                    });
+                    return;
+                }
+
+                if (!response.ok) {
+                    const errorPayload =
+                        ((await response.json().catch(() => null)) as
+                            | { error?: string }
+                            | null) ?? null;
+                    throw new Error(
+                        errorPayload?.error ??
+                            "Unable to start checkout. Please try again.",
+                    );
+                }
+
+                const data =
+                    (await response.json()) as CreateCheckoutSessionResponse;
+
+                if (!data.checkoutUrl) {
+                    throw new Error(
+                        "Checkout link was not returned. Please try again.",
+                    );
+                }
+
+                window.location.assign(data.checkoutUrl);
+            } catch (error) {
+                addToast({
+                    type: "error",
+                    title: "Checkout unavailable",
+                    description:
+                        error instanceof Error
+                            ? error.message
+                            : "Unable to start checkout right now.",
+                });
+            } finally {
+                setIsCheckingOut(false);
+            }
+        },
+        [addToast, isAuthenticated, openAuthModal],
+    );
+
+    const handleCheckout = useCallback(
+        (priceKey: PriceKey): void => {
+            if (
+                !requireAuth("pricing", {
+                    type: "pricing_checkout",
+                    priceKey,
+                })
+            ) {
                 return;
             }
 
-            if (!response.ok) {
-                const errorPayload =
-                    ((await response.json().catch(() => null)) as
-                        | { error?: string }
-                        | null) ?? null;
-                throw new Error(
-                    errorPayload?.error ??
-                        "Unable to start checkout. Please try again.",
-                );
-            }
+            void runCheckout(priceKey);
+        },
+        [requireAuth, runCheckout],
+    );
 
-            const data =
-                (await response.json()) as CreateCheckoutSessionResponse;
-
-            if (!data.checkoutUrl) {
-                throw new Error(
-                    "Checkout link was not returned. Please try again.",
-                );
-            }
-
-            window.location.assign(data.checkoutUrl);
-        } catch (error) {
-            addToast({
-                type: "error",
-                title: "Checkout unavailable",
-                description:
-                    error instanceof Error
-                        ? error.message
-                        : "Unable to start checkout right now.",
-            });
-        } finally {
-            setIsCheckingOut(false);
+    useEffect(() => {
+        if (!isAuthenticated || !authIntent) {
+            return;
         }
-    };
+
+        if (authIntent.type !== "pricing_checkout") {
+            return;
+        }
+
+        clearAuthIntent();
+        void runCheckout(authIntent.priceKey);
+    }, [authIntent, clearAuthIntent, isAuthenticated, runCheckout]);
 
     return (
         <div className="relative px-4 pb-20 pt-0 md:px-6 md:pb-24 md:pt-0 [&_button]:cursor-pointer">

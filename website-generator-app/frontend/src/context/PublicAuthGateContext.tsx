@@ -5,17 +5,24 @@ import React, { createContext, useContext, useMemo } from "react";
 import { useEffect, useState } from "react";
 
 import { PublicAuthModal } from "@/components/auth/PublicAuthModal";
+import type { PriceKey } from "@/types/billing";
 import { createClient } from "@/utils/supabase/client";
 
 export type AuthModalReason = "general" | "pricing" | "engagement" | "comment";
+export type AuthIntent = {
+    type: "pricing_checkout";
+    priceKey: PriceKey;
+};
 
 type PublicAuthGateContextValue = {
     user: User | null;
     isAuthenticated: boolean;
     isAuthReady: boolean;
-    openAuthModal: (reason?: AuthModalReason) => void;
+    authIntent: AuthIntent | null;
+    openAuthModal: (reason?: AuthModalReason, intent?: AuthIntent | null) => void;
     closeAuthModal: () => void;
-    requireAuth: (reason?: AuthModalReason) => boolean;
+    clearAuthIntent: () => void;
+    requireAuth: (reason?: AuthModalReason, intent?: AuthIntent | null) => boolean;
 };
 
 const PublicAuthGateContext = createContext<PublicAuthGateContextValue | null>(
@@ -32,6 +39,7 @@ export const PublicAuthGateProvider = ({
     const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
     const [authModalReason, setAuthModalReason] =
         useState<AuthModalReason>("general");
+    const [authIntent, setAuthIntent] = useState<AuthIntent | null>(null);
     const supabase = useMemo(() => createClient(), []);
 
     useEffect(() => {
@@ -59,8 +67,12 @@ export const PublicAuthGateProvider = ({
         return () => subscription.unsubscribe();
     }, [supabase]);
 
-    const openAuthModal = (reason: AuthModalReason = "general") => {
+    const openAuthModal = (
+        reason: AuthModalReason = "general",
+        intent: AuthIntent | null = null,
+    ) => {
         setAuthModalReason(reason);
+        setAuthIntent(intent);
         setIsAuthModalOpen(true);
     };
 
@@ -68,14 +80,21 @@ export const PublicAuthGateProvider = ({
         setIsAuthModalOpen(false);
     };
 
-    const requireAuth = (reason: AuthModalReason = "general"): boolean => {
+    const clearAuthIntent = () => {
+        setAuthIntent(null);
+    };
+
+    const requireAuth = (
+        reason: AuthModalReason = "general",
+        intent: AuthIntent | null = null,
+    ): boolean => {
         if (!isAuthReady) {
             return false;
         }
         if (user) {
             return true;
         }
-        openAuthModal(reason);
+        openAuthModal(reason, intent);
         return false;
     };
 
@@ -85,8 +104,10 @@ export const PublicAuthGateProvider = ({
                 user,
                 isAuthenticated: Boolean(user),
                 isAuthReady,
+                authIntent,
                 openAuthModal,
                 closeAuthModal,
+                clearAuthIntent,
                 requireAuth,
             }}
         >
