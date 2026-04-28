@@ -1,5 +1,8 @@
+import { AUTH_NEXT_PATH_COOKIE } from "@/lib/public-auth-intent-storage";
+import { resolveSafeNextPath } from "@/lib/safe-next-path";
 import { getBackendUrl } from "@/lib/server-env";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 type PostLoginSearchParams = Record<string, string | string[] | undefined>;
@@ -8,12 +11,6 @@ interface ProfileMeResponse {
     username?: string | null;
     onboardingComplete?: boolean | null;
 }
-
-const ALLOWED_POST_LOGIN_PATH_PREFIXES: readonly string[] = [
-    "/dashboard",
-    "/pricing",
-    "/explore",
-];
 
 const getSingleParam = (value: string | string[] | undefined): string | null => {
     if (typeof value === "string") {
@@ -27,25 +24,24 @@ const getSingleParam = (value: string | string[] | undefined): string | null => 
     return null;
 };
 
-const resolveSafeNextPath = (candidate: string | null): string | null => {
-    if (!candidate || !candidate.startsWith("/") || candidate.startsWith("//")) {
+const resolveNextPathFromRedirectTo = (
+    redirectToCandidate: string | null,
+): string | null => {
+    if (!redirectToCandidate) {
         return null;
     }
 
     try {
-        const parsed = new URL(candidate, "http://localhost");
-        const pathname = parsed.pathname;
+        const parsed = new URL(redirectToCandidate, "http://localhost");
+        const nestedNext = parsed.searchParams.get("next");
 
-        const isAllowed = ALLOWED_POST_LOGIN_PATH_PREFIXES.some(
-            (prefix) =>
-                pathname === prefix || pathname.startsWith(`${prefix}/`),
-        );
-
-        if (!isAllowed) {
-            return null;
+        const safeNestedNext = resolveSafeNextPath(nestedNext);
+        if (safeNestedNext) {
+            return safeNestedNext;
         }
 
-        return `${pathname}${parsed.search}`;
+        const fallbackPath = `${parsed.pathname}${parsed.search}`;
+        return resolveSafeNextPath(fallbackPath);
     } catch {
         return null;
     }
@@ -89,7 +85,13 @@ const PostLoginResolverPage = async ({
 }) => {
     const resolvedSearchParams = (await searchParams) ?? {};
     const nextParam = getSingleParam(resolvedSearchParams.next);
-    const nextPath = resolveSafeNextPath(nextParam);
+    const redirectToParam = getSingleParam(resolvedSearchParams.redirect_to);
+    const cookieStore = await cookies();
+    const cookieNextPath = cookieStore.get(AUTH_NEXT_PATH_COOKIE)?.value ?? null;
+    const nextPath =
+        resolveSafeNextPath(nextParam) ??
+        resolveNextPathFromRedirectTo(redirectToParam) ??
+        resolveSafeNextPath(cookieNextPath);
 
     const supabase = await createServerSupabaseClient();
     const {

@@ -7,6 +7,33 @@ import type { PriceKey } from "@/types/billing";
 const AUTH_INTENT_STORAGE_KEY = "wg.public-auth-intent";
 const AUTH_INTENT_TTL_MS = 10 * 60 * 1000;
 
+export const AUTH_NEXT_PATH_COOKIE = "wg_auth_next_path";
+const AUTH_NEXT_PATH_COOKIE_TTL_SECONDS = 10 * 60;
+
+const writeNextPathCookie = (nextPath: string): void => {
+    if (typeof document === "undefined") {
+        return;
+    }
+    const isSecure = window.location.protocol === "https:";
+    const segments = [
+        `${AUTH_NEXT_PATH_COOKIE}=${encodeURIComponent(nextPath)}`,
+        "Path=/",
+        `Max-Age=${AUTH_NEXT_PATH_COOKIE_TTL_SECONDS}`,
+        "SameSite=Lax",
+    ];
+    if (isSecure) {
+        segments.push("Secure");
+    }
+    document.cookie = segments.join("; ");
+};
+
+const clearNextPathCookie = (): void => {
+    if (typeof document === "undefined") {
+        return;
+    }
+    document.cookie = `${AUTH_NEXT_PATH_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
+};
+
 type PersistedAuthIntent = AuthIntent & {
     createdAtMs: number;
 };
@@ -88,6 +115,13 @@ export const resolvePostLoginNextPath = (
     return currentPath;
 };
 
+const nextPathForIntent = (intent: AuthIntent): string | null => {
+    if (intent.type === "pricing_checkout") {
+        return "/pricing";
+    }
+    return null;
+};
+
 export const persistAuthIntent = (intent: AuthIntent | null): void => {
     if (typeof window === "undefined") {
         return;
@@ -96,6 +130,7 @@ export const persistAuthIntent = (intent: AuthIntent | null): void => {
     try {
         if (!intent) {
             window.sessionStorage.removeItem(AUTH_INTENT_STORAGE_KEY);
+            clearNextPathCookie();
             return;
         }
 
@@ -108,6 +143,13 @@ export const persistAuthIntent = (intent: AuthIntent | null): void => {
             AUTH_INTENT_STORAGE_KEY,
             JSON.stringify(payload),
         );
+
+        const nextPath = nextPathForIntent(intent);
+        if (nextPath) {
+            writeNextPathCookie(nextPath);
+        } else {
+            clearNextPathCookie();
+        }
     } catch {
         // Intentionally ignore storage failures and keep in-memory flow.
     }
@@ -120,6 +162,7 @@ export const clearPersistedAuthIntent = (): void => {
 
     try {
         window.sessionStorage.removeItem(AUTH_INTENT_STORAGE_KEY);
+        clearNextPathCookie();
     } catch {
         // Intentionally ignore storage failures.
     }
@@ -132,6 +175,18 @@ export const consumePersistedAuthIntent = (): AuthIntent | null => {
     }
 
     clearPersistedAuthIntent();
+    return {
+        type: stored.type,
+        priceKey: stored.priceKey,
+    };
+};
+
+export const peekPersistedAuthIntent = (): AuthIntent | null => {
+    const stored = readRawIntent();
+    if (!stored) {
+        return null;
+    }
+
     return {
         type: stored.type,
         priceKey: stored.priceKey,
