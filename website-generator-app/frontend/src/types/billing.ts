@@ -7,12 +7,16 @@ export type PriceKey =
 
 export type BillingPlanTier = "free" | "pro";
 
+export type BillingMode = "subscription" | "credits";
+
 export interface PricingPlan {
-    priceKey: PriceKey;
+    priceKey: PriceKey | null;
     name: string;
-    priceLabel: string;
-    priceCadence: string;
     description: string;
+    priceLabel: string;
+    pricePeriod: string;
+    cadenceLabel?: string;
+    originalPriceLabel?: string;
     monthlyCredits: number;
     features: readonly string[];
     ctaLabel: string;
