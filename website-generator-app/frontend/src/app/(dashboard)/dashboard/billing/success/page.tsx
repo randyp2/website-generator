@@ -29,9 +29,7 @@ const BillingSuccessPage: React.FC = () => {
                     </CardHeader>
                     <CardContent className="flex justify-center">
                         <Button asChild>
-                            <Link href="/dashboard/billing">
-                                Return to Billing
-                            </Link>
+                            <Link href="/pricing">Return to Pricing</Link>
                         </Button>
                     </CardContent>
                 </Card>

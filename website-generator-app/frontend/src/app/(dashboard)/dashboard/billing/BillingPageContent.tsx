@@ -8,7 +8,7 @@ import { PolicyCopy } from "./components/PolicyCopy";
 import { SubscriptionPlansGrid } from "./components/SubscriptionPlansGrid";
 import { UsageTransparencySection } from "./components/UsageTransparencySection";
 
-const BillingPage: React.FC = () => {
+const BillingPageContent: React.FC = () => {
     const [mode, setMode] = useState<BillingMode>("subscription");
 
     // TODO(stripe): wire to POST /api/billing/checkout/session.
@@ -57,4 +57,4 @@ const BillingPage: React.FC = () => {
     );
 };
 
-export default BillingPage;
+export default BillingPageContent;

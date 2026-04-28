@@ -29,7 +29,7 @@ const BillingCancelPage: React.FC = () => {
                     </CardHeader>
                     <CardContent className="flex justify-center">
                         <Button asChild>
-                            <Link href="/dashboard/billing">Try again</Link>
+                            <Link href="/pricing">Try again</Link>
                         </Button>
                     </CardContent>
                 </Card>
