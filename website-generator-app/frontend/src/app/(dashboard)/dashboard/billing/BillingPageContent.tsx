@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { usePublicAuthGate } from "@/context/PublicAuthGateContext";
 import { useToast } from "@/hooks/useToast";
+import { consumePersistedAuthIntent } from "@/lib/public-auth-intent-storage";
 import type {
     BillingMode,
     CreateCheckoutSessionResponse,
@@ -121,16 +122,21 @@ const BillingPageContent: React.FC = () => {
     );
 
     useEffect(() => {
-        if (!isAuthenticated || !authIntent) {
+        if (!isAuthenticated) {
             return;
         }
 
-        if (authIntent.type !== "pricing_checkout") {
+        const pendingIntent = authIntent ?? consumePersistedAuthIntent();
+        if (!pendingIntent) {
+            return;
+        }
+
+        if (pendingIntent.type !== "pricing_checkout") {
             return;
         }
 
         clearAuthIntent();
-        void runCheckout(authIntent.priceKey);
+        void runCheckout(pendingIntent.priceKey);
     }, [authIntent, clearAuthIntent, isAuthenticated, runCheckout]);
 
     return (

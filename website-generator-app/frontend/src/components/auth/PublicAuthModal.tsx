@@ -4,7 +4,10 @@ import { ArrowRight, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { FcGoogle } from "react-icons/fc";
 
-import type { AuthModalReason } from "@/context/PublicAuthGateContext";
+import type {
+    AuthIntent,
+    AuthModalReason,
+} from "@/context/PublicAuthGateContext";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -13,6 +16,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import { resolvePostLoginNextPath } from "@/lib/public-auth-intent-storage";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/client";
 
@@ -50,12 +54,14 @@ const REASON_COPY: Record<
 type PublicAuthModalProps = {
     open: boolean;
     reason: AuthModalReason;
+    intent: AuthIntent | null;
     onOpenChange: (open: boolean) => void;
 };
 
 export const PublicAuthModal = ({
     open,
     reason,
+    intent,
     onOpenChange,
 }: PublicAuthModalProps) => {
     const [mode, setMode] = useState<Mode>("signup");
@@ -170,10 +176,19 @@ export const PublicAuthModal = ({
         setIsLoading(true);
 
         try {
+            const postLoginUrl = new URL(
+                "/auth/post-login",
+                window.location.origin,
+            );
+            postLoginUrl.searchParams.set(
+                "next",
+                resolvePostLoginNextPath(reason, intent),
+            );
+
             const { data, error } = await supabase.auth.signInWithOAuth({
                 provider: "google",
                 options: {
-                    redirectTo: `${window.location.origin}/auth/post-login`,
+                    redirectTo: postLoginUrl.toString(),
                     queryParams: {
                         access_type: "offline",
                         prompt: "consent",

@@ -5,6 +5,10 @@ import React, { createContext, useContext, useMemo } from "react";
 import { useEffect, useState } from "react";
 
 import { PublicAuthModal } from "@/components/auth/PublicAuthModal";
+import {
+    clearPersistedAuthIntent,
+    persistAuthIntent,
+} from "@/lib/public-auth-intent-storage";
 import type { PriceKey } from "@/types/billing";
 import { createClient } from "@/utils/supabase/client";
 
@@ -73,6 +77,7 @@ export const PublicAuthGateProvider = ({
     ) => {
         setAuthModalReason(reason);
         setAuthIntent(intent);
+        persistAuthIntent(intent);
         setIsAuthModalOpen(true);
     };
 
@@ -82,6 +87,7 @@ export const PublicAuthGateProvider = ({
 
     const clearAuthIntent = () => {
         setAuthIntent(null);
+        clearPersistedAuthIntent();
     };
 
     const requireAuth = (
@@ -115,6 +121,7 @@ export const PublicAuthGateProvider = ({
             <PublicAuthModal
                 open={isAuthModalOpen}
                 reason={authModalReason}
+                intent={authIntent}
                 onOpenChange={setIsAuthModalOpen}
             />
         </PublicAuthGateContext.Provider>
