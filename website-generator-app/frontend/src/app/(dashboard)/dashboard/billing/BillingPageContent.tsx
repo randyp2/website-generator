@@ -1,7 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import type { BillingMode, PriceKey } from "@/types/billing";
+import { usePublicAuthGate } from "@/context/PublicAuthGateContext";
+import { useToast } from "@/hooks/useToast";
+import type {
+    BillingMode,
+    CreateCheckoutSessionResponse,
+    PriceKey,
+} from "@/types/billing";
 import { BillingModeTabs } from "./components/BillingModeTabs";
 import { CreditPacksGrid } from "./components/CreditPacksGrid";
 import { PolicyCopy } from "./components/PolicyCopy";
@@ -26,17 +32,62 @@ const VERTICAL_LINES_MASK_STYLE: React.CSSProperties = {
 
 const BillingPageContent: React.FC = () => {
     const [mode, setMode] = useState<BillingMode>("subscription");
+    const [isCheckingOut, setIsCheckingOut] = useState<boolean>(false);
+    const { addToast } = useToast();
+    const { openAuthModal, requireAuth, isAuthReady } = usePublicAuthGate();
 
-    // TODO(stripe): wire to POST /api/billing/checkout/session.
-    // const response = await fetch("/api/billing/checkout/session", {
-    //     method: "POST",
-    //     headers: { "Content-Type": "application/json" },
-    //     body: JSON.stringify({ priceKey }),
-    // });
-    // const data: CreateCheckoutSessionResponse = await response.json();
-    // window.location.href = data.checkoutUrl;
-    const handleCheckout = (priceKey: PriceKey): void => {
-        console.log("[billing] checkout requested:", priceKey);
+    const handleCheckout = async (priceKey: PriceKey): Promise<void> => {
+        if (!requireAuth("pricing")) {
+            return;
+        }
+
+        setIsCheckingOut(true);
+
+        try {
+            const response = await fetch("/api/billing/checkout/session", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ priceKey }),
+            });
+
+            if (response.status === 401) {
+                openAuthModal("pricing");
+                return;
+            }
+
+            if (!response.ok) {
+                const errorPayload =
+                    ((await response.json().catch(() => null)) as
+                        | { error?: string }
+                        | null) ?? null;
+                throw new Error(
+                    errorPayload?.error ??
+                        "Unable to start checkout. Please try again.",
+                );
+            }
+
+            const data =
+                (await response.json()) as CreateCheckoutSessionResponse;
+
+            if (!data.checkoutUrl) {
+                throw new Error(
+                    "Checkout link was not returned. Please try again.",
+                );
+            }
+
+            window.location.assign(data.checkoutUrl);
+        } catch (error) {
+            addToast({
+                type: "error",
+                title: "Checkout unavailable",
+                description:
+                    error instanceof Error
+                        ? error.message
+                        : "Unable to start checkout right now.",
+            });
+        } finally {
+            setIsCheckingOut(false);
+        }
     };
 
     return (
@@ -82,9 +133,13 @@ const BillingPageContent: React.FC = () => {
                             {mode === "subscription" ? (
                                 <SubscriptionPlansGrid
                                     onCheckout={handleCheckout}
+                                    disabled={isCheckingOut || !isAuthReady}
                                 />
                             ) : (
-                                <CreditPacksGrid onCheckout={handleCheckout} />
+                                <CreditPacksGrid
+                                    onCheckout={handleCheckout}
+                                    disabled={isCheckingOut || !isAuthReady}
+                                />
                             )}
                         </div>
                     </div>

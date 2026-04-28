@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, MessageCircle, Reply, Send, ThumbsUp } from "lucide-react";
 
+import { usePublicAuthGate } from "@/context/PublicAuthGateContext";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -103,6 +104,7 @@ const getTotalCommentCount = (comments: Comment[]): number =>
 
 const PortfolioComments = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { isAuthenticated, requireAuth } = usePublicAuthGate();
 
   const commentCount = getTotalCommentCount(MOCK_COMMENTS);
 
@@ -163,6 +165,9 @@ const PortfolioComments = () => {
                     <div className="mt-2 flex items-center gap-4">
                       <button
                         type="button"
+                        onClick={() => {
+                          requireAuth("engagement");
+                        }}
                         className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-primary"
                       >
                         <ThumbsUp className="size-3.5" />
@@ -170,6 +175,9 @@ const PortfolioComments = () => {
                       </button>
                       <button
                         type="button"
+                        onClick={() => {
+                          requireAuth("comment");
+                        }}
                         className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-primary"
                       >
                         <Reply className="size-3.5" />
@@ -205,6 +213,9 @@ const PortfolioComments = () => {
                               <div className="mt-2 flex items-center gap-4">
                                 <button
                                   type="button"
+                                  onClick={() => {
+                                    requireAuth("engagement");
+                                  }}
                                   className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-primary"
                                 >
                                   <ThumbsUp className="size-3" />
@@ -212,6 +223,9 @@ const PortfolioComments = () => {
                                 </button>
                                 <button
                                   type="button"
+                                  onClick={() => {
+                                    requireAuth("comment");
+                                  }}
                                   className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-primary"
                                 >
                                   <Reply className="size-3" />
@@ -238,13 +252,28 @@ const PortfolioComments = () => {
                 </AvatarFallback>
               </Avatar>
               <div className="relative min-w-0 flex-1">
-                <input
-                  type="text"
-                  placeholder="Add a comment..."
-                  disabled
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 pr-10 text-sm text-foreground placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                />
-                <Send className="absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                {isAuthenticated ? (
+                  <>
+                    <input
+                      type="text"
+                      placeholder="Commenting is coming soon..."
+                      disabled
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 pr-10 text-sm text-foreground placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                    <Send className="absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      requireAuth("comment");
+                    }}
+                    className="flex w-full items-center justify-between rounded-lg border border-border bg-background px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-accent/40"
+                  >
+                    <span>Sign up to leave a comment...</span>
+                    <Send className="size-4 text-muted-foreground" />
+                  </button>
+                )}
               </div>
             </div>
           </div>
