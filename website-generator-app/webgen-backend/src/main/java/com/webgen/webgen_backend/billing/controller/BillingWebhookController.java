@@ -23,6 +23,7 @@ public class BillingWebhookController {
             @RequestBody(required = false) String payload,
             @RequestHeader(name = "Stripe-Signature", required = false) String stripeSignature
     ) {
+        System.out.println(">>> [BillingCheckout] stripe webhook endpoint hit");
         StripeWebhookProcessRequestDTO request = StripeWebhookProcessRequestDTO.builder()
                 .payload(payload)
                 .stripeSignature(stripeSignature)
