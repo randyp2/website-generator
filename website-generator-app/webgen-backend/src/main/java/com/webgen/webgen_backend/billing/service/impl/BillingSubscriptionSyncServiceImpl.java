@@ -116,6 +116,8 @@ public class BillingSubscriptionSyncServiceImpl implements BillingSubscriptionSy
         subscription.setUpdatedAt(now);
 
         billingSubscriptionRepository.save(subscription);
+        System.out.println(">>> [BillingSubSync] upserted subscription stripeSubId=" + stripeSubscriptionId
+                + " status=" + status + " plan=" + resolvedPlanKey);
     }
 
     @Override
@@ -161,6 +163,8 @@ public class BillingSubscriptionSyncServiceImpl implements BillingSubscriptionSy
 
             existing.setUpdatedAt(now);
             billingSubscriptionRepository.save(existing);
+            System.out.println(">>> [BillingSubSync] invoice update subId=" + stripeSubscriptionId
+                    + " newStatus=" + normalizedStatus);
             return;
         }
 
@@ -193,6 +197,8 @@ public class BillingSubscriptionSyncServiceImpl implements BillingSubscriptionSy
                 .build();
 
         billingSubscriptionRepository.save(backfilled);
+        System.out.println(">>> [BillingSubSync] invoice backfill — created sub row subId="
+                + stripeSubscriptionId + " status=" + normalizedStatus);
     }
 
     private Profile resolveProfile(UUID profileId, String stripeCustomerId) {

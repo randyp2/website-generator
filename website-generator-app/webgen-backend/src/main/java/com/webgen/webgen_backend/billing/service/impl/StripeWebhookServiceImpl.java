@@ -54,6 +54,8 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
         String stripeEventId = requireStripeEventId(event);
         String eventType = requireEventType(event);
 
+        System.out.println(">>> [StripeWebhook] received event id=" + stripeEventId + " type=" + eventType);
+
         // --- Parse and validate raw payload for durable idempotency/audit storage
         JsonNode payloadJson = parsePayloadJson(payload);
         if (!payloadJson.isObject()) {
@@ -73,6 +75,8 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
         StripeWebhookEventStateService.ClaimResult claimResult = stripeWebhookEventStateService
                 .claimWebhookEvent(stripeEventId, eventType, payloadJson);
         if (claimResult.outcome() != StripeWebhookEventStateService.ClaimOutcome.CLAIMED) {
+            System.out.println(">>> [StripeWebhook] event id=" + stripeEventId
+                    + " not claimed (outcome=" + claimResult.outcome() + ") — skipping");
             return StripeWebhookProcessResponseDTO.builder()
                     .processed(false)
                     .duplicate(true)
@@ -204,6 +208,8 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
                         occurredAt
                 );
                 if (snapshot != null) {
+                    System.out.println(">>> [StripeWebhook] dispatch -> subscription sync subId="
+                            + snapshot.getStripeSubscriptionId() + " type=" + normalizedType);
                     billingSubscriptionSyncService.syncSubscriptionSnapshot(snapshot);
                 }
             }
@@ -215,10 +221,12 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
                         occurredAt
                 );
                 if (snapshot != null) {
+                    System.out.println(">>> [StripeWebhook] dispatch -> checkout fulfillment sessionId="
+                            + snapshot.getCheckoutSessionId() + " purchaseType=" + snapshot.getPurchaseType());
                     billingCreditLedgerService.fulfillCheckoutSessionCompleted(snapshot);
                 }
             }
-            
+
             // --- Invoice events refresh subscription status; paid invoices also grant plan credits.
             case INVOICE_PAID, INVOICE_PAYMENT_FAILED -> {
                 StripeInvoiceSnapshotModel snapshot = buildInvoiceSnapshot(
@@ -228,6 +236,8 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
                         occurredAt
                 );
                 if (snapshot != null) {
+                    System.out.println(">>> [StripeWebhook] dispatch -> invoice invoiceId="
+                            + snapshot.getInvoiceId() + " type=" + normalizedType);
                     billingSubscriptionSyncService.syncInvoiceSnapshot(snapshot);
                     if (normalizedType == StripeWebhookEventType.INVOICE_PAID) {
                         billingCreditLedgerService.applyInvoicePaidCredits(snapshot);

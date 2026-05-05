@@ -47,6 +47,9 @@ public class BillingCheckoutServiceImpl implements BillingCheckoutService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "priceKey is required");
         }
 
+        System.out.println(">>> [BillingCheckout] createCheckoutSession start profileId=" + profileId
+                + " priceKey=" + request.getPriceKey());
+
         ensureCheckoutRedirectUrlsConfigured();
         Profile profile = profileRepository.findById(profileId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile with profile id not found"));
@@ -60,6 +63,9 @@ public class BillingCheckoutServiceImpl implements BillingCheckoutService {
                 selection
         );
 
+        System.out.println(">>> [BillingCheckout] calling Stripe checkout.sessions.create mode="
+                + selection.mode() + " priceId=" + selection.priceId());
+
         Session session;
         try {
             session = stripeClient.v1().checkout().sessions().create(params);
@@ -70,6 +76,8 @@ public class BillingCheckoutServiceImpl implements BillingCheckoutService {
                     exception
             );
         }
+
+        System.out.println(">>> [BillingCheckout] checkout session created sessionId=" + session.getId());
 
         CreateCheckoutSessionResponseDTO response =
                 billingCheckoutMapper.toCreateCheckoutSessionResponse(session);
@@ -107,6 +115,8 @@ public class BillingCheckoutServiceImpl implements BillingCheckoutService {
      */
     private String resolveOrCreateStripeCustomerId(Profile profile) {
         if (StringUtils.hasText(profile.getStripeCustomerId())) {
+            System.out.println(">>> [BillingCheckout] reusing stripe customer "
+                    + profile.getStripeCustomerId() + " for profile=" + profile.getId());
             return profile.getStripeCustomerId();
         }
 
@@ -140,6 +150,8 @@ public class BillingCheckoutServiceImpl implements BillingCheckoutService {
 
         profile.setStripeCustomerId(customer.getId());
         profileRepository.save(profile);
+        System.out.println(">>> [BillingCheckout] created new stripe customer " + customer.getId()
+                + " for profile=" + profile.getId());
         return customer.getId();
     }
 

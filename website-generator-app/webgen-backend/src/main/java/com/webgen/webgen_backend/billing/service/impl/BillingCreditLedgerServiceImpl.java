@@ -53,6 +53,8 @@ public class BillingCreditLedgerServiceImpl implements BillingCreditLedgerServic
 
         String purchaseType = normalizeLower(snapshot.getPurchaseType());
         if (!PURCHASE_TYPE_CREDITS.equals(purchaseType)) {
+            System.out.println(">>> [BillingCredit] skip checkout fulfillment — purchaseType="
+                    + purchaseType + " (not credits)");
             return;
         }
 
@@ -86,6 +88,8 @@ public class BillingCreditLedgerServiceImpl implements BillingCreditLedgerServic
         entry.setCreatedAt(firstNonNull(snapshot.getOccurredAt(), nowUtc()));
 
         billingCreditLedgerEntryRepository.save(entry);
+        System.out.println(">>> [BillingCredit] granted +" + creditDelta
+                + " credits for profile=" + profile.getId() + " (credit_pack_purchase)");
     }
 
     @Override
@@ -107,6 +111,8 @@ public class BillingCreditLedgerServiceImpl implements BillingCreditLedgerServic
 
         String resolvedPlanKey = resolvePlanKey(snapshot.getPlanKey(), snapshot.getPriceId());
         if (!PLAN_WEBSITE_GENERATOR_PRO.equals(resolvedPlanKey)) {
+            System.out.println(">>> [BillingCredit] skip invoice credits — plan="
+                    + resolvedPlanKey + " (not website_generator_pro)");
             return;
         }
 
@@ -123,6 +129,8 @@ public class BillingCreditLedgerServiceImpl implements BillingCreditLedgerServic
         entry.setCreatedAt(firstNonNull(snapshot.getOccurredAt(), nowUtc()));
 
         billingCreditLedgerEntryRepository.save(entry);
+        System.out.println(">>> [BillingCredit] granted +" + PRO_PLAN_MONTHLY_CREDIT_GRANT
+                + " plan credits for profile=" + profile.getId() + " (plan_grant)");
     }
 
     private Profile resolveProfile(UUID profileId, String stripeCustomerId) {
