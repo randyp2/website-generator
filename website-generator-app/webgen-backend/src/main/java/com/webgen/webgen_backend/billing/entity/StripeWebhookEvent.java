@@ -35,7 +35,16 @@ public class StripeWebhookEvent {
     @Column(name = "payload", nullable = false, columnDefinition = "jsonb")
     private JsonNode payload;
 
-    @Column(name = "processed_at", nullable = false)
+    @Column(name = "status", nullable = false)
+    private String status;
+
+    @Column(name = "last_error")
+    private String lastError;
+
+    @Column(name = "processing_started_at")
+    private OffsetDateTime processingStartedAt;
+
+    @Column(name = "processed_at")
     private OffsetDateTime processedAt;
 
     @Column(name = "created_at", nullable = false)

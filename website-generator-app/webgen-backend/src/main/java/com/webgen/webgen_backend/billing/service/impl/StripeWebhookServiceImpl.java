@@ -8,20 +8,18 @@ import com.stripe.net.Webhook;
 import com.webgen.webgen_backend.billing.config.StripeProperties;
 import com.webgen.webgen_backend.billing.dto.webhook.StripeWebhookProcessRequestDTO;
 import com.webgen.webgen_backend.billing.dto.webhook.StripeWebhookProcessResponseDTO;
-import com.webgen.webgen_backend.billing.entity.StripeWebhookEvent;
 import com.webgen.webgen_backend.billing.model.webhook.StripeCheckoutSessionCompletedModel;
 import com.webgen.webgen_backend.billing.model.webhook.StripeInvoiceSnapshotModel;
 import com.webgen.webgen_backend.billing.model.webhook.StripeSubscriptionSnapshotModel;
 import com.webgen.webgen_backend.billing.model.webhook.StripeWebhookEventType;
-import com.webgen.webgen_backend.billing.repository.StripeWebhookEventRepository;
 import com.webgen.webgen_backend.billing.service.BillingCreditLedgerService;
 import com.webgen.webgen_backend.billing.service.BillingSubscriptionSyncService;
 import com.webgen.webgen_backend.billing.service.StripeWebhookService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -36,13 +34,13 @@ import java.util.UUID;
 public class StripeWebhookServiceImpl implements StripeWebhookService {
 
     private final StripeProperties stripeProperties;
-    private final StripeWebhookEventRepository stripeWebhookEventRepository;
     private final BillingSubscriptionSyncService billingSubscriptionSyncService;
     private final BillingCreditLedgerService billingCreditLedgerService;
+    private final StripeWebhookEventStateService stripeWebhookEventStateService;
+    private final PlatformTransactionManager transactionManager;
     private final ObjectMapper objectMapper;
 
     @Override
-    @Transactional
     public StripeWebhookProcessResponseDTO processWebhook(
             StripeWebhookProcessRequestDTO request
     ) {
@@ -55,16 +53,6 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
         Event event = constructVerifiedEvent(payload, stripeSignature, webhookSecret);
         String stripeEventId = requireStripeEventId(event);
         String eventType = requireEventType(event);
-
-        // --- Return early when this webhook event has already been processed
-        if (stripeWebhookEventRepository.existsByStripeEventId(stripeEventId)) {
-            return StripeWebhookProcessResponseDTO.builder()
-                    .processed(false)
-                    .duplicate(true)
-                    .stripeEventId(stripeEventId)
-                    .eventType(eventType)
-                    .build();
-        }
 
         // --- Parse and validate raw payload for durable idempotency/audit storage
         JsonNode payloadJson = parsePayloadJson(payload);
@@ -81,25 +69,29 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
                 .orElse(null);
         OffsetDateTime occurredAt = extractOccurredAt(payloadJson);
 
-        // --- Dispatch normalized business handlers before recording webhook audit row.
-        dispatchEvent(normalizedType, stripeEventId, payloadJson, occurredAt);
-
-        // --- Persist webhook event for idempotency and audit tracking
-        StripeWebhookEvent webhookAuditRecord = buildWebhookAuditRecord(
-                stripeEventId,
-                eventType,
-                payloadJson
-        );
-
-        try {
-            stripeWebhookEventRepository.save(webhookAuditRecord);
-        } catch (DataIntegrityViolationException exception) {
+        // --- Claim this Stripe event before running side effects.
+        StripeWebhookEventStateService.ClaimResult claimResult = stripeWebhookEventStateService
+                .claimWebhookEvent(stripeEventId, eventType, payloadJson);
+        if (claimResult.outcome() != StripeWebhookEventStateService.ClaimOutcome.CLAIMED) {
             return StripeWebhookProcessResponseDTO.builder()
                     .processed(false)
                     .duplicate(true)
                     .stripeEventId(stripeEventId)
                     .eventType(eventType)
                     .build();
+        }
+
+        // --- Execute handlers in a dedicated transaction, then finalize event state.
+        try {
+            runDispatchInTransaction(normalizedType, stripeEventId, payloadJson, occurredAt);
+            stripeWebhookEventStateService.markProcessed(claimResult.webhookEventRowId());
+        } catch (RuntimeException exception) {
+            stripeWebhookEventStateService.markFailed(claimResult.webhookEventRowId(), exception);
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Stripe webhook processing failed",
+                    exception
+            );
         }
 
         return StripeWebhookProcessResponseDTO.builder()
@@ -180,6 +172,17 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
                     exception
             );
         }
+    }
+
+    private void runDispatchInTransaction(
+            StripeWebhookEventType normalizedType,
+            String stripeEventId,
+            JsonNode payloadJson,
+            OffsetDateTime occurredAt
+    ) {
+        TransactionTemplate template = new TransactionTemplate(transactionManager);
+        template.executeWithoutResult(ignored ->
+                dispatchEvent(normalizedType, stripeEventId, payloadJson, occurredAt));
     }
 
     private void dispatchEvent(
@@ -562,21 +565,4 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
         return value.trim();
     }
 
-    private StripeWebhookEvent buildWebhookAuditRecord(
-            String stripeEventId,
-            String eventType,
-            JsonNode payloadJson
-    ) {
-        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
-
-        StripeWebhookEvent webhookEvent = new StripeWebhookEvent();
-        webhookEvent.setId(UUID.randomUUID());
-        webhookEvent.setStripeEventId(stripeEventId);
-        webhookEvent.setEventType(eventType);
-        webhookEvent.setPayload(payloadJson);
-        webhookEvent.setProcessedAt(now);
-        webhookEvent.setCreatedAt(now);
-
-        return webhookEvent;
-    }
 }
