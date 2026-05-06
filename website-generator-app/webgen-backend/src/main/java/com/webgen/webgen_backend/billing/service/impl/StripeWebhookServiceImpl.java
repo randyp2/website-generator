@@ -322,17 +322,27 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
         }
 
         JsonNode metadata = extractMetadata(objectNode);
+        JsonNode parentSubscriptionMetadata = extractParentSubscriptionMetadata(objectNode);
+        String profileIdValue = firstNonBlank(
+                metadataText(metadata, "profile_id"),
+                metadataText(parentSubscriptionMetadata, "profile_id")
+        );
+        String planKeyValue = firstNonBlank(
+                metadataText(metadata, "plan_key"),
+                metadataText(parentSubscriptionMetadata, "plan_key")
+        );
+
         return StripeInvoiceSnapshotModel.builder()
                 .stripeEventId(stripeEventId)
                 .eventType(eventType)
                 .invoiceId(extractObjectRefId(objectNode, "id"))
                 .stripeCustomerId(extractObjectRefId(objectNode, "customer"))
-                .stripeSubscriptionId(extractObjectRefId(objectNode, "subscription"))
-                .profileId(parseUuid(metadataText(metadata, "profile_id"), "profile_id"))
+                .stripeSubscriptionId(extractInvoiceSubscriptionId(objectNode))
+                .profileId(parseUuid(profileIdValue, "profile_id"))
                 .billingReason(textValue(objectNode, "billing_reason"))
                 .amountPaid(longValue(objectNode, "amount_paid"))
                 .currency(textValue(objectNode, "currency"))
-                .planKey(metadataText(metadata, "plan_key"))
+                .planKey(planKeyValue)
                 .priceId(extractInvoicePriceId(objectNode))
                 .currentPeriodStart(extractInvoicePeriodStart(objectNode))
                 .currentPeriodEnd(extractInvoicePeriodEnd(objectNode))
@@ -351,6 +361,14 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
 
     private JsonNode extractMetadata(JsonNode objectNode) {
         JsonNode metadata = objectNode.path("metadata");
+        if (metadata.isObject()) {
+            return metadata;
+        }
+        return objectMapper.createObjectNode();
+    }
+
+    private JsonNode extractParentSubscriptionMetadata(JsonNode objectNode) {
+        JsonNode metadata = objectNode.path("parent").path("subscription_details").path("metadata");
         if (metadata.isObject()) {
             return metadata;
         }
@@ -394,13 +412,61 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
             if (StringUtils.hasText(priceId)) {
                 return priceId;
             }
+
+            String priceFromPricing = textValue(
+                    subscriptionLine.path("pricing").path("price_details"),
+                    "price"
+            );
+            if (StringUtils.hasText(priceFromPricing)) {
+                return priceFromPricing;
+            }
         }
 
         JsonNode lines = objectNode.path("lines").path("data");
         if (!lines.isArray() || lines.isEmpty()) {
             return null;
         }
-        return extractObjectRefId(lines.get(0), "price");
+
+        JsonNode firstLine = lines.get(0);
+        String legacyPrice = extractObjectRefId(firstLine, "price");
+        if (StringUtils.hasText(legacyPrice)) {
+            return legacyPrice;
+        }
+
+        return textValue(firstLine.path("pricing").path("price_details"), "price");
+    }
+
+    private String extractInvoiceSubscriptionId(JsonNode objectNode) {
+        String directSubscriptionId = extractObjectRefId(objectNode, "subscription");
+        if (StringUtils.hasText(directSubscriptionId)) {
+            return directSubscriptionId;
+        }
+
+        String fromInvoiceParent = textValue(
+                objectNode.path("parent").path("subscription_details"),
+                "subscription"
+        );
+        if (StringUtils.hasText(fromInvoiceParent)) {
+            return fromInvoiceParent;
+        }
+
+        JsonNode subscriptionLine = findSubscriptionLineItem(objectNode);
+        if (subscriptionLine == null) {
+            return null;
+        }
+
+        String fromSubscriptionItemParent = textValue(
+                subscriptionLine.path("parent").path("subscription_item_details"),
+                "subscription"
+        );
+        if (StringUtils.hasText(fromSubscriptionItemParent)) {
+            return fromSubscriptionItemParent;
+        }
+
+        return textValue(
+                subscriptionLine.path("parent").path("invoice_item_details"),
+                "subscription"
+        );
     }
 
     private OffsetDateTime extractInvoicePeriodStart(JsonNode objectNode) {
@@ -433,6 +499,9 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
 
         for (JsonNode line : lines) {
             if ("subscription".equalsIgnoreCase(textValue(line, "type"))) {
+                return line;
+            }
+            if ("subscription_item_details".equalsIgnoreCase(textValue(line.path("parent"), "type"))) {
                 return line;
             }
         }
@@ -573,6 +642,10 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
             return null;
         }
         return value.trim();
+    }
+
+    private String firstNonBlank(String primary, String fallback) {
+        return StringUtils.hasText(primary) ? primary : fallback;
     }
 
 }
