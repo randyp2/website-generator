@@ -231,7 +231,7 @@ public class BillingCheckoutServiceImpl implements BillingCheckoutService {
                 .setMode(selection.mode())
                 .setCustomer(stripeCustomerId)
                 .setClientReferenceId(profileId.toString())
-                .setSuccessUrl(stripeProperties.getSuccessUrl())
+                .setSuccessUrl(buildSuccessUrl(priceKey))
                 .setCancelUrl(stripeProperties.getCancelUrl())
                 .putMetadata("profile_id", profileId.toString())
                 .putMetadata("price_key", priceKey.name())
@@ -248,6 +248,12 @@ public class BillingCheckoutServiceImpl implements BillingCheckoutService {
         }
 
         return builder.build();
+    }
+
+    private String buildSuccessUrl(CreateCheckoutSessionRequestDTO.PriceKey priceKey) {
+        String base = stripeProperties.getSuccessUrl().trim();
+        String separator = base.contains("?") ? "&" : "?";
+        return base + separator + "priceKey=" + priceKey.name() + "&session_id={CHECKOUT_SESSION_ID}";
     }
 
     private record PriceSelection(
