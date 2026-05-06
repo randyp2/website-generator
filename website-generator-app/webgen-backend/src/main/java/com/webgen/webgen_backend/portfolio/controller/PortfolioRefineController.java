@@ -6,6 +6,8 @@ import com.webgen.webgen_backend.portfolio.dto.clarifier.ClarifierRequestDTO;
 import com.webgen.webgen_backend.portfolio.dto.clarifier.ClarifierResponseDTO;
 import com.webgen.webgen_backend.portfolio.dto.planner.PlannerRequestDTO;
 import com.webgen.webgen_backend.portfolio.dto.planner.PlannerResponseDTO;
+import com.webgen.webgen_backend.billing.service.CreditGuardService;
+import com.webgen.webgen_backend.portfolio.billing.PortfolioCreditCostPolicy;
 import com.webgen.webgen_backend.portfolio.service.builder.BuilderService;
 import com.webgen.webgen_backend.portfolio.service.clarifier.ClarifierService;
 import com.webgen.webgen_backend.portfolio.service.crud.PortfolioCrudService;
@@ -29,6 +31,7 @@ public class PortfolioRefineController {
     private final PlannerService plannerService;
     private final BuilderService builderService;
     private final PortfolioCrudService portfolioCrudService;
+    private final CreditGuardService creditGuardService;
 
     @PostMapping("/clarify")
     public ResponseEntity<ClarifierResponseDTO> clarify(
@@ -38,6 +41,11 @@ public class PortfolioRefineController {
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
         );
         portfolioCrudService.verifyOwnership(userId, req.getPortfolioId());
+        creditGuardService.assertHasRequiredCredits(
+                userId,
+                PortfolioCreditCostPolicy.REFINE_CLARIFY_REQUIRED_CREDITS,
+                "refine_clarify"
+        );
 
         ClarifierResponseDTO response = clarifierService.clarify(req);
         return ResponseEntity.ok(response);
@@ -51,6 +59,11 @@ public class PortfolioRefineController {
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
         );
         portfolioCrudService.verifyOwnership(userId, req.getPortfolioId());
+        creditGuardService.assertHasRequiredCredits(
+                userId,
+                PortfolioCreditCostPolicy.REFINE_PLAN_REQUIRED_CREDITS,
+                "refine_plan"
+        );
 
         PlannerResponseDTO response = plannerService.plan(req);
         return ResponseEntity.ok(response);
@@ -64,6 +77,11 @@ public class PortfolioRefineController {
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
         );
         portfolioCrudService.verifyOwnership(userId, req.getPortfolioId());
+        creditGuardService.assertHasRequiredCredits(
+                userId,
+                PortfolioCreditCostPolicy.REFINE_BUILD_REQUIRED_CREDITS,
+                "refine_build"
+        );
 
         BuilderResponseDTO response = builderService.build(req, userId);
         return ResponseEntity.ok(response);

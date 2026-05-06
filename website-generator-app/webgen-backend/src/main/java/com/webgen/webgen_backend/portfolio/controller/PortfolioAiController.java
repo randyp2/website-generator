@@ -1,10 +1,12 @@
 package com.webgen.webgen_backend.portfolio.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.webgen.webgen_backend.billing.service.CreditGuardService;
 import com.webgen.webgen_backend.portfolio.dto.CompletedSectionsResponseDTO;
 import com.webgen.webgen_backend.portfolio.dto.JobStatusDTO;
 import com.webgen.webgen_backend.portfolio.dto.PortfolioGenerateRequestDTO;
 import com.webgen.webgen_backend.portfolio.dto.common.SectionDTO;
+import com.webgen.webgen_backend.portfolio.billing.PortfolioCreditCostPolicy;
 import com.webgen.webgen_backend.portfolio.service.PortfolioAiService;
 import com.webgen.webgen_backend.portfolio.service.job.GenerateJobService;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ public class PortfolioAiController {
 
     private final GenerateJobService generateJobService;
     private final PortfolioAiService portfolioAiService;
+    private final CreditGuardService creditGuardService;
     private final ObjectMapper objectMapper;
 
     @PostMapping("/{id}/generate")
@@ -32,6 +35,12 @@ public class PortfolioAiController {
 
         UUID userId = UUID.fromString(
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
+
+        creditGuardService.assertHasRequiredCredits(
+                userId,
+                PortfolioCreditCostPolicy.GENERATE_PORTFOLIO_REQUIRED_CREDITS,
+                "portfolio_generation"
+        );
 
         String jobId = generateJobService.createJobAndQueue(id, userId, req);
 
