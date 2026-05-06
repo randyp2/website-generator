@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import React, { useEffect, useState } from "react";
 import {
     AlertTriangle,
     BarChart3,
@@ -10,14 +13,6 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { SETTINGS_BILLING_MOCK } from "../mock-settings-data";
-
-const formatCreditsAsCurrency = (credits: number): string =>
-    new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    }).format(credits / 100);
 
 const BILLING_SHORTCUTS = [
     {
@@ -48,24 +43,67 @@ const BILLING_SHORTCUTS = [
     },
 ] as const;
 
+interface ProfileMeBillingResponse {
+    billing?: {
+        creditBalance?: number | null;
+    } | null;
+}
+
 const BillingSettingsPage = () => {
     const { credits, plan, invoices } = SETTINGS_BILLING_MOCK;
-    const creditBalanceLabel = formatCreditsAsCurrency(credits.balance);
+    const [creditBalance, setCreditBalance] = useState<number>(0);
+    const creditBalanceLabel = creditBalance.toLocaleString();
+
+    useEffect(() => {
+        let cancelled = false;
+
+        void (async () => {
+            try {
+                const response = await fetch("/api/profile/me", {
+                    method: "GET",
+                    cache: "no-store",
+                });
+                if (!response.ok) {
+                    if (!cancelled) {
+                        setCreditBalance(0);
+                    }
+                    return;
+                }
+
+                const data = (await response.json()) as ProfileMeBillingResponse;
+                const nextBalance = data.billing?.creditBalance;
+
+                if (!cancelled) {
+                    setCreditBalance(
+                        typeof nextBalance === "number" ? nextBalance : 0,
+                    );
+                }
+            } catch {
+                if (!cancelled) {
+                    setCreditBalance(0);
+                }
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     return (
         <section className="space-y-8">
             <div className="space-y-5">
                 <div className="space-y-2">
-                    <p className="text-[11px] font-medium text-muted-foreground">
+                    <p className="text-[10px] font-medium text-muted-foreground">
                         {plan.name} · {plan.statusLabel}
                     </p>
-                    <h2 className="text-xl font-semibold tracking-tight">
+                    <h2 className="text-lg font-semibold tracking-tight">
                         Pay as you go
                     </h2>
                 </div>
 
                 <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                    <div className="flex items-center gap-2 text-[11px] font-semibold text-muted-foreground">
                         <span>Credit balance</span>
                         <span
                             aria-hidden="true"
@@ -74,11 +112,13 @@ const BillingSettingsPage = () => {
                             i
                         </span>
                     </div>
-                    <p className="text-4xl font-light tracking-tight text-foreground">
-                        {creditBalanceLabel}
+                    <p className="text-3xl font-light tracking-tight text-foreground">
+                        {creditBalanceLabel} credits
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                        {credits.nextRefreshLabel}. {plan.monthlyCredits.toLocaleString()} credits included monthly.
+                    <p className="text-[11px] text-muted-foreground">
+                        {credits.nextRefreshLabel}.{" "}
+                        {plan.monthlyCredits.toLocaleString()} credits included
+                        monthly.
                     </p>
                 </div>
 
@@ -110,11 +150,11 @@ const BillingSettingsPage = () => {
                 <div className="flex gap-3">
                     <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
                     <div className="space-y-1.5">
-                        <h3 className="text-sm font-semibold">
+                        <h3 className="text-xs font-semibold">
                             Auto recharge is off
                         </h3>
-                        <p className="max-w-4xl text-xs leading-5">
-                            When your credit balance reaches $0, website generation requests may stop working. Enable automatic recharge to keep your credit balance topped up.
+                        <p className="max-w-4xl text-[11px] leading-5">
+                            When your credit balance reaches 0 credits, website generation requests may stop working. Enable automatic recharge to keep your credit balance topped up.
                         </p>
                     </div>
                 </div>
@@ -136,10 +176,10 @@ const BillingSettingsPage = () => {
                                 <Icon className="h-6 w-6" />
                             </div>
                             <div className="min-w-0 space-y-1">
-                                <h3 className="text-lg font-semibold tracking-tight">
+                                <h3 className="text-base font-semibold tracking-tight">
                                     {item.title}
                                 </h3>
-                                <p className="text-sm text-muted-foreground">
+                                <p className="text-xs text-muted-foreground">
                                     {item.description}
                                 </p>
                             </div>
@@ -173,8 +213,8 @@ const BillingSettingsPage = () => {
             <div className="w-full rounded-xl border border-border bg-card/40">
                 <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
                     <div>
-                        <h3 className="text-base font-semibold">Recent invoices</h3>
-                        <p className="text-sm text-muted-foreground">
+                        <h3 className="text-sm font-semibold">Recent invoices</h3>
+                        <p className="text-xs text-muted-foreground">
                             Latest billing activity for this workspace.
                         </p>
                     </div>
@@ -189,12 +229,12 @@ const BillingSettingsPage = () => {
                             className="flex flex-col gap-2 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between"
                         >
                             <div>
-                                <p className="text-sm font-medium">{invoice.description}</p>
-                                <p className="text-sm text-muted-foreground">
+                                <p className="text-xs font-medium">{invoice.description}</p>
+                                <p className="text-xs text-muted-foreground">
                                     {invoice.dateLabel} · {invoice.statusLabel}
                                 </p>
                             </div>
-                            <p className="text-sm font-medium">{invoice.amountLabel}</p>
+                            <p className="text-xs font-medium">{invoice.amountLabel}</p>
                         </div>
                     ))}
                 </div>
