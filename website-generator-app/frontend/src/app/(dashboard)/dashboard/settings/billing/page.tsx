@@ -12,6 +12,12 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/useToast";
 import { SETTINGS_BILLING_MOCK } from "../mock-settings-data";
 
@@ -44,22 +50,105 @@ const BILLING_SHORTCUTS = [
     },
 ] as const;
 
+const ACTIVE_SUBSCRIPTION_STATUSES = new Set([
+    "trialing",
+    "active",
+    "past_due",
+    "unpaid",
+]);
+
+const BILLING_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+});
+
+interface ProfileBillingSnapshot {
+    creditBalance?: number | null;
+    activePlanKey?: string | null;
+    status?: string | null;
+    currentPeriodEnd?: string | null;
+    cancelAt?: string | null;
+    cancelAtPeriodEnd?: boolean | null;
+}
+
 interface ProfileMeBillingResponse {
-    billing?: {
-        creditBalance?: number | null;
-    } | null;
+    billing?: ProfileBillingSnapshot | null;
 }
 
 interface CreatePortalSessionResponse {
     portalUrl?: string;
 }
 
+const formatBillingDate = (isoDate?: string | null): string | null => {
+    if (!isoDate) {
+        return null;
+    }
+
+    const parsedDate = new Date(isoDate);
+    if (Number.isNaN(parsedDate.getTime())) {
+        return null;
+    }
+
+    return BILLING_DATE_FORMATTER.format(parsedDate);
+};
+
+const formatStatusLabel = (status?: string | null): string | null => {
+    if (!status) {
+        return null;
+    }
+
+    const normalized = status.trim().replaceAll("_", " ");
+    if (!normalized) {
+        return null;
+    }
+
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+};
+
+const toPlanName = (planKey?: string | null): string | null => {
+    if (!planKey) {
+        return null;
+    }
+
+    if (planKey === "website_generator_pro") {
+        return "Website Generator Pro";
+    }
+
+    return planKey.replaceAll("_", " ");
+};
+
 const BillingSettingsPage = () => {
-    const { credits, plan, invoices } = SETTINGS_BILLING_MOCK;
+    const { plan } = SETTINGS_BILLING_MOCK;
     const [creditBalance, setCreditBalance] = useState<number>(0);
+    const [billingSnapshot, setBillingSnapshot] =
+        useState<ProfileBillingSnapshot | null>(null);
     const [isOpeningPortal, setIsOpeningPortal] = useState<boolean>(false);
     const { addToast } = useToast();
     const creditBalanceLabel = creditBalance.toLocaleString();
+    const activePlanName = toPlanName(billingSnapshot?.activePlanKey) ?? plan.name;
+    const subscriptionStatusLabel =
+        formatStatusLabel(billingSnapshot?.status) ?? plan.statusLabel;
+
+    const currentPeriodEndLabel = formatBillingDate(
+        billingSnapshot?.currentPeriodEnd,
+    );
+    const cancelAtLabel = formatBillingDate(billingSnapshot?.cancelAt);
+    const activeUntilLabel =
+        cancelAtLabel ??
+        (billingSnapshot?.cancelAtPeriodEnd ? currentPeriodEndLabel : null);
+    const isActiveSubscription = ACTIVE_SUBSCRIPTION_STATUSES.has(
+        (billingSnapshot?.status ?? "").toLowerCase(),
+    );
+    const showCancellationNotice =
+        isActiveSubscription && activeUntilLabel != null;
+    const currentPeriodEndSummary = currentPeriodEndLabel
+        ? `Current billing period ends on ${currentPeriodEndLabel}.`
+        : "No active billing period yet.";
+    const creditsPolicySummary =
+        billingSnapshot?.activePlanKey === "website_generator_pro"
+            ? `${plan.monthlyCredits.toLocaleString()} plan credits are granted on paid subscription invoices.`
+            : "Purchase a plan or credit pack to add credits.";
 
     useEffect(() => {
         let cancelled = false;
@@ -81,12 +170,14 @@ const BillingSettingsPage = () => {
                 const nextBalance = data.billing?.creditBalance;
 
                 if (!cancelled) {
+                    setBillingSnapshot(data.billing ?? null);
                     setCreditBalance(
                         typeof nextBalance === "number" ? nextBalance : 0,
                     );
                 }
             } catch {
                 if (!cancelled) {
+                    setBillingSnapshot(null);
                     setCreditBalance(0);
                 }
             }
@@ -144,31 +235,42 @@ const BillingSettingsPage = () => {
         <section className="space-y-8">
             <div className="space-y-5">
                 <div className="space-y-2">
-                    <p className="text-[10px] font-medium text-muted-foreground">
-                        {plan.name} · {plan.statusLabel}
+                    <p className="text-xs font-medium text-muted-foreground">
+                        {activePlanName} · {subscriptionStatusLabel}
                     </p>
-                    <h2 className="text-lg font-semibold tracking-tight">
-                        Pay as you go
-                    </h2>
                 </div>
 
                 <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-[11px] font-semibold text-muted-foreground">
-                        <span>Credit balance</span>
-                        <span
-                            aria-hidden="true"
-                            className="grid h-3.5 w-3.5 place-items-center rounded-full border border-muted-foreground/70 text-[9px] leading-none"
-                        >
-                            i
-                        </span>
-                    </div>
-                    <p className="text-3xl font-light tracking-tight text-foreground">
+                    <TooltipProvider delayDuration={120}>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="flex w-fit cursor-default items-center gap-2 text-sm font-semibold text-muted-foreground">
+                                    <span>Credit balance</span>
+                                    <span
+                                        aria-label="Credit balance details"
+                                        className="grid h-4 w-4 place-items-center rounded-full border border-muted-foreground/70 text-[9px] leading-none text-muted-foreground/90"
+                                    >
+                                        i
+                                    </span>
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent
+                                side="right"
+                                align="center"
+                                sideOffset={10}
+                                className="max-w-[320px] rounded-2xl border border-border bg-background px-4 py-3 text-sm leading-relaxed text-foreground shadow-[0_18px_45px_rgba(0,0,0,0.45)]"
+                            >
+                                Your credit balance is consumed as you use
+                                the API. Visit the usage page to view a
+                                breakdown of your consumption.
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                    <p className="text-2xl font-light tracking-tight text-foreground">
                         {creditBalanceLabel} credits
                     </p>
-                    <p className="text-[11px] text-muted-foreground">
-                        {credits.nextRefreshLabel}.{" "}
-                        {plan.monthlyCredits.toLocaleString()} credits included
-                        monthly.
+                    <p className="text-sm text-muted-foreground">
+                        {currentPeriodEndSummary} {creditsPolicySummary}
                     </p>
                 </div>
 
@@ -187,27 +289,20 @@ const BillingSettingsPage = () => {
                             : "Manage subscription"}
                     </Button>
                 </div>
-            </div>
 
-            <div className="flex flex-col gap-4 rounded-2xl border border-orange-500/35 bg-orange-500/10 px-5 py-4 text-orange-600 dark:text-orange-300 md:flex-row md:items-center md:justify-between md:px-6">
-                <div className="flex gap-3">
-                    <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
-                    <div className="space-y-1.5">
-                        <h3 className="text-xs font-semibold">
-                            Auto recharge is off
-                        </h3>
-                        <p className="max-w-4xl text-[11px] leading-5">
-                            When your credit balance reaches 0 credits, website generation requests may stop working. Enable automatic recharge to keep your credit balance topped up.
-                        </p>
+                {showCancellationNotice ? (
+                    <div className="flex gap-3 rounded-xl border border-red-500/35 bg-red-500/10 px-4 py-3">
+                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-700 dark:text-red-300" />
+                        <div>
+                            <p className="text-xs font-semibold text-red-700 dark:text-red-300">
+                                Subscription cancellation scheduled
+                            </p>
+                            <p className="text-xs text-red-700/90 dark:text-red-200">
+                                Active until {activeUntilLabel}.
+                            </p>
+                        </div>
                     </div>
-                </div>
-                <Button
-                    type="button"
-                    size="sm"
-                    className="shrink-0 rounded-lg bg-orange-600 px-4 text-white hover:bg-orange-700"
-                >
-                    Setup auto recharge
-                </Button>
+                ) : null}
             </div>
 
             <div className="grid w-full gap-x-12 gap-y-6 md:grid-cols-2">
@@ -215,7 +310,7 @@ const BillingSettingsPage = () => {
                     const Icon = item.icon;
                     const content = (
                         <>
-                            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl border border-border bg-muted/50 text-foreground/85">
+                            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-black/8 text-foreground/70 dark:bg-white/10">
                                 <Icon className="h-6 w-6" />
                             </div>
                             <div className="min-w-0 space-y-1">
@@ -251,36 +346,6 @@ const BillingSettingsPage = () => {
                         </button>
                     );
                 })}
-            </div>
-
-            <div className="w-full rounded-xl border border-border bg-card/40">
-                <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
-                    <div>
-                        <h3 className="text-sm font-semibold">Recent invoices</h3>
-                        <p className="text-xs text-muted-foreground">
-                            Latest billing activity for this workspace.
-                        </p>
-                    </div>
-                    <Button variant="outline" size="sm">
-                        View all
-                    </Button>
-                </div>
-                <div className="divide-y divide-border">
-                    {invoices.map((invoice) => (
-                        <div
-                            key={invoice.id}
-                            className="flex flex-col gap-2 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between"
-                        >
-                            <div>
-                                <p className="text-xs font-medium">{invoice.description}</p>
-                                <p className="text-xs text-muted-foreground">
-                                    {invoice.dateLabel} · {invoice.statusLabel}
-                                </p>
-                            </div>
-                            <p className="text-xs font-medium">{invoice.amountLabel}</p>
-                        </div>
-                    ))}
-                </div>
             </div>
         </section>
     );
