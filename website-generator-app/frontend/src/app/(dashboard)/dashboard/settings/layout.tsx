@@ -17,7 +17,7 @@ const SettingsLayout = ({ children }: SettingsLayoutProps) => {
                 </p>
             </header>
             <SettingsTabsNav />
-            <main>{children}</main>
+            <main className="px-4 md:px-6">{children}</main>
         </div>
     );
 };
