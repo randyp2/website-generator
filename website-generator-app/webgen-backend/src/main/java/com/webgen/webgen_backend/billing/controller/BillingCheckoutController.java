@@ -2,6 +2,7 @@ package com.webgen.webgen_backend.billing.controller;
 
 import com.webgen.webgen_backend.billing.dto.CreateCheckoutSessionRequestDTO;
 import com.webgen.webgen_backend.billing.dto.CreateCheckoutSessionResponseDTO;
+import com.webgen.webgen_backend.billing.dto.CreatePortalSessionResponseDTO;
 import com.webgen.webgen_backend.billing.service.BillingCheckoutService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +28,14 @@ public class BillingCheckoutController {
         UUID profileId = resolveAuthenticatedUserId();
         return ResponseEntity.ok(
                 billingCheckoutService.createCheckoutSession(profileId, request)
+        );
+    }
+
+    @PostMapping("/portal/session")
+    public ResponseEntity<CreatePortalSessionResponseDTO> createPortalSession() {
+        UUID profileId = resolveAuthenticatedUserId();
+        return ResponseEntity.ok(
+                billingCheckoutService.createPortalSession(profileId)
         );
     }
 

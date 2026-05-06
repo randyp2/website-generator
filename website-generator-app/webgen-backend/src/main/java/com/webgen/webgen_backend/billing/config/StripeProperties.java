@@ -13,6 +13,7 @@ public class StripeProperties {
     private String webhookSecret;
     private String successUrl;
     private String cancelUrl;
+    private String portalReturnUrl;
     private Price price = new Price();
 
     @Getter

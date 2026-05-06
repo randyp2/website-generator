@@ -9,6 +9,7 @@ import com.stripe.param.checkout.SessionCreateParams;
 import com.webgen.webgen_backend.billing.config.StripeProperties;
 import com.webgen.webgen_backend.billing.dto.CreateCheckoutSessionRequestDTO;
 import com.webgen.webgen_backend.billing.dto.CreateCheckoutSessionResponseDTO;
+import com.webgen.webgen_backend.billing.dto.CreatePortalSessionResponseDTO;
 import com.webgen.webgen_backend.billing.entity.BillingSubscription;
 import com.webgen.webgen_backend.billing.mapper.BillingCheckoutMapper;
 import com.webgen.webgen_backend.billing.repository.BillingSubscriptionRepository;
@@ -56,8 +57,7 @@ public class BillingCheckoutServiceImpl implements BillingCheckoutService {
                 + " priceKey=" + request.getPriceKey());
 
         ensureCheckoutRedirectUrlsConfigured();
-        Profile profile = profileRepository.findById(profileId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile with profile id not found"));
+        Profile profile = resolveExistingProfile(profileId);
 
         PriceSelection selection = resolvePriceSelection(request.getPriceKey());
         preventDuplicatePlanCheckout(profile.getId(), selection);
@@ -98,6 +98,51 @@ public class BillingCheckoutServiceImpl implements BillingCheckoutService {
         return response;
     }
 
+    @Override
+    @Transactional
+    public CreatePortalSessionResponseDTO createPortalSession(UUID profileId) {
+        if (profileId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "profileId is required");
+        }
+
+        System.out.println(">>> [BillingPortal] createPortalSession start profileId=" + profileId);
+
+        ensurePortalReturnUrlConfigured();
+        Profile profile = resolveExistingProfile(profileId);
+        String stripeCustomerId = resolveOrCreateStripeCustomerId(profile);
+
+        com.stripe.param.billingportal.SessionCreateParams params =
+                com.stripe.param.billingportal.SessionCreateParams.builder()
+                        .setCustomer(stripeCustomerId)
+                        .setReturnUrl(stripeProperties.getPortalReturnUrl().trim())
+                        .build();
+
+        com.stripe.model.billingportal.Session portalSession;
+        try {
+            portalSession = stripeClient.v1().billingPortal().sessions().create(params);
+        } catch (StripeException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_GATEWAY,
+                    "Failed to create Stripe billing portal session",
+                    exception
+            );
+        }
+
+        System.out.println(">>> [BillingPortal] portal session created sessionId=" + portalSession.getId());
+
+        if (!StringUtils.hasText(portalSession.getUrl())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_GATEWAY,
+                    "Stripe billing portal session returned no URL"
+            );
+        }
+
+        return CreatePortalSessionResponseDTO.builder()
+                .sessionId(portalSession.getId())
+                .portalUrl(portalSession.getUrl())
+                .build();
+    }
+
     /**
      * Ensures checkout redirect URLs are configured before calling Stripe.
      */
@@ -111,9 +156,21 @@ public class BillingCheckoutServiceImpl implements BillingCheckoutService {
         }
     }
 
+    /**
+     * Ensures billing portal return URL is configured before calling Stripe.
+     */
+    private void ensurePortalReturnUrlConfigured() {
+        if (!StringUtils.hasText(stripeProperties.getPortalReturnUrl())) {
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Stripe billing portal return URL must be configured"
+            );
+        }
+    }
+
     private Profile resolveExistingProfile(UUID profileId) {
         return profileRepository.findById(profileId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile with profile id not found"));
     }
 
     /**
