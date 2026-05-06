@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import SidebarNavigation from "./SidebarNavigation";
 import DashboardMotionWrapper from "./DashboardMotionWrapper";
 import { SidebarProvider, useSidebar } from "@/context/SidebarContext";
@@ -11,24 +12,46 @@ interface DashboardLayoutClientProps {
   children: React.ReactNode;
 }
 
-const getActiveTabLabel = (pathname: string): string => {
-  const routeLabelMap: Array<{ prefix: string; label: string }> = [
-{ prefix: "/dashboard/portfolios", label: "My Portfolios" },
-    { prefix: "/dashboard/create", label: "Create New" },
-    { prefix: "/dashboard/publish", label: "Publish" },
-    { prefix: "/dashboard", label: "Dashboard" },
-  ];
+interface Breadcrumb {
+  label: string;
+  href: string;
+}
 
-  const matched = routeLabelMap.find(
-    ({ prefix }) => pathname === prefix || pathname.startsWith(`${prefix}/`),
-  );
-  if (matched) return matched.label;
+const SEGMENT_LABELS: Record<string, string> = {
+  dashboard: "Dashboard",
+  portfolios: "My Portfolios",
+  create: "Create New",
+  publish: "Publish",
+  billing: "Billing",
+  settings: "Settings",
+  profile: "Profile",
+  security: "Security",
+  history: "History",
+  upload: "Upload",
+  review: "Review",
+  style: "Style",
+  refine: "Refine",
+  cancel: "Cancel",
+  success: "Success",
+  verification: "Verification",
+};
 
-  const lastSegment = pathname.split("/").filter(Boolean).pop();
-  if (!lastSegment) return "Dashboard";
-  return lastSegment
-    .replace(/[-_]/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+const getBreadcrumbs = (pathname: string): Breadcrumb[] => {
+  const segments = pathname.split("/").filter(Boolean);
+  const crumbs: Breadcrumb[] = [];
+  let href = "";
+
+  for (const segment of segments) {
+    href += `/${segment}`;
+    const label =
+      SEGMENT_LABELS[segment] ??
+      segment
+        .replace(/[-_]/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+    crumbs.push({ label, href });
+  }
+
+  return crumbs;
 };
 
 const DashboardLayoutClientInner: React.FC<DashboardLayoutClientProps> = ({
@@ -42,7 +65,7 @@ const DashboardLayoutClientInner: React.FC<DashboardLayoutClientProps> = ({
     setCollapsed(!collapsed);
   };
 
-  const activeTabLabel = getActiveTabLabel(pathname);
+  const breadcrumbs = getBreadcrumbs(pathname);
 
   return (
     <>
@@ -85,9 +108,34 @@ const DashboardLayoutClientInner: React.FC<DashboardLayoutClientProps> = ({
               </button>
 
               <span className="mx-3 h-5 w-px bg-border" aria-hidden />
-              <p className="truncate text-base font-medium text-foreground">
-                {activeTabLabel}
-              </p>
+
+              <nav className="flex min-w-0 items-center gap-1.5 truncate">
+                {breadcrumbs.map((crumb, index) => {
+                  const isLast = index === breadcrumbs.length - 1;
+                  return (
+                    <React.Fragment key={crumb.href}>
+                      {index > 0 && (
+                        <span
+                          className="shrink-0 text-sm text-muted-foreground/50"
+                          aria-hidden
+                        >
+                          /
+                        </span>
+                      )}
+                      <Link
+                        href={crumb.href}
+                        className={`truncate text-base font-medium transition-colors hover:cursor-pointer hover:underline ${
+                          isLast
+                            ? "text-foreground"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {crumb.label}
+                      </Link>
+                    </React.Fragment>
+                  );
+                })}
+              </nav>
             </div>
           </header>
           <div className="flex-1 overflow-y-auto overscroll-none py-1 md:py-1.5">
