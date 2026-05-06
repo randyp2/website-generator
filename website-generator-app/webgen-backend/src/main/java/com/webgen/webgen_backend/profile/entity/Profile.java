@@ -65,4 +65,7 @@ public class Profile {
 
     @Column(name = "onboarding_complete", nullable = false)
     private Boolean onboardingComplete;
+
+    @Column(name = "stripe_customer_id")
+    private String stripeCustomerId;
 }

@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
+import { resolveSafeNextPath } from "@/lib/safe-next-path";
 import { BIO_MAX_LENGTH, USERNAME_PATTERN } from "../constants";
 import {
     hasCompletedOnboarding,
@@ -38,6 +39,7 @@ export const useOnboardingSubmit = ({
     isBootstrapping,
 }: UseOnboardingSubmitParams): UseOnboardingSubmitReturn => {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -93,7 +95,8 @@ export const useOnboardingSubmit = ({
 
             const updated = await parseJsonSafely<ProfileMeResponse>(response);
             if (hasCompletedOnboarding(updated)) {
-                router.replace("/dashboard");
+                const nextPath = resolveSafeNextPath(searchParams.get("next"));
+                router.replace(nextPath ?? "/dashboard");
                 return;
             }
 

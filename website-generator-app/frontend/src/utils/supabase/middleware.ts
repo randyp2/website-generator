@@ -68,12 +68,14 @@ export const updateSession = async (request: NextRequest) => {
             return redirectResponse;
         }
 
-        if (pathname === "/") {
+        // Always route OAuth callbacks through the post-login resolver so it
+        // can decide where the user belongs (handles cases where Supabase
+        // redirects to "/" or "/dashboard" instead of the requested redirectTo).
+        if (pathname !== "/auth/post-login") {
             nextUrl.pathname = "/auth/post-login";
         }
 
-        // Default redirect
-        const redirectResponse = NextResponse.redirect(nextUrl); // If we came from allowed callback path, keep that path
+        const redirectResponse = NextResponse.redirect(nextUrl);
         for (const cookie of response.cookies.getAll()) {
             redirectResponse.cookies.set(cookie);
         }

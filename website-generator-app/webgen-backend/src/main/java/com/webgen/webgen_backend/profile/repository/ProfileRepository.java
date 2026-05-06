@@ -9,6 +9,8 @@ import java.util.UUID;
 public interface ProfileRepository extends JpaRepository<Profile, UUID> {
     Optional<Profile> findByUsernameIgnoreCase(String username);
 
+    Optional<Profile> findByStripeCustomerId(String stripeCustomerId);
+
     boolean existsByUsernameIgnoreCase(String username);
 
     boolean existsByUsernameIgnoreCaseAndIdNot(String username, UUID id);

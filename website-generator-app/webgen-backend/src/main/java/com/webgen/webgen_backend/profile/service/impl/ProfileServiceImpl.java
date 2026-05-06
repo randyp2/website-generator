@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.profile.service.impl;
 
+import com.webgen.webgen_backend.billing.service.BillingStatusReader;
 import com.webgen.webgen_backend.profile.dto.ProfileMeDTO;
 import com.webgen.webgen_backend.profile.dto.PublicProfileDTO;
 import com.webgen.webgen_backend.profile.dto.UpdateProfileRequestDTO;
@@ -28,6 +29,7 @@ public class ProfileServiceImpl implements ProfileService {
 
     private final ProfileRepository profileRepository;
     private final ProfileMapper profileMapper;
+    private final BillingStatusReader billingStatusReader;
 
     private static final Pattern USERNAME_PATTERN =
             Pattern.compile("^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$");
@@ -51,7 +53,7 @@ public class ProfileServiceImpl implements ProfileService {
     public ProfileMeDTO getOrCreateMyProfile(UUID profileId) {
         Profile profile = getOrCreateProfile(profileId);
         profile = syncOnboardingComplete(profile);
-        return profileMapper.toMeDto(profile);
+        return withBilling(profileMapper.toMeDto(profile), profileId);
     }
 
     @Override
@@ -84,10 +86,18 @@ public class ProfileServiceImpl implements ProfileService {
 
         try {
             Profile saved = profileRepository.save(profile);
-            return profileMapper.toMeDto(saved);
+            return withBilling(profileMapper.toMeDto(saved), profileId);
         } catch (DataIntegrityViolationException exception) {
             throw mapDataIntegrityViolation(exception);
         }
+    }
+
+    private ProfileMeDTO withBilling(ProfileMeDTO dto, UUID profileId) {
+        if (dto == null) {
+            return null;
+        }
+        dto.setBilling(billingStatusReader.read(profileId));
+        return dto;
     }
 
     @Override

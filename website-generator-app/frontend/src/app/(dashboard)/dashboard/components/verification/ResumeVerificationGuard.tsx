@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Info } from "lucide-react";
+import { useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
 import ResumePreviewCard from "./ResumePreviewCard";
@@ -21,15 +20,6 @@ const SUB_TABS: { id: VerificationSubTab; label: string }[] = [
     { id: "skill-verification", label: "Skill Verification" },
 ];
 
-const TAB_ORDER: VerificationSubTab[] = [
-    "resume-review",
-    "skill-review",
-    "skill-verification",
-];
-
-const getVisibleTabs = (maxReachedIndex: number) =>
-    SUB_TABS.filter((_, i) => i <= maxReachedIndex);
-
 // ─── Component ───────────────────────────────────────────────────────
 
 interface ResumeVerificationGuardProps {
@@ -41,11 +31,10 @@ interface ResumeVerificationGuardProps {
 /**
  * Top-level orchestrator for the verification sub-tab.
  *
- * Renders one of three states:
+ * Renders one of two states:
  * 1. **Loading** — while hydrating an existing verification from the backend.
- * 2. **Upload gate** — when no resume is present (first visit).
- * 3. **Sub-tab workspace** — once a resume is loaded, shows a tab bar with
- *    Resume Review / Skill Review / Skill Verification panels.
+ * 2. **Sub-tab workspace** — always shows Resume Review / Skill Review /
+ *    Skill Verification, with empty-state content inside tabs when needed.
  *
  * All state management lives in `useResumeVerification`; tab routing
  * lives in `useVerificationSubTab`. This component is purely presentational.
@@ -56,14 +45,8 @@ const ResumeVerificationGuard = ({
     onPostConfirmRefresh,
 }: ResumeVerificationGuardProps) => {
     const { activeTab, setActiveTab, hasExplicitTab } = useVerificationSubTab();
-    const [maxReachedIndex, setMaxReachedIndex] = useState(() =>
-        TAB_ORDER.indexOf(activeTab),
-    );
     const setActiveTabAndTrack = useCallback(
         (tab: VerificationSubTab) => {
-            setMaxReachedIndex((prev) =>
-                Math.max(prev, TAB_ORDER.indexOf(tab)),
-            );
             setActiveTab(tab);
         },
         [setActiveTab],
@@ -89,9 +72,6 @@ const ResumeVerificationGuard = ({
     } = useResumeVerification(setActiveTabAndTrack, {
         onConfirmIngested: onPostConfirmRefresh,
     });
-    const shouldShowUploadReminder =
-        !hasPersisted &&
-        (activeTab === "skill-review" || activeTab === "skill-verification");
 
     // ── Redirect returning users straight to skill-verification ──────
     // If the user has already completed the flow and arrives without an
@@ -116,31 +96,23 @@ const ResumeVerificationGuard = ({
         return <VerificationLoadingSpinner />;
     }
 
-    // ── No resume yet — show intro and upload gate side by side ─────
-
-    if (!resume) {
-        return (
-            <div className="flex min-h-[calc(100vh-10rem)]">
-                <div className="flex flex-1 flex-col justify-center pr-10">
-                    <VerificationIntro />
-                </div>
-                <div className="w-px shrink-0 bg-border" />
-                <div className="flex flex-1 flex-col justify-center pl-10">
-                    <ResumeUploadGate onResumeUploaded={handleResumeUploaded} />
-                </div>
+    const resumeUploadPrompt = (
+        <div className="flex min-h-[calc(100vh-10rem)]">
+            <div className="flex flex-1 flex-col justify-center pr-10">
+                <VerificationIntro />
             </div>
-        );
-    }
-
-    // ── Resume present — render the three-step sub-tab workspace ────
+            <div className="w-px shrink-0 bg-border" />
+            <div className="flex flex-1 flex-col justify-center pl-10">
+                <ResumeUploadGate onResumeUploaded={handleResumeUploaded} />
+            </div>
+        </div>
+    );
 
     return (
         <div className="space-y-8">
-            {/* Sub-tab bar — only reveals tabs the user has reached */}
+            {/* Sub-tab bar — all verification tabs remain available. */}
             <div className="flex gap-6 border-b border-border">
-                {getVisibleTabs(
-                    Math.max(maxReachedIndex, TAB_ORDER.indexOf(activeTab)),
-                ).map((tab) => {
+                {SUB_TABS.map((tab) => {
                     const isActive = activeTab === tab.id;
                     return (
                         <button
@@ -157,56 +129,50 @@ const ResumeVerificationGuard = ({
                     );
                 })}
             </div>
-            {shouldShowUploadReminder && (
-                <div className="inline-flex w-fit max-w-full items-center gap-2 rounded-full border border-primary/60 bg-primary/15 px-4 py-1.5 text-xs text-black dark:text-white">
-                    <Info className="h-3.5 w-3.5 shrink-0" />
-                    <p>
-                        Note: Upload your resume and click &quot;Continue to
-                        Skill Verification&quot; in Resume Review to begin this
-                        step.
-                    </p>
-                </div>
-            )}
 
             {/* Step 1 — Review the uploaded resume and continue to parsing */}
             {activeTab === "resume-review" && (
-                <div className="space-y-8">
-                    <ResumePreviewCard
-                        resume={resume}
-                        onRemove={handleResumeRemoved}
-                    />
+                resume ? (
+                    <div className="space-y-8">
+                        <ResumePreviewCard
+                            resume={resume}
+                            onRemove={handleResumeRemoved}
+                        />
 
-                    <div className="rounded-xl border bg-card p-6">
-                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                            <div className="space-y-1">
-                                <h3 className="text-lg font-semibold text-foreground">
-                                    Resume ready for verification
-                                </h3>
-                                <p className="text-sm text-muted-foreground">
-                                    Review the uploaded file, then continue to
-                                    open the skill verification workspace and
-                                    evidence preview.
-                                </p>
-                            </div>
-                            <div className="flex flex-col items-end gap-2">
-                                <Button
-                                    onClick={handleContinueToSkillVerification}
-                                    disabled={isUploading}
-                                    className="hover:cursor-pointer"
-                                >
-                                    {isUploading
-                                        ? "Uploading resume..."
-                                        : "Continue to Skill Verification"}
-                                </Button>
-                                {uploadError && (
-                                    <p className="max-w-xs text-right text-xs text-destructive">
-                                        {uploadError}
+                        <div className="rounded-xl border bg-card p-6">
+                            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                                <div className="space-y-1">
+                                    <h3 className="text-lg font-semibold text-foreground">
+                                        Resume ready for verification
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground">
+                                        Review the uploaded file, then continue
+                                        to open the skill verification workspace
+                                        and evidence preview.
                                     </p>
-                                )}
+                                </div>
+                                <div className="flex flex-col items-end gap-2">
+                                    <Button
+                                        onClick={handleContinueToSkillVerification}
+                                        disabled={isUploading}
+                                        className="hover:cursor-pointer"
+                                    >
+                                        {isUploading
+                                            ? "Uploading resume..."
+                                            : "Continue to Skill Verification"}
+                                    </Button>
+                                    {uploadError && (
+                                        <p className="max-w-xs text-right text-xs text-destructive">
+                                            {uploadError}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                ) : (
+                    resumeUploadPrompt
+                )
             )}
 
             {/* Step 2 — Review / edit extracted skills before verification */}

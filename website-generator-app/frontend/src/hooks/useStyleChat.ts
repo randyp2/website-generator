@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useToast } from "@/hooks/useToast";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
 import type {
     ColorPresetColors,
@@ -23,6 +24,45 @@ const introStyleMessage: Message = {
 };
 
 const STYLE_CHAT_SYNC_DEBOUNCE_MS = 800;
+const INSUFFICIENT_CREDITS_CODE = "INSUFFICIENT_CREDITS";
+
+type StyleChatErrorPayload = {
+    code?: string;
+    error?: string;
+    message?: string;
+};
+
+type StyleChatRequestFailure = {
+    code?: string;
+    message: string;
+    status: number;
+};
+
+const parseStyleChatFailure = async (
+    response: Response,
+    fallbackMessage: string,
+): Promise<StyleChatRequestFailure> => {
+    const payload =
+        ((await response.json().catch(() => null)) as StyleChatErrorPayload | null) ??
+        null;
+
+    const message =
+        payload?.error?.trim() ||
+        payload?.message?.trim() ||
+        fallbackMessage;
+    const code = payload?.code?.trim();
+
+    return {
+        status: response.status,
+        code: code || undefined,
+        message,
+    };
+};
+
+const isInsufficientCreditsFailure = (
+    failure: StyleChatRequestFailure,
+): boolean =>
+    failure.status === 402 || failure.code === INSUFFICIENT_CREDITS_CODE;
 
 function mergeStylePreferences(
     current: StylePreferences,
@@ -110,6 +150,7 @@ export function useStyleChat(params: {
     templateId: string | null;
 }) {
     const { portfolioId, templateId } = params;
+    const { addToast } = useToast();
 
     const {
         setTemplateId,
@@ -129,8 +170,29 @@ export function useStyleChat(params: {
     const [showTypographyPicker, setShowTypographyPicker] = useState(false);
     const [recommendedHeadingFont, setRecommendedHeadingFont] = useState<string | undefined>();
     const [recommendedBodyFont, setRecommendedBodyFont] = useState<string | undefined>();
+    const [isInsufficientCreditsModalOpen, setIsInsufficientCreditsModalOpen] = useState(false);
     const styleSyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastSyncedHistoryRef = useRef<string>("");
+
+    const closeInsufficientCreditsModal = useCallback(() => {
+        setIsInsufficientCreditsModalOpen(false);
+    }, []);
+
+    const handleStyleChatFailure = useCallback(
+        (failure: StyleChatRequestFailure, title: string): void => {
+            if (isInsufficientCreditsFailure(failure)) {
+                setIsInsufficientCreditsModalOpen(true);
+                return;
+            }
+
+            addToast({
+                type: "error",
+                title,
+                description: failure.message,
+            });
+        },
+        [addToast],
+    );
 
     // Effect 1: Hydration watcher
     useEffect(() => {
@@ -278,6 +340,29 @@ export function useStyleChat(params: {
         syncStyleHistoryToDb,
     ]);
 
+    const requestStyleChat = useCallback(
+        async (
+            payload: object,
+            fallbackMessage: string,
+            failureTitle: string,
+        ): Promise<StyleChatResponse | null> => {
+            const res = await fetch("/api/portfolio/style-chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+
+            if (!res.ok) {
+                const failure = await parseStyleChatFailure(res, fallbackMessage);
+                handleStyleChatFailure(failure, failureTitle);
+                return null;
+            }
+
+            return (await res.json()) as StyleChatResponse;
+        },
+        [handleStyleChatFailure],
+    );
+
     // Effect 5: Debounced styleMessages sync to DB
     useEffect(() => {
         if (!isHydrated || !portfolioId || !hasLoadedHistory) return;
@@ -343,17 +428,12 @@ export function useStyleChat(params: {
                     "[style-chat] Sending message with stylePrefs:",
                     stylePreferences,
                 );
-                const res = await fetch("/api/portfolio/style-chat", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ portfolioId, userMessage: prompt }),
-                });
-
-                if (!res.ok) {
-                    throw new Error("Style chat request failed");
-                }
-
-                const data: StyleChatResponse = await res.json();
+                const data = await requestStyleChat(
+                    { portfolioId, userMessage: prompt },
+                    "Style chat request failed.",
+                    "Style chat unavailable",
+                );
+                if (!data) return;
 
                 console.log("[style-chat] API response:", {
                     suggestions: data.suggestions,
@@ -400,16 +480,14 @@ export function useStyleChat(params: {
                 }
             } catch (error) {
                 console.error("Style chat error:", error);
-                setStyleMessages((prev) => [
-                    ...prev,
-                    {
-                        id: `error-${Date.now()}`,
-                        role: "ai",
-                        content:
-                            "Sorry, something went wrong. Please try sending your message again.",
-                        timestamp: new Date(),
-                    },
-                ]);
+                addToast({
+                    type: "error",
+                    title: "Style chat unavailable",
+                    description:
+                        error instanceof Error
+                            ? error.message
+                            : "Unable to send your style message right now.",
+                });
             } finally {
                 setIsSendingStyle(false);
             }
@@ -421,6 +499,8 @@ export function useStyleChat(params: {
             setStyleMessages,
             setStylePreferences,
             setIsSendingStyle,
+            addToast,
+            requestStyleChat,
         ],
     );
 
@@ -451,20 +531,15 @@ export function useStyleChat(params: {
                     "[style-chat] Submitting colors with stylePrefs:",
                     stylePreferences,
                 );
-                const res = await fetch("/api/portfolio/style-chat", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
+                const data = await requestStyleChat(
+                    {
                         portfolioId,
                         colorSelections: colors,
-                    }),
-                });
-
-                if (!res.ok) {
-                    throw new Error("Color submission failed");
-                }
-
-                const data: StyleChatResponse = await res.json();
+                    },
+                    "Color submission failed.",
+                    "Color update unavailable",
+                );
+                if (!data) return;
 
                 setStyleMessages((prev) => [
                     ...prev,
@@ -498,16 +573,14 @@ export function useStyleChat(params: {
                 }
             } catch (error) {
                 console.error("Color submit error:", error);
-                setStyleMessages((prev) => [
-                    ...prev,
-                    {
-                        id: `error-${Date.now()}`,
-                        role: "ai",
-                        content:
-                            "Sorry, something went wrong submitting your colors. Please try again.",
-                        timestamp: new Date(),
-                    },
-                ]);
+                addToast({
+                    type: "error",
+                    title: "Color update unavailable",
+                    description:
+                        error instanceof Error
+                            ? error.message
+                            : "Unable to submit your selected colors right now.",
+                });
             } finally {
                 setIsSendingStyle(false);
             }
@@ -518,6 +591,8 @@ export function useStyleChat(params: {
             setStyleMessages,
             setStylePreferences,
             setIsSendingStyle,
+            addToast,
+            requestStyleChat,
         ],
     );
 
@@ -541,20 +616,15 @@ export function useStyleChat(params: {
 
             setIsSendingStyle(true);
             try {
-                const res = await fetch("/api/portfolio/style-chat", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
+                const data = await requestStyleChat(
+                    {
                         portfolioId,
                         fontSelections: { heading: fonts.heading, body: fonts.body },
-                    }),
-                });
-
-                if (!res.ok) {
-                    throw new Error("Font submission failed");
-                }
-
-                const data: StyleChatResponse = await res.json();
+                    },
+                    "Font submission failed.",
+                    "Typography update unavailable",
+                );
+                if (!data) return;
 
                 setStyleMessages((prev) => [
                     ...prev,
@@ -578,15 +648,14 @@ export function useStyleChat(params: {
                 }
             } catch (error) {
                 console.error("Font submit error:", error);
-                setStyleMessages((prev) => [
-                    ...prev,
-                    {
-                        id: `error-${Date.now()}`,
-                        role: "ai",
-                        content: "Sorry, something went wrong submitting your fonts. Please try again.",
-                        timestamp: new Date(),
-                    },
-                ]);
+                addToast({
+                    type: "error",
+                    title: "Typography update unavailable",
+                    description:
+                        error instanceof Error
+                            ? error.message
+                            : "Unable to submit your typography choices right now.",
+                });
             } finally {
                 setIsSendingStyle(false);
             }
@@ -597,6 +666,8 @@ export function useStyleChat(params: {
             setStyleMessages,
             setStylePreferences,
             setIsSendingStyle,
+            addToast,
+            requestStyleChat,
         ],
     );
 
@@ -616,20 +687,15 @@ export function useStyleChat(params: {
 
             setIsSendingStyle(true);
             try {
-                const res = await fetch("/api/portfolio/style-chat", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
+                const data = await requestStyleChat(
+                    {
                         portfolioId,
                         layoutSelection: layoutName,
-                    }),
-                });
-
-                if (!res.ok) {
-                    throw new Error("Layout submission failed");
-                }
-
-                const data: StyleChatResponse = await res.json();
+                    },
+                    "Layout submission failed.",
+                    "Layout update unavailable",
+                );
+                if (!data) return;
 
                 setStyleMessages((prev) => [
                     ...prev,
@@ -653,15 +719,14 @@ export function useStyleChat(params: {
                 }
             } catch (error) {
                 console.error("Layout submit error:", error);
-                setStyleMessages((prev) => [
-                    ...prev,
-                    {
-                        id: `error-${Date.now()}`,
-                        role: "ai",
-                        content: "Sorry, something went wrong submitting your layout choice. Please try again.",
-                        timestamp: new Date(),
-                    },
-                ]);
+                addToast({
+                    type: "error",
+                    title: "Layout update unavailable",
+                    description:
+                        error instanceof Error
+                            ? error.message
+                            : "Unable to submit your layout choice right now.",
+                });
             } finally {
                 setIsSendingStyle(false);
             }
@@ -672,6 +737,8 @@ export function useStyleChat(params: {
             setStyleMessages,
             setStylePreferences,
             setIsSendingStyle,
+            addToast,
+            requestStyleChat,
         ],
     );
 
@@ -683,6 +750,8 @@ export function useStyleChat(params: {
         showTypographyPicker,
         recommendedHeadingFont,
         recommendedBodyFont,
+        isInsufficientCreditsModalOpen,
+        closeInsufficientCreditsModal,
         handleSend,
         handleColorSubmit,
         handleFontSubmit,

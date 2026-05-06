@@ -300,8 +300,8 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                     >
                         {[
                             { icon: FiUser, label: "Profile", path: profilePath ?? "/dashboard" },
-                            { icon: FiSettings, label: "Settings" },
-                            { icon: FiShare2, label: "Pricing" },
+                            { icon: FiSettings, label: "Settings", path: "/dashboard/settings/profile" },
+                            { icon: FiShare2, label: "Pricing", path: "/pricing" },
                             { icon: FiHelpCircle, label: "Help" },
                         ].map((item) => (
                             <button

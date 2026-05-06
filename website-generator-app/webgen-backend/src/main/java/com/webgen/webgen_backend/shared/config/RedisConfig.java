@@ -13,7 +13,7 @@ public class RedisConfig {
     public RedisTemplate<String, String> redisTemplate(
             RedisConnectionFactory connectionFactory) {
 
-        /// Create client to interface with redis
+        // Create client to interface with redis
         RedisTemplate<String, String> template = new RedisTemplate<>();
 
         // Set connection specified to the connection details in application.properties

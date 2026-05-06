@@ -24,4 +24,5 @@ public class ProfileMeDTO {
     private String linkedinUrl;
     private String githubUrl;
     private Boolean onboardingComplete;
+    private ProfileBillingDTO billing;
 }
