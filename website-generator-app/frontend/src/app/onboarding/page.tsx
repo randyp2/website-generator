@@ -1,6 +1,7 @@
 "use client";
 
 import {
+    Suspense,
     useCallback,
     useMemo,
     type ChangeEvent,
@@ -121,4 +122,10 @@ const OnboardingPage = () => {
     );
 };
 
-export default OnboardingPage;
+const OnboardingPageWrapper = () => (
+    <Suspense fallback={<OnboardingLoadingState />}>
+        <OnboardingPage />
+    </Suspense>
+);
+
+export default OnboardingPageWrapper;
