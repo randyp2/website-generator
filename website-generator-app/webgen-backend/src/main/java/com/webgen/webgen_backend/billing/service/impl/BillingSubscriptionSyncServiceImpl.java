@@ -56,39 +56,14 @@ public class BillingSubscriptionSyncServiceImpl implements BillingSubscriptionSy
                 stripeCustomerId
         );
 
-        // --- Find existing mirrored subscription row or initialize a new one.
-        BillingSubscription subscription = billingSubscriptionRepository
-                .findByStripeSubscriptionId(stripeSubscriptionId)
-                .orElseGet(BillingSubscription::new);
+        Optional<BillingSubscription> existingOptional =
+                billingSubscriptionRepository.findByStripeSubscriptionId(stripeSubscriptionId);
+        BillingSubscription existing = existingOptional.orElse(null);
 
         OffsetDateTime now = nowUtc();
-        if (subscription.getId() == null) {
-            subscription.setId(UUID.randomUUID());
-            subscription.setCreatedAt(firstNonNull(
-                    snapshot != null ? snapshot.getOccurredAt() : null,
-                    now
-            ));
-        }
-
-        // --- Apply identifiers and core lifecycle fields from the Stripe snapshot.
-        subscription.setProfile(profile);
-        subscription.setStripeCustomerId(stripeCustomerId);
-        subscription.setStripeSubscriptionId(stripeSubscriptionId);
-        subscription.setStatus(status);
-        subscription.setCanceledAt(snapshot != null ? snapshot.getCanceledAt() : null);
-
-        // --- Keep period windows updated when Stripe sends them.
-        if (snapshot != null && snapshot.getCurrentPeriodStart() != null) {
-            subscription.setCurrentPeriodStart(snapshot.getCurrentPeriodStart());
-        }
-        if (snapshot != null && snapshot.getCurrentPeriodEnd() != null) {
-            subscription.setCurrentPeriodEnd(snapshot.getCurrentPeriodEnd());
-        }
-
-        String existingPriceId = subscription.getPriceId();
         String resolvedPriceId = resolvePriceId(
                 snapshot != null ? snapshot.getPriceId() : null,
-                existingPriceId
+                existing != null ? existing.getPriceId() : null
         );
         if (!StringUtils.hasText(resolvedPriceId)) {
             throw new ResponseStatusException(
@@ -96,26 +71,37 @@ public class BillingSubscriptionSyncServiceImpl implements BillingSubscriptionSy
                     "Stripe subscription price id is required"
             );
         }
-        subscription.setPriceId(resolvedPriceId);
 
         String resolvedPlanKey = resolvePlanKey(
                 snapshot != null ? snapshot.getPlanKey() : null,
                 resolvedPriceId,
-                subscription.getPlanKey()
+                existing != null ? existing.getPlanKey() : null
         );
-        subscription.setPlanKey(resolvedPlanKey);
 
         Boolean cancelAtPeriodEnd = snapshot != null ? snapshot.getCancelAtPeriodEnd() : null;
-        if (cancelAtPeriodEnd != null) {
-            subscription.setCancelAtPeriodEnd(cancelAtPeriodEnd);
-        } else if (subscription.getCancelAtPeriodEnd() == null) {
-            subscription.setCancelAtPeriodEnd(Boolean.FALSE);
+        if (cancelAtPeriodEnd == null) {
+            cancelAtPeriodEnd = existing != null ? existing.getCancelAtPeriodEnd() : Boolean.FALSE;
         }
 
-        subscription.setMetadata(objectOrEmpty(snapshot != null ? snapshot.getMetadata() : null));
-        subscription.setUpdatedAt(now);
+        billingSubscriptionRepository.upsertByStripeSubscriptionId(
+                UUID.randomUUID(),
+                profile.getId(),
+                stripeCustomerId,
+                stripeSubscriptionId,
+                resolvedPlanKey,
+                resolvedPriceId,
+                status,
+                snapshot != null ? snapshot.getCurrentPeriodStart() : null,
+                snapshot != null ? snapshot.getCurrentPeriodEnd() : null,
+                cancelAtPeriodEnd,
+                snapshot != null ? snapshot.getCanceledAt() :
+                        (existing != null ? existing.getCanceledAt() : null),
+                metadataJson(objectOrEmpty(snapshot != null ? snapshot.getMetadata() : null)),
+                firstNonNull(existing != null ? existing.getCreatedAt() : null,
+                        firstNonNull(snapshot != null ? snapshot.getOccurredAt() : null, now)),
+                now
+        );
 
-        billingSubscriptionRepository.save(subscription);
         System.out.println(">>> [BillingSubSync] upserted subscription stripeSubId=" + stripeSubscriptionId
                 + " status=" + status + " plan=" + resolvedPlanKey);
     }
@@ -137,68 +123,69 @@ public class BillingSubscriptionSyncServiceImpl implements BillingSubscriptionSy
         Optional<BillingSubscription> existingOptional =
                 billingSubscriptionRepository.findByStripeSubscriptionId(stripeSubscriptionId);
 
-        if (existingOptional.isPresent()) {
-            BillingSubscription existing = existingOptional.get();
+        BillingSubscription existing = existingOptional.orElse(null);
 
-            // --- Update lifecycle status and billing period windows from invoice events.
-            existing.setStatus(normalizedStatus);
-            if (snapshot.getCurrentPeriodStart() != null) {
-                existing.setCurrentPeriodStart(snapshot.getCurrentPeriodStart());
-            }
-            if (snapshot.getCurrentPeriodEnd() != null) {
-                existing.setCurrentPeriodEnd(snapshot.getCurrentPeriodEnd());
-            }
-
-            // --- Reconcile plan and price identifiers when invoice lines include them.
-            String resolvedPriceId = resolvePriceId(snapshot.getPriceId(), existing.getPriceId());
-            if (StringUtils.hasText(resolvedPriceId)) {
-                existing.setPriceId(resolvedPriceId);
-            }
-            String resolvedPlanKey = resolvePlanKey(
-                    snapshot.getPlanKey(),
-                    existing.getPriceId(),
-                    existing.getPlanKey()
+        String stripeCustomerId = resolveText(
+                snapshot.getStripeCustomerId(),
+                existing != null ? existing.getStripeCustomerId() : null
+        );
+        if (!StringUtils.hasText(stripeCustomerId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Stripe customer id is required for invoice subscription sync"
             );
-            existing.setPlanKey(resolvedPlanKey);
+        }
 
-            existing.setUpdatedAt(now);
-            billingSubscriptionRepository.save(existing);
-            System.out.println(">>> [BillingSubSync] invoice update subId=" + stripeSubscriptionId
-                    + " newStatus=" + normalizedStatus);
+        String resolvedPriceId = resolvePriceId(
+                snapshot.getPriceId(),
+                existing != null ? existing.getPriceId() : null
+        );
+        if (!StringUtils.hasText(resolvedPriceId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Stripe subscription price id is required for invoice subscription sync"
+            );
+        }
+
+        String resolvedPlanKey = resolvePlanKey(
+                snapshot.getPlanKey(),
+                resolvedPriceId,
+                existing != null ? existing.getPlanKey() : null
+        );
+
+        Profile profile;
+        if (snapshot.getProfileId() != null || existing == null) {
+            profile = resolveProfile(snapshot.getProfileId(), stripeCustomerId);
+        } else {
+            profile = existing.getProfile();
+        }
+
+        billingSubscriptionRepository.upsertByStripeSubscriptionId(
+                UUID.randomUUID(),
+                profile.getId(),
+                stripeCustomerId,
+                stripeSubscriptionId,
+                resolvedPlanKey,
+                resolvedPriceId,
+                normalizedStatus,
+                snapshot.getCurrentPeriodStart(),
+                snapshot.getCurrentPeriodEnd(),
+                existing != null ? existing.getCancelAtPeriodEnd() : Boolean.FALSE,
+                existing != null ? existing.getCanceledAt() : null,
+                metadataJson(objectOrEmpty(snapshot.getMetadata())),
+                firstNonNull(existing != null ? existing.getCreatedAt() : null,
+                        firstNonNull(snapshot.getOccurredAt(), now)),
+                now
+        );
+
+        if (existing == null) {
+            System.out.println(">>> [BillingSubSync] invoice backfill — upserted sub row subId="
+                    + stripeSubscriptionId + " status=" + normalizedStatus);
             return;
         }
 
-        String stripeCustomerId = requireText(
-                snapshot.getStripeCustomerId(),
-                "Stripe customer id is required for subscription backfill"
-        );
-        String resolvedPriceId = requireText(
-                resolvePriceId(snapshot.getPriceId(), null),
-                "Stripe subscription price id is required for subscription backfill"
-        );
-        Profile profile = resolveProfile(snapshot.getProfileId(), stripeCustomerId);
-        String resolvedPlanKey = resolvePlanKey(snapshot.getPlanKey(), resolvedPriceId, null);
-
-        BillingSubscription backfilled = BillingSubscription.builder()
-                .id(UUID.randomUUID())
-                .profile(profile)
-                .stripeCustomerId(stripeCustomerId)
-                .stripeSubscriptionId(stripeSubscriptionId)
-                .planKey(resolvedPlanKey)
-                .priceId(resolvedPriceId)
-                .status(normalizedStatus)
-                .currentPeriodStart(snapshot.getCurrentPeriodStart())
-                .currentPeriodEnd(snapshot.getCurrentPeriodEnd())
-                .cancelAtPeriodEnd(Boolean.FALSE)
-                .canceledAt(null)
-                .metadata(objectOrEmpty(snapshot.getMetadata()))
-                .createdAt(firstNonNull(snapshot.getOccurredAt(), now))
-                .updatedAt(now)
-                .build();
-
-        billingSubscriptionRepository.save(backfilled);
-        System.out.println(">>> [BillingSubSync] invoice backfill — created sub row subId="
-                + stripeSubscriptionId + " status=" + normalizedStatus);
+        System.out.println(">>> [BillingSubSync] invoice update subId=" + stripeSubscriptionId
+                + " newStatus=" + normalizedStatus);
     }
 
     private Profile resolveProfile(UUID profileId, String stripeCustomerId) {
@@ -225,6 +212,16 @@ public class BillingSubscriptionSyncServiceImpl implements BillingSubscriptionSy
     }
 
     private String resolvePriceId(String candidate, String fallback) {
+        if (StringUtils.hasText(candidate)) {
+            return candidate.trim();
+        }
+        if (StringUtils.hasText(fallback)) {
+            return fallback.trim();
+        }
+        return null;
+    }
+
+    private String resolveText(String candidate, String fallback) {
         if (StringUtils.hasText(candidate)) {
             return candidate.trim();
         }
@@ -281,6 +278,18 @@ public class BillingSubscriptionSyncServiceImpl implements BillingSubscriptionSy
             return candidate;
         }
         return objectMapper.createObjectNode();
+    }
+
+    private String metadataJson(JsonNode metadata) {
+        try {
+            return objectMapper.writeValueAsString(objectOrEmpty(metadata));
+        } catch (Exception exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Unable to serialize subscription metadata",
+                    exception
+            );
+        }
     }
 
     private String requireText(String value, String message) {
