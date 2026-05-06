@@ -113,7 +113,7 @@ const toPlanName = (planKey?: string | null): string | null => {
     }
 
     if (planKey === "website_generator_pro") {
-        return "Website Generator Pro";
+        return "PortRN Pro";
     }
 
     return planKey.replaceAll("_", " ");

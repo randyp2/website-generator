@@ -85,7 +85,7 @@ export const SETTINGS_SECURITY_MOCK: SettingsSecurityMock = {
 
 export const SETTINGS_BILLING_MOCK: SettingsBillingMock = {
     plan: {
-        name: "Website Generator Pro",
+        name: "PortRN Pro",
         statusLabel: "Active",
         cadenceLabel: "Annual · $99 / year",
         renewalLabel: "Renews on June 15, 2026",
