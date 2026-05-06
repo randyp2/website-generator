@@ -24,6 +24,7 @@ public class StripeSubscriptionSnapshotModel {
     private String status;
     private OffsetDateTime currentPeriodStart;
     private OffsetDateTime currentPeriodEnd;
+    private OffsetDateTime cancelAt;
     private Boolean cancelAtPeriodEnd;
     private OffsetDateTime canceledAt;
     private JsonNode metadata;

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/useToast";
 import { SETTINGS_BILLING_MOCK } from "../mock-settings-data";
 
 const BILLING_SHORTCUTS = [
@@ -49,9 +50,15 @@ interface ProfileMeBillingResponse {
     } | null;
 }
 
+interface CreatePortalSessionResponse {
+    portalUrl?: string;
+}
+
 const BillingSettingsPage = () => {
     const { credits, plan, invoices } = SETTINGS_BILLING_MOCK;
     const [creditBalance, setCreditBalance] = useState<number>(0);
+    const [isOpeningPortal, setIsOpeningPortal] = useState<boolean>(false);
+    const { addToast } = useToast();
     const creditBalanceLabel = creditBalance.toLocaleString();
 
     useEffect(() => {
@@ -90,6 +97,49 @@ const BillingSettingsPage = () => {
         };
     }, []);
 
+    const openBillingPortal = async (): Promise<void> => {
+        setIsOpeningPortal(true);
+
+        try {
+            const response = await fetch("/api/billing/portal/session", {
+                method: "POST",
+            });
+
+            if (!response.ok) {
+                const errorPayload =
+                    ((await response.json().catch(() => null)) as
+                        | { error?: string }
+                        | null) ?? null;
+                throw new Error(
+                    errorPayload?.error ??
+                        "Unable to open subscription manager right now.",
+                );
+            }
+
+            const data =
+                (await response.json()) as CreatePortalSessionResponse;
+
+            if (!data.portalUrl) {
+                throw new Error(
+                    "Stripe portal link was not returned. Please try again.",
+                );
+            }
+
+            window.location.assign(data.portalUrl);
+        } catch (error) {
+            addToast({
+                type: "error",
+                title: "Unable to open billing portal",
+                description:
+                    error instanceof Error
+                        ? error.message
+                        : "Please try again in a moment.",
+            });
+        } finally {
+            setIsOpeningPortal(false);
+        }
+    };
+
     return (
         <section className="space-y-8">
             <div className="space-y-5">
@@ -123,25 +173,18 @@ const BillingSettingsPage = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                    <Button asChild size="sm" className="rounded-lg px-3">
-                        <Link href="/dashboard/billing">Add to credit balance</Link>
-                    </Button>
                     <Button
                         type="button"
                         size="sm"
-                        variant="secondary"
                         className="rounded-lg px-3"
+                        disabled={isOpeningPortal}
+                        onClick={() => {
+                            void openBillingPortal();
+                        }}
                     >
-                        Auto recharge settings
-                    </Button>
-                    <Button
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        className="rounded-lg px-3"
-                        disabled={!plan.manageEnabled}
-                    >
-                        Cancel plan
+                        {isOpeningPortal
+                            ? "Opening subscription manager..."
+                            : "Manage subscription"}
                     </Button>
                 </div>
             </div>

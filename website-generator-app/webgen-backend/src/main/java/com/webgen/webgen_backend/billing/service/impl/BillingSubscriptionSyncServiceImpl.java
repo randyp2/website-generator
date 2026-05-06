@@ -82,6 +82,7 @@ public class BillingSubscriptionSyncServiceImpl implements BillingSubscriptionSy
         if (cancelAtPeriodEnd == null) {
             cancelAtPeriodEnd = existing != null ? existing.getCancelAtPeriodEnd() : Boolean.FALSE;
         }
+        OffsetDateTime cancelAt = snapshot != null ? snapshot.getCancelAt() : null;
 
         billingSubscriptionRepository.upsertByStripeSubscriptionId(
                 UUID.randomUUID(),
@@ -93,6 +94,7 @@ public class BillingSubscriptionSyncServiceImpl implements BillingSubscriptionSy
                 status,
                 snapshot != null ? snapshot.getCurrentPeriodStart() : null,
                 snapshot != null ? snapshot.getCurrentPeriodEnd() : null,
+                cancelAt,
                 cancelAtPeriodEnd,
                 snapshot != null ? snapshot.getCanceledAt() :
                         (existing != null ? existing.getCanceledAt() : null),
@@ -170,6 +172,7 @@ public class BillingSubscriptionSyncServiceImpl implements BillingSubscriptionSy
                 normalizedStatus,
                 snapshot.getCurrentPeriodStart(),
                 snapshot.getCurrentPeriodEnd(),
+                existing != null ? existing.getCancelAt() : null,
                 existing != null ? existing.getCancelAtPeriodEnd() : Boolean.FALSE,
                 existing != null ? existing.getCanceledAt() : null,
                 metadataJson(objectOrEmpty(snapshot.getMetadata())),

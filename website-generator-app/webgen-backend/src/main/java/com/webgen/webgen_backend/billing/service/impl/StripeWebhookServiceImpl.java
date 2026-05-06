@@ -270,6 +270,7 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
                 .status(textValue(objectNode, "status"))
                 .currentPeriodStart(extractTimestamp(objectNode, "current_period_start"))
                 .currentPeriodEnd(extractTimestamp(objectNode, "current_period_end"))
+                .cancelAt(extractTimestamp(objectNode, "cancel_at"))
                 .cancelAtPeriodEnd(booleanValue(objectNode, "cancel_at_period_end"))
                 .canceledAt(extractTimestamp(objectNode, "canceled_at"))
                 .metadata(metadata)

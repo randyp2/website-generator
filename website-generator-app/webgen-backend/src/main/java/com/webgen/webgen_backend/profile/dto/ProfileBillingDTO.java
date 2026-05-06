@@ -12,6 +12,7 @@ public class ProfileBillingDTO {
     private String activePlanKey;
     private String status;
     private OffsetDateTime currentPeriodEnd;
+    private OffsetDateTime cancelAt;
     private Boolean cancelAtPeriodEnd;
     private Integer creditBalance;
 }

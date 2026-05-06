@@ -58,6 +58,9 @@ public class BillingSubscription {
     @Column(name = "current_period_end")
     private OffsetDateTime currentPeriodEnd;
 
+    @Column(name = "cancel_at")
+    private OffsetDateTime cancelAt;
+
     @Column(name = "cancel_at_period_end", nullable = false)
     private Boolean cancelAtPeriodEnd;
 

@@ -53,6 +53,7 @@ public class BillingStatusReaderImpl implements BillingStatusReader {
                 .activePlanKey(subscription.getPlanKey())
                 .status(subscription.getStatus())
                 .currentPeriodEnd(subscription.getCurrentPeriodEnd())
+                .cancelAt(subscription.getCancelAt())
                 .cancelAtPeriodEnd(subscription.getCancelAtPeriodEnd()));
 
         return builder.build();
