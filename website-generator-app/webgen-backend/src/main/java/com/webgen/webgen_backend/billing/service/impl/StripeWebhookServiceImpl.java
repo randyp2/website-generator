@@ -13,6 +13,7 @@ import com.webgen.webgen_backend.billing.model.webhook.StripeInvoiceSnapshotMode
 import com.webgen.webgen_backend.billing.model.webhook.StripeSubscriptionSnapshotModel;
 import com.webgen.webgen_backend.billing.model.webhook.StripeWebhookEventType;
 import com.webgen.webgen_backend.billing.service.BillingCreditLedgerService;
+import com.webgen.webgen_backend.billing.service.BillingInvoiceService;
 import com.webgen.webgen_backend.billing.service.BillingSubscriptionSyncService;
 import com.webgen.webgen_backend.billing.service.StripeWebhookService;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
     private final StripeProperties stripeProperties;
     private final BillingSubscriptionSyncService billingSubscriptionSyncService;
     private final BillingCreditLedgerService billingCreditLedgerService;
+    private final BillingInvoiceService billingInvoiceService;
     private final StripeWebhookEventStateService stripeWebhookEventStateService;
     private final PlatformTransactionManager transactionManager;
     private final ObjectMapper objectMapper;
@@ -238,6 +240,7 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
                 if (snapshot != null) {
                     System.out.println(">>> [StripeWebhook] dispatch -> invoice invoiceId="
                             + snapshot.getInvoiceId() + " type=" + normalizedType);
+                    billingInvoiceService.syncInvoiceSnapshot(snapshot);
                     billingSubscriptionSyncService.syncInvoiceSnapshot(snapshot);
                     if (normalizedType == StripeWebhookEventType.INVOICE_PAID) {
                         billingCreditLedgerService.applyInvoicePaidCredits(snapshot);
@@ -341,10 +344,14 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
                 .stripeSubscriptionId(extractInvoiceSubscriptionId(objectNode))
                 .profileId(parseUuid(profileIdValue, "profile_id"))
                 .billingReason(textValue(objectNode, "billing_reason"))
+                .status(textValue(objectNode, "status"))
                 .amountPaid(longValue(objectNode, "amount_paid"))
+                .amountDue(longValue(objectNode, "amount_due"))
                 .currency(textValue(objectNode, "currency"))
                 .planKey(planKeyValue)
                 .priceId(extractInvoicePriceId(objectNode))
+                .hostedInvoiceUrl(textValue(objectNode, "hosted_invoice_url"))
+                .invoicePdfUrl(textValue(objectNode, "invoice_pdf"))
                 .currentPeriodStart(extractInvoicePeriodStart(objectNode))
                 .currentPeriodEnd(extractInvoicePeriodEnd(objectNode))
                 .metadata(metadata)

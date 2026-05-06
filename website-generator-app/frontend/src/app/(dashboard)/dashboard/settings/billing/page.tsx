@@ -31,6 +31,7 @@ const BILLING_SHORTCUTS = [
         title: "Billing history",
         description: "View past and current invoices",
         icon: FileText,
+        href: "/dashboard/settings/billing/history",
     },
     {
         title: "Preferences",
