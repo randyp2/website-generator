@@ -2,6 +2,12 @@ import { getBackendUrl } from "@/lib/server-env";
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 
+type StyleChatErrorPayload = {
+    code?: string;
+    error?: string;
+    message?: string;
+};
+
 export async function POST(req: Request) {
     try {
         const body = await req.json();
@@ -37,10 +43,33 @@ export async function POST(req: Request) {
         );
 
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error("Style chat backend error:", errorText);
+            const rawErrorBody = await response.text();
+            console.error("Style chat backend error:", rawErrorBody);
+
+            let parsedError: StyleChatErrorPayload | null = null;
+            try {
+                parsedError = JSON.parse(rawErrorBody) as StyleChatErrorPayload;
+            } catch {
+                parsedError = null;
+            }
+
+            const errorMessage =
+                parsedError?.error?.trim() ||
+                parsedError?.message?.trim() ||
+                (rawErrorBody?.trim()
+                    ? rawErrorBody.trim()
+                    : "Style chat request failed");
+
+            const errorCode =
+                response.status === 402
+                    ? "INSUFFICIENT_CREDITS"
+                    : parsedError?.code?.trim() || "STYLE_CHAT_REQUEST_FAILED";
+
             return NextResponse.json(
-                { error: "Backend request failed" },
+                {
+                    code: errorCode,
+                    error: errorMessage,
+                },
                 { status: response.status },
             );
         }
