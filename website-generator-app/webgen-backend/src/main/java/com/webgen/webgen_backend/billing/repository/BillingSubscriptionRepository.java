@@ -86,6 +86,12 @@ public interface BillingSubscriptionRepository extends JpaRepository<BillingSubs
             Collection<String> statuses
     );
 
+    Optional<BillingSubscription> findFirstByProfile_IdAndPlanKeyAndStatusInOrderByCurrentPeriodEndDesc(
+            UUID profileId,
+            String planKey,
+            Collection<String> statuses
+    );
+
     List<BillingSubscription> findByStripeCustomerIdAndStatusInOrderByCurrentPeriodEndDesc(
             String stripeCustomerId,
             Collection<String> statuses

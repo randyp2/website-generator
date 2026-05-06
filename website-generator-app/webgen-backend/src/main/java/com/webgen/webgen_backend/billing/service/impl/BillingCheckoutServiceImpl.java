@@ -9,7 +9,9 @@ import com.stripe.param.checkout.SessionCreateParams;
 import com.webgen.webgen_backend.billing.config.StripeProperties;
 import com.webgen.webgen_backend.billing.dto.CreateCheckoutSessionRequestDTO;
 import com.webgen.webgen_backend.billing.dto.CreateCheckoutSessionResponseDTO;
+import com.webgen.webgen_backend.billing.entity.BillingSubscription;
 import com.webgen.webgen_backend.billing.mapper.BillingCheckoutMapper;
+import com.webgen.webgen_backend.billing.repository.BillingSubscriptionRepository;
 import com.webgen.webgen_backend.billing.service.BillingCheckoutService;
 import com.webgen.webgen_backend.profile.entity.Profile;
 import com.webgen.webgen_backend.profile.repository.ProfileRepository;
@@ -20,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -28,10 +31,12 @@ import java.util.UUID;
 public class BillingCheckoutServiceImpl implements BillingCheckoutService {
 
     private static final String PLAN_WEBSITE_GENERATOR_PRO = "website_generator_pro";
+    private static final List<String> ACTIVE_SUBSCRIPTION_STATUSES = List.of("trialing", "active", "past_due");
 
     private final StripeClient stripeClient;
     private final StripeProperties stripeProperties;
     private final ProfileRepository profileRepository;
+    private final BillingSubscriptionRepository billingSubscriptionRepository;
     private final BillingCheckoutMapper billingCheckoutMapper;
 
     @Override
@@ -54,8 +59,9 @@ public class BillingCheckoutServiceImpl implements BillingCheckoutService {
         Profile profile = profileRepository.findById(profileId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile with profile id not found"));
 
-        String stripeCustomerId = resolveOrCreateStripeCustomerId(profile);
         PriceSelection selection = resolvePriceSelection(request.getPriceKey());
+        preventDuplicatePlanCheckout(profile.getId(), selection);
+        String stripeCustomerId = resolveOrCreateStripeCustomerId(profile);
         SessionCreateParams params = buildCheckoutSessionParams(
                 profileId,
                 stripeCustomerId,
@@ -216,6 +222,27 @@ public class BillingCheckoutServiceImpl implements BillingCheckoutService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, unavailableMessage);
         }
         return configuredValue.trim();
+    }
+
+    private void preventDuplicatePlanCheckout(UUID profileId, PriceSelection selection) {
+        if (selection == null
+                || selection.mode() != SessionCreateParams.Mode.SUBSCRIPTION
+                || !StringUtils.hasText(selection.planKey())) {
+            return;
+        }
+
+        Optional<BillingSubscription> existing = billingSubscriptionRepository
+                .findFirstByProfile_IdAndPlanKeyAndStatusInOrderByCurrentPeriodEndDesc(
+                        profileId,
+                        selection.planKey(),
+                        ACTIVE_SUBSCRIPTION_STATUSES
+                );
+        if (existing.isPresent()) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "An active subscription already exists for this plan. Use Manage Subscription to change or cancel."
+            );
+        }
     }
 
     /**
