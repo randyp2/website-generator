@@ -9,11 +9,13 @@ import { PricingPlanCard } from "./PricingPlanCard";
 interface SubscriptionPlansGridProps {
     onCheckout: (priceKey: PriceKey) => void;
     disabled?: boolean;
+    activePriceKey?: PriceKey | null;
 }
 
 export const SubscriptionPlansGrid: React.FC<SubscriptionPlansGridProps> = ({
     onCheckout,
     disabled,
+    activePriceKey,
 }) => {
     return (
         <div className="relative mt-8 overflow-visible md:mt-16">
@@ -46,6 +48,10 @@ export const SubscriptionPlansGrid: React.FC<SubscriptionPlansGridProps> = ({
                                 plan={plan}
                                 onSelect={onCheckout}
                                 disabled={disabled}
+                                isCurrentPlan={
+                                    activePriceKey != null &&
+                                    plan.priceKey === activePriceKey
+                                }
                             />
                         </div>
                     );

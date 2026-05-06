@@ -16,12 +16,14 @@ interface PricingPlanCardProps {
     plan: PricingPlan;
     onSelect: (priceKey: PriceKey) => void;
     disabled?: boolean;
+    isCurrentPlan?: boolean;
 }
 
 export const PricingPlanCard: React.FC<PricingPlanCardProps> = ({
     plan,
     onSelect,
     disabled,
+    isCurrentPlan,
 }) => {
     const isHighlighted: boolean = plan.highlighted === true;
     const hasPriceKey: boolean = plan.priceKey !== null;
@@ -102,11 +104,11 @@ export const PricingPlanCard: React.FC<PricingPlanCardProps> = ({
                 <Button
                     type="button"
                     onClick={handleClick}
-                    disabled={disabled || !hasPriceKey}
+                    disabled={disabled || !hasPriceKey || isCurrentPlan}
                     variant={isHighlighted ? "default" : "outline"}
                     className="h-12 w-full text-base font-medium"
                 >
-                    {plan.ctaLabel}
+                    {isCurrentPlan ? "Current plan" : plan.ctaLabel}
                 </Button>
             </CardFooter>
         </Card>
