@@ -147,7 +147,7 @@ public class SkillVerificationScoringKernel {
          * - Mean keeps adjustments comparable across profiles of different sizes.
         */
         OverallEvidenceComputation overallEvidenceComputation = hasAnyEvidence
-                ? computeEvidenceEnhancedOverallScore(baselineOverallScore, claimComputations)
+                ? computeEvidenceEnhancedOverallScore(baselineOverallScore, claimComputations, matchedSkills)
                 : new OverallEvidenceComputation(
                         baselineOverallScore,
                         SkillScoringPolicy.ZERO,
@@ -196,9 +196,9 @@ public class SkillVerificationScoringKernel {
         ));
         if (hasAnyEvidence) {
             System.out.println(String.format(
-                    "[EVIDENCE SCORE] meanClaimDelta = totalClaimDelta/claimCount = %s/%d = %s",
+                    "[EVIDENCE SCORE] meanClaimDelta = totalClaimDelta/matchedClaims = %s/%d = %s",
                     overallEvidenceComputation.totalClaimDelta(),
-                    claimComputations.size(),
+                    Math.max(1, matchedSkills),
                     overallEvidenceComputation.averageClaimDelta()
             ));
             System.out.println(String.format(
@@ -865,14 +865,18 @@ public class SkillVerificationScoringKernel {
     }
 
     // Applies mean claim delta to baseline overall score and clamps to [0,100].
+    // Denominator is matchedClaims (not totalClaims) because unmatched claims are architecturally
+    // excluded from evidence nudges and should not dilute the mean.
     private OverallEvidenceComputation computeEvidenceEnhancedOverallScore(
             int baselineOverallScore,
-            List<ClaimScoreComputation> claimComputations
+            List<ClaimScoreComputation> claimComputations,
+            int matchedClaims
     ) {
         BigDecimal totalClaimDelta = claimComputations.stream()
                 .map(claim -> BigDecimal.valueOf(claim.uncappedEvidenceContribution()))
                 .reduce(SkillScoringPolicy.ZERO, BigDecimal::add);
-        BigDecimal averageClaimDelta = scoringPolicy.safeDivide(totalClaimDelta, claimComputations.size());
+        int denominator = Math.max(1, matchedClaims);
+        BigDecimal averageClaimDelta = scoringPolicy.safeDivide(totalClaimDelta, denominator);
         int roundedAverageDelta = averageClaimDelta.setScale(0, RoundingMode.HALF_UP).intValue();
         int overallScore = clampScoreToPercent(baselineOverallScore + roundedAverageDelta);
         return new OverallEvidenceComputation(

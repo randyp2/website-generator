@@ -21,10 +21,14 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
@@ -267,6 +271,12 @@ public class ClaimIngestionServiceImpl implements ClaimIngestionService {
     /** Trailing punctuation that isn't part of a skill name. */
     private static final Pattern TRAILING_PUNCT = Pattern.compile("[.,;:!?]+$");
 
+    /** Balanced parenthetical groups used for extraction before cleanup. */
+    private static final Pattern PAREN_CONTENT = Pattern.compile("\\(([^)]*)\\)");
+
+    /** Wrapper characters to trim from token edges after splitting. */
+    private static final String TOKEN_WRAPPERS = "()[]{}\"'`";
+
     /**
      * Known compound terms that should NOT be split on "/".
      * Checked case-insensitively.
@@ -281,47 +291,42 @@ public class ClaimIngestionServiceImpl implements ClaimIngestionService {
      *
      * Steps:
      *   1. Strip label prefix  ("Languages: React" -> "React")
-     *   2. Strip trailing punctuation ("Python." -> "Python")
-     *   3. Extract parenthetical items as separate candidates
+     *   2. Extract balanced parenthetical items as separate candidates
      *      ("Node.js (Express)" -> ["Node.js", "Express"])
-     *   4. Split on "/" unless it's a known compound
+     *   3. Replace unmatched parentheses with delimiters for recovery
+     *      ("AWS (ECS" -> ["AWS", "ECS"], "S3)" -> ["S3"])
+     *   4. Split on "," and "/" unless "/" term is a known compound
      *      ("React/Redux" -> ["React", "Redux"])
      *      ("CI/CD" -> ["CI/CD"])
+     *   5. Deduplicate case-insensitively while preserving first-seen order
      */
     private List<String> normalizeAndSplit(String raw) {
-        List<String> results = new ArrayList<>();
-
-        // 1. Strip label prefix
-        String cleaned = LABEL_PREFIX.matcher(raw).replaceFirst("");
-
-        // 2. Strip trailing punctuation
-        cleaned = TRAILING_PUNCT.matcher(cleaned).replaceFirst("");
-        cleaned = cleaned.trim();
-        if (cleaned.isEmpty()) return results;
-
-        // 3. Extract parenthetical content as separate candidates
-        //    "Node.js (Express, Koa)" -> base="Node.js", parens=["Express", "Koa"]
-        String base = cleaned;
-        if (cleaned.contains("(") && cleaned.contains(")")) {
-            int openIdx = cleaned.indexOf('(');
-            int closeIdx = cleaned.lastIndexOf(')');
-            base = cleaned.substring(0, openIdx).trim();
-            String parenContent = cleaned.substring(openIdx + 1, closeIdx).trim();
-
-            for (String part : parenContent.split(",")) {
-                String trimmed = part.trim();
-                if (!trimmed.isEmpty()) {
-                    results.addAll(splitOnSlash(trimmed));
-                }
-            }
+        List<String> candidates = new ArrayList<>();
+        if (raw == null) {
+            return candidates;
         }
 
-        // 4. Split the base on "/" (respecting known compounds)
-        if (!base.isEmpty()) {
-            results.addAll(0, splitOnSlash(base));
+        // 1) Strip label prefix
+        String cleaned = LABEL_PREFIX.matcher(raw).replaceFirst("").trim();
+        if (cleaned.isEmpty()) {
+            return candidates;
         }
 
-        return results;
+        // 2) Pull balanced parenthetical chunks first
+        Matcher matcher = PAREN_CONTENT.matcher(cleaned);
+        while (matcher.find()) {
+            addDelimitedTokens(matcher.group(1), candidates);
+        }
+
+        // 3) Replace extracted groups with delimiters, then recover unmatched
+        String base = matcher.replaceAll(",");
+        base = base.replace('(', ',').replace(')', ',');
+
+        // 4) Split remaining payload by comma and slash
+        addDelimitedTokens(base, candidates);
+
+        // 5) Deduplicate case-insensitively with stable ordering
+        return dedupeCaseInsensitive(candidates);
     }
 
     /**
@@ -349,6 +354,72 @@ public class ClaimIngestionServiceImpl implements ClaimIngestionService {
         }
 
         return results;
+    }
+
+    /**
+     * Splits one chunk by comma and slash, then sanitizes each token.
+     */
+    private void addDelimitedTokens(String chunk, List<String> out) {
+        if (chunk == null || out == null) {
+            return;
+        }
+
+        for (String commaPart : chunk.split(",")) {
+            if (commaPart == null || commaPart.isBlank()) {
+                continue;
+            }
+
+            for (String slashPart : splitOnSlash(commaPart)) {
+                String token = sanitizeToken(slashPart);
+                if (!token.isEmpty()) {
+                    out.add(token);
+                }
+            }
+        }
+    }
+
+    /**
+     * Cleans token edges without damaging core skill punctuation
+     * (for example C++, Node.js, CI/CD).
+     */
+    private String sanitizeToken(String token) {
+        if (token == null) {
+            return "";
+        }
+
+        String cleaned = token.trim();
+        cleaned = TRAILING_PUNCT.matcher(cleaned).replaceFirst("").trim();
+
+        while (!cleaned.isEmpty() && TOKEN_WRAPPERS.indexOf(cleaned.charAt(0)) >= 0) {
+            cleaned = cleaned.substring(1).trim();
+        }
+        while (!cleaned.isEmpty() && TOKEN_WRAPPERS.indexOf(cleaned.charAt(cleaned.length() - 1)) >= 0) {
+            cleaned = cleaned.substring(0, cleaned.length() - 1).trim();
+        }
+
+        cleaned = TRAILING_PUNCT.matcher(cleaned).replaceFirst("").trim();
+        return cleaned.replaceAll("\\s+", " ");
+    }
+
+    /**
+     * Preserves first-seen display token and removes duplicates case-insensitively.
+     */
+    private List<String> dedupeCaseInsensitive(List<String> tokens) {
+        List<String> out = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+
+        for (String token : tokens) {
+            String cleaned = sanitizeToken(token);
+            if (cleaned.isEmpty()) {
+                continue;
+            }
+
+            String key = cleaned.toLowerCase(Locale.ROOT);
+            if (seen.add(key)) {
+                out.add(cleaned);
+            }
+        }
+        return out;
     }
 
     // ── Resolution ───────────────────────────────────────────────────
