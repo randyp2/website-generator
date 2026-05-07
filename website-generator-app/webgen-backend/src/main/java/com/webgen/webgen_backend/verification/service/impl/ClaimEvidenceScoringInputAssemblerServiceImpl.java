@@ -46,12 +46,14 @@ public class ClaimEvidenceScoringInputAssemblerServiceImpl
      *
      *
      * Decision rationale:
-     * - lambda=0.00257 yields a half-life close to 270 days because
+     * - lambda=0.00095 yields a half-life close to 730 days (2 years) because
      *   lambda ~= ln(2)/halfLifeDays.
-     * - With this value, very recent work stays near full strength while older
-     *   work gradually decays instead of dropping off a cliff.
+     * - A 2-year half-life reflects that skills remain relevant beyond 9 months:
+     *   a project from 1 year ago is still at ~71% strength, and 2 years at ~50%.
+     * - Previous lambda=0.00257 (270-day half-life) decayed 1-year-old evidence to
+     *   39%, which undervalued genuinely recent skill use.
      */
-    private static final BigDecimal RECENCY_DECAY_LAMBDA = new BigDecimal("0.00257");
+    private static final BigDecimal RECENCY_DECAY_LAMBDA = new BigDecimal("0.00095");
 
     /**
      * Unknown link types receive a conservative neutral-ish weight. This avoids
