@@ -9,7 +9,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Setter
 public class R2Properties {
 
-    private boolean enabled;
     private String accountId;
     private String accessKeyId;
     private String secretAccessKey;

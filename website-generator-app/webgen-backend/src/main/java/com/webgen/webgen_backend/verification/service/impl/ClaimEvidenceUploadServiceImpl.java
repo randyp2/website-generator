@@ -225,10 +225,6 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
     }
 
     private S3Presigner resolvePresigner() {
-        if (!r2Properties.isEnabled()) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "R2 is not enabled");
-        }
-
         S3Presigner presigner = presignerProvider.getIfAvailable();
         if (presigner == null) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "R2 presigner bean is missing");
@@ -237,10 +233,6 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
     }
 
     private S3Client resolveS3Client() {
-        if (!r2Properties.isEnabled()) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "R2 is not enabled");
-        }
-
         S3Client s3Client = s3ClientProvider.getIfAvailable();
         if (s3Client == null) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "R2 client bean is missing");

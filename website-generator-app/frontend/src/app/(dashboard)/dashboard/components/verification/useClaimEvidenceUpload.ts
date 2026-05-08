@@ -4,7 +4,8 @@ import { useCallback, useState } from "react";
 
 interface PresignResponse {
     uploadId: string;
-    presignedUrl: string;
+    uploadUrl: string;
+    requiredHeaders: Record<string, string> | null;
 }
 
 interface UseClaimEvidenceUploadResult {
@@ -35,13 +36,16 @@ export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
                 throw new Error("Failed to get upload URL");
             }
 
-            const { uploadId, presignedUrl } =
+            const { uploadId, uploadUrl, requiredHeaders } =
                 (await presignRes.json()) as PresignResponse;
 
-            const r2Res = await fetch(presignedUrl, {
+            const r2Res = await fetch(uploadUrl, {
                 method: "PUT",
                 body: file,
-                headers: { "Content-Type": file.type },
+                headers: {
+                    "Content-Type": file.type,
+                    ...requiredHeaders,
+                },
             });
 
             if (!r2Res.ok) {
