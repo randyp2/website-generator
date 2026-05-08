@@ -58,6 +58,7 @@ public class ClaimEvidenceUpload {
     @Column(name = "file_size_bytes", nullable = false)
     private Long fileSizeBytes;
 
+    // Synchronous lifecycle: uploaded -> completed (or failed)
     @Column(name = "status", nullable = false)
     private String status;
 
@@ -74,4 +75,3 @@ public class ClaimEvidenceUpload {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 }
-

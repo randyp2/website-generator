@@ -2,7 +2,6 @@ package com.webgen.webgen_backend.verification.service;
 
 import com.webgen.webgen_backend.verification.dto.evidence.ClaimEvidenceUploadDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.ClaimEvidenceUploadListResponseDTO;
-import com.webgen.webgen_backend.verification.dto.evidence.ClaimEvidenceUploadStatusResponseDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.CreateClaimEvidenceUploadPresignRequestDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.CreateClaimEvidenceUploadPresignResponseDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.FinalizeClaimEvidenceUploadRequestDTO;
@@ -28,7 +27,7 @@ public interface ClaimEvidenceUploadService {
 
     /**
      * Finalizes an upload after client PUT succeeds by validating object presence
-     * and transitioning the upload lifecycle status to {@code queued}.
+     * and transitioning the upload lifecycle status to {@code completed}.
      *
      * @param profileId authenticated profile id that owns the claim
      * @param claimId claim id the upload belongs to
@@ -39,20 +38,6 @@ public interface ClaimEvidenceUploadService {
             UUID profileId,
             UUID claimId,
             FinalizeClaimEvidenceUploadRequestDTO request
-    );
-
-    /**
-     * Fetches status for one claim evidence upload owned by the authenticated profile.
-     *
-     * @param profileId authenticated profile id
-     * @param claimId claim id that scopes the upload lookup
-     * @param uploadId upload id to fetch
-     * @return lightweight status payload for polling
-     */
-    ClaimEvidenceUploadStatusResponseDTO getUploadStatus(
-            UUID profileId,
-            UUID claimId,
-            UUID uploadId
     );
 
     /**

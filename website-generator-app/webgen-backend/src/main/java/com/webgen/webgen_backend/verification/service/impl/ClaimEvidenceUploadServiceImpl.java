@@ -5,7 +5,6 @@ import com.webgen.webgen_backend.profile.entity.Profile;
 import com.webgen.webgen_backend.shared.config.R2Properties;
 import com.webgen.webgen_backend.verification.dto.evidence.ClaimEvidenceUploadDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.ClaimEvidenceUploadListResponseDTO;
-import com.webgen.webgen_backend.verification.dto.evidence.ClaimEvidenceUploadStatusResponseDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.CreateClaimEvidenceUploadPresignRequestDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.CreateClaimEvidenceUploadPresignResponseDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.FinalizeClaimEvidenceUploadRequestDTO;
@@ -44,7 +43,7 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
 
     private static final String STORAGE_PROVIDER_R2 = "r2";
     private static final String STATUS_UPLOADED = "uploaded";
-    private static final String STATUS_QUEUED = "queued";
+    private static final String STATUS_COMPLETED = "completed";
     private static final Duration PRESIGNED_URL_TTL = Duration.ofMinutes(15);
 
     private final ClaimEvidenceUploadRepository claimEvidenceUploadRepository;
@@ -138,7 +137,7 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Upload does not belong to claim");
         }
 
-        //--- Verify object exists in storage before queueing AI analysis
+        //--- Verify object exists in storage before marking upload completed
         assertObjectExists(
                 s3Client,
                 upload.getStorageBucket(),
@@ -147,36 +146,13 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
         );
 
         //--- Transition lifecycle status and persist finalize metadata
-        upload.setStatus(STATUS_QUEUED);
+        upload.setStatus(STATUS_COMPLETED);
         upload.setAnalysisError(null);
         upload.setMetadata(Optional.ofNullable(request.getMetadata()).orElseGet(objectMapper::createObjectNode));
         upload.setUpdatedAt(OffsetDateTime.now());
 
         ClaimEvidenceUpload saved = claimEvidenceUploadRepository.save(upload);
         return toDto(saved);
-    }
-
-    @Override
-    public ClaimEvidenceUploadStatusResponseDTO getUploadStatus(
-            UUID profileId,
-            UUID claimId,
-            UUID uploadId
-    ) {
-        validateUploadLookupRequest(profileId, claimId, uploadId);
-        ensureClaimOwnedByProfile(profileId, claimId);
-
-        ClaimEvidenceUpload upload = claimEvidenceUploadRepository.findByProfileIdAndId(profileId, uploadId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Upload not found"));
-        if (!claimId.equals(upload.getClaimId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Upload does not belong to claim");
-        }
-
-        return ClaimEvidenceUploadStatusResponseDTO.builder()
-                .uploadId(upload.getId())
-                .status(upload.getStatus())
-                .analysisError(upload.getAnalysisError())
-                .updatedAt(upload.getUpdatedAt())
-                .build();
     }
 
     @Override
@@ -226,13 +202,6 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request body is required");
         }
         if (request.getUploadId() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "uploadId is required");
-        }
-    }
-
-    private void validateUploadLookupRequest(UUID profileId, UUID claimId, UUID uploadId) {
-        validateClaimScopeRequest(profileId, claimId);
-        if (uploadId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "uploadId is required");
         }
     }
