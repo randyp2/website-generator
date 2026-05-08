@@ -13,6 +13,8 @@ import com.webgen.webgen_backend.verification.entity.ClaimEvidenceUpload;
 import com.webgen.webgen_backend.verification.repository.ClaimEvidenceUploadRepository;
 import com.webgen.webgen_backend.verification.repository.ClaimRepository;
 import com.webgen.webgen_backend.verification.service.ClaimEvidenceUploadService;
+import com.webgen.webgen_backend.verification.service.shared.ClaimEvidenceUploadFilePolicy;
+import com.webgen.webgen_backend.verification.service.shared.ClaimEvidenceUploadObjectVerifier;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
@@ -21,8 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
-import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
@@ -32,7 +32,6 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -52,6 +51,8 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
     private final R2Properties r2Properties;
     private final ObjectProvider<S3Presigner> presignerProvider;
     private final ObjectProvider<S3Client> s3ClientProvider;
+    private final ClaimEvidenceUploadFilePolicy claimEvidenceUploadFilePolicy;
+    private final ClaimEvidenceUploadObjectVerifier claimEvidenceUploadObjectVerifier;
 
     @Override
     @Transactional
@@ -66,11 +67,21 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
         S3Presigner presigner = resolvePresigner();
         Profile profile = claim.getProfile();
 
+        //--- Normalize file metadata and enforce upload file policy
+        ClaimEvidenceUploadFilePolicy.NormalizedUploadMetadata normalizedUploadMetadata =
+                claimEvidenceUploadFilePolicy.validateAndNormalizeForPresign(
+                        request.getOriginalFileName(),
+                        request.getContentType(),
+                        request.getFileSizeBytes()
+                );
+        String normalizedOriginalFileName = normalizedUploadMetadata.originalFileName();
+        String normalizedContentType = normalizedUploadMetadata.contentType();
+
         //--- Create staged upload row and deterministic storage key
         OffsetDateTime now = OffsetDateTime.now();
         UUID uploadId = UUID.randomUUID();
         String bucket = r2Properties.getBucketName();
-        String storageKey = buildStorageKey(profileId, claimId, uploadId, request.getOriginalFileName());
+        String storageKey = buildStorageKey(profileId, claimId, uploadId, normalizedOriginalFileName);
 
         ClaimEvidenceUpload upload = ClaimEvidenceUpload.builder()
                 .id(uploadId)
@@ -79,9 +90,9 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
                 .storageProvider(STORAGE_PROVIDER_R2)
                 .storageBucket(bucket)
                 .storageKey(storageKey)
-                .originalFileName(request.getOriginalFileName().trim())
-                .contentType(request.getContentType().trim().toLowerCase(Locale.ROOT))
-                .fileSizeBytes(request.getFileSizeBytes())
+                .originalFileName(normalizedOriginalFileName)
+                .contentType(normalizedContentType)
+                .fileSizeBytes(normalizedUploadMetadata.fileSizeBytes())
                 .status(STATUS_UPLOADED)
                 .analysisError(null)
                 .metadata(objectMapper.createObjectNode())
@@ -137,12 +148,13 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Upload does not belong to claim");
         }
 
-        //--- Verify object exists in storage before marking upload completed
-        assertObjectExists(
+        //--- Verify object integrity in storage before marking upload completed
+        claimEvidenceUploadObjectVerifier.assertObjectIntegrity(
                 s3Client,
                 upload.getStorageBucket(),
                 upload.getStorageKey(),
-                upload.getFileSizeBytes()
+                upload.getFileSizeBytes(),
+                upload.getContentType()
         );
 
         //--- Transition lifecycle status and persist finalize metadata
@@ -187,8 +199,8 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
         if (!StringUtils.hasText(request.getContentType())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "contentType is required");
         }
-        if (request.getFileSizeBytes() == null || request.getFileSizeBytes() < 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fileSizeBytes must be >= 0");
+        if (request.getFileSizeBytes() == null || request.getFileSizeBytes() <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fileSizeBytes must be > 0");
         }
     }
 
@@ -238,31 +250,6 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "R2 client bean is missing");
         }
         return s3Client;
-    }
-
-    private void assertObjectExists(S3Client s3Client, String bucket, String key, Long expectedLength) {
-        try {
-            var headObjectResponse = s3Client.headObject(
-                    HeadObjectRequest.builder()
-                            .bucket(bucket)
-                            .key(key)
-                            .build()
-            );
-
-            if (expectedLength != null
-                    && headObjectResponse.contentLength() != null
-                    && !expectedLength.equals(headObjectResponse.contentLength())) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Uploaded object size mismatch");
-            }
-        } catch (S3Exception ex) {
-            if (ex.statusCode() == HttpStatus.NOT_FOUND.value()) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Uploaded object not found");
-            }
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_GATEWAY,
-                    "Unable to validate uploaded object"
-            );
-        }
     }
 
     private String buildStorageKey(UUID profileId, UUID claimId, UUID uploadId, String originalFileName) {
