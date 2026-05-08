@@ -1,6 +1,10 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import {
+    buildClaimEvidenceUploadDescriptorFromFile,
+    validateClaimEvidenceUploadDescriptor,
+} from "@/lib/verification/claimEvidenceUploadPolicy";
 
 interface PresignResponse {
     uploadId: string;
@@ -13,10 +17,28 @@ interface UseClaimEvidenceUploadResult {
     upload: (claimId: string, file: File) => Promise<void>;
 }
 
+const readErrorMessage = async (
+    response: Response,
+    fallback: string,
+): Promise<string> => {
+    try {
+        const body = (await response.json()) as { error?: unknown };
+        return typeof body.error === "string" ? body.error : fallback;
+    } catch {
+        return fallback;
+    }
+};
+
 export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
     const [isUploading, setIsUploading] = useState(false);
 
     const upload = useCallback(async (claimId: string, file: File): Promise<void> => {
+        const descriptor = buildClaimEvidenceUploadDescriptorFromFile(file);
+        const validationError = validateClaimEvidenceUploadDescriptor(descriptor);
+        if (validationError) {
+            throw new Error(validationError);
+        }
+
         setIsUploading(true);
         try {
             const presignRes = await fetch(
@@ -24,16 +46,14 @@ export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        originalFileName: file.name,
-                        contentType: file.type,
-                        fileSizeBytes: file.size,
-                    }),
+                    body: JSON.stringify(descriptor),
                 },
             );
 
             if (!presignRes.ok) {
-                throw new Error("Failed to get upload URL");
+                throw new Error(
+                    await readErrorMessage(presignRes, "Failed to get upload URL"),
+                );
             }
 
             const { uploadId, uploadUrl, requiredHeaders } =
@@ -43,7 +63,7 @@ export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
                 method: "PUT",
                 body: file,
                 headers: {
-                    "Content-Type": file.type,
+                    "Content-Type": descriptor.contentType,
                     ...requiredHeaders,
                 },
             });
@@ -62,7 +82,9 @@ export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
             );
 
             if (!finalizeRes.ok) {
-                throw new Error("Failed to confirm upload");
+                throw new Error(
+                    await readErrorMessage(finalizeRes, "Failed to confirm upload"),
+                );
             }
         } finally {
             setIsUploading(false);

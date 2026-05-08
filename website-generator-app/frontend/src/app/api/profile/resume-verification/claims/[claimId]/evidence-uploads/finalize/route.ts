@@ -7,6 +7,25 @@ type FinalizeRequestBody = {
     metadata?: unknown;
 };
 
+const readBackendErrorMessage = async (
+    response: Response,
+    fallback: string,
+): Promise<string> => {
+    const contentType = response.headers.get("content-type") ?? "";
+    if (contentType.includes("application/json")) {
+        try {
+            const body = (await response.json()) as { error?: unknown; message?: unknown };
+            if (typeof body.error === "string" && body.error.trim()) return body.error;
+            if (typeof body.message === "string" && body.message.trim()) return body.message;
+        } catch {
+            // no-op, fallback below
+        }
+    }
+
+    const errorText = (await response.text().catch(() => "")).trim();
+    return errorText || fallback;
+};
+
 const parseRequestBody = async (
     req: Request,
 ): Promise<FinalizeRequestBody | null> => {
@@ -76,14 +95,17 @@ export const POST = async (
         );
 
         if (!response.ok) {
-            const errorText = await response.text();
+            const errorMessage = await readBackendErrorMessage(
+                response,
+                "Failed to finalize upload",
+            );
             console.error(
                 "Backend claim evidence upload finalize failed:",
                 response.status,
-                errorText,
+                errorMessage,
             );
             return NextResponse.json(
-                { error: "Failed to finalize upload" },
+                { error: errorMessage },
                 { status: response.status },
             );
         }

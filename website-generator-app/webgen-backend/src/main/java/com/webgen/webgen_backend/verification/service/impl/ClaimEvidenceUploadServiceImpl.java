@@ -148,6 +148,9 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Upload does not belong to claim");
         }
 
+        //--- Ensure stored content type is still allowed under current policy
+        claimEvidenceUploadFilePolicy.assertSupportedContentType(upload.getContentType());
+
         //--- Verify object integrity in storage before marking upload completed
         claimEvidenceUploadObjectVerifier.assertObjectIntegrity(
                 s3Client,

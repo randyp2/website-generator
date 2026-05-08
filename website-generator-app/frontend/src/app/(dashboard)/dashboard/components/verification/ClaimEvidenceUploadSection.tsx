@@ -4,14 +4,13 @@ import { useRef } from "react";
 import { FileText, Loader2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/useToast";
+import { CLAIM_EVIDENCE_ACCEPT_ATTR } from "@/lib/verification/claimEvidenceUploadPolicy";
 import { useClaimEvidenceUpload } from "./useClaimEvidenceUpload";
 import { useClaimUploads } from "./useClaimUploads";
 
 interface ClaimEvidenceUploadSectionProps {
     claimId: string;
 }
-
-const ACCEPTED_FILE_TYPES = ".pdf,.png,.jpg,.jpeg,.gif,.mp4,.mov,.doc,.docx";
 
 const ClaimEvidenceUploadSection = ({
     claimId,
@@ -33,11 +32,14 @@ const ClaimEvidenceUploadSection = ({
                 title: "Upload Successful",
                 description: `${file.name} has been added as evidence.`,
             });
-        } catch {
+        } catch (error) {
             addToast({
                 type: "error",
                 title: "Upload Failed",
-                description: "Something went wrong. Please try again.",
+                description:
+                    error instanceof Error
+                        ? error.message
+                        : "Something went wrong. Please try again.",
             });
         }
     };
@@ -51,7 +53,7 @@ const ClaimEvidenceUploadSection = ({
                 ref={fileInputRef}
                 type="file"
                 className="sr-only"
-                accept={ACCEPTED_FILE_TYPES}
+                accept={CLAIM_EVIDENCE_ACCEPT_ATTR}
                 onChange={handleFileChange}
                 disabled={isUploading}
             />
@@ -60,7 +62,7 @@ const ClaimEvidenceUploadSection = ({
                     {uploads.map((u) => (
                         <div
                             key={u.id}
-                            className="flex items-center gap-2 p-2 rounded-md bg-muted/50"
+                            className="flex items-center gap-2 p-2 rounded-md border border-border bg-muted"
                         >
                             <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                             <span className="text-xs text-foreground truncate">
@@ -118,7 +120,7 @@ const ClaimEvidenceUploadSection = ({
                                 Click to upload a file
                                 <br />
                                 <span className="text-[10px]">
-                                    PDF, images, video, or documents
+                                    PDF, PNG, JPG, JPEG, or TXT
                                 </span>
                             </p>
                         </>

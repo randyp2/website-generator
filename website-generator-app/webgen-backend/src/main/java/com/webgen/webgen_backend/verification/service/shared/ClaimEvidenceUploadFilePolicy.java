@@ -17,7 +17,6 @@ public class ClaimEvidenceUploadFilePolicy {
 
     private static final Map<String, String> ALLOWED_EXTENSION_TO_CONTENT_TYPE = Map.of(
             "pdf", "application/pdf",
-            "docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             "png", "image/png",
             "jpg", "image/jpeg",
             "jpeg", "image/jpeg",
@@ -26,7 +25,6 @@ public class ClaimEvidenceUploadFilePolicy {
 
     private static final Map<String, Long> MAX_BYTES_BY_CONTENT_TYPE = Map.of(
             "application/pdf", 10L * MB,
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document", 10L * MB,
             "image/png", 5L * MB,
             "image/jpeg", 5L * MB,
             "text/plain", 1L * MB
@@ -70,6 +68,16 @@ public class ClaimEvidenceUploadFilePolicy {
         return CONTENT_TYPE_ALIASES.getOrDefault(normalizedContentType, normalizedContentType);
     }
 
+    public void assertSupportedContentType(String rawContentType) {
+        String normalizedContentType = normalizeContentTypeOrThrow(rawContentType);
+        if (!MAX_BYTES_BY_CONTENT_TYPE.containsKey(normalizedContentType)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Unsupported file type. Allowed: pdf, png, jpg, jpeg, txt"
+            );
+        }
+    }
+
     private String normalizeContentTypeOrThrow(String rawContentType) {
         String normalizedContentType = normalizeContentType(rawContentType);
         if (!StringUtils.hasText(normalizedContentType)) {
@@ -107,7 +115,7 @@ public class ClaimEvidenceUploadFilePolicy {
         if (!StringUtils.hasText(expectedContentType)) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Unsupported file type. Allowed: pdf, docx, png, jpg, jpeg, txt"
+                    "Unsupported file type. Allowed: pdf, png, jpg, jpeg, txt"
             );
         }
 

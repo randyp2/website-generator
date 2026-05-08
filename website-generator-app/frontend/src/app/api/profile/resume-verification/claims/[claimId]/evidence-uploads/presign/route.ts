@@ -1,4 +1,9 @@
 import { getBackendUrl } from "@/lib/server-env";
+import {
+    normalizeClaimEvidenceContentType,
+    resolveClaimEvidenceContentType,
+    validateClaimEvidenceUploadDescriptor,
+} from "@/lib/verification/claimEvidenceUploadPolicy";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -6,6 +11,25 @@ type PresignRequestBody = {
     originalFileName: string;
     contentType: string;
     fileSizeBytes: number;
+};
+
+const readBackendErrorMessage = async (
+    response: Response,
+    fallback: string,
+): Promise<string> => {
+    const contentType = response.headers.get("content-type") ?? "";
+    if (contentType.includes("application/json")) {
+        try {
+            const body = (await response.json()) as { error?: unknown; message?: unknown };
+            if (typeof body.error === "string" && body.error.trim()) return body.error;
+            if (typeof body.message === "string" && body.message.trim()) return body.message;
+        } catch {
+            // no-op, fallback below
+        }
+    }
+
+    const errorText = (await response.text().catch(() => "")).trim();
+    return errorText || fallback;
 };
 
 const parseRequestBody = async (
@@ -20,18 +44,21 @@ const parseRequestBody = async (
         !body ||
         typeof body.originalFileName !== "string" ||
         !body.originalFileName.trim() ||
-        typeof body.contentType !== "string" ||
-        !body.contentType.trim() ||
         typeof body.fileSizeBytes !== "number" ||
-        Number.isNaN(body.fileSizeBytes) ||
-        body.fileSizeBytes < 0
+        Number.isNaN(body.fileSizeBytes)
     ) {
         return null;
     }
 
+    const originalFileName = body.originalFileName.trim();
+    const resolvedContentType = resolveClaimEvidenceContentType(
+        originalFileName,
+        typeof body.contentType === "string" ? body.contentType : "",
+    );
+
     return {
-        originalFileName: body.originalFileName.trim(),
-        contentType: body.contentType.trim(),
+        originalFileName,
+        contentType: normalizeClaimEvidenceContentType(resolvedContentType),
         fileSizeBytes: body.fileSizeBytes,
     };
 };
@@ -45,8 +72,16 @@ export const POST = async (
         if (!parsedBody) {
             return NextResponse.json(
                 {
-                    error: "originalFileName, contentType, and non-negative fileSizeBytes are required",
+                    error: "originalFileName and fileSizeBytes are required",
                 },
+                { status: 400 },
+            );
+        }
+
+        const validationError = validateClaimEvidenceUploadDescriptor(parsedBody);
+        if (validationError) {
+            return NextResponse.json(
+                { error: validationError },
                 { status: 400 },
             );
         }
@@ -89,14 +124,17 @@ export const POST = async (
         );
 
         if (!response.ok) {
-            const errorText = await response.text();
+            const errorMessage = await readBackendErrorMessage(
+                response,
+                "Failed to create upload URL",
+            );
             console.error(
                 "Backend claim evidence upload presign failed:",
                 response.status,
-                errorText,
+                errorMessage,
             );
             return NextResponse.json(
-                { error: "Failed to create upload URL" },
+                { error: errorMessage },
                 { status: response.status },
             );
         }
