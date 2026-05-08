@@ -133,4 +133,14 @@ public class AssetVerificationJobService {
             throw new RuntimeException("Failed to serialize job status", e);
         }
     }
+
+    // Fail the job and update the status
+    public void failJob(String jobId, String message) {
+        AssetVerificationJobStatusDTO status = getJob(jobId);
+        if (status == null) return;
+
+        status.setError(message);
+        status.setStatus(AssetVerificationJobStatusDTO.Status.FAILED);
+        saveToRedis(status);
+    }
 }
