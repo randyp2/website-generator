@@ -9,6 +9,7 @@ import com.webgen.webgen_backend.verification.service.ClaimEvidenceUploadService
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -63,6 +64,20 @@ public class ProfileClaimEvidenceUploadController {
                 claimId
         );
         return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{uploadId}")
+    public ResponseEntity<Void> deleteUpload(
+            @PathVariable UUID claimId,
+            @PathVariable UUID uploadId
+    ) {
+        UUID userId = resolveAuthenticatedUserId();
+        claimEvidenceUploadService.deleteUpload(
+                userId,
+                claimId,
+                uploadId
+        );
+        return ResponseEntity.noContent().build();
     }
 
     private UUID resolveAuthenticatedUserId() {

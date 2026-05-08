@@ -23,7 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
@@ -187,6 +189,36 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
                 .build();
     }
 
+    @Override
+    @Transactional
+    public void deleteUpload(
+            UUID profileId,
+            UUID claimId,
+            UUID uploadId
+    ) {
+        validateUploadDeleteRequest(profileId, claimId, uploadId);
+        ensureClaimOwnedByProfile(profileId, claimId);
+        S3Client s3Client = resolveS3Client();
+
+        ClaimEvidenceUpload upload = claimEvidenceUploadRepository
+                .findByProfileIdAndId(profileId, uploadId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Upload not found"));
+
+        if (!claimId.equals(upload.getClaimId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Upload does not belong to claim");
+        }
+
+        //--- Delete object from storage before removing database row
+        deleteObjectFromStorage(
+                s3Client,
+                upload.getStorageBucket(),
+                upload.getStorageKey()
+        );
+
+        //--- Delete persisted upload row after successful storage delete
+        claimEvidenceUploadRepository.delete(upload);
+    }
+
     private void validatePresignRequest(
             UUID profileId,
             UUID claimId,
@@ -230,6 +262,13 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
         }
     }
 
+    private void validateUploadDeleteRequest(UUID profileId, UUID claimId, UUID uploadId) {
+        validateClaimScopeRequest(profileId, claimId);
+        if (uploadId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "uploadId is required");
+        }
+    }
+
     private Claim ensureClaimOwnedByProfile(UUID profileId, UUID claimId) {
         Claim claim = claimRepository.findById(claimId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Claim not found"));
@@ -253,6 +292,29 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "R2 client bean is missing");
         }
         return s3Client;
+    }
+
+    private void deleteObjectFromStorage(
+            S3Client s3Client,
+            String bucket,
+            String key
+    ) {
+        try {
+            s3Client.deleteObject(
+                    DeleteObjectRequest.builder()
+                            .bucket(bucket)
+                            .key(key)
+                            .build()
+            );
+        } catch (S3Exception ex) {
+            if (ex.statusCode() == HttpStatus.NOT_FOUND.value()) {
+                return;
+            }
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_GATEWAY,
+                    "Unable to delete uploaded object from storage"
+            );
+        }
     }
 
     private String buildStorageKey(UUID profileId, UUID claimId, UUID uploadId, String originalFileName) {

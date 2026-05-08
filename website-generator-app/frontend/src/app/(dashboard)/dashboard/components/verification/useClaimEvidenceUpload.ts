@@ -14,7 +14,9 @@ interface PresignResponse {
 
 interface UseClaimEvidenceUploadResult {
     isUploading: boolean;
+    deletingUploadId: string | null;
     upload: (claimId: string, file: File) => Promise<void>;
+    deleteUpload: (claimId: string, uploadId: string) => Promise<void>;
 }
 
 const readErrorMessage = async (
@@ -31,6 +33,7 @@ const readErrorMessage = async (
 
 export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
     const [isUploading, setIsUploading] = useState(false);
+    const [deletingUploadId, setDeletingUploadId] = useState<string | null>(null);
 
     const upload = useCallback(async (claimId: string, file: File): Promise<void> => {
         const descriptor = buildClaimEvidenceUploadDescriptorFromFile(file);
@@ -91,5 +94,32 @@ export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
         }
     }, []);
 
-    return { isUploading, upload };
+    const deleteUpload = useCallback(
+        async (claimId: string, uploadId: string): Promise<void> => {
+            if (!uploadId.trim()) {
+                throw new Error("uploadId is required");
+            }
+
+            setDeletingUploadId(uploadId);
+            try {
+                const deleteRes = await fetch(
+                    `/api/profile/resume-verification/claims/${claimId}/evidence-uploads/${uploadId}`,
+                    {
+                        method: "DELETE",
+                    },
+                );
+
+                if (!deleteRes.ok) {
+                    throw new Error(
+                        await readErrorMessage(deleteRes, "Failed to delete upload"),
+                    );
+                }
+            } finally {
+                setDeletingUploadId(null);
+            }
+        },
+        [],
+    );
+
+    return { isUploading, deletingUploadId, upload, deleteUpload };
 };

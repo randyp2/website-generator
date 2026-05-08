@@ -41,6 +41,20 @@ public interface ClaimEvidenceUploadService {
     );
 
     /**
+     * Deletes one upload for a claim by removing the stored object and deleting
+     * its corresponding claim evidence upload row.
+     *
+     * @param profileId authenticated profile id
+     * @param claimId claim id that owns the upload
+     * @param uploadId upload id to delete
+     */
+    void deleteUpload(
+            UUID profileId,
+            UUID claimId,
+            UUID uploadId
+    );
+
+    /**
      * Lists all evidence uploads for one claim in descending creation order.
      *
      * @param profileId authenticated profile id
