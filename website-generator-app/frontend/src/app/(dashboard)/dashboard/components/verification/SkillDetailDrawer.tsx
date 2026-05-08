@@ -92,7 +92,7 @@ const SkillDetailDrawer = ({
                             <circle
                                 cx="40" cy="40" r="36"
                                 fill="none" stroke="currentColor"
-                                className="text-muted" strokeWidth="6"
+                                className="text-muted-foreground/30" strokeWidth="6"
                             />
                             <motion.circle
                                 cx="40" cy="40" r="36"
@@ -161,7 +161,7 @@ const SkillDetailDrawer = ({
                         <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider">
                             Evidence Breakdown
                         </h4>
-                        <div className="flex h-4 w-full overflow-hidden rounded-full bg-muted">
+                        <div className="flex h-4 w-full overflow-hidden rounded-full bg-muted-foreground/20">
                             {mix.filter((s) => s.percentage > 0).map((segment) => (
                                 <div
                                     key={segment.type}
@@ -199,7 +199,7 @@ const SkillDetailDrawer = ({
                                 return (
                                     <div
                                         key={item.id}
-                                        className="flex items-start gap-2.5 p-2.5 rounded-md bg-muted/50"
+                                        className="flex items-start gap-2.5 p-2.5 rounded-md border border-border bg-muted"
                                     >
                                         <Icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                                         <div className="flex-1 min-w-0">
