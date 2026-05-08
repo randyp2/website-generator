@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef } from "react";
 import { motion } from "framer-motion";
 import {
     Award,
@@ -10,8 +9,6 @@ import {
     FileText,
     AlertTriangle,
     Link2,
-    Loader2,
-    Upload,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -24,12 +21,8 @@ import {
     SheetTitle,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/useToast";
 
-import type {
-    EvidenceType,
-    SkillDetailDrawerProps,
-} from "./verification.types";
+import type { EvidenceType, SkillDetailDrawerProps } from "./verification.types";
 import {
     getTierColor,
     getTierBgColor,
@@ -40,7 +33,7 @@ import {
     EVIDENCE_TYPE_COLORS,
     EVIDENCE_TYPE_LABELS,
 } from "./verification.utils";
-import { useClaimEvidenceUpload } from "./useClaimEvidenceUpload";
+import ClaimEvidenceUploadSection from "./ClaimEvidenceUploadSection";
 
 const CIRCUMFERENCE = 2 * Math.PI * 36;
 
@@ -62,33 +55,6 @@ const SkillDetailDrawer = ({
     onDeleteClaim,
     onClose,
 }: SkillDetailDrawerProps) => {
-    const { addToast } = useToast();
-    const { isUploading, upload } = useClaimEvidenceUpload();
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-
-        if (!file || !skill) return;
-
-        e.target.value = "";
-
-        try {
-            await upload(skill.id, file);
-            addToast({
-                type: "success",
-                title: "Upload Successful",
-                description: `${file.name} has been added as evidence.`,
-            });
-        } catch {
-            addToast({
-                type: "error",
-                title: "Upload Failed",
-                description: "Something went wrong. Please try again.",
-            });
-        }
-    };
-
     if (!skill) return null;
 
     const offset = CIRCUMFERENCE - (skill.score / 100) * CIRCUMFERENCE;
@@ -102,10 +68,7 @@ const SkillDetailDrawer = ({
 
     return (
         <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-            <SheetContent
-                side="right"
-                className="w-full sm:max-w-lg overflow-y-auto"
-            >
+            <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
                 <SheetHeader className="pb-4">
                     <SheetTitle className="flex items-center gap-3">
                         {skill.name}
@@ -119,33 +82,23 @@ const SkillDetailDrawer = ({
                             {skill.tier}
                         </Badge>
                     </SheetTitle>
-                    <SheetDescription>
-                        Last verified {lastVerifiedDate}
-                    </SheetDescription>
+                    <SheetDescription>Last verified {lastVerifiedDate}</SheetDescription>
                 </SheetHeader>
 
                 <div className="space-y-6 pb-6">
-                    {/* Score Ring + Freshness */}
+                    {/* Score Ring */}
                     <div className="flex items-center gap-4">
                         <svg viewBox="0 0 80 80" className="h-20 w-20 shrink-0">
                             <circle
-                                cx="40"
-                                cy="40"
-                                r="36"
-                                fill="none"
-                                stroke="currentColor"
-                                className="text-muted"
-                                strokeWidth="6"
+                                cx="40" cy="40" r="36"
+                                fill="none" stroke="currentColor"
+                                className="text-muted" strokeWidth="6"
                             />
                             <motion.circle
-                                cx="40"
-                                cy="40"
-                                r="36"
-                                fill="none"
-                                stroke="currentColor"
+                                cx="40" cy="40" r="36"
+                                fill="none" stroke="currentColor"
                                 className={getTierRingColor(skill.tier)}
-                                strokeWidth="6"
-                                strokeLinecap="round"
+                                strokeWidth="6" strokeLinecap="round"
                                 strokeDasharray={CIRCUMFERENCE}
                                 initial={{ strokeDashoffset: CIRCUMFERENCE }}
                                 animate={{ strokeDashoffset: offset }}
@@ -153,10 +106,8 @@ const SkillDetailDrawer = ({
                                 transform="rotate(-90 40 40)"
                             />
                             <text
-                                x="40"
-                                y="40"
-                                textAnchor="middle"
-                                dominantBaseline="central"
+                                x="40" y="40"
+                                textAnchor="middle" dominantBaseline="central"
                                 className="fill-foreground font-bold"
                                 style={{ fontSize: "18px", fontWeight: 700 }}
                             >
@@ -164,63 +115,41 @@ const SkillDetailDrawer = ({
                             </text>
                         </svg>
                         <div>
-                            <p className="text-sm text-foreground font-medium">
-                                Verification Score
-                            </p>
-                            <p className={cn("text-xs", freshness.color)}>
-                                Freshness: {freshness.label}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                {skill.evidenceCount} evidence items
-                            </p>
+                            <p className="text-sm text-foreground font-medium">Verification Score</p>
+                            <p className={cn("text-xs", freshness.color)}>Freshness: {freshness.label}</p>
+                            <p className="text-xs text-muted-foreground mt-1">{skill.evidenceCount} evidence items</p>
                         </div>
                     </div>
 
+                    {/* Score Breakdown */}
                     <div className="rounded-md border border-border bg-muted/30 p-3">
                         <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider mb-2">
                             Score Breakdown
                         </h4>
                         <div className="grid grid-cols-3 gap-2 text-xs">
                             <div>
-                                <p className="text-muted-foreground">
-                                    Starting Score
-                                </p>
-                                <p className="font-semibold text-foreground">
-                                    {skill.baselineScore}
-                                </p>
+                                <p className="text-muted-foreground">Starting Score</p>
+                                <p className="font-semibold text-foreground">{skill.baselineScore}</p>
                             </div>
                             <div>
-                                <p className="text-muted-foreground">
-                                    Boost from Projects
-                                </p>
-                                <p
-                                    className={cn(
-                                        "font-semibold",
-                                        skill.evidenceContribution > 0 &&
-                                            "text-emerald-500",
-                                        skill.evidenceContribution < 0 &&
-                                            "text-red-500",
-                                        skill.evidenceContribution === 0 &&
-                                            "text-foreground",
-                                    )}
-                                >
+                                <p className="text-muted-foreground">Boost from Projects</p>
+                                <p className={cn(
+                                    "font-semibold",
+                                    skill.evidenceContribution > 0 && "text-emerald-500",
+                                    skill.evidenceContribution < 0 && "text-red-500",
+                                    skill.evidenceContribution === 0 && "text-foreground",
+                                )}>
                                     {skill.evidenceContribution > 0 ? "+" : ""}
                                     {skill.evidenceContribution}
                                 </p>
                             </div>
                             <div>
-                                <p className="text-muted-foreground">
-                                    Sources Found
-                                </p>
-                                <p className="font-semibold text-foreground">
-                                    {skill.evidenceLinksUsed}
-                                </p>
+                                <p className="text-muted-foreground">Sources Found</p>
+                                <p className="font-semibold text-foreground">{skill.evidenceLinksUsed}</p>
                             </div>
                         </div>
                         <div className="mt-3 border-t border-border pt-3">
-                            <p className="text-[11px] font-medium text-foreground">
-                                What this means
-                            </p>
+                            <p className="text-[11px] font-medium text-foreground">What this means</p>
                             <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
                                 {skill.scoreReasonText}
                             </p>
@@ -233,29 +162,19 @@ const SkillDetailDrawer = ({
                             Evidence Breakdown
                         </h4>
                         <div className="flex h-4 w-full overflow-hidden rounded-full bg-muted">
-                            {mix
-                                .filter((s) => s.percentage > 0)
-                                .map((segment) => (
-                                    <div
-                                        key={segment.type}
-                                        className={cn(
-                                            "h-full",
-                                            EVIDENCE_TYPE_COLORS[segment.type],
-                                        )}
-                                        style={{
-                                            width: `${segment.percentage}%`,
-                                        }}
-                                    />
-                                ))}
+                            {mix.filter((s) => s.percentage > 0).map((segment) => (
+                                <div
+                                    key={segment.type}
+                                    className={cn("h-full", EVIDENCE_TYPE_COLORS[segment.type])}
+                                    style={{ width: `${segment.percentage}%` }}
+                                />
+                            ))}
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                             {mix.map((segment) => {
                                 const Icon = EVIDENCE_TYPE_ICONS[segment.type];
                                 return (
-                                    <div
-                                        key={segment.type}
-                                        className="flex items-center gap-2 text-xs"
-                                    >
+                                    <div key={segment.type} className="flex items-center gap-2 text-xs">
                                         <Icon className="h-3.5 w-3.5 text-muted-foreground" />
                                         <span className="text-muted-foreground">
                                             {EVIDENCE_TYPE_LABELS[segment.type]}
@@ -269,7 +188,7 @@ const SkillDetailDrawer = ({
                         </div>
                     </div>
 
-                    {/* Evidence List */}
+                    {/* Evidence Items */}
                     <div className="space-y-2">
                         <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider">
                             Evidence Items
@@ -288,30 +207,20 @@ const SkillDetailDrawer = ({
                                                 {item.description}
                                             </p>
                                             <div className="flex items-center gap-2 mt-1">
-                                                <Badge
-                                                    variant="outline"
-                                                    className="text-[10px] h-4"
-                                                >
+                                                <Badge variant="outline" className="text-[10px] h-4">
                                                     {item.source}
                                                 </Badge>
                                                 <Badge
-                                                    variant={getQualityBadgeVariant(
-                                                        item.quality,
-                                                    )}
+                                                    variant={getQualityBadgeVariant(item.quality)}
                                                     className="text-[10px] h-4"
                                                 >
                                                     {item.quality}
                                                 </Badge>
                                                 <span className="text-[10px] text-muted-foreground">
-                                                    {new Date(
-                                                        item.date,
-                                                    ).toLocaleDateString(
-                                                        "en-US",
-                                                        {
-                                                            month: "short",
-                                                            year: "numeric",
-                                                        },
-                                                    )}
+                                                    {new Date(item.date).toLocaleDateString("en-US", {
+                                                        month: "short",
+                                                        year: "numeric",
+                                                    })}
                                                 </span>
                                             </div>
                                         </div>
@@ -326,91 +235,36 @@ const SkillDetailDrawer = ({
                         </div>
                     </div>
 
-                    {/* Upload Evidence */}
-                    <div className="space-y-2">
-                        <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider">
-                            Upload Evidence
-                        </h4>
-                        <label
-                            className={cn(
-                                "flex flex-col items-center gap-2 p-4 rounded-md border border-dashed border-border bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors",
-                                isUploading && "pointer-events-none opacity-60",
-                            )}
-                        >
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                className="sr-only"
-                                accept=".pdf,.png,.jpg,.jpeg,.gif,.mp4,.mov,.doc,.docx"
-                                onChange={handleFileChange}
-                                disabled={isUploading}
-                            />
-                            {isUploading ? (
-                                <>
-                                    <Loader2 className="h-5 w-5 text-muted-foreground animate-spin" />
-                                    <p className="text-xs text-muted-foreground">
-                                        Uploading...
-                                    </p>
-                                </>
-                            ) : (
-                                <>
-                                    <Upload className="h-5 w-5 text-muted-foreground" />
-                                    <p className="text-xs text-muted-foreground text-center">
-                                        Click to upload a file
-                                        <br />
-                                        <span className="text-[10px]">
-                                            PDF, images, video, or documents
-                                        </span>
-                                    </p>
-                                </>
-                            )}
-                        </label>
-                    </div>
+                    <ClaimEvidenceUploadSection claimId={skill.id} />
 
-                    {/* Conflict Block */}
-                    {skill.conflictDetails &&
-                        skill.conflictDetails.length > 0 && (
-                            <div className="space-y-2">
-                                <h4 className="text-xs font-semibold text-red-400 uppercase tracking-wider flex items-center gap-1.5">
-                                    <AlertTriangle className="h-3.5 w-3.5" />
-                                    What Doesn&apos;t Match
-                                </h4>
-                                {skill.conflictDetails.map((conflict, i) => (
-                                    <div
-                                        key={i}
-                                        className="rounded-md border border-red-400/30 bg-red-400/5 p-3 space-y-2"
-                                    >
-                                        <div className="text-xs">
-                                            <span className="font-medium text-foreground">
-                                                {conflict.source}
-                                            </span>
-                                            <span className="text-muted-foreground">
-                                                {" "}
-                                                says:{" "}
-                                            </span>
-                                            <span className="text-foreground italic">
-                                                &ldquo;{conflict.claim}&rdquo;
-                                            </span>
-                                        </div>
-                                        <div className="text-xs">
-                                            <span className="font-medium text-foreground">
-                                                {conflict.counterSource}
-                                            </span>
-                                            <span className="text-muted-foreground">
-                                                {" "}
-                                                says:{" "}
-                                            </span>
-                                            <span className="text-foreground italic">
-                                                &ldquo;{conflict.counterClaim}
-                                                &rdquo;
-                                            </span>
-                                        </div>
+                    {/* Conflicts */}
+                    {skill.conflictDetails && skill.conflictDetails.length > 0 && (
+                        <div className="space-y-2">
+                            <h4 className="text-xs font-semibold text-red-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <AlertTriangle className="h-3.5 w-3.5" />
+                                What Doesn&apos;t Match
+                            </h4>
+                            {skill.conflictDetails.map((conflict, i) => (
+                                <div
+                                    key={i}
+                                    className="rounded-md border border-red-400/30 bg-red-400/5 p-3 space-y-2"
+                                >
+                                    <div className="text-xs">
+                                        <span className="font-medium text-foreground">{conflict.source}</span>
+                                        <span className="text-muted-foreground"> says: </span>
+                                        <span className="text-foreground italic">&ldquo;{conflict.claim}&rdquo;</span>
                                     </div>
-                                ))}
-                            </div>
-                        )}
+                                    <div className="text-xs">
+                                        <span className="font-medium text-foreground">{conflict.counterSource}</span>
+                                        <span className="text-muted-foreground"> says: </span>
+                                        <span className="text-foreground italic">&ldquo;{conflict.counterClaim}&rdquo;</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
 
-                    {/* Action CTAs */}
+                    {/* Suggested Actions */}
                     <div className="space-y-2">
                         <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider">
                             Suggested Actions
@@ -436,6 +290,7 @@ const SkillDetailDrawer = ({
                         )}
                     </div>
 
+                    {/* Claim Controls */}
                     {showClaimControls && (
                         <div className="space-y-2 border-t border-border pt-4">
                             <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider">
@@ -454,14 +309,10 @@ const SkillDetailDrawer = ({
                                     await onDeleteClaim(skill.id);
                                 }}
                             >
-                                {isDeletingClaim
-                                    ? "Deleting claim..."
-                                    : "Delete Claim"}
+                                {isDeletingClaim ? "Deleting claim..." : "Delete Claim"}
                             </Button>
                             {deleteError && (
-                                <p className="text-xs text-destructive">
-                                    {deleteError}
-                                </p>
+                                <p className="text-xs text-destructive">{deleteError}</p>
                             )}
                         </div>
                     )}
