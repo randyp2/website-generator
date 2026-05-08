@@ -98,7 +98,7 @@ const ClaimEvidenceUploadSection = ({
                                 disabled={isUploading || deletingUploadId !== null}
                                 aria-label={`Delete ${u.originalFileName}`}
                                 className={cn(
-                                    "inline-flex h-5 w-5 items-center justify-center text-muted-foreground hover:text-red-500 transition-colors",
+                                    "inline-flex h-5 w-5 items-center justify-center text-muted-foreground hover:text-red-500 hover:cursor-pointer transition-colors",
                                     (isUploading || deletingUploadId !== null) &&
                                         "pointer-events-none opacity-50",
                                 )}
