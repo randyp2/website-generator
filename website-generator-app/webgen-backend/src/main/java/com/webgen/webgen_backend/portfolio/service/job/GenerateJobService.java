@@ -48,12 +48,12 @@ public class GenerateJobService {
             PortfolioGenerateRequestDTO req) {
         String jobId = createJob(portfolioId);
 
-        PortfolioGenerationMessage msg = new PortfolioGenerationMessage(
-                jobId,
-                portfolioId.toString(),
-                userId.toString(),
-                req
-        );
+        PortfolioGenerationMessage msg = PortfolioGenerationMessage.builder()
+                .jobId(jobId)
+                .portfolioId(portfolioId.toString())
+                .userId(userId.toString())
+                .req(req)
+                .build();
 
         // Publish message to exchange
         // RabbitMQ sends to queue
@@ -76,12 +76,14 @@ public class GenerateJobService {
     public String createJob(UUID portfolioId) {
         String jobId = UUID.randomUUID().toString();
 
-        JobStatusDTO status = new JobStatusDTO();
-        status.setJobId(jobId);
-        status.setPortfolioId(portfolioId.toString());
-        status.setStatus(JobStatusDTO.Status.QUEUED);
-        status.setCompletedCount(0);
-        status.setTotalSections(0);
+        JobStatusDTO status = JobStatusDTO.builder()
+                        .jobId(jobId)
+                        .portfolioId(portfolioId.toString())
+                        .status(JobStatusDTO.Status.QUEUED)
+                        .completedCount(0)
+                        .totalSections(0)
+                        .error("")
+                        .build();
 
         saveToRedis(status);
         return jobId;
@@ -102,8 +104,6 @@ public class GenerateJobService {
             );
         }
     }
-
-    /* ============== SECTION TRACKING ============== */
 
     /**
      * Appends a completed section's JSON to the Redis list for this job.
@@ -145,8 +145,6 @@ public class GenerateJobService {
         List<String> resultSections = redisTemplate.opsForList().range(key, offset, -1);
         return resultSections != null ? resultSections : List.of();
     }
-
-    /* ============== JOB STATUS MANAGEMENT ============== */
 
     /**
      * Updates the top-level status field on the job record (QUEUED, IN_PROGRESS, DONE, FAILED).
