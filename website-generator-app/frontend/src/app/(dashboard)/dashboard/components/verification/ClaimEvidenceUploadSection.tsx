@@ -66,6 +66,30 @@ const ClaimEvidenceUploadSection = ({
         }
     };
 
+    const handleDownloadUpload = async (uploadId: string) => {
+        try {
+            const response = await fetch(
+                `/api/profile/resume-verification/claims/${claimId}/evidence-uploads/${uploadId}/download-url`,
+                {
+                    method: "GET",
+                },
+            );
+            if (!response.ok) return;
+
+            const payload = (await response.json()) as { downloadUrl?: unknown };
+            if (typeof payload.downloadUrl !== "string" || !payload.downloadUrl) return;
+
+            const anchor = document.createElement("a");
+            anchor.href = payload.downloadUrl;
+            anchor.rel = "noopener";
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+        } catch {
+            // Intentionally silent: no toast/no extra UX on download failure.
+        }
+    };
+
     return (
         <div className="space-y-2">
             <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider">
@@ -87,9 +111,13 @@ const ClaimEvidenceUploadSection = ({
                             className="flex items-center gap-2 p-2 rounded-md border border-border bg-muted"
                         >
                             <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                            <span className="text-xs text-foreground truncate flex-1">
+                            <button
+                                type="button"
+                                onClick={() => handleDownloadUpload(u.id)}
+                                className="text-xs text-foreground truncate flex-1 text-left hover:underline hover:cursor-pointer"
+                            >
                                 {u.originalFileName}
-                            </span>
+                            </button>
                             <button
                                 type="button"
                                 onClick={() =>

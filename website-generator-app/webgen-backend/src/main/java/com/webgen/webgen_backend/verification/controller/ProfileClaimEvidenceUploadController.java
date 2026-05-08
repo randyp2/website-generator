@@ -1,6 +1,7 @@
 package com.webgen.webgen_backend.verification.controller;
 
 import com.webgen.webgen_backend.verification.dto.evidence.ClaimEvidenceUploadDTO;
+import com.webgen.webgen_backend.verification.dto.evidence.ClaimEvidenceUploadDownloadUrlResponseDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.ClaimEvidenceUploadListResponseDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.CreateClaimEvidenceUploadPresignRequestDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.CreateClaimEvidenceUploadPresignResponseDTO;
@@ -78,6 +79,20 @@ public class ProfileClaimEvidenceUploadController {
                 uploadId
         );
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{uploadId}/download-url")
+    public ResponseEntity<ClaimEvidenceUploadDownloadUrlResponseDTO> createDownloadUrl(
+            @PathVariable UUID claimId,
+            @PathVariable UUID uploadId
+    ) {
+        UUID userId = resolveAuthenticatedUserId();
+        ClaimEvidenceUploadDownloadUrlResponseDTO response = claimEvidenceUploadService.createDownloadUrl(
+                userId,
+                claimId,
+                uploadId
+        );
+        return ResponseEntity.ok(response);
     }
 
     private UUID resolveAuthenticatedUserId() {

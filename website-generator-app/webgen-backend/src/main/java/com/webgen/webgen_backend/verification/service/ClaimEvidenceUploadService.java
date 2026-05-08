@@ -1,6 +1,7 @@
 package com.webgen.webgen_backend.verification.service;
 
 import com.webgen.webgen_backend.verification.dto.evidence.ClaimEvidenceUploadDTO;
+import com.webgen.webgen_backend.verification.dto.evidence.ClaimEvidenceUploadDownloadUrlResponseDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.ClaimEvidenceUploadListResponseDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.CreateClaimEvidenceUploadPresignRequestDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.CreateClaimEvidenceUploadPresignResponseDTO;
@@ -49,6 +50,21 @@ public interface ClaimEvidenceUploadService {
      * @param uploadId upload id to delete
      */
     void deleteUpload(
+            UUID profileId,
+            UUID claimId,
+            UUID uploadId
+    );
+
+    /**
+     * Generates a short-lived pre-signed download URL for one upload owned by
+     * the authenticated profile and scoped to the claim.
+     *
+     * @param profileId authenticated profile id
+     * @param claimId claim id that owns the upload
+     * @param uploadId upload id to download
+     * @return download URL payload with expiry metadata
+     */
+    ClaimEvidenceUploadDownloadUrlResponseDTO createDownloadUrl(
             UUID profileId,
             UUID claimId,
             UUID uploadId

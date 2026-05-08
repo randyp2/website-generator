@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.profile.entity.Profile;
 import com.webgen.webgen_backend.shared.config.R2Properties;
 import com.webgen.webgen_backend.verification.dto.evidence.ClaimEvidenceUploadDTO;
+import com.webgen.webgen_backend.verification.dto.evidence.ClaimEvidenceUploadDownloadUrlResponseDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.ClaimEvidenceUploadListResponseDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.CreateClaimEvidenceUploadPresignRequestDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.CreateClaimEvidenceUploadPresignResponseDTO;
@@ -24,9 +25,12 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
@@ -46,6 +50,7 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
     private static final String STATUS_UPLOADED = "uploaded";
     private static final String STATUS_COMPLETED = "completed";
     private static final Duration PRESIGNED_URL_TTL = Duration.ofMinutes(15);
+    private static final Duration PRESIGNED_DOWNLOAD_URL_TTL = Duration.ofMinutes(5);
 
     private final ClaimEvidenceUploadRepository claimEvidenceUploadRepository;
     private final ClaimRepository claimRepository;
@@ -217,6 +222,49 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
 
         //--- Delete persisted upload row after successful storage delete
         claimEvidenceUploadRepository.delete(upload);
+    }
+
+    @Override
+    public ClaimEvidenceUploadDownloadUrlResponseDTO createDownloadUrl(
+            UUID profileId,
+            UUID claimId,
+            UUID uploadId
+    ) {
+        validateUploadDeleteRequest(profileId, claimId, uploadId);
+        ensureClaimOwnedByProfile(profileId, claimId);
+        S3Presigner presigner = resolvePresigner();
+
+        ClaimEvidenceUpload upload = claimEvidenceUploadRepository
+                .findByProfileIdAndId(profileId, uploadId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Upload not found"));
+
+        if (!claimId.equals(upload.getClaimId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Upload does not belong to claim");
+        }
+
+        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                .bucket(upload.getStorageBucket())
+                .key(upload.getStorageKey())
+                .responseContentType(upload.getContentType())
+                .responseContentDisposition(
+                        "attachment; filename=\"" + sanitizeFileName(upload.getOriginalFileName()) + "\""
+                )
+                .build();
+
+        PresignedGetObjectRequest presignedGetObjectRequest = presigner.presignGetObject(
+                GetObjectPresignRequest.builder()
+                        .signatureDuration(PRESIGNED_DOWNLOAD_URL_TTL)
+                        .getObjectRequest(getObjectRequest)
+                        .build()
+        );
+
+        return ClaimEvidenceUploadDownloadUrlResponseDTO.builder()
+                .uploadId(upload.getId())
+                .originalFileName(upload.getOriginalFileName())
+                .contentType(upload.getContentType())
+                .downloadUrl(presignedGetObjectRequest.url().toString())
+                .expiresAt(OffsetDateTime.now().plus(PRESIGNED_DOWNLOAD_URL_TTL))
+                .build();
     }
 
     private void validatePresignRequest(
