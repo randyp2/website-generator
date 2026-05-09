@@ -9,11 +9,13 @@ import com.webgen.webgen_backend.verification.dto.evidence.ClaimEvidenceUploadLi
 import com.webgen.webgen_backend.verification.dto.evidence.CreateClaimEvidenceUploadPresignRequestDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.CreateClaimEvidenceUploadPresignResponseDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.FinalizeClaimEvidenceUploadRequestDTO;
+import com.webgen.webgen_backend.verification.dto.job.AssetVerificationEnqueueDTO;
 import com.webgen.webgen_backend.verification.entity.Claim;
 import com.webgen.webgen_backend.verification.entity.ClaimEvidenceUpload;
 import com.webgen.webgen_backend.verification.repository.ClaimEvidenceUploadRepository;
 import com.webgen.webgen_backend.verification.repository.ClaimRepository;
 import com.webgen.webgen_backend.verification.service.ClaimEvidenceUploadService;
+import com.webgen.webgen_backend.verification.service.job.AssetVerificationJobService;
 import com.webgen.webgen_backend.verification.service.shared.ClaimEvidenceUploadFilePolicy;
 import com.webgen.webgen_backend.verification.service.shared.ClaimEvidenceUploadObjectVerifier;
 import lombok.RequiredArgsConstructor;
@@ -60,6 +62,7 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
     private final ObjectProvider<S3Client> s3ClientProvider;
     private final ClaimEvidenceUploadFilePolicy claimEvidenceUploadFilePolicy;
     private final ClaimEvidenceUploadObjectVerifier claimEvidenceUploadObjectVerifier;
+    private final AssetVerificationJobService assetVerificationJobService;
 
     @Override
     @Transactional
@@ -174,6 +177,19 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
         upload.setUpdatedAt(OffsetDateTime.now());
 
         ClaimEvidenceUpload saved = claimEvidenceUploadRepository.save(upload);
+
+        //--- Enqueue asynchronous asset verification after successful finalize
+        AssetVerificationEnqueueDTO enqueueDTO = AssetVerificationEnqueueDTO.builder()
+                .profileId(profileId)
+                .claimId(claimId)
+                .uploadId(saved.getId())
+                .storageProvider(saved.getStorageProvider())
+                .storageBucket(saved.getStorageBucket())
+                .storageKey(saved.getStorageKey())
+                .fileSizeBytes(saved.getFileSizeBytes())
+                .build();
+        assetVerificationJobService.createJobAndQueue(enqueueDTO);
+
         return toDto(saved);
     }
 
