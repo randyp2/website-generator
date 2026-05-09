@@ -1,4 +1,4 @@
-package com.webgen.webgen_backend.verification.dto.job;a
+package com.webgen.webgen_backend.verification.dto.job;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
