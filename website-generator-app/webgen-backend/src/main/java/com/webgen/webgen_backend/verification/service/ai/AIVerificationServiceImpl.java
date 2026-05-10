@@ -104,6 +104,8 @@ public class AIVerificationServiceImpl implements AIVerificationService {
                     upload.getOriginalFileName()
             );
 
+            // --- For text assets only, read a safe excerpt from R2 and include it in the prompt.
+            // --- Non-text assets return an empty excerpt and rely on metadata + claim context.
             String textExcerpt = extractTextExcerpt(upload, assetFamily);
 
             Prompt prompt = promptBuilder.buildPrompt(
@@ -277,24 +279,38 @@ public class AIVerificationServiceImpl implements AIVerificationService {
         claimEvidenceUploadRepository.save(upload);
     }
 
+    /**
+     * Extracts a bounded text sample from a TEXT upload so the verifier can reason over
+     * actual file content (not just filename/contentType metadata).
+     *
+     * Behavior:
+     * - returns "" for non-TEXT assets
+     * - returns "" when file is too large or S3 client is unavailable
+     * - reads at most MAX_TEXT_BYTES, normalizes whitespace/control chars,
+     *   and truncates to MAX_TEXT_CHARS
+     */
     private String extractTextExcerpt(
             ClaimEvidenceUpload upload,
             AssetVerificationPromptBuilder.AssetFamily assetFamily
     ) {
+        // --- only text-like uploads are eligible for content extraction.
         if (assetFamily != AssetVerificationPromptBuilder.AssetFamily.TEXT) {
             return "";
         }
 
+        // --- skip very large files to keep worker memory/time bounded.
         Long size = upload.getFileSizeBytes();
         if (size != null && size > MAX_TEXT_BYTES) {
             return "";
         }
 
+        // --- require s3 client
         S3Client s3Client = s3ClientProvider.getIfAvailable();
         if (s3Client == null) {
             return "";
         }
 
+        // --- Read + normalize a bounded UTF-8 excerpt from the object.
         try (ResponseInputStream<GetObjectResponse> objectStream = s3Client.getObject(
                 GetObjectRequest.builder()
                         .bucket(upload.getStorageBucket())
@@ -309,6 +325,7 @@ public class AIVerificationServiceImpl implements AIVerificationService {
                     .trim();
             return truncate(cleaned, MAX_TEXT_CHARS);
         } catch (Exception e) {
+            // --- Fail soft: keep verification alive using metadata-only prompt context.
             log.warn("Failed to extract text excerpt for upload {}: {}", upload.getId(), e.getMessage());
             return "";
         }
