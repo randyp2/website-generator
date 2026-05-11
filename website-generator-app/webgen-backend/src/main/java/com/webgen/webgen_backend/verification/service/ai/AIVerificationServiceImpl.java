@@ -36,8 +36,6 @@ public class AIVerificationServiceImpl implements AIVerificationService {
 
     private static final Logger log = LoggerFactory.getLogger(AIVerificationServiceImpl.class);
 
-    private static final String STATUS_ANALYZING = "analyzing";
-    private static final String STATUS_COMPLETED = "completed";
     private static final String STATUS_FAILED = "failed";
 
     private static final String EVIDENCE_PROVIDER_MANUAL_UPLOAD = "manual_upload";
@@ -85,8 +83,6 @@ public class AIVerificationServiceImpl implements AIVerificationService {
         if (!Objects.equals(upload.getClaimId(), claimId)) {
             throw new IllegalArgumentException("Upload does not belong to claim from verification message");
         }
-
-        markUploadAnalyzing(upload);
 
         // --- Call LLM to verify upload to claim
         try {
@@ -215,13 +211,6 @@ public class AIVerificationServiceImpl implements AIVerificationService {
         claimEvidenceLinkRepository.save(link);
     }
 
-    private void markUploadAnalyzing(ClaimEvidenceUpload upload) {
-        upload.setStatus(STATUS_ANALYZING);
-        upload.setAnalysisError(null);
-        upload.setUpdatedAt(OffsetDateTime.now());
-        claimEvidenceUploadRepository.save(upload);
-    }
-
     private void markUploadCompleted(
             ClaimEvidenceUpload upload,
             AssetVerificationResponseParser.ParsedVerification parsed,
@@ -229,7 +218,6 @@ public class AIVerificationServiceImpl implements AIVerificationService {
             String textExcerpt
     ) {
         OffsetDateTime now = OffsetDateTime.now();
-        upload.setStatus(STATUS_COMPLETED);
         upload.setAnalysisError(null);
         upload.setUpdatedAt(now);
 
@@ -251,7 +239,6 @@ public class AIVerificationServiceImpl implements AIVerificationService {
 
     private void markUploadFailed(ClaimEvidenceUpload upload, String errorMessage) {
         OffsetDateTime now = OffsetDateTime.now();
-        upload.setStatus(STATUS_FAILED);
         upload.setAnalysisError(truncate(Optional.ofNullable(errorMessage).orElse("Unknown verification error")));
         upload.setUpdatedAt(now);
 
