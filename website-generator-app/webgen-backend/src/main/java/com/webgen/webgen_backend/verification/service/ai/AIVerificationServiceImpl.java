@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.webgen.webgen_backend.profile.entity.Profile;
 import com.webgen.webgen_backend.profile.repository.ProfileRepository;
+import org.springframework.ai.content.Media;
 import com.webgen.webgen_backend.verification.dto.job.AssetVerificationResultDTO;
 import com.webgen.webgen_backend.verification.entity.Claim;
 import com.webgen.webgen_backend.verification.entity.ClaimEvidenceLink;
@@ -22,8 +23,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.google.genai.GoogleGenAiChatModel;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Service;
+import org.springframework.util.MimeType;
+import org.springframework.util.MimeTypeUtils;
+
 import java.time.OffsetDateTime;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -109,6 +115,14 @@ public class AIVerificationServiceImpl implements AIVerificationService {
             System.out.println(">>> [ASSET-AI] extracted text preview | jobId=" + message.getJobId()
                     + " preview=" + toPreview(textExcerpt));
 
+            byte[] imageBytes = assetContentExtractorService.extractPromptImageBytes(upload, assetFamily);
+            System.out.println(">>> [ASSET-AI] image bytes extracted | jobId=" + message.getJobId()
+                    + " imageBytesLength=" + safeLength(imageBytes));
+            Media imageMedia = buildImageMedia(upload, imageBytes);
+            System.out.println(">>> [ASSET-AI] image media attachment | jobId=" + message.getJobId()
+                    + " attached=" + (imageMedia != null)
+                    + " mimeType=" + (imageMedia == null ? "" : imageMedia.getMimeType()));
+
             Prompt prompt = promptBuilder.buildPrompt(
                     new AssetVerificationPromptBuilder.PromptInput(
                             claim.getClaimType(),
@@ -120,8 +134,11 @@ public class AIVerificationServiceImpl implements AIVerificationService {
                             upload.getStorageProvider(),
                             upload.getStorageKey(),
                             assetFamily,
-                            textExcerpt
-                    )
+                            textExcerpt,
+                            imageMedia != null,
+                            imageMedia == null ? "" : imageMedia.getMimeType().toString()
+                    ),
+                    imageMedia
             );
             System.out.println(">>> [ASSET-AI] prompt built | jobId=" + message.getJobId());
 
@@ -335,6 +352,10 @@ public class AIVerificationServiceImpl implements AIVerificationService {
         return value == null ? 0 : value.length();
     }
 
+    private int safeLength(byte[] value) {
+        return value == null ? 0 : value.length;
+    }
+
     private String toPreview(String value) {
         if (value == null || value.isBlank()) {
             return "(none)";
@@ -348,5 +369,51 @@ public class AIVerificationServiceImpl implements AIVerificationService {
             return normalized;
         }
         return normalized.substring(0, max) + "...";
+    }
+
+    private Media buildImageMedia(ClaimEvidenceUpload upload, byte[] imageBytes) {
+        if (upload == null || imageBytes == null || imageBytes.length == 0) {
+            return null;
+        }
+
+        MimeType mimeType = resolveImageMimeType(upload.getContentType(), upload.getOriginalFileName());
+        return Media.builder()
+                .mimeType(mimeType)
+                .data(new ByteArrayResource(imageBytes))
+                .build();
+    }
+
+    private MimeType resolveImageMimeType(String contentType, String originalFileName) {
+        String normalizedContentType = contentType == null ? "" : contentType.trim().toLowerCase(Locale.ROOT);
+        if (normalizedContentType.startsWith("image/")) {
+            try {
+                return MimeType.valueOf(normalizedContentType);
+            } catch (Exception ignored) {
+                // Fall through to extension-based fallback.
+            }
+        }
+
+        String extension = resolveExtension(originalFileName);
+        return switch (extension) {
+            case "png" -> MimeTypeUtils.IMAGE_PNG;
+            case "jpg", "jpeg" -> MimeTypeUtils.IMAGE_JPEG;
+            case "gif" -> MimeType.valueOf("image/gif");
+            case "webp" -> MimeType.valueOf("image/webp");
+            case "svg" -> MimeType.valueOf("image/svg+xml");
+            default -> MimeTypeUtils.IMAGE_JPEG;
+        };
+    }
+
+    private String resolveExtension(String originalFileName) {
+        if (originalFileName == null || originalFileName.isBlank()) {
+            return "";
+        }
+
+        int dotIndex = originalFileName.lastIndexOf('.');
+        if (dotIndex < 0 || dotIndex >= originalFileName.length() - 1) {
+            return "";
+        }
+
+        return originalFileName.substring(dotIndex + 1).trim().toLowerCase(Locale.ROOT);
     }
 }

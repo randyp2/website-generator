@@ -25,6 +25,7 @@ public class AssetContentExtractorService {
     private static final int MAX_TEXT_CHARS = 6_000;
     private static final int MAX_PDF_BYTES = 5_000_000;
     private static final int MAX_PDF_CHARS = 6_000;
+    private static final int MAX_IMAGE_BYTES = 8_000_000;
 
     private final ObjectProvider<S3Client> s3ClientProvider;
     private final PdfTextExtractor pdfTextExtractor;
@@ -51,6 +52,37 @@ public class AssetContentExtractorService {
             case DOCUMENT -> extractDocumentAsset(upload, s3Client);
             case IMAGE, GENERIC -> "";
         };
+    }
+
+    /**
+     * Returns raw image bytes for multimodal prompting when asset family is IMAGE.
+     * Returns null when no image bytes are available or extraction should fail soft.
+     */
+    public byte[] extractPromptImageBytes(
+            ClaimEvidenceUpload upload,
+            AssetVerificationPromptBuilder.AssetFamily assetFamily
+    ) {
+        if (upload == null || assetFamily != AssetVerificationPromptBuilder.AssetFamily.IMAGE) {
+            return null;
+        }
+
+        S3Client s3Client = s3ClientProvider.getIfAvailable();
+        if (s3Client == null) {
+            return null;
+        }
+
+        Long size = upload.getFileSizeBytes();
+        if (size != null && size > MAX_IMAGE_BYTES) {
+            return null;
+        }
+
+        try {
+            byte[] bytes = readObjectBytes(upload, s3Client, MAX_IMAGE_BYTES);
+            return bytes.length == 0 ? null : bytes;
+        } catch (Exception e) {
+            log.warn("Failed to extract image bytes for upload {}: {}", upload.getId(), e.getMessage());
+            return null;
+        }
     }
 
     private String extractTextAsset(ClaimEvidenceUpload upload, S3Client s3Client) {

@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.verification.service.ai;
 
+import org.springframework.ai.content.Media;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
@@ -28,16 +29,23 @@ public class AssetVerificationPromptBuilder {
             String storageProvider,
             String storageKey,
             AssetFamily assetFamily,
-            String extractedText
+            String extractedText,
+            boolean imageAttached,
+            String imageMimeType
     ) {
     }
 
     public Prompt buildPrompt(PromptInput input) {
+        return buildPrompt(input, null);
+    }
+
+    public Prompt buildPrompt(PromptInput input, Media imageMedia) {
         String familySpecificInstructions = switch (input.assetFamily()) {
             case IMAGE -> """
                     Asset class: IMAGE
-                    Focus on whether the image likely demonstrates real work/results related to the claim.
-                    Use conservative confidence when image pixels are unavailable and you only have metadata.
+                    Focus on whether the image demonstrates real work/results related to the claim.
+                    Prioritize the attached image pixels when present.
+                    If image attachment is unavailable/unreadable, fall back to metadata and be conservative.
                     """;
             case DOCUMENT -> """
                     Asset class: DOCUMENT
@@ -92,6 +100,10 @@ public class AssetVerificationPromptBuilder {
                 - storageKey: %s
                 - assetFamily: %s
 
+                Image attachment:
+                - attached: %s
+                - mimeType: %s
+
                 Extracted text excerpt (may be empty for non-text assets):
                 %s
 
@@ -106,8 +118,17 @@ public class AssetVerificationPromptBuilder {
                 safe(input.storageProvider()),
                 safe(input.storageKey()),
                 input.assetFamily().name(),
+                input.imageAttached() ? "yes" : "no",
+                safe(input.imageMimeType()),
                 safe(input.extractedText())
         ));
+
+        if (imageMedia != null) {
+            user = UserMessage.builder()
+                    .text(user.getText())
+                    .media(imageMedia)
+                    .build();
+        }
 
         return new Prompt(List.of(system, user));
     }
