@@ -24,7 +24,7 @@ interface VerificationJobStatusResponse {
 }
 
 interface UseClaimEvidenceUploadResult {
-    isUploading: boolean;
+    isTransferring: boolean;
     deletingUploadId: string | null;
     upload: (claimId: string, file: File) => Promise<void>;
     deleteUpload: (claimId: string, uploadId: string) => Promise<void>;
@@ -51,7 +51,7 @@ const delay = async (ms: number): Promise<void> =>
     });
 
 export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
-    const [isUploading, setIsUploading] = useState(false);
+    const [isTransferring, setIsTransferring] = useState(false);
     const [deletingUploadId, setDeletingUploadId] = useState<string | null>(null);
 
     const pollVerificationJobStatus = useCallback(
@@ -111,7 +111,8 @@ export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
             throw new Error(validationError);
         }
 
-        setIsUploading(true);
+        setIsTransferring(true);
+        let verificationJobId: string | null = null;
         try {
             const presignRes = await fetch(
                 `/api/profile/resume-verification/claims/${claimId}/evidence-uploads/presign`,
@@ -162,17 +163,19 @@ export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
             const finalizePayload =
                 ((await finalizeRes.json().catch(() => null)) as FinalizeResponse | null) ??
                 null;
-            const verificationJobId =
+            verificationJobId =
                 typeof finalizePayload?.jobId === "string" &&
                 finalizePayload.jobId.trim()
                     ? finalizePayload.jobId.trim()
                     : null;
-
-            if (verificationJobId) {
-                await pollVerificationJobStatus(verificationJobId);
-            }
         } finally {
-            setIsUploading(false);
+            setIsTransferring(false);
+        }
+
+        // Fire-and-forget: AI verification runs in the background after the
+        // file transfer lock is released so the user can take other actions.
+        if (verificationJobId) {
+            void pollVerificationJobStatus(verificationJobId);
         }
     }, [pollVerificationJobStatus]);
 
@@ -203,5 +206,5 @@ export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
         [],
     );
 
-    return { isUploading, deletingUploadId, upload, deleteUpload };
+    return { isTransferring, deletingUploadId, upload, deleteUpload };
 };

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { AlertTriangle, CheckCircle2, ChevronRight, Download, FileText, Loader2, Upload, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronRight, FileText, Loader2, Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/useToast";
 import { CLAIM_EVIDENCE_ACCEPT_ATTR } from "@/lib/verification/claimEvidenceUploadPolicy";
@@ -56,13 +56,13 @@ const ClaimEvidenceUploadSection = ({
     onSelectAssetSummary,
 }: ClaimEvidenceUploadSectionProps) => {
     const { addToast } = useToast();
-    const { isUploading, deletingUploadId, upload, deleteUpload } =
+    const { isTransferring, deletingUploadId, upload, deleteUpload } =
         useClaimEvidenceUpload();
     const { uploads, refetch: refetchUploads } = useClaimUploads(claimId);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        if (!isUploading) {
+        if (!isTransferring) {
             return;
         }
 
@@ -74,7 +74,7 @@ const ClaimEvidenceUploadSection = ({
         return () => {
             window.clearInterval(intervalId);
         };
-    }, [isUploading, refetchUploads]);
+    }, [isTransferring, refetchUploads]);
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -156,7 +156,7 @@ const ClaimEvidenceUploadSection = ({
                 className="sr-only"
                 accept={CLAIM_EVIDENCE_ACCEPT_ATTR}
                 onChange={handleFileChange}
-                disabled={isUploading || deletingUploadId !== null}
+                disabled={isTransferring || deletingUploadId !== null}
             />
             {uploads.length > 0 ? (
                 <div className="space-y-1">
@@ -205,7 +205,18 @@ const ClaimEvidenceUploadSection = ({
                                 >
                                     <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                                     <div className="min-w-0 flex-1">
-                                        <p className="text-xs text-foreground truncate">
+                                        <p
+                                            className={cn(
+                                                "text-xs text-foreground truncate",
+                                                !(isTransferring || deletingUploadId !== null) &&
+                                                    "hover:underline cursor-pointer",
+                                            )}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (isTransferring || deletingUploadId !== null) return;
+                                                void handleDownloadUpload(u.id);
+                                            }}
+                                        >
                                             {u.originalFileName}
                                         </p>
                                         <p className="text-[10px] text-muted-foreground truncate">
@@ -235,27 +246,14 @@ const ClaimEvidenceUploadSection = ({
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => handleDownloadUpload(u.id)}
-                                    disabled={isUploading || deletingUploadId !== null}
-                                    aria-label={`Download ${u.originalFileName}`}
-                                    className={cn(
-                                        "inline-flex h-5 w-5 items-center justify-center text-muted-foreground hover:text-foreground hover:cursor-pointer transition-colors",
-                                        (isUploading || deletingUploadId !== null) &&
-                                            "pointer-events-none opacity-50",
-                                    )}
-                                >
-                                    <Download className="h-3.5 w-3.5" />
-                                </button>
-                                <button
-                                    type="button"
                                     onClick={() =>
                                         handleDeleteUpload(u.id, u.originalFileName)
                                     }
-                                    disabled={isUploading || deletingUploadId !== null}
+                                    disabled={isTransferring || deletingUploadId !== null}
                                     aria-label={`Delete ${u.originalFileName}`}
                                     className={cn(
                                         "inline-flex h-5 w-5 items-center justify-center text-muted-foreground hover:text-red-500 hover:cursor-pointer transition-colors",
-                                        (isUploading || deletingUploadId !== null) &&
+                                        (isTransferring || deletingUploadId !== null) &&
                                             "pointer-events-none opacity-50",
                                     )}
                                 >
@@ -271,14 +269,14 @@ const ClaimEvidenceUploadSection = ({
                     <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        disabled={isUploading || deletingUploadId !== null}
+                        disabled={isTransferring || deletingUploadId !== null}
                         className={cn(
                             "flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-border p-2 text-xs text-muted-foreground transition-colors hover:bg-muted/50 hover:cursor-pointer",
-                            (isUploading || deletingUploadId !== null) &&
+                            (isTransferring || deletingUploadId !== null) &&
                                 "pointer-events-none opacity-60",
                         )}
                     >
-                        {isUploading ? (
+                        {isTransferring ? (
                             <>
                                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                 Uploading...
@@ -293,23 +291,23 @@ const ClaimEvidenceUploadSection = ({
                     role="button"
                     tabIndex={0}
                     onClick={() =>
-                        !isUploading &&
+                        !isTransferring &&
                         deletingUploadId === null &&
                         fileInputRef.current?.click()
                     }
                     onKeyDown={(e) =>
                         e.key === "Enter" &&
-                        !isUploading &&
+                        !isTransferring &&
                         deletingUploadId === null &&
                         fileInputRef.current?.click()
                     }
                     className={cn(
                         "flex flex-col items-center gap-2 p-4 rounded-md border border-dashed border-border bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors",
-                        (isUploading || deletingUploadId !== null) &&
+                        (isTransferring || deletingUploadId !== null) &&
                             "pointer-events-none opacity-60",
                     )}
                 >
-                    {isUploading ? (
+                    {isTransferring ? (
                         <>
                             <Loader2 className="h-5 w-5 text-muted-foreground animate-spin" />
                             <p className="text-xs text-muted-foreground">
