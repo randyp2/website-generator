@@ -1,6 +1,8 @@
 "use client";
 
 import type {
+    AssetJobPhase,
+    ClaimUpload,
     ConnectionActionType,
     ConnectionProvider,
 } from "./verification.types";
@@ -104,6 +106,44 @@ export const runConnectionSyncRequest = async (
     }
 
     return payload;
+};
+
+export interface JobStatusResponse {
+    jobId: string;
+    status: AssetJobPhase;
+    error?: string | null;
+}
+
+export const fetchJobStatus = async (
+    jobId: string,
+): Promise<JobStatusResponse | null> => {
+    try {
+        const res = await fetch(
+            `/api/profile/resume-verification/jobs/status/${jobId}`,
+            { method: "GET", cache: "no-store" },
+        );
+        if (!res.ok) return null;
+        return (await res.json()) as JobStatusResponse;
+    } catch {
+        return null;
+    }
+};
+
+export const fetchClaimUploadById = async (
+    claimId: string,
+    uploadId: string,
+): Promise<ClaimUpload | null> => {
+    try {
+        const res = await fetch(
+            `/api/profile/resume-verification/claims/${claimId}/evidence-uploads`,
+            { cache: "no-store" },
+        );
+        if (!res.ok) return null;
+        const data = (await res.json()) as { items: ClaimUpload[] };
+        return data.items.find((u) => u.id === uploadId) ?? null;
+    } catch {
+        return null;
+    }
 };
 
 export const deleteClaimRequest = async (

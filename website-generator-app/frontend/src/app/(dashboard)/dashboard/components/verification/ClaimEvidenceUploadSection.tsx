@@ -12,6 +12,7 @@ import type { AssetVerificationSummarySelection } from "./verification.types";
 interface ClaimEvidenceUploadSectionProps {
     claimId: string;
     onSelectAssetSummary?: (selection: AssetVerificationSummarySelection) => void;
+    onUploadComplete?: (uploadId: string, jobId: string | null, fileName: string) => void;
 }
 
 interface ParsedAssetVerificationSummary {
@@ -54,6 +55,7 @@ const formatConfidencePercent = (confidence: number): string =>
 const ClaimEvidenceUploadSection = ({
     claimId,
     onSelectAssetSummary,
+    onUploadComplete,
 }: ClaimEvidenceUploadSectionProps) => {
     const { addToast } = useToast();
     const { isTransferring, deletingUploadId, upload, deleteUpload } =
@@ -81,8 +83,9 @@ const ClaimEvidenceUploadSection = ({
         if (!file) return;
         e.target.value = "";
         try {
-            await upload(claimId, file);
+            const result = await upload(claimId, file);
             await refetchUploads();
+            onUploadComplete?.(result.uploadId, result.jobId, file.name);
             addToast({
                 type: "success",
                 title: "Upload Successful",

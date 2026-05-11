@@ -1,15 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import type { ClaimUpload } from "./verification.types";
 
-export interface ClaimUpload {
-    id: string;
-    originalFileName: string;
-    status: string;
-    analysisError?: string | null;
-    metadata?: Record<string, unknown> | null;
-    createdAt: string;
-}
+export type { ClaimUpload };
 
 interface UseClaimUploadsResult {
     uploads: ClaimUpload[];

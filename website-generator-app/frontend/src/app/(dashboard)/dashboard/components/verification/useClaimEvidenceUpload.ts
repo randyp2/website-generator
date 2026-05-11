@@ -23,10 +23,15 @@ interface VerificationJobStatusResponse {
     error?: string;
 }
 
+export interface UploadResult {
+    uploadId: string;
+    jobId: string | null;
+}
+
 interface UseClaimEvidenceUploadResult {
     isTransferring: boolean;
     deletingUploadId: string | null;
-    upload: (claimId: string, file: File) => Promise<void>;
+    upload: (claimId: string, file: File) => Promise<UploadResult>;
     deleteUpload: (claimId: string, uploadId: string) => Promise<void>;
 }
 
@@ -104,7 +109,7 @@ export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
         [],
     );
 
-    const upload = useCallback(async (claimId: string, file: File): Promise<void> => {
+    const upload = useCallback(async (claimId: string, file: File): Promise<UploadResult> => {
         const descriptor = buildClaimEvidenceUploadDescriptorFromFile(file);
         const validationError = validateClaimEvidenceUploadDescriptor(descriptor);
         if (validationError) {
@@ -112,6 +117,7 @@ export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
         }
 
         setIsTransferring(true);
+        let capturedUploadId = "";
         let verificationJobId: string | null = null;
         try {
             const presignRes = await fetch(
@@ -131,6 +137,7 @@ export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
 
             const { uploadId, uploadUrl, requiredHeaders } =
                 (await presignRes.json()) as PresignResponse;
+            capturedUploadId = uploadId;
 
             const r2Res = await fetch(uploadUrl, {
                 method: "PUT",
@@ -177,6 +184,8 @@ export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
         if (verificationJobId) {
             void pollVerificationJobStatus(verificationJobId);
         }
+
+        return { uploadId: capturedUploadId, jobId: verificationJobId };
     }, [pollVerificationJobStatus]);
 
     const deleteUpload = useCallback(

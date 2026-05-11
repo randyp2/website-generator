@@ -28,8 +28,10 @@ import { cn } from "@/lib/utils";
 import type {
     AssetVerificationSummarySelection,
     EvidenceType,
+    PendingAssetView,
     SkillDetailDrawerProps,
 } from "./verification.types";
+import AssetVerificationPanel from "./AssetVerificationPanel";
 import {
     getTierColor,
     getTierBgColor,
@@ -65,12 +67,32 @@ const SkillDetailDrawer = ({
     onDeleteClaim,
     onClose,
 }: SkillDetailDrawerProps) => {
-    const [selectedAssetSummary, setSelectedAssetSummary] =
-        useState<AssetVerificationSummarySelection | null>(null);
-    const activeAssetSummary =
-        selectedAssetSummary && selectedAssetSummary.claimId === skill?.id
-            ? selectedAssetSummary
-            : null;
+    type DrawerView =
+        | { type: "skill" }
+        | { type: "asset-pending"; data: PendingAssetView }
+        | { type: "asset-summary"; data: AssetVerificationSummarySelection };
+
+    const [view, setView] = useState<DrawerView>({ type: "skill" });
+
+    const handleSelectAssetSummary = (selection: AssetVerificationSummarySelection) => {
+        if (selection.claimId === skill?.id) {
+            setView({ type: "asset-summary", data: selection });
+        }
+    };
+
+    const handleUploadComplete = (
+        uploadId: string,
+        jobId: string | null,
+        fileName: string,
+    ) => {
+        if (!skill) return;
+        setView({
+            type: "asset-pending",
+            data: { claimId: skill.id, uploadId, originalFileName: fileName, jobId },
+        });
+    };
+
+    const handleBack = () => setView({ type: "skill" });
 
     if (!skill) return null;
 
@@ -88,7 +110,7 @@ const SkillDetailDrawer = ({
             open={open}
             onOpenChange={(v) => {
                 if (!v) {
-                    setSelectedAssetSummary(null);
+                    setView({ type: "skill" });
                     onClose();
                 }
             }}
@@ -108,19 +130,23 @@ const SkillDetailDrawer = ({
                         </Badge>
                     </SheetTitle>
                     <SheetDescription>
-                        {activeAssetSummary
-                            ? "AI verification summary"
-                            : `Last verified ${lastVerifiedDate}`}
+                        {view.type === "asset-pending"
+                            ? "AI verification in progress"
+                            : view.type === "asset-summary"
+                              ? "AI verification summary"
+                              : `Last verified ${lastVerifiedDate}`}
                     </SheetDescription>
                 </SheetHeader>
 
                 <div className="space-y-6 pb-6">
-                    {activeAssetSummary ? (
+                    {view.type === "asset-pending" ? (
+                        <AssetVerificationPanel view={view.data} onBack={handleBack} />
+                    ) : view.type === "asset-summary" ? (
                         <div className="space-y-4">
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => setSelectedAssetSummary(null)}
+                                onClick={handleBack}
                                 className="w-fit gap-1.5 px-0 hover:cursor-pointer"
                             >
                                 <ArrowLeft className="h-3.5 w-3.5" />
@@ -131,16 +157,14 @@ const SkillDetailDrawer = ({
                                     Asset
                                 </p>
                                 <p className="mt-1 text-sm font-medium text-foreground">
-                                    {activeAssetSummary.originalFileName}
+                                    {view.data.originalFileName}
                                 </p>
                                 <div className="mt-3 flex items-center justify-between gap-2 rounded-md border border-emerald-500/40 bg-emerald-500/5 px-3 py-2">
                                     <span className="text-xs text-muted-foreground">
                                         Confidence Score
                                     </span>
                                     <span className="text-sm font-semibold text-emerald-600">
-                                        {formatConfidencePercent(
-                                            activeAssetSummary.confidence,
-                                        )}
+                                        {formatConfidencePercent(view.data.confidence)}
                                     </span>
                                 </div>
                             </div>
@@ -152,7 +176,7 @@ const SkillDetailDrawer = ({
                                     </p>
                                 </div>
                                 <p className="mt-2 text-sm text-foreground leading-relaxed">
-                                    {activeAssetSummary.summary}
+                                    {view.data.summary}
                                 </p>
                             </div>
                         </div>
@@ -309,7 +333,8 @@ const SkillDetailDrawer = ({
 
                     <ClaimEvidenceUploadSection
                         claimId={skill.id}
-                        onSelectAssetSummary={setSelectedAssetSummary}
+                        onSelectAssetSummary={handleSelectAssetSummary}
+                        onUploadComplete={handleUploadComplete}
                     />
 
                     {/* Conflicts */}
