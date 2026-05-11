@@ -99,12 +99,15 @@ public class AIVerificationServiceImpl implements AIVerificationService {
                     upload.getOriginalFileName()
             );
             System.out.println(">>> [ASSET-AI] asset family resolved | jobId=" + message.getJobId()
-                    + " assetFamily=" + assetFamily);
+                    + " assetFamily=" + assetFamily
+                    + " contentType=" + upload.getContentType());
 
             // --- Extract prompt-safe content by family (text, pdf) and fail soft when unavailable.
             String textExcerpt = assetContentExtractorService.extractPromptText(upload, assetFamily);
             System.out.println(">>> [ASSET-AI] text extracted | jobId=" + message.getJobId()
                     + " excerptLength=" + safeLength(textExcerpt));
+            System.out.println(">>> [ASSET-AI] extracted text preview | jobId=" + message.getJobId()
+                    + " preview=" + toPreview(textExcerpt));
 
             Prompt prompt = promptBuilder.buildPrompt(
                     new AssetVerificationPromptBuilder.PromptInput(
@@ -330,5 +333,20 @@ public class AIVerificationServiceImpl implements AIVerificationService {
 
     private int safeLength(String value) {
         return value == null ? 0 : value.length();
+    }
+
+    private String toPreview(String value) {
+        if (value == null || value.isBlank()) {
+            return "(none)";
+        }
+
+        String normalized = value
+                .replace("\n", "\\n")
+                .replace("\r", "\\r");
+        int max = 400;
+        if (normalized.length() <= max) {
+            return normalized;
+        }
+        return normalized.substring(0, max) + "...";
     }
 }
