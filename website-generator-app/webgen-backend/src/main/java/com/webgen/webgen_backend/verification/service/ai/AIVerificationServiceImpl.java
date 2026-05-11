@@ -22,14 +22,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.google.genai.GoogleGenAiChatModel;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
-import software.amazon.awssdk.core.ResponseInputStream;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectResponse;
-
-import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.Optional;
@@ -51,8 +44,6 @@ public class AIVerificationServiceImpl implements AIVerificationService {
     private static final String EVIDENCE_TYPE_USER_UPLOADED_ASSET = "user_uploaded_asset";
     private static final String METADATA_VERIFICATION_KEY = "assetVerification";
 
-    private static final int MAX_TEXT_BYTES = 250_000;
-    private static final int MAX_TEXT_CHARS = 6_000;
     private static final int MAX_ERROR_LENGTH = 500;
     private static final double MIN_LINK_CONFIDENCE = 0.30d;
 
@@ -65,9 +56,9 @@ public class AIVerificationServiceImpl implements AIVerificationService {
     private final EvidenceRepository evidenceRepository;
     private final ClaimEvidenceLinkRepository claimEvidenceLinkRepository;
     private final ObjectMapper objectMapper;
-    private final ObjectProvider<S3Client> s3ClientProvider;
     private final AssetVerificationPromptBuilder promptBuilder;
     private final AssetVerificationResponseParser responseParser;
+    private final AssetContentExtractorService assetContentExtractorService;
 
     @Override
     public AssetVerificationResultDTO verify(AssetVerificationMessage message) {
@@ -104,9 +95,8 @@ public class AIVerificationServiceImpl implements AIVerificationService {
                     upload.getOriginalFileName()
             );
 
-            // --- For text assets only, read a safe excerpt from R2 and include it in the prompt.
-            // --- Non-text assets return an empty excerpt and rely on metadata + claim context.
-            String textExcerpt = extractTextExcerpt(upload, assetFamily);
+            // --- Extract prompt-safe content by family (text, pdf) and fail soft when unavailable.
+            String textExcerpt = assetContentExtractorService.extractPromptText(upload, assetFamily);
 
             Prompt prompt = promptBuilder.buildPrompt(
                     new AssetVerificationPromptBuilder.PromptInput(
@@ -137,10 +127,7 @@ public class AIVerificationServiceImpl implements AIVerificationService {
             log.error("Asset verification failed for upload={} claim={}: {}", uploadId, claimId, e.getMessage(), e);
             markUploadFailed(upload, e.getMessage());
 
-            if (e instanceof RuntimeException runtimeException) {
-                throw runtimeException;
-            }
-            throw new RuntimeException("Asset verification failed", e);
+            throw (RuntimeException) e;
         }
     }
 
@@ -265,7 +252,7 @@ public class AIVerificationServiceImpl implements AIVerificationService {
     private void markUploadFailed(ClaimEvidenceUpload upload, String errorMessage) {
         OffsetDateTime now = OffsetDateTime.now();
         upload.setStatus(STATUS_FAILED);
-        upload.setAnalysisError(truncate(Optional.ofNullable(errorMessage).orElse("Unknown verification error"), MAX_ERROR_LENGTH));
+        upload.setAnalysisError(truncate(Optional.ofNullable(errorMessage).orElse("Unknown verification error")));
         upload.setUpdatedAt(now);
 
         ObjectNode metadata = asObjectNode(upload.getMetadata());
@@ -277,58 +264,6 @@ public class AIVerificationServiceImpl implements AIVerificationService {
         upload.setMetadata(metadata);
 
         claimEvidenceUploadRepository.save(upload);
-    }
-
-    /**
-     * Extracts a bounded text sample from a TEXT upload so the verifier can reason over
-     * actual file content (not just filename/contentType metadata).
-     *
-     * Behavior:
-     * - returns "" for non-TEXT assets
-     * - returns "" when file is too large or S3 client is unavailable
-     * - reads at most MAX_TEXT_BYTES, normalizes whitespace/control chars,
-     *   and truncates to MAX_TEXT_CHARS
-     */
-    private String extractTextExcerpt(
-            ClaimEvidenceUpload upload,
-            AssetVerificationPromptBuilder.AssetFamily assetFamily
-    ) {
-        // --- only text-like uploads are eligible for content extraction.
-        if (assetFamily != AssetVerificationPromptBuilder.AssetFamily.TEXT) {
-            return "";
-        }
-
-        // --- skip very large files to keep worker memory/time bounded.
-        Long size = upload.getFileSizeBytes();
-        if (size != null && size > MAX_TEXT_BYTES) {
-            return "";
-        }
-
-        // --- require s3 client
-        S3Client s3Client = s3ClientProvider.getIfAvailable();
-        if (s3Client == null) {
-            return "";
-        }
-
-        // --- Read + normalize a bounded UTF-8 excerpt from the object.
-        try (ResponseInputStream<GetObjectResponse> objectStream = s3Client.getObject(
-                GetObjectRequest.builder()
-                        .bucket(upload.getStorageBucket())
-                        .key(upload.getStorageKey())
-                        .build()
-        )) {
-            byte[] bytes = objectStream.readNBytes(MAX_TEXT_BYTES);
-            String raw = new String(bytes, StandardCharsets.UTF_8);
-            String cleaned = raw
-                    .replaceAll("\\p{Cntrl}", " ")
-                    .replaceAll("\\s+", " ")
-                    .trim();
-            return truncate(cleaned, MAX_TEXT_CHARS);
-        } catch (Exception e) {
-            // --- Fail soft: keep verification alive using metadata-only prompt context.
-            log.warn("Failed to extract text excerpt for upload {}: {}", upload.getId(), e.getMessage());
-            return "";
-        }
     }
 
     private ObjectNode asObjectNode(JsonNode node) {
@@ -353,13 +288,13 @@ public class AIVerificationServiceImpl implements AIVerificationService {
         return Math.max(0.0d, Math.min(1.0d, confidence));
     }
 
-    private String truncate(String value, int maxLength) {
+    private String truncate(String value) {
         if (value == null) {
             return "";
         }
-        if (value.length() <= maxLength) {
+        if (value.length() <= AIVerificationServiceImpl.MAX_ERROR_LENGTH) {
             return value;
         }
-        return value.substring(0, maxLength);
+        return value.substring(0, AIVerificationServiceImpl.MAX_ERROR_LENGTH);
     }
 }
