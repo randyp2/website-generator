@@ -6,6 +6,8 @@ export interface ClaimUpload {
     id: string;
     originalFileName: string;
     status: string;
+    analysisError?: string | null;
+    metadata?: Record<string, unknown> | null;
     createdAt: string;
 }
 

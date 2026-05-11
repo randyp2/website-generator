@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
+    ArrowLeft,
     Award,
     BookOpen,
     Briefcase,
@@ -9,6 +11,7 @@ import {
     FileText,
     AlertTriangle,
     Link2,
+    Sparkles,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -22,7 +25,11 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
-import type { EvidenceType, SkillDetailDrawerProps } from "./verification.types";
+import type {
+    AssetVerificationSummarySelection,
+    EvidenceType,
+    SkillDetailDrawerProps,
+} from "./verification.types";
 import {
     getTierColor,
     getTierBgColor,
@@ -36,6 +43,9 @@ import {
 import ClaimEvidenceUploadSection from "./ClaimEvidenceUploadSection";
 
 const CIRCUMFERENCE = 2 * Math.PI * 36;
+
+const formatConfidencePercent = (confidence: number): string =>
+    `${Math.round(confidence * 100)}%`;
 
 const EVIDENCE_TYPE_ICONS: Record<EvidenceType, React.ElementType> = {
     endorsement: Award,
@@ -55,6 +65,13 @@ const SkillDetailDrawer = ({
     onDeleteClaim,
     onClose,
 }: SkillDetailDrawerProps) => {
+    const [selectedAssetSummary, setSelectedAssetSummary] =
+        useState<AssetVerificationSummarySelection | null>(null);
+    const activeAssetSummary =
+        selectedAssetSummary && selectedAssetSummary.claimId === skill?.id
+            ? selectedAssetSummary
+            : null;
+
     if (!skill) return null;
 
     const offset = CIRCUMFERENCE - (skill.score / 100) * CIRCUMFERENCE;
@@ -67,7 +84,15 @@ const SkillDetailDrawer = ({
     );
 
     return (
-        <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
+        <Sheet
+            open={open}
+            onOpenChange={(v) => {
+                if (!v) {
+                    setSelectedAssetSummary(null);
+                    onClose();
+                }
+            }}
+        >
             <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
                 <SheetHeader className="pb-4">
                     <SheetTitle className="flex items-center gap-3">
@@ -82,10 +107,57 @@ const SkillDetailDrawer = ({
                             {skill.tier}
                         </Badge>
                     </SheetTitle>
-                    <SheetDescription>Last verified {lastVerifiedDate}</SheetDescription>
+                    <SheetDescription>
+                        {activeAssetSummary
+                            ? "AI verification summary"
+                            : `Last verified ${lastVerifiedDate}`}
+                    </SheetDescription>
                 </SheetHeader>
 
                 <div className="space-y-6 pb-6">
+                    {activeAssetSummary ? (
+                        <div className="space-y-4">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setSelectedAssetSummary(null)}
+                                className="w-fit gap-1.5 px-0 hover:cursor-pointer"
+                            >
+                                <ArrowLeft className="h-3.5 w-3.5" />
+                                Back to claim details
+                            </Button>
+                            <div className="rounded-md border border-border bg-muted/30 p-4">
+                                <p className="text-[11px] font-semibold text-foreground uppercase tracking-wider">
+                                    Asset
+                                </p>
+                                <p className="mt-1 text-sm font-medium text-foreground">
+                                    {activeAssetSummary.originalFileName}
+                                </p>
+                                <div className="mt-3 flex items-center justify-between gap-2 rounded-md border border-emerald-500/40 bg-emerald-500/5 px-3 py-2">
+                                    <span className="text-xs text-muted-foreground">
+                                        Confidence Score
+                                    </span>
+                                    <span className="text-sm font-semibold text-emerald-600">
+                                        {formatConfidencePercent(
+                                            activeAssetSummary.confidence,
+                                        )}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="rounded-md border border-border bg-muted/30 p-4">
+                                <div className="flex items-center gap-2">
+                                    <Sparkles className="h-3.5 w-3.5 text-emerald-500" />
+                                    <p className="text-[11px] font-semibold text-foreground uppercase tracking-wider">
+                                        AI Summary
+                                    </p>
+                                </div>
+                                <p className="mt-2 text-sm text-foreground leading-relaxed">
+                                    {activeAssetSummary.summary}
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
                     {/* Score Ring */}
                     <div className="flex items-center gap-4">
                         <svg viewBox="0 0 80 80" className="h-20 w-20 shrink-0">
@@ -235,7 +307,10 @@ const SkillDetailDrawer = ({
                         </div>
                     </div>
 
-                    <ClaimEvidenceUploadSection claimId={skill.id} />
+                    <ClaimEvidenceUploadSection
+                        claimId={skill.id}
+                        onSelectAssetSummary={setSelectedAssetSummary}
+                    />
 
                     {/* Conflicts */}
                     {skill.conflictDetails && skill.conflictDetails.length > 0 && (
@@ -315,6 +390,8 @@ const SkillDetailDrawer = ({
                                 <p className="text-xs text-destructive">{deleteError}</p>
                             )}
                         </div>
+                    )}
+                        </>
                     )}
                 </div>
             </SheetContent>

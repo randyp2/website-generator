@@ -185,6 +185,14 @@ export interface SkillDetailDrawerProps {
   onClose: () => void
 }
 
+export interface AssetVerificationSummarySelection {
+  claimId: string
+  uploadId: string
+  originalFileName: string
+  confidence: number
+  summary: string
+}
+
 export interface EvidenceTableProps {
   evidence: EvidenceItem[]
   activeTypeFilter: EvidenceType | "all"
