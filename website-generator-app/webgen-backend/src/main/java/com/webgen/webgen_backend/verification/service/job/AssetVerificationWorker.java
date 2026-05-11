@@ -28,15 +28,24 @@ public class AssetVerificationWorker {
     ) throws IOException {
 
         String jobId = msg.getJobId();
+        System.out.println(">>> [ASSET-WORKER] consume | jobId=" + jobId
+                + " uploadId=" + msg.getUploadId()
+                + " claimId=" + msg.getClaimId()
+                + " deliveryTag=" + deliveryTag);
 
         try {
             jobService.updateStatus(jobId, AssetVerificationJobStatusDTO.Status.PROCESSING);
+            System.out.println(">>> [ASSET-WORKER] processing | jobId=" + jobId);
 
             AssetVerificationResultDTO result = aiVerificationService.verify(msg);
+            System.out.println(">>> [ASSET-WORKER] verify success | jobId=" + jobId
+                    + " confidence=" + (result == null ? null : result.getConfidence()));
 
             jobService.updateStatus(jobId, AssetVerificationJobStatusDTO.Status.COMPLETED);
+            System.out.println(">>> [ASSET-WORKER] completed | jobId=" + jobId);
 
             channel.basicAck(deliveryTag, false);
+            System.out.println(">>> [ASSET-WORKER] ack | jobId=" + jobId + " deliveryTag=" + deliveryTag);
         } catch (Exception e) {
             System.err.println(">>> [ASSET-VERIFY] failed | jobId=" + jobId + " | " +
                     e.getMessage());
@@ -45,6 +54,7 @@ public class AssetVerificationWorker {
                 jobService.failJob(jobId, e.getMessage());
 
             channel.basicNack(deliveryTag, false, false);
+            System.err.println(">>> [ASSET-WORKER] nack | jobId=" + jobId + " deliveryTag=" + deliveryTag);
         }
     }
 }

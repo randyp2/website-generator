@@ -35,6 +35,10 @@ public class AssetVerificationJobService {
      */
     public String createJobAndQueue(AssetVerificationEnqueueDTO enqueueDTO) {
         String jobId = createJob(enqueueDTO);
+        System.out.println(">>> [ASSET-JOB] create+queue start | jobId=" + jobId
+                + " uploadId=" + enqueueDTO.getUploadId()
+                + " claimId=" + enqueueDTO.getClaimId()
+                + " profileId=" + enqueueDTO.getProfileId());
 
         AssetVerificationMessage msg = AssetVerificationMessage.builder()
                 .jobId(jobId)
@@ -55,6 +59,9 @@ public class AssetVerificationJobService {
                 RabbitMQConfig.ASSET_VERIFICATION_ROUTING_KEY,
                 msg
         );
+        System.out.println(">>> [ASSET-JOB] published | jobId=" + jobId
+                + " exchange=" + RabbitMQConfig.EXCHANGE
+                + " routingKey=" + RabbitMQConfig.ASSET_VERIFICATION_ROUTING_KEY);
 
         return jobId;
     }
@@ -78,6 +85,8 @@ public class AssetVerificationJobService {
                 .build();
 
         saveToRedis(status);
+        System.out.println(">>> [ASSET-JOB] redis create | jobId=" + jobId
+                + " status=" + status.getStatus());
         return jobId;
     }
 
@@ -90,11 +99,20 @@ public class AssetVerificationJobService {
      */
     public void updateStatus(String jobId, AssetVerificationJobStatusDTO.Status status) {
         AssetVerificationJobStatusDTO job = getJob(jobId);
-        if (job == null) return;
+        if (job == null) {
+            System.out.println(">>> [ASSET-JOB] update skipped | jobId=" + jobId
+                    + " newStatus=" + status
+                    + " reason=missing");
+            return;
+        }
 
         // Update and save
+        AssetVerificationJobStatusDTO.Status prior = job.getStatus();
         job.setStatus(status);
         saveToRedis(job);
+        System.out.println(">>> [ASSET-JOB] update | jobId=" + jobId
+                + " from=" + prior
+                + " to=" + status);
     }
 
     public AssetVerificationJobStatusDTO getJob(String jobId) {
@@ -136,10 +154,15 @@ public class AssetVerificationJobService {
     // Fail the job and update the status
     public void failJob(String jobId, String message) {
         AssetVerificationJobStatusDTO status = getJob(jobId);
-        if (status == null) return;
+        if (status == null) {
+            System.out.println(">>> [ASSET-JOB] fail skipped | jobId=" + jobId + " reason=missing");
+            return;
+        }
 
         status.setError(message);
         status.setStatus(AssetVerificationJobStatusDTO.Status.FAILED);
         saveToRedis(status);
+        System.out.println(">>> [ASSET-JOB] failed | jobId=" + jobId
+                + " error=" + message);
     }
 }

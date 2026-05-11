@@ -145,6 +145,10 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
             UUID claimId,
             FinalizeClaimEvidenceUploadRequestDTO request
     ) {
+        System.out.println(">>> [ASSET-UPLOAD] finalize start | profileId=" + profileId
+                + " claimId=" + claimId
+                + " uploadId=" + (request == null ? null : request.getUploadId()));
+
         //--- Validate finalize request and claim ownership
         validateFinalizeRequest(profileId, claimId, request);
         ensureClaimOwnedByProfile(profileId, claimId);
@@ -178,6 +182,10 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
         upload.setUpdatedAt(OffsetDateTime.now());
 
         ClaimEvidenceUpload saved = claimEvidenceUploadRepository.save(upload);
+        System.out.println(">>> [ASSET-UPLOAD] finalize persisted | uploadId=" + saved.getId()
+                + " status=" + saved.getStatus()
+                + " contentType=" + saved.getContentType()
+                + " fileSizeBytes=" + saved.getFileSizeBytes());
 
         //--- Enqueue asynchronous asset verification after successful finalize
         AssetVerificationEnqueueDTO enqueueDTO = AssetVerificationEnqueueDTO.builder()
@@ -190,6 +198,9 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
                 .fileSizeBytes(saved.getFileSizeBytes())
                 .build();
         String jobId = assetVerificationJobService.createJobAndQueue(enqueueDTO);
+        System.out.println(">>> [ASSET-UPLOAD] verification enqueued | uploadId=" + saved.getId()
+                + " jobId=" + jobId
+                + " routingKey=asset.verification");
 
         return FinalizeClaimEvidenceUploadResponseDTO.builder()
                 .upload(toDto(saved))

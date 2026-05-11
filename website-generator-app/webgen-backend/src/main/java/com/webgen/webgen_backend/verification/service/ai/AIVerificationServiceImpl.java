@@ -68,6 +68,10 @@ public class AIVerificationServiceImpl implements AIVerificationService {
         UUID profileId = parseUuid(message.getProfileId(), "profileId");
         UUID claimId = parseUuid(message.getClaimId(), "claimId");
         UUID uploadId = parseUuid(message.getUploadId(), "uploadId");
+        System.out.println(">>> [ASSET-AI] verify start | jobId=" + message.getJobId()
+                + " profileId=" + profileId
+                + " claimId=" + claimId
+                + " uploadId=" + uploadId);
 
         Profile profile = profileRepository.findById(profileId)
                 .orElseThrow(() -> new IllegalArgumentException("Profile not found for verification job"));
@@ -83,6 +87,10 @@ public class AIVerificationServiceImpl implements AIVerificationService {
         if (!Objects.equals(upload.getClaimId(), claimId)) {
             throw new IllegalArgumentException("Upload does not belong to claim from verification message");
         }
+        System.out.println(">>> [ASSET-AI] ownership validated | jobId=" + message.getJobId()
+                + " fileName=" + upload.getOriginalFileName()
+                + " contentType=" + upload.getContentType()
+                + " fileSizeBytes=" + upload.getFileSizeBytes());
 
         // --- Call LLM to verify upload to claim
         try {
@@ -90,9 +98,13 @@ public class AIVerificationServiceImpl implements AIVerificationService {
                     upload.getContentType(),
                     upload.getOriginalFileName()
             );
+            System.out.println(">>> [ASSET-AI] asset family resolved | jobId=" + message.getJobId()
+                    + " assetFamily=" + assetFamily);
 
             // --- Extract prompt-safe content by family (text, pdf) and fail soft when unavailable.
             String textExcerpt = assetContentExtractorService.extractPromptText(upload, assetFamily);
+            System.out.println(">>> [ASSET-AI] text extracted | jobId=" + message.getJobId()
+                    + " excerptLength=" + safeLength(textExcerpt));
 
             Prompt prompt = promptBuilder.buildPrompt(
                     new AssetVerificationPromptBuilder.PromptInput(
@@ -108,19 +120,33 @@ public class AIVerificationServiceImpl implements AIVerificationService {
                             textExcerpt
                     )
             );
+            System.out.println(">>> [ASSET-AI] prompt built | jobId=" + message.getJobId());
 
             ChatResponse response = geminiAssetVerificationModel.call(prompt);
             response.getResult();
             String rawJson = response.getResult().getOutput().getText();
+            System.out.println(">>> [ASSET-AI] model response received | jobId=" + message.getJobId()
+                    + " rawLength=" + safeLength(rawJson));
 
             AssetVerificationResponseParser.ParsedVerification parsed = responseParser.parse(rawJson);
+            System.out.println(">>> [ASSET-AI] parsed | jobId=" + message.getJobId()
+                    + " confidence=" + parsed.result().getConfidence()
+                    + " shouldLink=" + parsed.shouldLink()
+                    + " linkType=" + parsed.linkType()
+                    + " evidenceStrength=" + parsed.evidenceStrength()
+                    + " summaryLength=" + safeLength(parsed.result().getSummary()));
 
             upsertEvidenceAndLink(profile, claim, upload, assetFamily, parsed);
             markUploadCompleted(upload, parsed, assetFamily, textExcerpt);
+            System.out.println(">>> [ASSET-AI] verify complete | jobId=" + message.getJobId()
+                    + " uploadId=" + uploadId);
 
             return parsed.result();
         } catch (Exception e) {
             log.error("Asset verification failed for upload={} claim={}: {}", uploadId, claimId, e.getMessage(), e);
+            System.err.println(">>> [ASSET-AI] verify failed | jobId=" + message.getJobId()
+                    + " uploadId=" + uploadId
+                    + " error=" + e.getMessage());
             markUploadFailed(upload, e.getMessage());
 
             throw (RuntimeException) e;
@@ -172,15 +198,24 @@ public class AIVerificationServiceImpl implements AIVerificationService {
         evidence.setMetadata(evidenceMetadata);
 
         Evidence savedEvidence = evidenceRepository.save(evidence);
+        System.out.println(">>> [ASSET-AI] evidence saved | profileId=" + profile.getId()
+                + " claimId=" + claim.getId()
+                + " evidenceId=" + savedEvidence.getId()
+                + " provider=" + savedEvidence.getProvider());
 
         boolean shouldPersistLink = parsed.shouldLink()
                 && safeConfidence(parsed.result().getConfidence()) >= MIN_LINK_CONFIDENCE;
+        System.out.println(">>> [ASSET-AI] link decision | claimId=" + claim.getId()
+                + " evidenceId=" + savedEvidence.getId()
+                + " shouldPersistLink=" + shouldPersistLink);
 
         Optional<ClaimEvidenceLink> existingLinkOptional = claimEvidenceLinkRepository
                 .findByProfileIdAndClaimIdAndEvidenceId(profile.getId(), claim.getId(), savedEvidence.getId());
 
         if (!shouldPersistLink) {
             existingLinkOptional.ifPresent(claimEvidenceLinkRepository::delete);
+            System.out.println(">>> [ASSET-AI] link removed/skipped | claimId=" + claim.getId()
+                    + " evidenceId=" + savedEvidence.getId());
             return;
         }
 
@@ -209,6 +244,10 @@ public class AIVerificationServiceImpl implements AIVerificationService {
         link.setMetadata(linkMetadata);
 
         claimEvidenceLinkRepository.save(link);
+        System.out.println(">>> [ASSET-AI] link saved | claimId=" + claim.getId()
+                + " evidenceId=" + savedEvidence.getId()
+                + " linkType=" + link.getLinkType()
+                + " linkConfidence=" + link.getLinkConfidence());
     }
 
     private void markUploadCompleted(
@@ -235,6 +274,8 @@ public class AIVerificationServiceImpl implements AIVerificationService {
 
         upload.setMetadata(metadata);
         claimEvidenceUploadRepository.save(upload);
+        System.out.println(">>> [ASSET-AI] upload metadata updated | uploadId=" + upload.getId()
+                + " verifiedAt=" + now);
     }
 
     private void markUploadFailed(ClaimEvidenceUpload upload, String errorMessage) {
@@ -251,6 +292,8 @@ public class AIVerificationServiceImpl implements AIVerificationService {
         upload.setMetadata(metadata);
 
         claimEvidenceUploadRepository.save(upload);
+        System.out.println(">>> [ASSET-AI] upload failure metadata updated | uploadId=" + upload.getId()
+                + " error=" + upload.getAnalysisError());
     }
 
     private ObjectNode asObjectNode(JsonNode node) {
@@ -283,5 +326,9 @@ public class AIVerificationServiceImpl implements AIVerificationService {
             return value;
         }
         return value.substring(0, AIVerificationServiceImpl.MAX_ERROR_LENGTH);
+    }
+
+    private int safeLength(String value) {
+        return value == null ? 0 : value.length();
     }
 }
