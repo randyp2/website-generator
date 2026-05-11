@@ -6,6 +6,7 @@ import com.webgen.webgen_backend.verification.dto.evidence.ClaimEvidenceUploadLi
 import com.webgen.webgen_backend.verification.dto.evidence.CreateClaimEvidenceUploadPresignRequestDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.CreateClaimEvidenceUploadPresignResponseDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.FinalizeClaimEvidenceUploadRequestDTO;
+import com.webgen.webgen_backend.verification.dto.evidence.FinalizeClaimEvidenceUploadResponseDTO;
 
 import java.util.UUID;
 
@@ -35,7 +36,7 @@ public interface ClaimEvidenceUploadService {
      * @param request finalize payload containing upload id and optional metadata
      * @return updated upload DTO after status transition
      */
-    ClaimEvidenceUploadDTO finalizeUpload(
+    FinalizeClaimEvidenceUploadResponseDTO finalizeUpload(
             UUID profileId,
             UUID claimId,
             FinalizeClaimEvidenceUploadRequestDTO request

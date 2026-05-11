@@ -6,6 +6,7 @@ import com.webgen.webgen_backend.verification.dto.evidence.ClaimEvidenceUploadLi
 import com.webgen.webgen_backend.verification.dto.evidence.CreateClaimEvidenceUploadPresignRequestDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.CreateClaimEvidenceUploadPresignResponseDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.FinalizeClaimEvidenceUploadRequestDTO;
+import com.webgen.webgen_backend.verification.dto.evidence.FinalizeClaimEvidenceUploadResponseDTO;
 import com.webgen.webgen_backend.verification.service.ClaimEvidenceUploadService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -42,12 +43,12 @@ public class ProfileClaimEvidenceUploadController {
     }
 
     @PostMapping("/finalize")
-    public ResponseEntity<ClaimEvidenceUploadDTO> finalizeUpload(
+    public ResponseEntity<FinalizeClaimEvidenceUploadResponseDTO> finalizeUpload(
             @PathVariable UUID claimId,
             @RequestBody FinalizeClaimEvidenceUploadRequestDTO request
     ) {
         UUID userId = resolveAuthenticatedUserId();
-        ClaimEvidenceUploadDTO response = claimEvidenceUploadService.finalizeUpload(
+        FinalizeClaimEvidenceUploadResponseDTO response = claimEvidenceUploadService.finalizeUpload(
                 userId,
                 claimId,
                 request

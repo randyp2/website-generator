@@ -9,6 +9,7 @@ import com.webgen.webgen_backend.verification.dto.evidence.ClaimEvidenceUploadLi
 import com.webgen.webgen_backend.verification.dto.evidence.CreateClaimEvidenceUploadPresignRequestDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.CreateClaimEvidenceUploadPresignResponseDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.FinalizeClaimEvidenceUploadRequestDTO;
+import com.webgen.webgen_backend.verification.dto.evidence.FinalizeClaimEvidenceUploadResponseDTO;
 import com.webgen.webgen_backend.verification.dto.job.AssetVerificationEnqueueDTO;
 import com.webgen.webgen_backend.verification.entity.Claim;
 import com.webgen.webgen_backend.verification.entity.ClaimEvidenceUpload;
@@ -139,7 +140,7 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
 
     @Override
     @Transactional
-    public ClaimEvidenceUploadDTO finalizeUpload(
+    public FinalizeClaimEvidenceUploadResponseDTO finalizeUpload(
             UUID profileId,
             UUID claimId,
             FinalizeClaimEvidenceUploadRequestDTO request
@@ -188,9 +189,12 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
                 .storageKey(saved.getStorageKey())
                 .fileSizeBytes(saved.getFileSizeBytes())
                 .build();
-        assetVerificationJobService.createJobAndQueue(enqueueDTO);
+        String jobId = assetVerificationJobService.createJobAndQueue(enqueueDTO);
 
-        return toDto(saved);
+        return FinalizeClaimEvidenceUploadResponseDTO.builder()
+                .upload(toDto(saved))
+                .jobId(jobId)
+                .build();
     }
 
     @Override

@@ -2,7 +2,6 @@ package com.webgen.webgen_backend.verification.service.job;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.webgen.webgen_backend.portfolio.dto.JobStatusDTO;
 import com.webgen.webgen_backend.shared.config.RabbitMQConfig;
 import com.webgen.webgen_backend.verification.dto.job.AssetVerificationEnqueueDTO;
 import com.webgen.webgen_backend.verification.dto.job.AssetVerificationJobStatusDTO;
@@ -98,7 +97,7 @@ public class AssetVerificationJobService {
         saveToRedis(job);
     }
 
-    private AssetVerificationJobStatusDTO getJob(String jobId) {
+    public AssetVerificationJobStatusDTO getJob(String jobId) {
         String key = KEY_PREFIX + jobId;
 
         // Get value from redis

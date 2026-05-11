@@ -12,6 +12,17 @@ interface PresignResponse {
     requiredHeaders: Record<string, string> | null;
 }
 
+interface FinalizeResponse {
+    upload?: unknown;
+    jobId?: string;
+}
+
+interface VerificationJobStatusResponse {
+    jobId: string;
+    status: "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED";
+    error?: string;
+}
+
 interface UseClaimEvidenceUploadResult {
     isUploading: boolean;
     deletingUploadId: string | null;
@@ -31,9 +42,67 @@ const readErrorMessage = async (
     }
 };
 
+const VERIFICATION_POLL_INTERVAL_MS = 1500;
+const VERIFICATION_POLL_TIMEOUT_MS = 120_000;
+
+const delay = async (ms: number): Promise<void> =>
+    new Promise((resolve) => {
+        window.setTimeout(resolve, ms);
+    });
+
 export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
     const [isUploading, setIsUploading] = useState(false);
     const [deletingUploadId, setDeletingUploadId] = useState<string | null>(null);
+
+    const pollVerificationJobStatus = useCallback(
+        async (jobId: string): Promise<void> => {
+            const startedAt = Date.now();
+
+            while (Date.now() - startedAt < VERIFICATION_POLL_TIMEOUT_MS) {
+                const statusRes = await fetch(
+                    `/api/profile/resume-verification/jobs/status/${jobId}`,
+                    {
+                        method: "GET",
+                        cache: "no-store",
+                    },
+                );
+
+                if (statusRes.status === 404) {
+                    await delay(VERIFICATION_POLL_INTERVAL_MS);
+                    continue;
+                }
+
+                if (!statusRes.ok) {
+                    throw new Error(
+                        await readErrorMessage(
+                            statusRes,
+                            "Failed to check verification status",
+                        ),
+                    );
+                }
+
+                const statusPayload =
+                    (await statusRes.json()) as VerificationJobStatusResponse;
+
+                if (statusPayload.status === "COMPLETED") {
+                    return;
+                }
+
+                if (statusPayload.status === "FAILED") {
+                    throw new Error(
+                        statusPayload.error?.trim() || "Asset verification failed",
+                    );
+                }
+
+                await delay(VERIFICATION_POLL_INTERVAL_MS);
+            }
+
+            throw new Error(
+                "Verification is taking longer than expected. Please refresh and check again.",
+            );
+        },
+        [],
+    );
 
     const upload = useCallback(async (claimId: string, file: File): Promise<void> => {
         const descriptor = buildClaimEvidenceUploadDescriptorFromFile(file);
@@ -89,10 +158,23 @@ export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
                     await readErrorMessage(finalizeRes, "Failed to confirm upload"),
                 );
             }
+
+            const finalizePayload =
+                ((await finalizeRes.json().catch(() => null)) as FinalizeResponse | null) ??
+                null;
+            const verificationJobId =
+                typeof finalizePayload?.jobId === "string" &&
+                finalizePayload.jobId.trim()
+                    ? finalizePayload.jobId.trim()
+                    : null;
+
+            if (verificationJobId) {
+                await pollVerificationJobStatus(verificationJobId);
+            }
         } finally {
             setIsUploading(false);
         }
-    }, []);
+    }, [pollVerificationJobStatus]);
 
     const deleteUpload = useCallback(
         async (claimId: string, uploadId: string): Promise<void> => {
