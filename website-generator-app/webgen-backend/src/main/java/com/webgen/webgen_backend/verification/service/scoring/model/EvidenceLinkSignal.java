@@ -20,6 +20,7 @@ public record EvidenceLinkSignal(
         BigDecimal decayedStrength,
         String reason,
         String title,
-        String sourceUrl
+        String sourceUrl,
+        String provider
 ) {
 }

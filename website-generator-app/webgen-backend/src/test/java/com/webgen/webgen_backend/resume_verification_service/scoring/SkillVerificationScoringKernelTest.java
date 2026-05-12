@@ -146,8 +146,8 @@ class SkillVerificationScoringKernelTest {
 
         assertThat(summary.scoreType()).isEqualTo("evidence_enhanced");
         assertThat(summary.baselineOverallScore()).isEqualTo(32);
-        assertThat(summary.overallScore()).isEqualTo(38);
-        assertThat(summary.evidenceDelta()).isEqualTo(6);
+        assertThat(summary.overallScore()).isEqualTo(44);
+        assertThat(summary.evidenceDelta()).isEqualTo(12);
 
         Map<UUID, SkillClaimScore> byId = summary.claims().stream()
                 .collect(Collectors.toMap(SkillClaimScore::claimId, Function.identity()));
@@ -238,6 +238,62 @@ class SkillVerificationScoringKernelTest {
         assertThat(manyLinks.claimScore()).isGreaterThan(oneLink.claimScore());
     }
 
+    @Test
+    void manualUploadHighConfidenceSignalsUnlockExpertCap() {
+        UUID manualUploadClaimId = UUID.randomUUID();
+        UUID githubClaimId = UUID.randomUUID();
+        UUID skillId = UUID.randomUUID();
+
+        List<EvidenceLinkSignal> manualUploadSignals = List.of(
+                evidence("1.0", "manual_upload", "dependency_match", new BigDecimal("0.95")),
+                evidence("1.0", "manual_upload", "dependency_match", new BigDecimal("0.95")),
+                evidence("1.0", "manual_upload", "dependency_match", new BigDecimal("0.95")),
+                evidence("1.0", "manual_upload", "dependency_match", new BigDecimal("0.95")),
+                evidence("1.0", "manual_upload", "dependency_match", new BigDecimal("0.95"))
+        );
+        List<EvidenceLinkSignal> githubSignals = List.of(
+                evidence("1.0", "github", "dependency_match", new BigDecimal("0.95")),
+                evidence("1.0", "github", "dependency_match", new BigDecimal("0.95")),
+                evidence("1.0", "github", "dependency_match", new BigDecimal("0.95")),
+                evidence("1.0", "github", "dependency_match", new BigDecimal("0.95")),
+                evidence("1.0", "github", "dependency_match", new BigDecimal("0.95"))
+        );
+
+        SkillScoreSummary summary = kernel.score(new SkillScoreRequest(
+                List.of(
+                        claimWithEvidence(
+                                manualUploadClaimId,
+                                "React",
+                                skillId,
+                                "React",
+                                "resume",
+                                "pending",
+                                "engineering",
+                                "1.0",
+                                manualUploadSignals
+                        ),
+                        claimWithEvidence(
+                                githubClaimId,
+                                "React",
+                                skillId,
+                                "React",
+                                "resume",
+                                "pending",
+                                "engineering",
+                                "1.0",
+                                githubSignals
+                        )
+                ),
+                null
+        ));
+
+        Map<UUID, SkillClaimScore> byId = summary.claims().stream()
+                .collect(Collectors.toMap(SkillClaimScore::claimId, Function.identity()));
+
+        assertThat(byId.get(manualUploadClaimId).claimScore()).isGreaterThan(80);
+        assertThat(byId.get(githubClaimId).claimScore()).isLessThanOrEqualTo(80);
+    }
+
     private SkillClaimInput claim(
             UUID claimId,
             String rawValue,
@@ -285,11 +341,20 @@ class SkillVerificationScoringKernelTest {
     }
 
     private EvidenceLinkSignal evidence(String decayedStrength) {
+        return evidence(decayedStrength, "github", "dependency_match", BigDecimal.ONE);
+    }
+
+    private EvidenceLinkSignal evidence(
+            String decayedStrength,
+            String provider,
+            String linkType,
+            BigDecimal confidence
+    ) {
         OffsetDateTime now = OffsetDateTime.parse("2026-04-16T00:00:00Z");
         return new EvidenceLinkSignal(
                 UUID.randomUUID(),
-                "dependency_match",
-                BigDecimal.ONE,
+                linkType,
+                confidence,
                 BigDecimal.ONE,
                 now,
                 now,
@@ -298,7 +363,8 @@ class SkillVerificationScoringKernelTest {
                 new BigDecimal(decayedStrength),
                 "test",
                 "test-title",
-                "https://example.test"
+                "https://example.test",
+                provider
         );
     }
 }

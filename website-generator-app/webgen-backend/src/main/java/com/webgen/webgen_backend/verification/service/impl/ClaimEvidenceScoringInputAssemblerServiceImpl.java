@@ -243,7 +243,8 @@ public class ClaimEvidenceScoringInputAssemblerServiceImpl
                 decayedStrength,
                 link.getReason(),
                 evidence.getTitle(),
-                evidence.getSourceUrl()
+                evidence.getSourceUrl(),
+                evidence.getProvider()
         );
     }
 

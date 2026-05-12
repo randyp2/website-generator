@@ -13,6 +13,8 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 @Component
 public class SkillVerificationScoringKernel {
@@ -22,6 +24,12 @@ public class SkillVerificationScoringKernel {
     private final List<SkillScorePostProcessor> scorePostProcessors;
     private static final int STALE_SIGNAL_DAYS_THRESHOLD = 180;
     private static final BigDecimal STRONG_SIGNAL_THRESHOLD = new BigDecimal("0.80");
+    private static final String LLM_VERIFIED_PROVIDER = "manual_upload";
+    private static final Set<String> LLM_VERIFIED_LINK_TYPES = Set.of(
+            "dependency_match",
+            "topic_match"
+    );
+    private static final BigDecimal LLM_VERIFIED_MIN_CONFIDENCE = new BigDecimal("0.85");
 
     public SkillVerificationScoringKernel(
             SkillScoringPolicy scoringPolicy,
@@ -274,6 +282,12 @@ public class SkillVerificationScoringKernel {
         BigDecimal matchValue = resolveMatchValue(matched);
         boolean llmVerified = isLlmVerified(input);
         int claimScoreCap = resolveClaimScoreCap(llmVerified);
+        System.out.println(String.format(
+                "[CLAIM SCORE][LLM] claimId=%s llmVerified=%s claimScoreCap=%d",
+                input.claimId(),
+                llmVerified,
+                claimScoreCap
+        ));
 
         // claimPriorNormalized =
         //   (matchValue   * COVERAGE_WEIGHT)
@@ -600,7 +614,43 @@ public class SkillVerificationScoringKernel {
 
     // Placeholder seam for future LLM verification signal integration.
     private boolean isLlmVerified(SkillClaimInput input) {
-        return false;
+        if (input == null || input.canonicalSkillId() == null) {
+            return false;
+        }
+        List<EvidenceLinkSignal> evidenceLinks = input.evidenceLinks();
+        if (evidenceLinks == null || evidenceLinks.isEmpty()) {
+            return false;
+        }
+
+        return evidenceLinks.stream().anyMatch(this::isEligibleLlmVerificationSignal);
+    }
+
+    private boolean isEligibleLlmVerificationSignal(EvidenceLinkSignal link) {
+        if (link == null) {
+            return false;
+        }
+
+        String provider = normalizeLower(link.provider());
+        if (!LLM_VERIFIED_PROVIDER.equals(provider)) {
+            return false;
+        }
+
+        String linkType = normalizeLower(link.linkType());
+        if (!LLM_VERIFIED_LINK_TYPES.contains(linkType)) {
+            return false;
+        }
+
+        BigDecimal confidence = link.linkConfidence() == null
+                ? SkillScoringPolicy.ZERO
+                : scoringPolicy.clamp01(link.linkConfidence());
+        return confidence.compareTo(LLM_VERIFIED_MIN_CONFIDENCE) >= 0;
+    }
+
+    private String normalizeLower(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        return value.trim().toLowerCase(Locale.ROOT);
     }
 
     // Reserves expert-tier claim scores for LLM-verified claims.
