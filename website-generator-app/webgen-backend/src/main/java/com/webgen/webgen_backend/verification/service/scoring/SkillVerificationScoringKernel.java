@@ -13,31 +13,25 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
-import java.util.Set;
 
 @Component
 public class SkillVerificationScoringKernel {
 
     private final SkillScoringPolicy scoringPolicy;
+    private final VerificationSignalPolicy verificationSignalPolicy;
     private final SkillSuggestedActionRuleBook actionRuleBook;
     private final List<SkillScorePostProcessor> scorePostProcessors;
     private static final int STALE_SIGNAL_DAYS_THRESHOLD = 180;
     private static final BigDecimal STRONG_SIGNAL_THRESHOLD = new BigDecimal("0.80");
-    private static final String LLM_VERIFIED_PROVIDER = "manual_upload";
-    private static final Set<String> LLM_VERIFIED_LINK_TYPES = Set.of(
-            "dependency_match",
-            "topic_match",
-            "llm_document_match"
-    );
-    private static final BigDecimal LLM_VERIFIED_MIN_CONFIDENCE = new BigDecimal("0.85");
 
     public SkillVerificationScoringKernel(
             SkillScoringPolicy scoringPolicy,
+            VerificationSignalPolicy verificationSignalPolicy,
             SkillSuggestedActionRuleBook actionRuleBook,
             List<SkillScorePostProcessor> scorePostProcessors
     ) {
         this.scoringPolicy = scoringPolicy;
+        this.verificationSignalPolicy = verificationSignalPolicy;
         this.actionRuleBook = actionRuleBook;
         this.scorePostProcessors = scorePostProcessors == null
                 ? List.of()
@@ -282,7 +276,7 @@ public class SkillVerificationScoringKernel {
         BigDecimal sourceWeight = scoringPolicy.sourceWeight(source);
         BigDecimal matchValue = resolveMatchValue(matched);
         boolean llmVerified = isLlmVerified(input);
-        int claimScoreCap = resolveClaimScoreCap(llmVerified);
+        int claimScoreCap = verificationSignalPolicy.claimScoreCap(llmVerified);
         System.out.println(String.format(
                 "[CLAIM SCORE][LLM] claimId=%s llmVerified=%s claimScoreCap=%d",
                 input.claimId(),
@@ -613,7 +607,6 @@ public class SkillVerificationScoringKernel {
                 .divide(SkillScoringPolicy.HUNDRED, SkillScoringPolicy.DIV_SCALE, RoundingMode.HALF_UP);
     }
 
-    // Placeholder seam for future LLM verification signal integration.
     private boolean isLlmVerified(SkillClaimInput input) {
         if (input == null || input.canonicalSkillId() == null) {
             return false;
@@ -622,7 +615,6 @@ public class SkillVerificationScoringKernel {
         if (evidenceLinks == null || evidenceLinks.isEmpty()) {
             return false;
         }
-
         return evidenceLinks.stream().anyMatch(this::isEligibleLlmVerificationSignal);
     }
 
@@ -630,35 +622,14 @@ public class SkillVerificationScoringKernel {
         if (link == null) {
             return false;
         }
-
-        String provider = normalizeLower(link.provider());
-        if (!LLM_VERIFIED_PROVIDER.equals(provider)) {
-            return false;
-        }
-
-        String linkType = normalizeLower(link.linkType());
-        if (!LLM_VERIFIED_LINK_TYPES.contains(linkType)) {
-            return false;
-        }
-
         BigDecimal confidence = link.linkConfidence() == null
                 ? SkillScoringPolicy.ZERO
                 : scoringPolicy.clamp01(link.linkConfidence());
-        return confidence.compareTo(LLM_VERIFIED_MIN_CONFIDENCE) >= 0;
-    }
-
-    private String normalizeLower(String value) {
-        if (value == null || value.isBlank()) {
-            return "";
-        }
-        return value.trim().toLowerCase(Locale.ROOT);
-    }
-
-    // Reserves expert-tier claim scores for LLM-verified claims.
-    private int resolveClaimScoreCap(boolean llmVerified) {
-        return llmVerified
-                ? SkillScoringPolicy.MAX_CLAIM_SCORE_WITH_LLM
-                : SkillScoringPolicy.MAX_CLAIM_SCORE_WITHOUT_LLM;
+        return verificationSignalPolicy.isEligibleForLlmVerification(
+                link.provider(),
+                link.linkType(),
+                confidence
+        );
     }
 
     private EvidenceSignalStats collectEvidenceSignalStats(List<EvidenceLinkSignal> evidenceLinks) {

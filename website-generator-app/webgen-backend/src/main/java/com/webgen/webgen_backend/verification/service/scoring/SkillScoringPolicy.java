@@ -103,15 +103,6 @@ public class SkillScoringPolicy {
      */
     public static final BigDecimal EVIDENCE_BOOST_CURVE_EXPONENT = new BigDecimal("1.35");
 
-    /**
-     * Pre-LLM hard ceiling for claim scores.
-     * Expert tier (81-100) is reserved for future LLM-backed verification.
-     */
-    public static final int MAX_CLAIM_SCORE_WITHOUT_LLM = 80;
-
-    /** Upper bound when LLM verification is available for a claim. */
-    public static final int MAX_CLAIM_SCORE_WITH_LLM = 100;
-
     /** Scale used for division to keep deterministic rounding behavior stable. */
     public static final int DIV_SCALE = 6;
 

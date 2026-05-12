@@ -4,6 +4,7 @@ import com.webgen.webgen_backend.verification.service.scoring.model.*;
 import com.webgen.webgen_backend.verification.service.scoring.SkillScoringPolicy;
 import com.webgen.webgen_backend.verification.service.scoring.SkillSuggestedActionRuleBook;
 import com.webgen.webgen_backend.verification.service.scoring.SkillVerificationScoringKernel;
+import com.webgen.webgen_backend.verification.service.scoring.VerificationSignalPolicy;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -21,6 +22,7 @@ class SkillVerificationScoringKernelTest {
     private final SkillVerificationScoringKernel kernel =
             new SkillVerificationScoringKernel(
                     new SkillScoringPolicy(),
+                    new VerificationSignalPolicy(),
                     new SkillSuggestedActionRuleBook(),
                     List.of()
             );
