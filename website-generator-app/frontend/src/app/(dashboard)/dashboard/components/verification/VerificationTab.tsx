@@ -369,6 +369,9 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
             <ResumeVerificationGuard
                 isExternalLoading={isInitialLoading}
                 onPostConfirmRefresh={handlePostConfirmRefresh}
+                evidence={evidenceItems}
+                isEvidenceLoading={isEvidenceLoading}
+                evidenceError={evidenceError}
             >
                 <VerificationEmptyState />
             </ResumeVerificationGuard>
@@ -379,6 +382,9 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
         <ResumeVerificationGuard
             isExternalLoading={isInitialLoading}
             onPostConfirmRefresh={handlePostConfirmRefresh}
+            evidence={evidenceItems}
+            isEvidenceLoading={isEvidenceLoading}
+            evidenceError={evidenceError}
         >
             <VerificationOverview
                 data={overview}
