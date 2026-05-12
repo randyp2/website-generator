@@ -245,11 +245,11 @@ class SkillVerificationScoringKernelTest {
         UUID skillId = UUID.randomUUID();
 
         List<EvidenceLinkSignal> manualUploadSignals = List.of(
-                evidence("1.0", "manual_upload", "dependency_match", new BigDecimal("0.95")),
-                evidence("1.0", "manual_upload", "dependency_match", new BigDecimal("0.95")),
-                evidence("1.0", "manual_upload", "dependency_match", new BigDecimal("0.95")),
-                evidence("1.0", "manual_upload", "dependency_match", new BigDecimal("0.95")),
-                evidence("1.0", "manual_upload", "dependency_match", new BigDecimal("0.95"))
+                evidence("1.0", "manual_upload", "llm_document_match", new BigDecimal("0.95")),
+                evidence("1.0", "manual_upload", "llm_document_match", new BigDecimal("0.95")),
+                evidence("1.0", "manual_upload", "llm_document_match", new BigDecimal("0.95")),
+                evidence("1.0", "manual_upload", "llm_document_match", new BigDecimal("0.95")),
+                evidence("1.0", "manual_upload", "llm_document_match", new BigDecimal("0.95"))
         );
         List<EvidenceLinkSignal> githubSignals = List.of(
                 evidence("1.0", "github", "dependency_match", new BigDecimal("0.95")),

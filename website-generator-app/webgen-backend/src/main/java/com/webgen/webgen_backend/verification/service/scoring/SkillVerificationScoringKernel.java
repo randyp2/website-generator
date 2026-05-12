@@ -27,7 +27,8 @@ public class SkillVerificationScoringKernel {
     private static final String LLM_VERIFIED_PROVIDER = "manual_upload";
     private static final Set<String> LLM_VERIFIED_LINK_TYPES = Set.of(
             "dependency_match",
-            "topic_match"
+            "topic_match",
+            "llm_document_match"
     );
     private static final BigDecimal LLM_VERIFIED_MIN_CONFIDENCE = new BigDecimal("0.85");
 

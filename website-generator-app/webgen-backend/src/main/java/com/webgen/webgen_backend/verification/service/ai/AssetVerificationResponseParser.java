@@ -98,14 +98,7 @@ public class AssetVerificationResponseParser {
     }
 
     private String mapEvidenceStrengthToLinkType(String evidenceStrength) {
-        return switch (evidenceStrength) {
-            case "DIRECT" -> "dependency_match";
-            case "STRONG" -> "topic_match";
-            case "MODERATE" -> "name_match";
-            case "WEAK" -> "description_match";
-            case "NONE" -> "language_plus_text_match";
-            default -> "name_match";
-        };
+        return "llm_document_match";
     }
 
     private String nonBlank(String value, String fallback) {

@@ -75,7 +75,8 @@ public class ClaimEvidenceScoringInputAssemblerServiceImpl
             "topic_match", new BigDecimal("0.85"),
             "name_match", new BigDecimal("0.72"),
             "description_match", new BigDecimal("0.58"),
-            "language_plus_text_match", new BigDecimal("0.48")
+            "language_plus_text_match", new BigDecimal("0.48"),
+            "llm_document_match", new BigDecimal("1.00")
     );
 
     /**
