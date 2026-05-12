@@ -39,7 +39,6 @@ public class EvidenceQueryServiceImpl implements EvidenceQueryService {
         if (evidenceRows.isEmpty()) {
             return EvidenceListResponseDTO.builder()
                     .items(List.of())
-                    .nextCursor(null)
                     .build();
         }
 
@@ -57,18 +56,13 @@ public class EvidenceQueryServiceImpl implements EvidenceQueryService {
 
         return EvidenceListResponseDTO.builder()
                 .items(items)
-                .nextCursor(null)
                 .build();
     }
 
-    /**
-     * Resolves evidence rows with optional provider filter.
-     */
     private List<Evidence> resolveEvidenceRows(UUID profileId, String provider) {
         if (provider == null || provider.isBlank()) {
             return evidenceRepository.findByProfileIdOrderByCapturedAtDesc(profileId);
         }
-
         String normalizedProvider = ProviderNormalizationHelper.normalizeProvider(
                 provider,
                 SUPPORTED_PROVIDERS
@@ -79,9 +73,6 @@ public class EvidenceQueryServiceImpl implements EvidenceQueryService {
         );
     }
 
-    /**
-     * Loads all claim-evidence links for the current evidence page in one query.
-     */
     private Map<UUID, List<ClaimEvidenceLink>> loadLinksByEvidenceId(
             UUID profileId,
             List<Evidence> evidenceRows
@@ -94,9 +85,6 @@ public class EvidenceQueryServiceImpl implements EvidenceQueryService {
                 .collect(Collectors.groupingBy(ClaimEvidenceLink::getEvidenceId));
     }
 
-    /**
-     * Maps a persistence evidence row and links to API DTO.
-     */
     private EvidenceDTO toDto(
             UUID profileId,
             Evidence evidence,
@@ -125,9 +113,6 @@ public class EvidenceQueryServiceImpl implements EvidenceQueryService {
                 .build();
     }
 
-    /**
-     * Maps claim-evidence link row to lightweight evidence link DTO.
-     */
     private EvidenceLinkDTO toLinkDto(ClaimEvidenceLink link) {
         return EvidenceLinkDTO.builder()
                 .claimId(link.getClaimId())

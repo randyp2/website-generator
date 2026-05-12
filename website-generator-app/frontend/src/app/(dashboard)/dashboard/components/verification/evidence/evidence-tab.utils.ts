@@ -217,3 +217,15 @@ export const FILE_TYPE_CONFIG: Record<EvidenceFileType, FileTypeConfig> = {
   document:   { bgClass: "bg-blue-500/15 text-blue-600 dark:text-blue-400",       label: "Doc"   },
   other:      { bgClass: "bg-muted text-muted-foreground",                         label: "File"  },
 }
+
+// ─── Evidence mapping helpers ─────────────────────────────────────────────────
+
+export const confidenceToQuality = (confidence: number | null | undefined): import("../verification.types").QualityFlag => {
+  if (typeof confidence !== "number") return "low"
+  if (confidence >= 0.85) return "high"
+  if (confidence >= 0.6) return "medium"
+  return "low"
+}
+
+export const toEvidenceItemDate = (evidence: import("@/types/evidence").EvidenceDTO): string =>
+  evidence.occurredAt ?? evidence.capturedAt ?? evidence.createdAt

@@ -16,6 +16,7 @@ import com.webgen.webgen_backend.verification.service.impl.SkillVerificationSumm
 import com.webgen.webgen_backend.verification.service.scoring.SkillScoringPolicy;
 import com.webgen.webgen_backend.verification.service.scoring.SkillSuggestedActionRuleBook;
 import com.webgen.webgen_backend.verification.service.scoring.SkillVerificationScoringKernel;
+import com.webgen.webgen_backend.verification.service.scoring.VerificationSignalPolicy;
 import com.webgen.webgen_backend.verification.service.scoring.model.SkillClaimInput;
 import com.webgen.webgen_backend.verification.service.scoring.model.SkillScoreSummary;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,7 @@ class SkillVerificationSummaryServiceImplTest {
     private final SkillVerificationScoringKernel kernel =
             new SkillVerificationScoringKernel(
                     new SkillScoringPolicy(),
+                    new VerificationSignalPolicy(),
                     new SkillSuggestedActionRuleBook(),
                     List.of()
             );

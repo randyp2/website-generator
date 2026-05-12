@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { LayoutGrid, List } from "lucide-react"
+import { LayoutGrid, List, ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 import EvidenceDetailDialog from "../EvidenceDetailDialog"
@@ -22,6 +22,8 @@ import {
   deriveStats,
   deriveProviderCategoryCounts,
 } from "./evidence-tab.utils"
+
+const ITEMS_PER_PAGE = 10
 
 // ─── View mode toggle ─────────────────────────────────────────────────────────
 
@@ -59,16 +61,45 @@ const ViewModeToggle = ({ active, onChange }: ViewModeToggleProps) => (
   </div>
 )
 
+// ─── Pagination controls ──────────────────────────────────────────────────────
+
+interface PaginationProps {
+  currentPage: number
+  totalPages: number
+  onPrev: () => void
+  onNext: () => void
+}
+
+const Pagination = ({ currentPage, totalPages, onPrev, onNext }: PaginationProps) => (
+  <div className="flex items-center justify-center gap-3 pt-2">
+    <button
+      onClick={onPrev}
+      disabled={currentPage === 1}
+      className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+    >
+      <ChevronLeft className="h-3.5 w-3.5" />
+      Prev
+    </button>
+    <span className="text-xs text-muted-foreground">
+      {currentPage} / {totalPages}
+    </span>
+    <button
+      onClick={onNext}
+      disabled={currentPage === totalPages}
+      className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+    >
+      Next
+      <ChevronRight className="h-3.5 w-3.5" />
+    </button>
+  </div>
+)
+
 // ─── Evidence detail adapter ──────────────────────────────────────────────────
-// EvidenceDetailDialog expects an EvidenceItem, but we work with EvidenceDocument
-// internally. Map back so we can reuse the existing dialog without forking it.
 
 const toEvidenceItemForDialog = (
   doc: EvidenceDocument,
   originalItems: EvidenceItem[],
-): EvidenceItem | null => {
-  return originalItems.find((item) => item.id === doc.id) ?? null
-}
+): EvidenceItem | null => originalItems.find((item) => item.id === doc.id) ?? null
 
 // ─── Panel ────────────────────────────────────────────────────────────────────
 
@@ -77,13 +108,13 @@ const EvidenceTabPanel = ({ evidence, isLoading, error }: EvidenceTabPanelProps)
   const [activeSource, setActiveSource] = useState<EvidenceSource | "all">("all")
   const [viewMode, setViewMode] = useState<EvidenceViewMode>("grid")
   const [selectedDoc, setSelectedDoc] = useState<EvidenceDocument | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
 
   const documents = useMemo(
     () => evidence.map(toEvidenceDocument),
     [evidence],
   )
 
-  // Provider category filter is applied first, then the source sidebar refines within it.
   const categoryFilteredDocuments = useMemo(
     () => filterByProviderCategory(documents, providerCategory),
     [documents, providerCategory],
@@ -94,7 +125,6 @@ const EvidenceTabPanel = ({ evidence, isLoading, error }: EvidenceTabPanelProps)
     [documents],
   )
 
-  // Source sidebar options are derived from the category-filtered set so counts stay accurate.
   const sourceFilters = useMemo(
     () => buildSourceFilters(categoryFilteredDocuments),
     [categoryFilteredDocuments],
@@ -105,12 +135,24 @@ const EvidenceTabPanel = ({ evidence, isLoading, error }: EvidenceTabPanelProps)
     [categoryFilteredDocuments, activeSource],
   )
 
+  const totalPages = Math.max(1, Math.ceil(filteredDocuments.length / ITEMS_PER_PAGE))
+
+  const pagedDocuments = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE
+    return filteredDocuments.slice(start, start + ITEMS_PER_PAGE)
+  }, [filteredDocuments, currentPage])
+
   const stats = useMemo(() => deriveStats(documents), [documents])
 
-  // Reset source filter when provider category changes so stale selections don't persist.
   const handleProviderCategoryChange = (category: EvidenceProviderCategory) => {
     setProviderCategory(category)
     setActiveSource("all")
+    setCurrentPage(1)
+  }
+
+  const handleSourceChange = (source: EvidenceSource | "all") => {
+    setActiveSource(source)
+    setCurrentPage(1)
   }
 
   const selectedEvidenceItem = useMemo(
@@ -118,13 +160,8 @@ const EvidenceTabPanel = ({ evidence, isLoading, error }: EvidenceTabPanelProps)
     [selectedDoc, evidence],
   )
 
-  const handleDocumentClick = (doc: EvidenceDocument) => {
-    setSelectedDoc(doc)
-  }
-
-  const handleDialogClose = (open: boolean) => {
-    if (!open) setSelectedDoc(null)
-  }
+  const handleDocumentClick = (doc: EvidenceDocument) => setSelectedDoc(doc)
+  const handleDialogClose = (open: boolean) => { if (!open) setSelectedDoc(null) }
 
   if (isLoading) {
     return (
@@ -148,7 +185,6 @@ const EvidenceTabPanel = ({ evidence, isLoading, error }: EvidenceTabPanelProps)
 
   return (
     <div className="space-y-5">
-      {/* Stats bar */}
       <EvidenceTabStatsBar
         total={stats.total}
         linked={stats.linked}
@@ -156,25 +192,20 @@ const EvidenceTabPanel = ({ evidence, isLoading, error }: EvidenceTabPanelProps)
         aiVerified={stats.aiVerified}
       />
 
-      {/* Provider category filter */}
       <EvidenceProviderFilter
         active={providerCategory}
         counts={providerCategoryCounts}
         onChange={handleProviderCategoryChange}
       />
 
-      {/* Main layout: sidebar + document area */}
       <div className="flex gap-6">
-        {/* Source sidebar */}
         <EvidenceSourceSidebar
           filters={sourceFilters}
           active={activeSource}
-          onChange={setActiveSource}
+          onChange={handleSourceChange}
         />
 
-        {/* Document area */}
         <div className="min-w-0 flex-1 space-y-3">
-          {/* Toolbar */}
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-foreground">
               {filteredDocuments.length}{" "}
@@ -183,16 +214,23 @@ const EvidenceTabPanel = ({ evidence, isLoading, error }: EvidenceTabPanelProps)
             <ViewModeToggle active={viewMode} onChange={setViewMode} />
           </div>
 
-          {/* Grid or list */}
           <EvidenceDocumentGrid
-            documents={filteredDocuments}
+            documents={pagedDocuments}
             viewMode={viewMode}
             onDocumentClick={handleDocumentClick}
           />
+
+          {totalPages > 1 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPrev={() => setCurrentPage((p) => p - 1)}
+              onNext={() => setCurrentPage((p) => p + 1)}
+            />
+          )}
         </div>
       </div>
 
-      {/* Reuse existing detail dialog */}
       <EvidenceDetailDialog
         evidence={selectedEvidenceItem}
         onOpenChange={handleDialogClose}

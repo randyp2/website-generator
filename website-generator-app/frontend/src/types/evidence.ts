@@ -24,5 +24,4 @@ export interface EvidenceDTO {
 
 export interface EvidenceListResponseDTO {
   items: EvidenceDTO[]
-  nextCursor: string | null
 }

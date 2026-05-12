@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type {
     EvidenceItem,
-    EvidenceType,
     FilterOption,
     QualityFlag,
     VerificationTabProps,
@@ -17,7 +16,6 @@ import {
 } from "./verification.utils";
 import useVerificationSummary from "./useVerificationSummary";
 import type { ClaimDTO } from "@/types/claim";
-import type { EvidenceDTO } from "@/types/evidence";
 
 import {
     VerificationEmptyState,
@@ -28,7 +26,6 @@ import VerificationOverview from "./VerificationOverview";
 import ConnectionsPanel from "./ConnectionsPanel";
 import SkillLeaderboard from "./SkillLeaderboard";
 import SkillCharts from "./SkillCharts";
-import EvidenceTable from "./EvidenceTable";
 import SkillDetailDrawer from "./SkillDetailDrawer";
 import ScoringTransparency from "./ScoringTransparency";
 import ResumeVerificationGuard from "./ResumeVerificationGuard";
@@ -55,16 +52,10 @@ const confidenceToQuality = (
     return "low";
 };
 
-const toEvidenceItemDate = (evidence: EvidenceDTO): string =>
-    evidence.occurredAt ?? evidence.capturedAt ?? evidence.createdAt;
-
 const VerificationTab = ({ userId }: VerificationTabProps) => {
     void userId;
 
     const [activeFilter, setActiveFilter] = useState<FilterOption>("all");
-    const [activeEvidenceTypeFilter, setActiveEvidenceTypeFilter] = useState<
-        EvidenceType | "all"
-    >("all");
     const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [isRerunningChecks, setIsRerunningChecks] = useState(false);
@@ -101,8 +92,7 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
         setSelectedSkillId(null);
         refetch();
         refetchClaims();
-        refetchEvidence();
-    }, [refetch, refetchClaims, refetchEvidence]);
+    }, [refetch, refetchClaims]);
     const {
         isDeletingClaim,
         deleteError,
@@ -123,7 +113,6 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
             if (hasEnteredSkillVerificationRef.current) {
                 refetch();
                 refetchClaims();
-                refetchEvidence();
                 refetchConnections();
             }
             hasEnteredSkillVerificationRef.current = true;
@@ -133,7 +122,6 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
         refetch,
         refetchClaims,
         refetchConnections,
-        refetchEvidence,
     ]);
 
     const claimById = useMemo(
@@ -217,72 +205,67 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
         }));
     }, [selectedClaim, selectedSkill]);
 
+    const toEvidenceItemDate = (e: typeof rawEvidence[0]) =>
+        e.occurredAt ?? e.capturedAt ?? e.createdAt;
+
     const evidenceItems = useMemo<EvidenceItem[]>(() => {
         return rawEvidence.flatMap((evidence): EvidenceItem[] => {
-            const baseType = mapBackendEvidenceTypeToUiType(
-                evidence.evidenceType,
-            );
-            const baseDescription =
-                evidence.title ?? evidence.description ?? evidence.externalId;
             const baseDate = toEvidenceItemDate(evidence);
+            const baseDescription = evidence.title ?? evidence.description ?? evidence.externalId;
 
             if (!evidence.links || evidence.links.length === 0) {
-                return [
-                    {
-                        id: evidence.id,
-                        evidenceId: evidence.id,
-                        skillId: "unlinked",
-                        skillName: "Unlinked",
-                        type: baseType,
-                        source: evidence.provider,
-                        title: evidence.title,
-                        externalId: evidence.externalId,
-                        description: baseDescription,
-                        date: baseDate,
-                        occurredAt: evidence.occurredAt,
-                        capturedAt: evidence.capturedAt,
-                        createdAt: evidence.createdAt,
-                        updatedAt: evidence.updatedAt,
-                        quality: "low",
-                        linkType: null,
-                        linkConfidence: null,
-                        linkReason: null,
-                        metadata: evidence.metadata,
-                        url: evidence.sourceUrl,
-                    },
-                ];
-            }
-
-            return evidence.links.map((link) => {
-                const linkedClaim: ClaimDTO | undefined = claimById.get(
-                    link.claimId,
-                );
-                return {
-                    id: `${evidence.id}:${link.claimId}`,
+                return [{
+                    id: evidence.id,
                     evidenceId: evidence.id,
-                    skillId: link.claimId,
-                    skillName:
-                        linkedClaim?.canonicalSkillName ??
-                        linkedClaim?.rawValue ??
-                        "Linked claim",
-                    type: baseType,
+                    skillId: "unlinked",
+                    skillName: "Unlinked",
+                    type: mapBackendEvidenceTypeToUiType(evidence.evidenceType),
                     source: evidence.provider,
                     title: evidence.title,
                     externalId: evidence.externalId,
-                    description: link.reason ?? baseDescription,
+                    description: baseDescription,
                     date: baseDate,
                     occurredAt: evidence.occurredAt,
                     capturedAt: evidence.capturedAt,
                     createdAt: evidence.createdAt,
                     updatedAt: evidence.updatedAt,
-                    quality: confidenceToQuality(link.linkConfidence),
-                    linkType: link.linkType,
-                    linkConfidence: link.linkConfidence,
-                    linkReason: link.reason,
+                    quality: "low",
+                    linkType: null,
+                    linkConfidence: null,
+                    linkReason: null,
                     metadata: evidence.metadata,
                     url: evidence.sourceUrl,
-                };
-            });
+                }];
+            }
+
+            // One card per evidence row — pick the highest-confidence link.
+            const primaryLink = evidence.links.reduce(
+                (best, link) => (link.linkConfidence > (best?.linkConfidence ?? -1) ? link : best),
+                evidence.links[0],
+            );
+            const linkedClaim = claimById.get(primaryLink.claimId);
+            return [{
+                id: evidence.id,
+                evidenceId: evidence.id,
+                skillId: primaryLink.claimId,
+                skillName: linkedClaim?.canonicalSkillName ?? linkedClaim?.rawValue ?? "Linked claim",
+                type: mapBackendEvidenceTypeToUiType(evidence.evidenceType),
+                source: evidence.provider,
+                title: evidence.title,
+                externalId: evidence.externalId,
+                description: primaryLink.reason ?? baseDescription,
+                date: baseDate,
+                occurredAt: evidence.occurredAt,
+                capturedAt: evidence.capturedAt,
+                createdAt: evidence.createdAt,
+                updatedAt: evidence.updatedAt,
+                quality: confidenceToQuality(primaryLink.linkConfidence),
+                linkType: primaryLink.linkType,
+                linkConfidence: primaryLink.linkConfidence,
+                linkReason: primaryLink.reason,
+                metadata: evidence.metadata,
+                url: evidence.sourceUrl,
+            }];
         });
     }, [rawEvidence, claimById]);
 
@@ -327,7 +310,6 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
                 refetch(),
                 refetchConnections(),
                 refetchClaims(),
-                refetchEvidence(),
             ]);
         } catch (error) {
             setRerunChecksError(
@@ -344,7 +326,6 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
         refetch,
         refetchClaims,
         refetchConnections,
-        refetchEvidence,
     ]);
 
     // Refresh verification data right after claim ingestion succeeds so the
@@ -353,10 +334,9 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
         await Promise.all([
             refetch(),
             refetchClaims(),
-            refetchEvidence(),
             refetchConnections(),
         ]);
-    }, [refetch, refetchClaims, refetchEvidence, refetchConnections]);
+    }, [refetch, refetchClaims, refetchConnections]);
 
     if (error) {
         return (
@@ -383,8 +363,8 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
             isExternalLoading={isInitialLoading}
             onPostConfirmRefresh={handlePostConfirmRefresh}
             evidence={evidenceItems}
-            isEvidenceLoading={isEvidenceLoading}
-            evidenceError={evidenceError}
+                isEvidenceLoading={isEvidenceLoading}
+                evidenceError={evidenceError}
         >
             <VerificationOverview
                 data={overview}
@@ -424,12 +404,7 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
                     Could not refresh claim evidence links yet.
                 </p>
             )}
-            {evidenceError && (
-                <p className="text-xs text-muted-foreground">
-                    Could not refresh evidence list yet.
-                </p>
-            )}
-            {(isClaimsLoading || isEvidenceLoading) && (
+            {isClaimsLoading && (
                 <p className="text-xs text-muted-foreground">
                     Refreshing linked evidence...
                 </p>
@@ -441,11 +416,6 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
             />
 
             <SkillCharts skills={filteredSkills} />
-            <EvidenceTable
-                evidence={evidenceItems}
-                activeTypeFilter={activeEvidenceTypeFilter}
-                onTypeFilterChange={setActiveEvidenceTypeFilter}
-            />
 
             <ScoringTransparency summary={summary} />
 

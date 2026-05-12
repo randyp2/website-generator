@@ -9,5 +9,4 @@ import java.util.List;
 @Builder
 public class EvidenceListResponseDTO {
     private List<EvidenceDTO> items;
-    private String nextCursor;
 }
