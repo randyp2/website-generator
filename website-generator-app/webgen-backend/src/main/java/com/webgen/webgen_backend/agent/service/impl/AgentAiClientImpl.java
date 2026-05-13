@@ -57,7 +57,7 @@ public class AgentAiClientImpl implements AgentAiClient {
                         .toolCallId(toolCall.id())
                         .type(toolCall.type())
                         .toolName(toolCall.name())
-                        .arguementsJson(toolCall.arguments())
+                        .argumentsJson(toolCall.arguments())
                         .build())
                 .toList();
 

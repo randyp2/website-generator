@@ -30,7 +30,7 @@ public class AgentAiResponseDTO {
         private String toolCallId;
         private String type; // "function", "db look up"
         private String toolName; // "style chat planner"
-        private String arguementsJson; // arg needed for tool
+        private String argumentsJson; // arg needed for tool
     }
 
 }
