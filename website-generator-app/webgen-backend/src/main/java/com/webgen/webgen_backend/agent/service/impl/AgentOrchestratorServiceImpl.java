@@ -20,6 +20,7 @@ import com.webgen.webgen_backend.agent.repository.AgentSessionRepository;
 import com.webgen.webgen_backend.agent.service.AgentAiClient;
 import com.webgen.webgen_backend.agent.service.AgentOrchestratorService;
 import com.webgen.webgen_backend.agent.service.AgentPromptBuilder;
+import com.webgen.webgen_backend.agent.service.parser.AgentResponseParser;
 import com.webgen.webgen_backend.portfolio.entity.Portfolio;
 import com.webgen.webgen_backend.portfolio.repository.PortfolioRepository;
 import lombok.RequiredArgsConstructor;
@@ -45,6 +46,7 @@ public class AgentOrchestratorServiceImpl implements AgentOrchestratorService {
     private final AgentRunRepository agentRunRepository;
     private final AgentPromptBuilder agentPromptBuilder;
     private final AgentAiClient agentAiClient;
+    private final AgentResponseParser agentResponseParser;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -75,7 +77,9 @@ public class AgentOrchestratorServiceImpl implements AgentOrchestratorService {
         Prompt turnPrompt = agentPromptBuilder.buildTurnPrompt(activeSession, history, normalizedUserMessage);
 
         AgentAiResponseDTO aiResponse = invokeAiTurn(activeSession, run, ownedPortfolio, turnPrompt);
-        AgentAssistantPayloadDTO payload = parseAssistantPayload(aiResponse);
+        AgentAssistantPayloadDTO payload = agentResponseParser.parseAssistantPayload(aiResponse);
+
+        // --- Update the session row given response
         applySessionUpdatesFromPayload(activeSession, payload);
         String assistantReply = payload.getAssistantMessage();
 
@@ -231,34 +235,6 @@ public class AgentOrchestratorServiceImpl implements AgentOrchestratorService {
                 "portfolioId", portfolio.getId().toString(),
                 "userId", portfolio.getUserId().toString(),
                 "sessionStage", session.getStage().name());
-    }
-
-    /**
-     * Parses structured assistant payload returned by the AI call.
-     */
-    private AgentAssistantPayloadDTO parseAssistantPayload(AgentAiResponseDTO response) {
-        if (response == null || response.getAssistedText() == null || response.getAssistedText().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "AI client returned empty structured payload");
-        }
-
-        AgentAssistantPayloadDTO payload;
-        try {
-            payload = objectMapper.readValue(response.getAssistedText(), AgentAssistantPayloadDTO.class);
-        } catch (Exception exception) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_GATEWAY,
-                    "AI client returned invalid JSON payload",
-                    exception
-            );
-        }
-
-        String assistantMessage = payload.getAssistantMessage();
-        if (assistantMessage == null || assistantMessage.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "AI payload missing assistant_message");
-        }
-
-        payload.setAssistantMessage(assistantMessage.trim());
-        return payload;
     }
 
     /**

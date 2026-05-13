@@ -9,6 +9,10 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Internal payload used for the orchestrator
+ */
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
