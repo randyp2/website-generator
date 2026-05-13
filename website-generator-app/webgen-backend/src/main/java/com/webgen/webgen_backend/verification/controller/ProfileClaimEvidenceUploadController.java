@@ -1,6 +1,5 @@
 package com.webgen.webgen_backend.verification.controller;
 
-import com.webgen.webgen_backend.verification.dto.evidence.ClaimEvidenceUploadDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.ClaimEvidenceUploadDownloadUrlResponseDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.ClaimEvidenceUploadListResponseDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.CreateClaimEvidenceUploadPresignRequestDTO;
@@ -31,74 +30,63 @@ public class ProfileClaimEvidenceUploadController {
     @PostMapping("/presign")
     public ResponseEntity<CreateClaimEvidenceUploadPresignResponseDTO> createUploadPresign(
             @PathVariable UUID claimId,
-            @RequestBody CreateClaimEvidenceUploadPresignRequestDTO request
-    ) {
+            @RequestBody CreateClaimEvidenceUploadPresignRequestDTO request) {
         UUID userId = resolveAuthenticatedUserId();
         CreateClaimEvidenceUploadPresignResponseDTO response = claimEvidenceUploadService.createUploadPresign(
                 userId,
                 claimId,
-                request
-        );
+                request);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/finalize")
     public ResponseEntity<FinalizeClaimEvidenceUploadResponseDTO> finalizeUpload(
             @PathVariable UUID claimId,
-            @RequestBody FinalizeClaimEvidenceUploadRequestDTO request
-    ) {
+            @RequestBody FinalizeClaimEvidenceUploadRequestDTO request) {
         UUID userId = resolveAuthenticatedUserId();
         FinalizeClaimEvidenceUploadResponseDTO response = claimEvidenceUploadService.finalizeUpload(
                 userId,
                 claimId,
-                request
-        );
+                request);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping
     public ResponseEntity<ClaimEvidenceUploadListResponseDTO> listClaimUploads(
-            @PathVariable UUID claimId
-    ) {
+            @PathVariable UUID claimId) {
         UUID userId = resolveAuthenticatedUserId();
         ClaimEvidenceUploadListResponseDTO response = claimEvidenceUploadService.listClaimUploads(
                 userId,
-                claimId
-        );
+                claimId);
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{uploadId}")
     public ResponseEntity<Void> deleteUpload(
             @PathVariable UUID claimId,
-            @PathVariable UUID uploadId
-    ) {
+            @PathVariable UUID uploadId) {
         UUID userId = resolveAuthenticatedUserId();
         claimEvidenceUploadService.deleteUpload(
                 userId,
                 claimId,
-                uploadId
-        );
+                uploadId);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{uploadId}/download-url")
     public ResponseEntity<ClaimEvidenceUploadDownloadUrlResponseDTO> createDownloadUrl(
             @PathVariable UUID claimId,
-            @PathVariable UUID uploadId
-    ) {
+            @PathVariable UUID uploadId) {
         UUID userId = resolveAuthenticatedUserId();
         ClaimEvidenceUploadDownloadUrlResponseDTO response = claimEvidenceUploadService.createDownloadUrl(
                 userId,
                 claimId,
-                uploadId
-        );
+                uploadId);
         return ResponseEntity.ok(response);
     }
 
     private UUID resolveAuthenticatedUserId() {
         return UUID.fromString(
-                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
-        );
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
     }
 }
