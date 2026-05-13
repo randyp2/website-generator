@@ -76,8 +76,11 @@
             <artifactId>spring-ai-starter-model-anthropic</artifactId>
         </dependency>
 
-
-        <!-- ai dependency -->
+        <!-- Google Gemini AI dependency -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-google-genai</artifactId>
+        </dependency>
 
         <!-- Mapstruct dependency -->
         <dependency>
@@ -94,33 +97,27 @@
         <!-- Mapstruct dependency -->
 
         <!-- JWT Api -->
-        <!-- https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt-api -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
             <version>0.12.6</version>
         </dependency>
-        <!-- JWT Api -->
 
         <!-- JWT Impl -->
-        <!-- https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt-impl -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-impl</artifactId>
             <version>0.12.6</version>
             <scope>runtime</scope>
         </dependency>
-        <!-- JWT Impl -->
 
         <!-- JWT Jackson -->
-        <!-- https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt-jackson -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-jackson</artifactId>
             <version>0.12.6</version>
             <scope>runtime</scope>
         </dependency>
-        <!-- JWT Jackson -->
 
         <!-- Spring Security -->
         <dependency>
@@ -132,7 +129,6 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Spring Security -->
 
         <!-- Nimbus dependency -->
         <dependency>
@@ -140,15 +136,14 @@
             <artifactId>nimbus-jose-jwt</artifactId>
             <version>10.5</version>
         </dependency>
-        <!-- Nimbus dependency -->
 
-        <!-- https://mvnrepository.com/artifact/org.apache.pdfbox/pdfbox -->
+        <!-- Pdf box to parse pdfs  -->
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
             <artifactId>pdfbox</artifactId>
             <version>3.0.3</version>
         </dependency>
-        <!-- Pdf box to parse pdfs  -->
+
 
         <!-- JPA Dependency -->
         <dependency>
@@ -201,11 +196,19 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Source: https://mvnrepository.com/artifact/com.stripe/stripe-java -->
+        <!-- Stripe for payments  -->
         <dependency>
             <groupId>com.stripe</groupId>
             <artifactId>stripe-java</artifactId>
             <version>32.0.0</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- AWS S3 for blob storage -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <version>2.42.41</version>
             <scope>compile</scope>
         </dependency>
         

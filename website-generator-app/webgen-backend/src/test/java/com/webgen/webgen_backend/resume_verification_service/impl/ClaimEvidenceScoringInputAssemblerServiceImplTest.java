@@ -7,6 +7,7 @@ import com.webgen.webgen_backend.verification.repository.EvidenceRepository;
 import com.webgen.webgen_backend.verification.service.scoring.model.EvidenceLinkSignal;
 import com.webgen.webgen_backend.verification.service.scoring.model.SkillClaimInput;
 import com.webgen.webgen_backend.verification.service.impl.ClaimEvidenceScoringInputAssemblerServiceImpl;
+import com.webgen.webgen_backend.verification.service.scoring.VerificationSignalPolicy;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
@@ -41,7 +42,8 @@ class ClaimEvidenceScoringInputAssemblerServiceImplTest {
 
         ClaimEvidenceScoringInputAssemblerServiceImpl assembler = new ClaimEvidenceScoringInputAssemblerServiceImpl(
                 stubClaimEvidenceLinkRepository(links),
-                stubEvidenceRepository(evidenceRows)
+                stubEvidenceRepository(evidenceRows),
+                new VerificationSignalPolicy()
         );
 
         List<SkillClaimInput> out = assembler.assembleSkillClaimInputs(
@@ -89,7 +91,8 @@ class ClaimEvidenceScoringInputAssemblerServiceImplTest {
 
         ClaimEvidenceScoringInputAssemblerServiceImpl assembler = new ClaimEvidenceScoringInputAssemblerServiceImpl(
                 stubClaimEvidenceLinkRepository(links),
-                stubEvidenceRepository(evidenceRows)
+                stubEvidenceRepository(evidenceRows),
+                new VerificationSignalPolicy()
         );
 
         List<SkillClaimInput> out = assembler.assembleSkillClaimInputs(
@@ -126,7 +129,8 @@ class ClaimEvidenceScoringInputAssemblerServiceImplTest {
 
         ClaimEvidenceScoringInputAssemblerServiceImpl assembler = new ClaimEvidenceScoringInputAssemblerServiceImpl(
                 stubClaimEvidenceLinkRepository(List.of(link)),
-                stubEvidenceRepository(List.of(evidence))
+                stubEvidenceRepository(List.of(evidence)),
+                new VerificationSignalPolicy()
         );
 
         List<SkillClaimInput> out = assembler.assembleSkillClaimInputs(

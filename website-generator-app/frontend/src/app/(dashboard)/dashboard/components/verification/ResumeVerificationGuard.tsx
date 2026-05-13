@@ -11,6 +11,8 @@ import { VerificationLoadingSpinner } from "./VerificationEmptyState";
 import useResumeVerification from "./useResumeVerification";
 import useVerificationSubTab from "./useVerificationSubTab";
 import type { VerificationSubTab } from "./useVerificationSubTab";
+import EvidenceTabPanel from "./evidence/EvidenceTabPanel";
+import type { EvidenceItem } from "./verification.types";
 
 // ─── Sub-tab definitions ─────────────────────────────────────────────
 
@@ -18,6 +20,7 @@ const SUB_TABS: { id: VerificationSubTab; label: string }[] = [
     { id: "resume-review", label: "Resume Review" },
     { id: "skill-review", label: "Skill Review" },
     { id: "skill-verification", label: "Skill Verification" },
+    { id: "evidence", label: "Evidence" },
 ];
 
 // ─── Component ───────────────────────────────────────────────────────
@@ -26,6 +29,9 @@ interface ResumeVerificationGuardProps {
     children: React.ReactNode;
     isExternalLoading?: boolean;
     onPostConfirmRefresh?: () => Promise<void> | void;
+    evidence?: EvidenceItem[];
+    isEvidenceLoading?: boolean;
+    evidenceError?: string | null;
 }
 
 /**
@@ -43,6 +49,9 @@ const ResumeVerificationGuard = ({
     children,
     isExternalLoading = false,
     onPostConfirmRefresh,
+    evidence = [],
+    isEvidenceLoading = false,
+    evidenceError = null,
 }: ResumeVerificationGuardProps) => {
     const { activeTab, setActiveTab, hasExplicitTab } = useVerificationSubTab();
     const setActiveTabAndTrack = useCallback(
@@ -193,6 +202,15 @@ const ResumeVerificationGuard = ({
 
             {/* Step 3 — The actual verification UI (passed as children) */}
             {activeTab === "skill-verification" && children}
+
+            {/* Evidence tab — document manager for all uploaded and linked evidence */}
+            {activeTab === "evidence" && (
+                <EvidenceTabPanel
+                    evidence={evidence}
+                    isLoading={isEvidenceLoading}
+                    error={evidenceError}
+                />
+            )}
         </div>
     );
 };

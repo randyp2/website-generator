@@ -25,6 +25,12 @@ public class RabbitMQConfig {
     public static final String SCREENSHOT_DLQ = "portfolio.screenshot.dlq";
     public static final String SCREENSHOT_DLQ_ROUTING_KEY = "portfolio.screenshot.dead";
 
+    // Asset verification queue
+    public static final String ASSET_VERIFICATION_QUEUE = "verification.asset.queue";
+    public static final String ASSET_VERIFICATION_ROUTING_KEY = "verification.asset";
+    public static final String ASSET_VERIFICATION_DLQ = "verification.asset.dlq";
+    public static final String ASSET_VERIFICATION_DLQ_ROUTING_KEY = "verification.asset.dead";
+
     // Exchange for DLQ
     public static final String DLX = "portfolio.dlx";
     // Dead letter queue for retries/inspections
@@ -93,6 +99,36 @@ public class RabbitMQConfig {
     @Bean
     public Binding screenshotDlqBinding(Queue screenshotDeadLetterQueue, DirectExchange deadLetterExchange) {
         return BindingBuilder.bind(screenshotDeadLetterQueue).to(deadLetterExchange).with(SCREENSHOT_DLQ_ROUTING_KEY);
+    }
+
+    /* ======== ASSET VERIFICATION QUEUE ======== */
+    @Bean
+    public Queue assetVerificationQueue() {
+        return QueueBuilder.durable(ASSET_VERIFICATION_QUEUE)
+                .withArgument("x-dead-letter-exchange", DLX)
+                .withArgument("x-dead-letter-routing-key", ASSET_VERIFICATION_DLQ_ROUTING_KEY)
+                .build();
+    }
+
+    @Bean
+    public Binding assetVerificationBinding(Queue assetVerificationQueue, DirectExchange exchange) {
+        return BindingBuilder.bind(assetVerificationQueue).to(exchange).with(ASSET_VERIFICATION_ROUTING_KEY);
+    }
+
+    @Bean
+    public Queue assetVerificationDeadLetterQueue() {
+        return QueueBuilder.durable(ASSET_VERIFICATION_DLQ)
+                .withArgument("x-message-ttl", 86400000) // 24 hours
+                .build();
+    }
+
+    @Bean
+    public Binding assetVerificationDlqBinding(
+            Queue assetVerificationDeadLetterQueue,
+            DirectExchange deadLetterExchange) {
+        return BindingBuilder.bind(assetVerificationDeadLetterQueue)
+                .to(deadLetterExchange)
+                .with(ASSET_VERIFICATION_DLQ_ROUTING_KEY);
     }
 
     /* ======== DEAD LETTER QUEUE ======== */

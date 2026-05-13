@@ -1,8 +1,10 @@
 package com.webgen.webgen_backend.portfolio.dto;
 
+import lombok.Builder;
 import lombok.Data;
 
 @Data
+@Builder
 public class JobStatusDTO {
 
     /* --- LIST OF POSSIBLE JOB STATUS --- */

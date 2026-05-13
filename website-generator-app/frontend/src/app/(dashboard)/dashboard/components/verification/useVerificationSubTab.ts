@@ -3,11 +3,12 @@
 import { useCallback } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-/** The three sequential steps of the resume verification workflow. */
+/** All verification sub-tabs. The first three are sequential setup steps; evidence is a peer tab. */
 export type VerificationSubTab =
     | "resume-review"
     | "skill-review"
-    | "skill-verification";
+    | "skill-verification"
+    | "evidence";
 
 const QUERY_KEY = "verificationTab";
 const DEFAULT_TAB: VerificationSubTab = "resume-review";
@@ -17,7 +18,8 @@ const isVerificationSubTab = (
 ): value is VerificationSubTab =>
     value === "resume-review" ||
     value === "skill-review" ||
-    value === "skill-verification";
+    value === "skill-verification" ||
+    value === "evidence";
 
 /**
  * Manages the active verification sub-tab via a URL query parameter.

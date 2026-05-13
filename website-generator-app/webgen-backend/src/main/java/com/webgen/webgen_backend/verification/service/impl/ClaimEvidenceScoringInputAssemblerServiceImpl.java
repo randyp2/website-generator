@@ -7,6 +7,7 @@ import com.webgen.webgen_backend.verification.entity.Skill;
 import com.webgen.webgen_backend.verification.repository.ClaimEvidenceLinkRepository;
 import com.webgen.webgen_backend.verification.repository.EvidenceRepository;
 import com.webgen.webgen_backend.verification.service.ClaimEvidenceScoringInputAssemblerService;
+import com.webgen.webgen_backend.verification.service.scoring.VerificationSignalPolicy;
 import com.webgen.webgen_backend.verification.service.scoring.model.EvidenceLinkSignal;
 import com.webgen.webgen_backend.verification.service.scoring.model.SkillClaimInput;
 import lombok.RequiredArgsConstructor;
@@ -46,35 +47,14 @@ public class ClaimEvidenceScoringInputAssemblerServiceImpl
      *
      *
      * Decision rationale:
-     * - lambda=0.00257 yields a half-life close to 270 days because
+     * - lambda=0.00095 yields a half-life close to 730 days (2 years) because
      *   lambda ~= ln(2)/halfLifeDays.
-     * - With this value, very recent work stays near full strength while older
-     *   work gradually decays instead of dropping off a cliff.
+     * - A 2-year half-life reflects that skills remain relevant beyond 9 months:
+     *   a project from 1 year ago is still at ~71% strength, and 2 years at ~50%.
+     * - Previous lambda=0.00257 (270-day half-life) decayed 1-year-old evidence to
+     *   39%, which undervalued genuinely recent skill use.
      */
-    private static final BigDecimal RECENCY_DECAY_LAMBDA = new BigDecimal("0.00257");
-
-    /**
-     * Unknown link types receive a conservative neutral-ish weight. This avoids
-     * over-crediting unexpected classifier values while still allowing some
-     * contribution.
-     */
-    private static final BigDecimal DEFAULT_LINK_TYPE_WEIGHT = new BigDecimal("0.50");
-
-    /**
-     * Deterministic trust priors per link classifier.
-     *
-     * Decision rationale:
-     * - Dependency-level matches are strongest implementation signal.
-     * - Topic/name/description progressively weaken from explicit to implicit text.
-     * - Language-assisted links stay weakest to avoid language-only inflation.
-     */
-    private static final Map<String, BigDecimal> LINK_TYPE_WEIGHTS = Map.of(
-            "dependency_match", new BigDecimal("1.00"),
-            "topic_match", new BigDecimal("0.85"),
-            "name_match", new BigDecimal("0.72"),
-            "description_match", new BigDecimal("0.58"),
-            "language_plus_text_match", new BigDecimal("0.48")
-    );
+    private static final BigDecimal RECENCY_DECAY_LAMBDA = new BigDecimal("0.00095");
 
     /**
      * Fixed scales keep floating-point transforms stable and auditable when
@@ -85,6 +65,7 @@ public class ClaimEvidenceScoringInputAssemblerServiceImpl
 
     private final ClaimEvidenceLinkRepository claimEvidenceLinkRepository;
     private final EvidenceRepository evidenceRepository;
+    private final VerificationSignalPolicy verificationSignalPolicy;
 
     @Override
     public List<SkillClaimInput> assembleSkillClaimInputs(
@@ -180,10 +161,7 @@ public class ClaimEvidenceScoringInputAssemblerServiceImpl
         }
 
         String normalizedLinkType = normalizeLinkType(link.getLinkType());
-        BigDecimal linkTypeWeight = LINK_TYPE_WEIGHTS.getOrDefault(
-                normalizedLinkType,
-                DEFAULT_LINK_TYPE_WEIGHT
-        );
+        BigDecimal linkTypeWeight = verificationSignalPolicy.linkTypeWeight(normalizedLinkType);
         BigDecimal boundedConfidence = clamp01(link.getLinkConfidence());
 
         OffsetDateTime signalTimestamp = resolveSignalTimestamp(evidence);
@@ -241,7 +219,8 @@ public class ClaimEvidenceScoringInputAssemblerServiceImpl
                 decayedStrength,
                 link.getReason(),
                 evidence.getTitle(),
-                evidence.getSourceUrl()
+                evidence.getSourceUrl(),
+                evidence.getProvider()
         );
     }
 

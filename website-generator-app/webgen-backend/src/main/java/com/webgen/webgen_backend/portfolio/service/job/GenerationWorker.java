@@ -44,7 +44,6 @@ public class GenerationWorker {
             jobService.updateStatus(jobId, JobStatusDTO.Status.PROCESSING);
             portfolioAiService.generatePortfolio(portfolioId, userId, msg.getReq(), jobId);
 
-
             // Send ack and take off queue
             channel.basicAck(deliveryTag, false);
         } catch (Exception e) {

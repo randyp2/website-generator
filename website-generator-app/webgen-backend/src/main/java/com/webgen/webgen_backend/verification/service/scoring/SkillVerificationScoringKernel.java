@@ -18,6 +18,7 @@ import java.util.List;
 public class SkillVerificationScoringKernel {
 
     private final SkillScoringPolicy scoringPolicy;
+    private final VerificationSignalPolicy verificationSignalPolicy;
     private final SkillSuggestedActionRuleBook actionRuleBook;
     private final List<SkillScorePostProcessor> scorePostProcessors;
     private static final int STALE_SIGNAL_DAYS_THRESHOLD = 180;
@@ -25,10 +26,12 @@ public class SkillVerificationScoringKernel {
 
     public SkillVerificationScoringKernel(
             SkillScoringPolicy scoringPolicy,
+            VerificationSignalPolicy verificationSignalPolicy,
             SkillSuggestedActionRuleBook actionRuleBook,
             List<SkillScorePostProcessor> scorePostProcessors
     ) {
         this.scoringPolicy = scoringPolicy;
+        this.verificationSignalPolicy = verificationSignalPolicy;
         this.actionRuleBook = actionRuleBook;
         this.scorePostProcessors = scorePostProcessors == null
                 ? List.of()
@@ -147,7 +150,7 @@ public class SkillVerificationScoringKernel {
          * - Mean keeps adjustments comparable across profiles of different sizes.
         */
         OverallEvidenceComputation overallEvidenceComputation = hasAnyEvidence
-                ? computeEvidenceEnhancedOverallScore(baselineOverallScore, claimComputations)
+                ? computeEvidenceEnhancedOverallScore(baselineOverallScore, claimComputations, matchedSkills)
                 : new OverallEvidenceComputation(
                         baselineOverallScore,
                         SkillScoringPolicy.ZERO,
@@ -196,9 +199,9 @@ public class SkillVerificationScoringKernel {
         ));
         if (hasAnyEvidence) {
             System.out.println(String.format(
-                    "[EVIDENCE SCORE] meanClaimDelta = totalClaimDelta/claimCount = %s/%d = %s",
+                    "[EVIDENCE SCORE] meanClaimDelta = totalClaimDelta/matchedClaims = %s/%d = %s",
                     overallEvidenceComputation.totalClaimDelta(),
-                    claimComputations.size(),
+                    Math.max(1, matchedSkills),
                     overallEvidenceComputation.averageClaimDelta()
             ));
             System.out.println(String.format(
@@ -273,7 +276,13 @@ public class SkillVerificationScoringKernel {
         BigDecimal sourceWeight = scoringPolicy.sourceWeight(source);
         BigDecimal matchValue = resolveMatchValue(matched);
         boolean llmVerified = isLlmVerified(input);
-        int claimScoreCap = resolveClaimScoreCap(llmVerified);
+        int claimScoreCap = verificationSignalPolicy.claimScoreCap(llmVerified);
+        System.out.println(String.format(
+                "[CLAIM SCORE][LLM] claimId=%s llmVerified=%s claimScoreCap=%d",
+                input.claimId(),
+                llmVerified,
+                claimScoreCap
+        ));
 
         // claimPriorNormalized =
         //   (matchValue   * COVERAGE_WEIGHT)
@@ -598,16 +607,29 @@ public class SkillVerificationScoringKernel {
                 .divide(SkillScoringPolicy.HUNDRED, SkillScoringPolicy.DIV_SCALE, RoundingMode.HALF_UP);
     }
 
-    // Placeholder seam for future LLM verification signal integration.
     private boolean isLlmVerified(SkillClaimInput input) {
-        return false;
+        if (input == null || input.canonicalSkillId() == null) {
+            return false;
+        }
+        List<EvidenceLinkSignal> evidenceLinks = input.evidenceLinks();
+        if (evidenceLinks == null || evidenceLinks.isEmpty()) {
+            return false;
+        }
+        return evidenceLinks.stream().anyMatch(this::isEligibleLlmVerificationSignal);
     }
 
-    // Reserves expert-tier claim scores for LLM-verified claims.
-    private int resolveClaimScoreCap(boolean llmVerified) {
-        return llmVerified
-                ? SkillScoringPolicy.MAX_CLAIM_SCORE_WITH_LLM
-                : SkillScoringPolicy.MAX_CLAIM_SCORE_WITHOUT_LLM;
+    private boolean isEligibleLlmVerificationSignal(EvidenceLinkSignal link) {
+        if (link == null) {
+            return false;
+        }
+        BigDecimal confidence = link.linkConfidence() == null
+                ? SkillScoringPolicy.ZERO
+                : scoringPolicy.clamp01(link.linkConfidence());
+        return verificationSignalPolicy.isEligibleForLlmVerification(
+                link.provider(),
+                link.linkType(),
+                confidence
+        );
     }
 
     private EvidenceSignalStats collectEvidenceSignalStats(List<EvidenceLinkSignal> evidenceLinks) {
@@ -865,14 +887,18 @@ public class SkillVerificationScoringKernel {
     }
 
     // Applies mean claim delta to baseline overall score and clamps to [0,100].
+    // Denominator is matchedClaims (not totalClaims) because unmatched claims are architecturally
+    // excluded from evidence nudges and should not dilute the mean.
     private OverallEvidenceComputation computeEvidenceEnhancedOverallScore(
             int baselineOverallScore,
-            List<ClaimScoreComputation> claimComputations
+            List<ClaimScoreComputation> claimComputations,
+            int matchedClaims
     ) {
         BigDecimal totalClaimDelta = claimComputations.stream()
                 .map(claim -> BigDecimal.valueOf(claim.uncappedEvidenceContribution()))
                 .reduce(SkillScoringPolicy.ZERO, BigDecimal::add);
-        BigDecimal averageClaimDelta = scoringPolicy.safeDivide(totalClaimDelta, claimComputations.size());
+        int denominator = Math.max(1, matchedClaims);
+        BigDecimal averageClaimDelta = scoringPolicy.safeDivide(totalClaimDelta, denominator);
         int roundedAverageDelta = averageClaimDelta.setScale(0, RoundingMode.HALF_UP).intValue();
         int overallScore = clampScoreToPercent(baselineOverallScore + roundedAverageDelta);
         return new OverallEvidenceComputation(

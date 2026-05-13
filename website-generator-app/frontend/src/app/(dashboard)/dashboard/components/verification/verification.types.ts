@@ -185,6 +185,32 @@ export interface SkillDetailDrawerProps {
   onClose: () => void
 }
 
+export type AssetJobPhase = "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED"
+
+export interface ClaimUpload {
+  id: string
+  originalFileName: string
+  status: string
+  analysisError?: string | null
+  metadata?: Record<string, unknown> | null
+  createdAt: string
+}
+
+export interface PendingAssetView {
+  claimId: string
+  uploadId: string
+  originalFileName: string
+  jobId: string | null
+}
+
+export interface AssetVerificationSummarySelection {
+  claimId: string
+  uploadId: string
+  originalFileName: string
+  confidence: number
+  summary: string
+}
+
 export interface EvidenceTableProps {
   evidence: EvidenceItem[]
   activeTypeFilter: EvidenceType | "all"
