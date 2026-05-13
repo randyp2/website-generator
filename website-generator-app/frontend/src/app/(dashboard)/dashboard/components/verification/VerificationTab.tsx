@@ -15,7 +15,6 @@ import {
     mapSummaryClaimsToSkillVerifications,
 } from "./verification.utils";
 import useVerificationSummary from "./useVerificationSummary";
-import type { ClaimDTO } from "@/types/claim";
 
 import {
     VerificationEmptyState,
@@ -74,7 +73,6 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
         evidence: rawEvidence,
         isLoading: isEvidenceLoading,
         error: evidenceError,
-        refetch: refetchEvidence,
     } = useEvidence();
     const {
         connections,
@@ -205,10 +203,10 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
         }));
     }, [selectedClaim, selectedSkill]);
 
-    const toEvidenceItemDate = (e: typeof rawEvidence[0]) =>
-        e.occurredAt ?? e.capturedAt ?? e.createdAt;
-
     const evidenceItems = useMemo<EvidenceItem[]>(() => {
+        const toEvidenceItemDate = (e: typeof rawEvidence[0]) =>
+            e.occurredAt ?? e.capturedAt ?? e.createdAt;
+
         return rawEvidence.flatMap((evidence): EvidenceItem[] => {
             const baseDate = toEvidenceItemDate(evidence);
             const baseDescription = evidence.title ?? evidence.description ?? evidence.externalId;
