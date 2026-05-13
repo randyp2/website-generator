@@ -28,8 +28,6 @@ const SEGMENT_LABELS: Record<string, string> = {
   profile: "Profile",
   security: "Security",
   history: "History",
-  upload: "Upload",
-  review: "Review",
   style: "Style",
   refine: "Refine",
   cancel: "Cancel",

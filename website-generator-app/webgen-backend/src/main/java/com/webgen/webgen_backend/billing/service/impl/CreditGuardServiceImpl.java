@@ -3,6 +3,7 @@ package com.webgen.webgen_backend.billing.service.impl;
 import com.webgen.webgen_backend.billing.repository.BillingCreditLedgerEntryRepository;
 import com.webgen.webgen_backend.billing.service.CreditGuardService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -15,9 +16,12 @@ public class CreditGuardServiceImpl implements CreditGuardService {
 
     private final BillingCreditLedgerEntryRepository billingCreditLedgerEntryRepository;
 
+    @Value("${webgen.billing.credits.bypass:false}")
+    private boolean creditsBypass;
+
     @Override
     public void assertHasRequiredCredits(UUID profileId, int requiredCredits, String operationCode) {
-        if (requiredCredits <= 0) {
+        if (creditsBypass || requiredCredits <= 0) {
             return;
         }
         if (profileId == null) {

@@ -3,9 +3,6 @@
 import { PortfolioStyleChat } from "@/components/chat/PortfolioStyleChat";
 import { useStyleChat } from "@/hooks/useStyleChat";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-    isPristineManualResumeTemplate,
-} from "@/utils/resume/manualResumeTemplate";
 
 const StyleDiscussionPage: React.FC = () => {
     const router = useRouter();
@@ -30,48 +27,23 @@ const StyleDiscussionPage: React.FC = () => {
         flushStyleHistorySync,
     } = useStyleChat({ portfolioId, templateId });
 
-    const handleContinueToResume = async () => {
+    const handleContinue = async () => {
         if (!portfolioId) {
-            if (templateId) {
-                router.push(`/dashboard/create/upload?templateId=${templateId}`);
-                return;
-            }
-            router.push("/dashboard/create/upload");
+            router.push(templateId
+                ? `/dashboard/create/refine?templateId=${templateId}`
+                : "/dashboard/create/refine"
+            );
             return;
         }
 
-        try {
-            await flushStyleHistorySync();
-            const resumeRes = await fetch(`/api/portfolio/${portfolioId}/resume`);
-            const resumeData = resumeRes.ok ? await resumeRes.json() : null;
-            const hasReviewableResume =
-                Boolean(resumeData?.parsedJson) &&
-                !isPristineManualResumeTemplate(resumeData?.parsedJson);
+        await flushStyleHistorySync();
+        await fetch(`/api/portfolio/${portfolioId}/update`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ last_step: "refine" }),
+        }).catch(() => null);
 
-            const nextStep = hasReviewableResume ? "review" : "upload";
-
-            await fetch(`/api/portfolio/${portfolioId}/update`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ last_step: nextStep }),
-            }).catch(() => null);
-
-            if (!hasReviewableResume) {
-                router.push(`/dashboard/create/upload?portfolioId=${portfolioId}`);
-                return;
-            }
-
-            router.push(`/dashboard/create/review?portfolioId=${portfolioId}`);
-        } catch {
-            if (portfolioId) {
-                await fetch(`/api/portfolio/${portfolioId}/update`, {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ last_step: "upload" }),
-                }).catch(() => null);
-            }
-            router.push(`/dashboard/create/upload?portfolioId=${portfolioId}`);
-        }
+        router.push(`/dashboard/create/refine?portfolioId=${portfolioId}`);
     };
 
     const handleAddCredits = () => {
@@ -85,8 +57,8 @@ const StyleDiscussionPage: React.FC = () => {
                 messages={normalizedStyleMessages}
                 isSending={isSending}
                 onSendMessage={handleSend}
-                onContinue={handleContinueToResume}
-                continueLabel="Continue to Review & Edit"
+                onContinue={handleContinue}
+                continueLabel="Continue to Generate"
                 showColorPicker={showColorPicker}
                 recommendedColorPresets={recommendedColorPresets}
                 onColorSubmit={handleColorSubmit}

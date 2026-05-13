@@ -67,15 +67,15 @@ describe("resolveResumePath", () => {
     )
   })
 
-  it('routes "upload" to the upload step with portfolio id', () => {
+  it('routes "upload" (legacy step) to refine', () => {
     expect(resolveResumePath({ ...portfolio, last_step: "upload" })).toBe(
-      `/dashboard/create/upload?portfolioId=${id}`,
+      `/dashboard/create/refine?portfolioId=${id}`,
     )
   })
 
-  it('routes "review" to the review step with portfolio id', () => {
+  it('routes "review" (legacy step) to refine', () => {
     expect(resolveResumePath({ ...portfolio, last_step: "review" })).toBe(
-      `/dashboard/create/review?portfolioId=${id}`,
+      `/dashboard/create/refine?portfolioId=${id}`,
     )
   })
 

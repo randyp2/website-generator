@@ -178,9 +178,11 @@ export function useStyleChat(params: {
         setIsInsufficientCreditsModalOpen(false);
     }, []);
 
+    const stripeEnabled = process.env.NEXT_PUBLIC_STRIPE_ENABLED !== "false";
+
     const handleStyleChatFailure = useCallback(
         (failure: StyleChatRequestFailure, title: string): void => {
-            if (isInsufficientCreditsFailure(failure)) {
+            if (stripeEnabled && isInsufficientCreditsFailure(failure)) {
                 setIsInsufficientCreditsModalOpen(true);
                 return;
             }
@@ -191,7 +193,7 @@ export function useStyleChat(params: {
                 description: failure.message,
             });
         },
-        [addToast],
+        [addToast, stripeEnabled],
     );
 
     // Effect 1: Hydration watcher
