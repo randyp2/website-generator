@@ -14,9 +14,11 @@ import com.webgen.webgen_backend.agent.entity.AgentRunStatus;
 import com.webgen.webgen_backend.agent.entity.AgentSession;
 import com.webgen.webgen_backend.agent.entity.AgentSessionStage;
 import com.webgen.webgen_backend.agent.entity.AgentSessionStatus;
+import com.webgen.webgen_backend.agent.entity.AgentToolRun;
 import com.webgen.webgen_backend.agent.repository.AgentMessageRepository;
 import com.webgen.webgen_backend.agent.repository.AgentRunRepository;
 import com.webgen.webgen_backend.agent.repository.AgentSessionRepository;
+import com.webgen.webgen_backend.agent.repository.AgentToolRunRepository;
 import com.webgen.webgen_backend.agent.service.AgentAiClient;
 import com.webgen.webgen_backend.agent.service.AgentOrchestratorService;
 import com.webgen.webgen_backend.agent.service.AgentPromptBuilder;
@@ -46,6 +48,7 @@ public class AgentOrchestratorServiceImpl implements AgentOrchestratorService {
     private final AgentSessionRepository agentSessionRepository;
     private final AgentMessageRepository agentMessageRepository;
     private final AgentRunRepository agentRunRepository;
+    private final AgentToolRunRepository agentToolRunRepository;
     private final AgentPromptBuilder agentPromptBuilder;
     private final AgentAiClient agentAiClient;
     private final AgentResponseParser agentResponseParser;
@@ -82,16 +85,20 @@ public class AgentOrchestratorServiceImpl implements AgentOrchestratorService {
         Map<String, String> toolContext = buildToolContext(activeSession, run, ownedPortfolio);
         AgentAiResponseDTO aiResponse = invokeAiTurn(turnPrompt, toolContext);
         recordRunTelemetry(run, aiResponse, turnPrompt, toolContext);
+
+        // --- Backfill tool messages created during this AI turn
+        long assistantSequenceNo = backfillToolMessages(activeSession.getId(), run.getId(), userSequenceNo + 1);
+
         AgentAssistantPayloadDTO payload = agentResponseParser.parseAssistantPayload(aiResponse);
 
         // --- Update the session row given response
         applySessionUpdatesFromPayload(activeSession, payload);
         String assistantReply = payload.getAssistantMessage();
 
-        // --- Upsert to DB: append assistant message and finalize turn state
+        // --- Upsert to DB: append assistant message after tool messages
         AgentMessage persistedAssistantMessage = appendMessage(
                 activeSession.getId(),
-                userSequenceNo + 1,
+                assistantSequenceNo,
                 AgentMessageRole.ASSISTANT,
                 assistantReply,
                 null,
@@ -304,6 +311,48 @@ public class AgentOrchestratorServiceImpl implements AgentOrchestratorService {
         } catch (Exception ignored) {
             return objectMapper.createObjectNode();
         }
+    }
+
+    /**
+     * Appends all tool runs for the current agent run as TOOL role messages.
+     * Returns the next available sequence number for the assistant message.
+     */
+    private long backfillToolMessages(UUID sessionId, UUID runId, long startingSequenceNo) {
+        List<AgentToolRun> toolRuns = agentToolRunRepository.findByAgentRunIdOrderByStartedAtAsc(runId);
+        long sequenceNo = startingSequenceNo;
+
+        for (AgentToolRun toolRun : toolRuns) {
+            appendMessage(
+                    sessionId,
+                    sequenceNo++,
+                    AgentMessageRole.TOOL,
+                    buildToolMessageContent(toolRun),
+                    toolRun.getToolName(),
+                    toolRun.getId().toString());
+        }
+
+        return sequenceNo;
+    }
+
+    /**
+     * Builds persisted TOOL message content from a tool run row.
+     */
+    private String buildToolMessageContent(AgentToolRun toolRun) {
+        if (toolRun != null && toolRun.getResultJson() != null) {
+            return toolRun.getResultJson().toString();
+        }
+
+        ObjectNode fallback = objectMapper.createObjectNode();
+        fallback.put("status", toolRun != null && toolRun.getStatus() != null
+                ? toolRun.getStatus().name()
+                : "UNKNOWN");
+        if (toolRun != null && toolRun.getErrorCode() != null) {
+            fallback.put("error_code", toolRun.getErrorCode());
+        }
+        if (toolRun != null && toolRun.getErrorMessage() != null) {
+            fallback.put("error_message", toolRun.getErrorMessage());
+        }
+        return fallback.toString();
     }
 
     /**
