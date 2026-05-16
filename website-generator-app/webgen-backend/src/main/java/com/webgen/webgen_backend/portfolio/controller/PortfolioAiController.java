@@ -39,8 +39,7 @@ public class PortfolioAiController {
         creditGuardService.assertHasRequiredCredits(
                 userId,
                 PortfolioCreditCostPolicy.GENERATE_PORTFOLIO_REQUIRED_CREDITS,
-                "portfolio_generation"
-        );
+                "portfolio_generation");
 
         String jobId = generateJobService.createJobAndQueue(id, userId, req);
 

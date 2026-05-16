@@ -94,11 +94,7 @@ public class JWTFilter extends OncePerRequestFilter {
 
                 // Adding token to chain so other filters and controllers can see user as authenticated
                 SecurityContextHolder.getContext().setAuthentication(authToken);
-//
-//                System.out.println("Authentication Set: " +
-//                        SecurityContextHolder.getContext().getAuthentication());
-//                System.out.println("Authorities Set: " +
-//                        SecurityContextHolder.getContext().getAuthentication().getAuthorities());
+
             }
         } catch (Exception e) {
             // Treat invalid tokens as unauthenticated requests.

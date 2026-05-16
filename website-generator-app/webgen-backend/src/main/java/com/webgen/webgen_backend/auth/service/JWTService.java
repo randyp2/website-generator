@@ -63,7 +63,7 @@ public class JWTService {
         try {
             SignedJWT jwt = SignedJWT.parse(token);
 
-            // Find the correct RSA key from the JWKS using "kid"
+            // Find the correct EC key from the JWKS using "kid"
             ECKey publicKey = getKey(jwt);
 
             // Check verification with EC public key

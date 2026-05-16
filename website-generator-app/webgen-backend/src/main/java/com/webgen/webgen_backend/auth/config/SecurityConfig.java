@@ -20,7 +20,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity // Override default spring security configurations
-
 public class SecurityConfig {
     @Autowired
     private JWTFilter jwtFilter;

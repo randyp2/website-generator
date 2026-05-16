@@ -21,6 +21,7 @@ import com.webgen.webgen_backend.agent.service.AgentAiClient;
 import com.webgen.webgen_backend.agent.service.AgentOrchestratorService;
 import com.webgen.webgen_backend.agent.service.AgentPromptBuilder;
 import com.webgen.webgen_backend.agent.service.parser.AgentResponseParser;
+import com.webgen.webgen_backend.agent.service.tool.AgentStyleChatToolService;
 import com.webgen.webgen_backend.portfolio.entity.Portfolio;
 import com.webgen.webgen_backend.portfolio.repository.PortfolioRepository;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +48,7 @@ public class AgentOrchestratorServiceImpl implements AgentOrchestratorService {
     private final AgentPromptBuilder agentPromptBuilder;
     private final AgentAiClient agentAiClient;
     private final AgentResponseParser agentResponseParser;
+    private final AgentStyleChatToolService agentStyleChatToolService;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -219,7 +221,7 @@ public class AgentOrchestratorServiceImpl implements AgentOrchestratorService {
     private AgentAiResponseDTO invokeAiTurn(AgentSession session, AgentRun run, Portfolio portfolio, Prompt prompt) {
         AgentAiRequestDTO request = AgentAiRequestDTO.builder()
                 .prompt(prompt)
-                .tools(List.of())
+                .tools(List.of(agentStyleChatToolService))
                 .toolContext(buildToolContext(session, run, portfolio))
                 .build();
         return agentAiClient.call(request);
