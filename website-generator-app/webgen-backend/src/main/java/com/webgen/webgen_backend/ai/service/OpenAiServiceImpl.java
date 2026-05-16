@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.resume.model.FormData;
 import com.webgen.webgen_backend.ai.service.OpenAiService;
+import com.webgen.webgen_backend.shared.prompt.PromptTemplateLoader;
 import lombok.AllArgsConstructor;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -20,6 +21,9 @@ import java.util.List;
 public class OpenAiServiceImpl implements OpenAiService {
 
     private final OpenAiChatModel openAiChatModel; // Create ai chat model (provided with ai dependency)
+    private final PromptTemplateLoader promptTemplateLoader;
+
+    private static final String SYSTEM_TEMPLATE_PATH = "prompts/ai/html-generator-system.md";
 
 
 
@@ -28,11 +32,7 @@ public class OpenAiServiceImpl implements OpenAiService {
 
         // Behaviour of ai model
         // System prompt - Message always comes first in chat sequence
-        SystemMessage system = new SystemMessage("""
-            You are a professional web code generator. 
-            Produce a single valid HTML document with embedded CSS (<style> tags).
-            Do not include markdown, code fences, or explanations.
-        """);
+        SystemMessage system = new SystemMessage(promptTemplateLoader.load(SYSTEM_TEMPLATE_PATH));
 
         // User prompt
         UserMessage user = new UserMessage(buildPrompt(formData));

@@ -1,5 +1,7 @@
 package com.webgen.webgen_backend.verification.service.ai;
 
+import com.webgen.webgen_backend.shared.prompt.PromptTemplateLoader;
+import lombok.RequiredArgsConstructor;
 import org.springframework.ai.content.Media;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -10,7 +12,12 @@ import java.util.List;
 import java.util.Locale;
 
 @Service
+@RequiredArgsConstructor
 public class AssetVerificationPromptBuilder {
+
+    private static final String SYSTEM_TEMPLATE_PATH = "prompts/verification/asset-verification-system.md";
+
+    private final PromptTemplateLoader promptTemplateLoader;
 
     public enum AssetFamily {
         IMAGE,
@@ -62,29 +69,9 @@ public class AssetVerificationPromptBuilder {
                     """;
         };
 
-        SystemMessage system = new SystemMessage("""
-                You are a strict evidence verification analyst.
-                Your task is to estimate how strongly an uploaded asset supports a user's claim.
-
-                Return JSON only with this exact schema:
-                {
-                  "confidence": 0.0,
-                  "summary": "short explanation",
-                  "evidenceStrength": "DIRECT|STRONG|MODERATE|WEAK|NONE",
-                  "shouldLink": true
-                }
-
-                Rules:
-                - confidence must be in [0,1]
-                - summary must be concise and specific (max 220 chars)
-                - choose evidenceStrength from the allowed enum only
-                - shouldLink=false when support is weak/ambiguous
-                - use NONE when the asset does not support the claim
-                - avoid hallucinating content not present in metadata or excerpt
-                - be conservative when evidence is incomplete
-
-                %s
-                """.formatted(familySpecificInstructions));
+        SystemMessage system = new SystemMessage(
+                promptTemplateLoader.load(SYSTEM_TEMPLATE_PATH).formatted(familySpecificInstructions)
+        );
 
         UserMessage user = new UserMessage("""
                 Claim context:
