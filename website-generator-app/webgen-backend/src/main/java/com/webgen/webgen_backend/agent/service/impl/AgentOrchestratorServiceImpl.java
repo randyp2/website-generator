@@ -25,6 +25,7 @@ import com.webgen.webgen_backend.agent.service.tool.AgentStyleChatToolService;
 import com.webgen.webgen_backend.portfolio.entity.Portfolio;
 import com.webgen.webgen_backend.portfolio.repository.PortfolioRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -78,7 +79,9 @@ public class AgentOrchestratorServiceImpl implements AgentOrchestratorService {
         List<AgentMessage> history = agentMessageRepository.findBySessionIdOrderBySequenceNoAsc(activeSession.getId());
         Prompt turnPrompt = agentPromptBuilder.buildTurnPrompt(activeSession, history, normalizedUserMessage);
 
-        AgentAiResponseDTO aiResponse = invokeAiTurn(activeSession, run, ownedPortfolio, turnPrompt);
+        Map<String, String> toolContext = buildToolContext(activeSession, run, ownedPortfolio);
+        AgentAiResponseDTO aiResponse = invokeAiTurn(turnPrompt, toolContext);
+        recordRunTelemetry(run, aiResponse, turnPrompt, toolContext);
         AgentAssistantPayloadDTO payload = agentResponseParser.parseAssistantPayload(aiResponse);
 
         // --- Update the session row given response
@@ -218,11 +221,11 @@ public class AgentOrchestratorServiceImpl implements AgentOrchestratorService {
     /**
      * Executes one AI turn with prompt and scoped tool context.
      */
-    private AgentAiResponseDTO invokeAiTurn(AgentSession session, AgentRun run, Portfolio portfolio, Prompt prompt) {
+    private AgentAiResponseDTO invokeAiTurn(Prompt prompt, Map<String, String> toolContext) {
         AgentAiRequestDTO request = AgentAiRequestDTO.builder()
                 .prompt(prompt)
                 .tools(List.of(agentStyleChatToolService))
-                .toolContext(buildToolContext(session, run, portfolio))
+                .toolContext(toolContext)
                 .build();
         return agentAiClient.call(request);
     }
@@ -237,6 +240,70 @@ public class AgentOrchestratorServiceImpl implements AgentOrchestratorService {
                 "portfolioId", portfolio.getId().toString(),
                 "userId", portfolio.getUserId().toString(),
                 "sessionStage", session.getStage().name());
+    }
+
+    /**
+     * Persists model, token, and raw request/response metadata for observability.
+     */
+    private void recordRunTelemetry(
+            AgentRun run,
+            AgentAiResponseDTO aiResponse,
+            Prompt prompt,
+            Map<String, String> toolContext) {
+        if (run == null || aiResponse == null) {
+            return;
+        }
+
+        run.setModel(aiResponse.getModel());
+        run.setInputTokens(aiResponse.getInputTokens());
+        run.setOutputTokens(aiResponse.getOutputTokens());
+        if (aiResponse.getInputTokens() != null && aiResponse.getOutputTokens() != null) {
+            run.setTotalTokens(aiResponse.getInputTokens() + aiResponse.getOutputTokens());
+        } else {
+            run.setTotalTokens(null);
+        }
+        run.setRawRequestJson(buildRawRequestJson(prompt, toolContext));
+        run.setRawResponseJson(toJsonNode(aiResponse.getRawResponse()));
+
+        agentRunRepository.save(run);
+    }
+
+    /**
+     * Builds a compact serializable request snapshot for the run audit row.
+     */
+    private JsonNode buildRawRequestJson(Prompt prompt, Map<String, String> toolContext) {
+        ObjectNode requestJson = objectMapper.createObjectNode();
+        requestJson.set("toolContext", toJsonNode(toolContext));
+
+        var messagesJson = requestJson.putArray("messages");
+        if (prompt != null && prompt.getInstructions() != null) {
+            for (Message message : prompt.getInstructions()) {
+                ObjectNode messageJson = messagesJson.addObject();
+                messageJson.put(
+                        "type",
+                        message != null && message.getMessageType() != null
+                                ? message.getMessageType().name()
+                                : "UNKNOWN");
+                messageJson.put(
+                        "content",
+                        message != null && message.getText() != null
+                                ? message.getText()
+                                : "");
+            }
+        }
+
+        return requestJson;
+    }
+
+    /**
+     * Safely converts an object to JsonNode without failing the current turn.
+     */
+    private JsonNode toJsonNode(Object source) {
+        try {
+            return source == null ? null : objectMapper.valueToTree(source);
+        } catch (Exception ignored) {
+            return objectMapper.createObjectNode();
+        }
     }
 
     /**

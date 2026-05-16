@@ -30,19 +30,4 @@ public class AgentAssistantPayloadDTO {
 
     @JsonProperty("memory_updates")
     private JsonNode memoryUpdates;
-
-    @JsonProperty("next_action")
-    private String nextAction;
-
-    @JsonProperty("next_tool")
-    private NextToolDTO nextTool;
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class NextToolDTO {
-        private String name;
-        private JsonNode arguments;
-    }
 }
