@@ -1,11 +1,13 @@
-package com.webgen.webgen_backend.agent.tools;
+package com.webgen.webgen_backend.agent.tools.stylechat;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.agent.dto.common.AgentToolCallStatus;
 import com.webgen.webgen_backend.agent.dto.common.AgentToolName;
 import com.webgen.webgen_backend.agent.dto.common.AgentToolRequestDTO;
-import com.webgen.webgen_backend.agent.dto.tool.StyleChatToolInputDTO;
+import com.webgen.webgen_backend.agent.dto.tool.stylechat.StyleChatToolInputDTO;
+import com.webgen.webgen_backend.agent.tools.AgentToolExecutionResult;
+import com.webgen.webgen_backend.agent.tools.AgentToolHandler;
 import com.webgen.webgen_backend.portfolio.dto.style.StyleChatRequestDTO;
 import com.webgen.webgen_backend.portfolio.dto.style.StyleChatResponseDTO;
 import com.webgen.webgen_backend.portfolio.service.style.StyleChatService;

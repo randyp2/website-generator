@@ -1,4 +1,4 @@
-package com.webgen.webgen_backend.agent.dto.tool;
+package com.webgen.webgen_backend.agent.dto.tool.stylechat;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;

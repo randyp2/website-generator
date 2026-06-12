@@ -5,6 +5,8 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum AgentToolName {
     STYLE_CHAT("style_chat_tool"),
+    RECORD_STYLE_PREFERENCE("record_style_preference_tool"),
+    RECOMMEND_STYLE_PALETTE("recommend_style_palette_tool"),
     RESUME_PARSE("resume_parse_tool"),
     BUILD_BLUEPRINT("build_blueprint_tool"),
     GENERATE_PORTFOLIO("generate_portfolio_tool"),
