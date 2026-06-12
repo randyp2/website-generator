@@ -247,10 +247,7 @@ public class AgentTurnPersistenceService {
     }
 
     private void applySessionUpdatesFromPlan(AgentSession session, AgentStructuredPlanDTO plan) {
-        //--- Apply planner-provided session stage and status changes
-        if (plan.getSessionStage() != null) {
-            session.setStage(plan.getSessionStage());
-        }
+        //--- Apply planner-provided session status changes
         if (plan.getSessionStatus() != null) {
             session.setStatus(plan.getSessionStatus());
         }

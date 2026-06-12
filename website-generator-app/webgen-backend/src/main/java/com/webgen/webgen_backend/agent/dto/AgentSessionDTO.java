@@ -1,7 +1,6 @@
 package com.webgen.webgen_backend.agent.dto;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.webgen.webgen_backend.agent.entity.AgentSessionStage;
 import com.webgen.webgen_backend.agent.entity.AgentSessionStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,7 +19,6 @@ public class AgentSessionDTO {
     private UUID portfolioId;
     private UUID userId;
     private AgentSessionStatus status;
-    private AgentSessionStage stage;
     private JsonNode memoryJson;
     private String currentJobId;
     private OffsetDateTime createdAt;

@@ -52,10 +52,6 @@ public class AgentSession {
     @Column(name = "status", nullable = false)
     private AgentSessionStatus status = AgentSessionStatus.ACTIVE;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "stage", nullable = false)
-    private AgentSessionStage stage = AgentSessionStage.DISCOVERY;
-
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "memory_json", nullable = false, columnDefinition = "jsonb")
     private JsonNode memoryJson = JsonNodeFactory.instance.objectNode();
@@ -90,9 +86,6 @@ public class AgentSession {
         }
         if (status == null) {
             status = AgentSessionStatus.ACTIVE;
-        }
-        if (stage == null) {
-            stage = AgentSessionStage.DISCOVERY;
         }
         if (memoryJson == null) {
             memoryJson = JsonNodeFactory.instance.objectNode();

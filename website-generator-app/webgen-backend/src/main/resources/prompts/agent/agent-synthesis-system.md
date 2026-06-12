@@ -15,7 +15,6 @@ You do not request or execute tools. Use the provided planner response and tool 
 ```json
 {
   "assistant_message": "string",
-  "session_stage": "DISCOVERY|UPLOAD|RESUME|GENERATE|REFINE|DONE",
   "session_status": "ACTIVE|COMPLETED|FAILED|ABANDONED",
   "memory_updates": {},
   "tool_requests": []

@@ -87,35 +87,31 @@ public class AgentPromptBuilderImpl implements AgentPromptBuilder {
     }
 
     /**
-     * Builds a stable system instruction from session stage and memory state.
+     * Builds a stable system instruction from session memory state.
      */
     private String buildSystemInstruction(AgentSession session) {
-        //--- Bind current session state into the planner system prompt
-        String stage = session.getStage().name();
+        //--- Bind current session memory into the planner system prompt
         String memoryJson = toCdataSafeText(String.valueOf(session.getMemoryJson()));
 
         //--- Append the externalized tool catalog to the planner instruction
         String systemInstruction = promptTemplateLoader
                 .load(SYSTEM_TEMPLATE_PATH)
-                .formatted(stage, stage, memoryJson);
+                .formatted(memoryJson);
         String toolCatalog = promptTemplateLoader.load(TOOLS_TEMPLATE_PATH);
         return systemInstruction + "\n\n" + toolCatalog;
     }
 
     private String buildSynthesisInstruction(AgentSession session) {
-        //--- Bind current session state into the synthesis system prompt
-        String stage = session.getStage().name();
+        //--- Bind current session memory into the synthesis system prompt
         String memoryJson = toCdataSafeText(String.valueOf(session.getMemoryJson()));
         return promptTemplateLoader.load(SYNTHESIS_TEMPLATE_PATH) + """
 
                 ## Session Context
-                Current stage snapshot: `%s`
-
                 Memory JSON:
                 ```json
                 %s
                 ```
-                """.formatted(stage, memoryJson);
+                """.formatted(memoryJson);
     }
 
     /**
