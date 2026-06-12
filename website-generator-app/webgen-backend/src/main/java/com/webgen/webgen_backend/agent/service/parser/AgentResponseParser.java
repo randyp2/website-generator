@@ -2,7 +2,7 @@ package com.webgen.webgen_backend.agent.service.parser;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.agent.dto.AgentStructuredPlanDTO;
-import com.webgen.webgen_backend.agent.dto.ai.AgentAiResponseDTO;
+import com.webgen.webgen_backend.agent.service.ai.AgentAiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -20,14 +20,14 @@ public class AgentResponseParser {
 
     private final ObjectMapper objectMapper;
 
-    public AgentStructuredPlanDTO parseStructuredPlan(AgentAiResponseDTO response) {
-        if (response == null || response.getAssistedText() == null || response.getAssistedText().isBlank()) {
+    public AgentStructuredPlanDTO parseStructuredPlan(AgentAiResponse response) {
+        if (response == null || response.assistedText() == null || response.assistedText().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "AI client returned empty structured payload");
         }
 
         AgentStructuredPlanDTO plan;
         try {
-            plan = objectMapper.readValue(stripMarkdownFence(response.getAssistedText()), AgentStructuredPlanDTO.class);
+            plan = objectMapper.readValue(stripMarkdownFence(response.assistedText()), AgentStructuredPlanDTO.class);
         } catch (Exception exception) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_GATEWAY,

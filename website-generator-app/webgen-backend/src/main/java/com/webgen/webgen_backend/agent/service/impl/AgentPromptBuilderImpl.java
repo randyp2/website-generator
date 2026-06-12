@@ -1,9 +1,12 @@
 package com.webgen.webgen_backend.agent.service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.webgen.webgen_backend.agent.dto.AgentStructuredPlanDTO;
 import com.webgen.webgen_backend.agent.entity.AgentMessage;
 import com.webgen.webgen_backend.agent.entity.AgentMessageRole;
 import com.webgen.webgen_backend.agent.entity.AgentSession;
 import com.webgen.webgen_backend.agent.service.AgentPromptBuilder;
+import com.webgen.webgen_backend.agent.tools.AgentToolExecutionResult;
 import com.webgen.webgen_backend.shared.prompt.PromptTemplateLoader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -23,8 +26,10 @@ public class AgentPromptBuilderImpl implements AgentPromptBuilder {
     private static final int MAX_HISTORY_MESSAGES = 24;
     private static final String SYSTEM_TEMPLATE_PATH = "prompts/agent/agent-turn-system.md";
     private static final String TOOLS_TEMPLATE_PATH = "prompts/agent/agent-tools.md";
+    private static final String SYNTHESIS_TEMPLATE_PATH = "prompts/agent/agent-synthesis-system.md";
 
     private final PromptTemplateLoader promptTemplateLoader;
+    private final ObjectMapper objectMapper;
 
     @Override
     public Prompt buildTurnPrompt(AgentSession session, List<AgentMessage> history, String latestUserMessage) {
@@ -49,6 +54,36 @@ public class AgentPromptBuilderImpl implements AgentPromptBuilder {
                 .build();
     }
 
+    @Override
+    public Prompt buildSynthesisPrompt(
+            AgentSession session,
+            String latestUserMessage,
+            AgentStructuredPlanDTO plan,
+            List<AgentToolExecutionResult> toolResults) {
+        String synthesisContext = """
+                <latest_user_message>
+                %s
+                </latest_user_message>
+
+                <planner_response_json>
+                %s
+                </planner_response_json>
+
+                <tool_results_json>
+                %s
+                </tool_results_json>
+                """.formatted(
+                latestUserMessage == null ? "" : latestUserMessage,
+                objectMapper.valueToTree(plan).toPrettyString(),
+                objectMapper.valueToTree(toolResults == null ? List.of() : toolResults).toPrettyString());
+
+        return Prompt.builder()
+                .messages(List.of(
+                        new SystemMessage(buildSynthesisInstruction(session)),
+                        new UserMessage(synthesisContext)))
+                .build();
+    }
+
     /**
      * Builds a stable system instruction from session stage and memory state.
      */
@@ -61,6 +96,21 @@ public class AgentPromptBuilderImpl implements AgentPromptBuilder {
                 .formatted(stage, stage, memoryJson);
         String toolCatalog = promptTemplateLoader.load(TOOLS_TEMPLATE_PATH);
         return systemInstruction + "\n\n" + toolCatalog;
+    }
+
+    private String buildSynthesisInstruction(AgentSession session) {
+        String stage = session.getStage().name();
+        String memoryJson = toCdataSafeText(String.valueOf(session.getMemoryJson()));
+        return promptTemplateLoader.load(SYNTHESIS_TEMPLATE_PATH) + """
+
+                ## Session Context
+                Current stage snapshot: `%s`
+
+                Memory JSON:
+                ```json
+                %s
+                ```
+                """.formatted(stage, memoryJson);
     }
 
     /**

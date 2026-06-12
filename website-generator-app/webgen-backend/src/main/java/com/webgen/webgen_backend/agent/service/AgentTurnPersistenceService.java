@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.webgen.webgen_backend.agent.dto.AgentMessageDTO;
 import com.webgen.webgen_backend.agent.dto.AgentStructuredPlanDTO;
-import com.webgen.webgen_backend.agent.dto.ai.AgentAiResponseDTO;
+import com.webgen.webgen_backend.agent.service.ai.AgentAiResponse;
 import com.webgen.webgen_backend.agent.dto.common.AgentToolCallStatus;
 import com.webgen.webgen_backend.agent.entity.AgentMessage;
 import com.webgen.webgen_backend.agent.entity.AgentMessageRole;
@@ -73,7 +73,7 @@ public class AgentTurnPersistenceService {
             AgentStructuredPlanDTO plan,
             String assistantText,
             List<AgentToolExecutionResult> toolResults,
-            AgentAiResponseDTO aiResponse,
+            AgentAiResponse aiResponse,
             Prompt prompt) {
         AgentSession session = agentSessionRepository.findByIdForUpdate(sessionId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Agent session not found"));
@@ -184,15 +184,15 @@ public class AgentTurnPersistenceService {
 
     private void recordRunTelemetry(
             AgentRun run,
-            AgentAiResponseDTO aiResponse,
+            AgentAiResponse aiResponse,
             Prompt prompt,
             AgentStructuredPlanDTO plan,
             List<AgentToolExecutionResult> toolResults) {
-        run.setModel(aiResponse.getModel());
-        run.setInputTokens(aiResponse.getInputTokens());
-        run.setOutputTokens(aiResponse.getOutputTokens());
-        if (aiResponse.getInputTokens() != null && aiResponse.getOutputTokens() != null) {
-            run.setTotalTokens(aiResponse.getInputTokens() + aiResponse.getOutputTokens());
+        run.setModel(aiResponse.model());
+        run.setInputTokens(aiResponse.inputTokens());
+        run.setOutputTokens(aiResponse.outputTokens());
+        if (aiResponse.inputTokens() != null && aiResponse.outputTokens() != null) {
+            run.setTotalTokens(aiResponse.inputTokens() + aiResponse.outputTokens());
         }
         run.setRawRequestJson(buildRawRequestJson(prompt));
         run.setRawResponseJson(buildRawResponseJson(aiResponse, plan, toolResults));
@@ -213,12 +213,12 @@ public class AgentTurnPersistenceService {
     }
 
     private JsonNode buildRawResponseJson(
-            AgentAiResponseDTO aiResponse,
+            AgentAiResponse aiResponse,
             AgentStructuredPlanDTO plan,
             List<AgentToolExecutionResult> toolResults) {
         ObjectNode responseJson = objectMapper.createObjectNode();
-        responseJson.put("model", aiResponse.getModel());
-        responseJson.put("assistedText", aiResponse.getAssistedText());
+        responseJson.put("model", aiResponse.model());
+        responseJson.put("assistedText", aiResponse.assistedText());
         responseJson.set("structuredPlan", objectMapper.valueToTree(plan));
         responseJson.set("toolResults", objectMapper.valueToTree(toolResults));
         return responseJson;

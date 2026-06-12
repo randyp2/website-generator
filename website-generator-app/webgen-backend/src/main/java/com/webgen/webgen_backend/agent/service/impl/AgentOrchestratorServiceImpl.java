@@ -4,12 +4,11 @@ import com.webgen.webgen_backend.agent.dto.AgentChatTurnResponseDTO;
 import com.webgen.webgen_backend.agent.dto.AgentMessageDTO;
 import com.webgen.webgen_backend.agent.dto.AgentStructuredPlanDTO;
 import com.webgen.webgen_backend.agent.dto.AgentToolCallDTO;
-import com.webgen.webgen_backend.agent.dto.ai.AgentAiRequestDTO;
-import com.webgen.webgen_backend.agent.dto.ai.AgentAiResponseDTO;
-import com.webgen.webgen_backend.agent.service.AgentAiClient;
+import com.webgen.webgen_backend.agent.service.ai.AgentAiRequest;
+import com.webgen.webgen_backend.agent.service.ai.AgentAiResponse;
+import com.webgen.webgen_backend.agent.service.ai.AgentAiClient;
 import com.webgen.webgen_backend.agent.service.AgentOrchestratorService;
 import com.webgen.webgen_backend.agent.service.AgentPromptBuilder;
-import com.webgen.webgen_backend.agent.service.AgentSynthesisService;
 import com.webgen.webgen_backend.agent.service.AgentTurnContext;
 import com.webgen.webgen_backend.agent.service.AgentTurnPersistenceService;
 import com.webgen.webgen_backend.agent.service.parser.AgentResponseParser;
@@ -34,7 +33,6 @@ public class AgentOrchestratorServiceImpl implements AgentOrchestratorService {
     private final AgentAiClient agentAiClient;
     private final AgentResponseParser agentResponseParser;
     private final AgentToolExecutor agentToolExecutor;
-    private final AgentSynthesisService agentSynthesisService;
 
     @Override
     public AgentChatTurnResponseDTO processTurn(UUID userId, UUID portfolioId, String userMessage) {
@@ -47,15 +45,22 @@ public class AgentOrchestratorServiceImpl implements AgentOrchestratorService {
                     turnContext.history(),
                     normalizedUserMessage);
 
-            AgentAiResponseDTO plannerResponse = agentAiClient.call(AgentAiRequestDTO.builder()
-                    .prompt(prompt)
-                    .build());
+            AgentAiResponse plannerResponse = agentAiClient.call(new AgentAiRequest(prompt));
             AgentStructuredPlanDTO structuredPlan = agentResponseParser.parseStructuredPlan(plannerResponse);
 
             List<AgentToolExecutionResult> toolResults = agentToolExecutor.execute(
                     turnContext.portfolio().getId(),
                     structuredPlan.getToolRequests());
-            String assistantText = agentSynthesisService.synthesize(structuredPlan, toolResults);
+            String assistantText = structuredPlan.getAssistantMessage();
+            AgentAiResponse synthesisResponse = null;
+            if (shouldSynthesize(toolResults)) {
+                synthesisResponse = callSynthesis(turnContext, normalizedUserMessage, structuredPlan, toolResults);
+                AgentStructuredPlanDTO synthesisPlan = safeParseSynthesis(synthesisResponse);
+                if (synthesisPlan != null) {
+                    assistantText = synthesisPlan.getAssistantMessage();
+                }
+            }
+            structuredPlan.setAssistantMessage(assistantText);
 
             AgentMessageDTO assistantMessage = persistenceService.completeTurn(
                     turnContext.session().getId(),
@@ -97,5 +102,39 @@ public class AgentOrchestratorServiceImpl implements AgentOrchestratorService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "userMessage exceeds maximum length");
         }
         return normalized;
+    }
+
+    private boolean shouldSynthesize(List<AgentToolExecutionResult> toolResults) {
+        return toolResults != null && toolResults.stream().anyMatch(AgentToolExecutionResult::isFeedsSynthesis);
+    }
+
+    private AgentAiResponse callSynthesis(
+            AgentTurnContext turnContext,
+            String userMessage,
+            AgentStructuredPlanDTO structuredPlan,
+            List<AgentToolExecutionResult> toolResults) {
+        try {
+            Prompt synthesisPrompt = agentPromptBuilder.buildSynthesisPrompt(
+                    turnContext.session(),
+                    userMessage,
+                    structuredPlan,
+                    toolResults);
+            return agentAiClient.call(new AgentAiRequest(synthesisPrompt));
+        } catch (RuntimeException exception) {
+            System.out.println(">>> [AGENT_ORCHESTRATOR] synthesis call failed: " + exception.getMessage());
+            return null;
+        }
+    }
+
+    private AgentStructuredPlanDTO safeParseSynthesis(AgentAiResponse synthesisResponse) {
+        if (synthesisResponse == null) {
+            return null;
+        }
+        try {
+            return agentResponseParser.parseStructuredPlan(synthesisResponse);
+        } catch (RuntimeException exception) {
+            System.out.println(">>> [AGENT_ORCHESTRATOR] synthesis parse failed: " + exception.getMessage());
+            return null;
+        }
     }
 }
