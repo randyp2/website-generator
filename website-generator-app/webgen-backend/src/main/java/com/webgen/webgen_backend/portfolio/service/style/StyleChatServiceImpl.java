@@ -21,7 +21,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 @Service
@@ -34,6 +33,7 @@ public class StyleChatServiceImpl implements StyleChatService {
     private GoogleGenAiChatModel geminiChatModel;
     private final StyleChatPromptBuilder styleChatPromptBuilder;
     private final StyleChatResponseParser styleChatResponseParser;
+    private final StyleContextMemoryStore styleContextMemoryStore;
 
     private static final int TOTAL_QUESTIONS = 10;
     private static final int MAX_INVALID_ATTEMPTS_PER_QUESTION = 2;
@@ -54,19 +54,13 @@ public class StyleChatServiceImpl implements StyleChatService {
     private static final String DEFAULT_HEADING_FONT = "Space Grotesk";
     private static final String DEFAULT_BODY_FONT = "Inter";
 
-    // In memory context store (swap for DB/Redis later)
-    private final Map<UUID, StyleContext> contextStore = new ConcurrentHashMap<>();
-
     @Override
     public StyleChatResponseDTO chat(StyleChatRequestDTO req) {
         if (req == null || req.getPortfolioId() == null)
             throw new IllegalArgumentException("portfolioId is required!");
 
         // Load or create context
-        StyleContext context = contextStore.computeIfAbsent(
-                req.getPortfolioId(),
-                id -> newContext()
-        );
+        StyleContext context = styleContextMemoryStore.load(req.getPortfolioId());
 
         // If already complete, return cached result
         if (context.isStyleDiscoveryComplete()) {
@@ -102,7 +96,7 @@ public class StyleChatServiceImpl implements StyleChatService {
 
     @Override
     public StyleContext getContext(UUID portfolioId) {
-        return contextStore.get(portfolioId);
+        return styleContextMemoryStore.load(portfolioId);
     }
 
     private StyleChatResponseDTO handleThemeGoal(StyleChatRequestDTO req, StyleContext context) {
@@ -118,7 +112,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         context.getConversationHistory().add(q0);
 
         context.setLastUserMessage(req.getUserMessage());
-        contextStore.put(req.getPortfolioId(), context);
+        styleContextMemoryStore.save(req.getPortfolioId(), context);
 
         // Ask AI for top custom palette recommendations based on the user's goal.
         List<StyleColorPresetDTO> recommendedColorPresets = recommendColorPresets(req.getUserMessage());
@@ -170,7 +164,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         context.setTypographyPickerShown(true);
         context.setCurrentQuestion("Typography selection");
         context.setLastUserMessage(null);
-        contextStore.put(req.getPortfolioId(), context);
+        styleContextMemoryStore.save(req.getPortfolioId(), context);
 
         // Build response — show typography picker directly
         StyleChatResponseDTO dto = new StyleChatResponseDTO();
@@ -208,7 +202,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         // Advance to Q3 (layout) — deterministic, no LLM call
         context.setCurrentQuestionNumber(3);
         context.setCurrentQuestion("Layout style selection");
-        contextStore.put(req.getPortfolioId(), context);
+        styleContextMemoryStore.save(req.getPortfolioId(), context);
 
         // Build response — show layout picker directly
         StyleChatResponseDTO dto = new StyleChatResponseDTO();
@@ -251,7 +245,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         // Advance to Q4 — now start the free-form AI conversation
         context.setCurrentQuestionNumber(4);
         context.setLastUserMessage(req.getLayoutSelection());
-        contextStore.put(req.getPortfolioId(), context);
+        styleContextMemoryStore.save(req.getPortfolioId(), context);
 
         // Call AI for first free-form question (about remaining topics: tone, animations, etc.)
         String layoutMessage = "I selected the " + req.getLayoutSelection() + " layout.";
@@ -264,7 +258,7 @@ public class StyleChatServiceImpl implements StyleChatService {
 
         // Update context with AI's question
         context.setCurrentQuestion(parsed.getAssistantMessage());
-        contextStore.put(req.getPortfolioId(), context);
+        styleContextMemoryStore.save(req.getPortfolioId(), context);
 
         // Build response
         parsed.setQuestionNumber(4);
@@ -319,7 +313,7 @@ public class StyleChatServiceImpl implements StyleChatService {
                         parsed.getAssistantMessage()
                 );
             } else {
-                contextStore.put(req.getPortfolioId(), context);
+                styleContextMemoryStore.save(req.getPortfolioId(), context);
 
                 // Do NOT advance - return redirect message at same question number
                 parsed.setQuestionNumber(context.getCurrentQuestionNumber());
@@ -347,7 +341,9 @@ public class StyleChatServiceImpl implements StyleChatService {
 
         // Check if Q10 just answered (completion)
         if (context.getCurrentQuestionNumber() >= TOTAL_QUESTIONS) {
-            return handleCompletion(context, parsed, parseResult.compiledPreferences());
+            StyleChatResponseDTO completed = handleCompletion(context, parsed, parseResult.compiledPreferences());
+            styleContextMemoryStore.save(req.getPortfolioId(), context);
+            return completed;
         }
 
         // Advance to next question server-side
@@ -355,7 +351,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         context.setCurrentQuestionNumber(nextQuestion);
         context.setCurrentQuestion(parsed.getAssistantMessage());
 
-        contextStore.put(req.getPortfolioId(), context);
+        styleContextMemoryStore.save(req.getPortfolioId(), context);
 
         parsed.setQuestionNumber(nextQuestion);
         parsed.setTotalQuestions(TOTAL_QUESTIONS);
@@ -426,24 +422,6 @@ public class StyleChatServiceImpl implements StyleChatService {
         dto.setStylePreferences(compiledToMap(context.getCompiledStylePreferences()));
         logResponseDto("already-complete-return", dto);
         return dto;
-    }
-
-    private StyleContext newContext() {
-        StyleContext context = new StyleContext();
-        context.setCurrentQuestionNumber(0);
-        context.setTotalQuestions(TOTAL_QUESTIONS);
-        context.setStyleDiscoveryComplete(false);
-        context.setCurrentQuestion(null);
-        context.setDesignGoal(null);
-        context.setColorSelections(null);
-        context.setConversationHistory(new ArrayList<>());
-        context.setCompiledStylePreferences(null);
-        context.setLastUserMessage(null);
-        context.setInvalidAttemptsForCurrentQuestion(0);
-        context.setFontSelections(null);
-        context.setTypographyPickerShown(false);
-        context.setLayoutSelection(null);
-        return context;
     }
 
     private StyleChatResponseParser.FontRecommendation recommendFonts(String designGoal) {
