@@ -15,7 +15,7 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class AgentAiClientImpl implements AgentAiClient {
 
-    @Resource(name = "openAiChatModel")
+    @Resource(name = "agentOrchestratorChatModel")
     private ChatModel agentChatModel;
 
     @Override
