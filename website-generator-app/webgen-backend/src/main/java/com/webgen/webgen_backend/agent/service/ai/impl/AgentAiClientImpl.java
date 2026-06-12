@@ -1,5 +1,8 @@
-package com.webgen.webgen_backend.agent.service.ai;
+package com.webgen.webgen_backend.agent.service.ai.impl;
 
+import com.webgen.webgen_backend.agent.service.ai.AgentAiClient;
+import com.webgen.webgen_backend.agent.service.ai.AgentAiRequest;
+import com.webgen.webgen_backend.agent.service.ai.AgentAiResponse;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.metadata.Usage;
