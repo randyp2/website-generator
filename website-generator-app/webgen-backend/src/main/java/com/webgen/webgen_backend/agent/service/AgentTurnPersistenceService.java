@@ -2,6 +2,7 @@ package com.webgen.webgen_backend.agent.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.webgen.webgen_backend.agent.dto.AgentMessageDTO;
 import com.webgen.webgen_backend.agent.dto.AgentStructuredPlanDTO;
@@ -49,9 +50,11 @@ public class AgentTurnPersistenceService {
 
     @Transactional
     public AgentTurnContext startTurn(UUID userId, UUID portfolioId, String userMessage) {
+        //--- Load the owned portfolio and lock the active agent session
         Portfolio portfolio = loadOwnedPortfolio(userId, portfolioId);
         AgentSession session = lockOrCreateActiveSession(portfolio);
 
+        //--- Persist the user message and open a running agent run
         long userSequenceNo = agentMessageRepository.nextSequenceNo(session.getId());
         AgentMessage persistedUserMessage = appendMessage(
                 session.getId(),
@@ -61,6 +64,8 @@ public class AgentTurnPersistenceService {
                 null,
                 null);
         AgentRun run = startRun(session.getId(), persistedUserMessage.getId());
+
+        //--- Reload ordered history so the planner prompt uses durable conversation state
         List<AgentMessage> history = agentMessageRepository.findBySessionIdOrderBySequenceNoAsc(session.getId());
 
         return new AgentTurnContext(portfolio, session, run, persistedUserMessage, history);
@@ -75,14 +80,17 @@ public class AgentTurnPersistenceService {
             List<AgentToolExecutionResult> toolResults,
             AgentAiResponse aiResponse,
             Prompt prompt) {
+        //--- Lock the session and load the run being completed
         AgentSession session = agentSessionRepository.findByIdForUpdate(sessionId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Agent session not found"));
         AgentRun run = agentRunRepository.findById(runId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Agent run not found"));
 
+        //--- Persist model telemetry and session state updates before messages
         recordRunTelemetry(run, aiResponse, prompt, plan, toolResults);
         applySessionUpdatesFromPlan(session, plan);
 
+        //--- Store each tool result as both a ledger row and timeline message
         long sequenceNo = agentMessageRepository.nextSequenceNo(sessionId);
         for (AgentToolExecutionResult toolResult : toolResults) {
             AgentToolRun persistedToolRun = persistToolRun(sessionId, runId, toolResult);
@@ -95,6 +103,7 @@ public class AgentTurnPersistenceService {
                     persistedToolRun.getId().toString());
         }
 
+        //--- Append the final assistant message after tool messages
         AgentMessage assistantMessage = appendMessage(
                 sessionId,
                 sequenceNo,
@@ -103,6 +112,7 @@ public class AgentTurnPersistenceService {
                 null,
                 null);
 
+        //--- Close the run and refresh session activity timestamps
         completeRun(run, assistantMessage.getId());
         touchSession(session);
         return toMessageDto(assistantMessage);
@@ -110,6 +120,7 @@ public class AgentTurnPersistenceService {
 
     @Transactional
     public void failRun(UUID runId, RuntimeException exception) {
+        //--- Persist failure details for the active run
         AgentRun run = agentRunRepository.findById(runId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Agent run not found"));
         run.setStatus(AgentRunStatus.FAILED);
@@ -120,6 +131,7 @@ public class AgentTurnPersistenceService {
     }
 
     private Portfolio loadOwnedPortfolio(UUID userId, UUID portfolioId) {
+        //--- Enforce portfolio ownership before starting an agent turn
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio not found"));
         if (!userId.equals(portfolio.getUserId())) {
@@ -129,6 +141,7 @@ public class AgentTurnPersistenceService {
     }
 
     private AgentSession lockOrCreateActiveSession(Portfolio portfolio) {
+        //--- Reuse and lock the active session or create one for the portfolio
         return agentSessionRepository
                 .findByPortfolioIdAndStatus(portfolio.getId(), AgentSessionStatus.ACTIVE)
                 .map(existing -> agentSessionRepository.findByIdForUpdate(existing.getId())
@@ -139,6 +152,7 @@ public class AgentTurnPersistenceService {
     }
 
     private AgentSession createActiveSessionWithRaceRecovery(Portfolio portfolio) {
+        //--- Create an active session tied to the portfolio owner
         AgentSession newSession = new AgentSession();
         newSession.setPortfolioId(portfolio.getId());
         newSession.setUserId(portfolio.getUserId());
@@ -147,6 +161,7 @@ public class AgentTurnPersistenceService {
         try {
             return agentSessionRepository.saveAndFlush(newSession);
         } catch (DataIntegrityViolationException exception) {
+            //--- Recover the concurrently-created active session after unique constraint collision
             return agentSessionRepository
                     .findByPortfolioIdAndStatus(portfolio.getId(), AgentSessionStatus.ACTIVE)
                     .flatMap(existing -> agentSessionRepository.findByIdForUpdate(existing.getId()))
@@ -164,6 +179,7 @@ public class AgentTurnPersistenceService {
             String content,
             String toolName,
             String toolCallId) {
+        //--- Persist a single timeline message row
         AgentMessage message = new AgentMessage();
         message.setSessionId(sessionId);
         message.setSequenceNo(sequenceNo);
@@ -175,6 +191,7 @@ public class AgentTurnPersistenceService {
     }
 
     private AgentRun startRun(UUID sessionId, UUID userMessageId) {
+        //--- Open a running ledger row for this user message
         AgentRun run = new AgentRun();
         run.setSessionId(sessionId);
         run.setUserMessageId(userMessageId);
@@ -188,20 +205,24 @@ public class AgentTurnPersistenceService {
             Prompt prompt,
             AgentStructuredPlanDTO plan,
             List<AgentToolExecutionResult> toolResults) {
+        //--- Store model identity and token usage when available
         run.setModel(aiResponse.model());
         run.setInputTokens(aiResponse.inputTokens());
         run.setOutputTokens(aiResponse.outputTokens());
         if (aiResponse.inputTokens() != null && aiResponse.outputTokens() != null) {
             run.setTotalTokens(aiResponse.inputTokens() + aiResponse.outputTokens());
         }
+
+        //--- Store normalized raw request and response snapshots for debugging
         run.setRawRequestJson(buildRawRequestJson(prompt));
         run.setRawResponseJson(buildRawResponseJson(aiResponse, plan, toolResults));
         agentRunRepository.save(run);
     }
 
     private JsonNode buildRawRequestJson(Prompt prompt) {
+        //--- Convert prompt messages into a compact JSON audit shape
         ObjectNode requestJson = objectMapper.createObjectNode();
-        var messagesJson = requestJson.putArray("messages");
+        ArrayNode messagesJson = requestJson.putArray("messages");
         if (prompt != null && prompt.getInstructions() != null) {
             for (Message message : prompt.getInstructions()) {
                 ObjectNode messageJson = messagesJson.addObject();
@@ -216,6 +237,7 @@ public class AgentTurnPersistenceService {
             AgentAiResponse aiResponse,
             AgentStructuredPlanDTO plan,
             List<AgentToolExecutionResult> toolResults) {
+        //--- Convert the model response, parsed plan, and tool output into audit JSON
         ObjectNode responseJson = objectMapper.createObjectNode();
         responseJson.put("model", aiResponse.model());
         responseJson.put("assistedText", aiResponse.assistedText());
@@ -225,6 +247,7 @@ public class AgentTurnPersistenceService {
     }
 
     private void applySessionUpdatesFromPlan(AgentSession session, AgentStructuredPlanDTO plan) {
+        //--- Apply planner-provided session stage and status changes
         if (plan.getSessionStage() != null) {
             session.setStage(plan.getSessionStage());
         }
@@ -232,6 +255,7 @@ public class AgentTurnPersistenceService {
             session.setStatus(plan.getSessionStatus());
         }
 
+        //--- Merge memory updates into existing session memory JSON
         JsonNode memoryUpdates = plan.getMemoryUpdates();
         if (memoryUpdates != null && memoryUpdates.isObject()) {
             ObjectNode mergedMemory = session.getMemoryJson() != null && session.getMemoryJson().isObject()
@@ -243,6 +267,7 @@ public class AgentTurnPersistenceService {
     }
 
     private AgentToolRun persistToolRun(UUID sessionId, UUID runId, AgentToolExecutionResult result) {
+        //--- Persist the normalized tool execution ledger row
         AgentToolRun toolRun = new AgentToolRun();
         toolRun.setSessionId(sessionId);
         toolRun.setAgentRunId(runId);
@@ -256,6 +281,7 @@ public class AgentTurnPersistenceService {
     }
 
     private AgentToolRunStatus toToolRunStatus(AgentToolCallStatus status) {
+        //--- Map public tool-call status to persisted tool-run status
         if (status == AgentToolCallStatus.SUCCEEDED) {
             return AgentToolRunStatus.SUCCEEDED;
         }
@@ -266,6 +292,7 @@ public class AgentTurnPersistenceService {
     }
 
     private String buildToolMessageContent(AgentToolExecutionResult result) {
+        //--- Serialize tool output into a timeline message payload
         ObjectNode content = objectMapper.createObjectNode();
         content.put("toolName", result.getToolName() == null ? "unknown" : result.getToolName().getWireName());
         content.put("status", result.getStatus() == null ? "UNKNOWN" : result.getStatus().name());
@@ -277,6 +304,7 @@ public class AgentTurnPersistenceService {
     }
 
     private void completeRun(AgentRun run, UUID assistantMessageId) {
+        //--- Mark the run complete and calculate duration
         OffsetDateTime finishedAt = OffsetDateTime.now();
         run.setAssistantMessageId(assistantMessageId);
         run.setStatus(AgentRunStatus.COMPLETED);
@@ -288,6 +316,7 @@ public class AgentTurnPersistenceService {
     }
 
     private void touchSession(AgentSession session) {
+        //--- Refresh session activity timestamps after a completed turn
         OffsetDateTime now = OffsetDateTime.now();
         session.setLastActivityAt(now);
         session.setUpdatedAt(now);
@@ -295,6 +324,7 @@ public class AgentTurnPersistenceService {
     }
 
     private AgentMessageDTO toMessageDto(AgentMessage message) {
+        //--- Project the persisted message entity into the API DTO
         return AgentMessageDTO.builder()
                 .id(message.getId())
                 .sessionId(message.getSessionId())

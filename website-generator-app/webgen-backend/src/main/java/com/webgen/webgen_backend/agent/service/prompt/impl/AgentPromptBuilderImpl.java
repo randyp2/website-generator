@@ -1,11 +1,11 @@
-package com.webgen.webgen_backend.agent.service.impl;
+package com.webgen.webgen_backend.agent.service.prompt.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.agent.dto.AgentStructuredPlanDTO;
 import com.webgen.webgen_backend.agent.entity.AgentMessage;
 import com.webgen.webgen_backend.agent.entity.AgentMessageRole;
 import com.webgen.webgen_backend.agent.entity.AgentSession;
-import com.webgen.webgen_backend.agent.service.AgentPromptBuilder;
+import com.webgen.webgen_backend.agent.service.prompt.AgentPromptBuilder;
 import com.webgen.webgen_backend.agent.tools.AgentToolExecutionResult;
 import com.webgen.webgen_backend.shared.prompt.PromptTemplateLoader;
 import lombok.RequiredArgsConstructor;
@@ -35,16 +35,16 @@ public class AgentPromptBuilderImpl implements AgentPromptBuilder {
     public Prompt buildTurnPrompt(AgentSession session, List<AgentMessage> history, String latestUserMessage) {
         List<Message> messages = new ArrayList<>();
 
-        // --- Append overall role message for context
+        //--- Append overall role message for context
         messages.add(new SystemMessage(buildSystemInstruction(session)));
 
-        // --- Add recent timeline messages in chronological order.
+        //--- Add recent timeline messages in chronological order
         List<AgentMessage> recentHistory = selectRecentHistory(history);
         for (AgentMessage timelineMessage : recentHistory) {
             appendMappedMessage(messages, timelineMessage);
         }
 
-        // Ensure the latest user input exists even if history retrieval was stale.
+        //--- Ensure the latest user input exists even if history retrieval was stale
         if (shouldAppendLatestUserMessage(recentHistory, latestUserMessage)) {
             messages.add(new UserMessage(latestUserMessage));
         }
@@ -60,6 +60,7 @@ public class AgentPromptBuilderImpl implements AgentPromptBuilder {
             String latestUserMessage,
             AgentStructuredPlanDTO plan,
             List<AgentToolExecutionResult> toolResults) {
+        //--- Package planner output and tool results as synthesis context
         String synthesisContext = """
                 <latest_user_message>
                 %s
@@ -77,6 +78,7 @@ public class AgentPromptBuilderImpl implements AgentPromptBuilder {
                 objectMapper.valueToTree(plan).toPrettyString(),
                 objectMapper.valueToTree(toolResults == null ? List.of() : toolResults).toPrettyString());
 
+        //--- Build a focused prompt for final answer synthesis
         return Prompt.builder()
                 .messages(List.of(
                         new SystemMessage(buildSynthesisInstruction(session)),
@@ -88,9 +90,11 @@ public class AgentPromptBuilderImpl implements AgentPromptBuilder {
      * Builds a stable system instruction from session stage and memory state.
      */
     private String buildSystemInstruction(AgentSession session) {
+        //--- Bind current session state into the planner system prompt
         String stage = session.getStage().name();
         String memoryJson = toCdataSafeText(String.valueOf(session.getMemoryJson()));
 
+        //--- Append the externalized tool catalog to the planner instruction
         String systemInstruction = promptTemplateLoader
                 .load(SYSTEM_TEMPLATE_PATH)
                 .formatted(stage, stage, memoryJson);
@@ -99,6 +103,7 @@ public class AgentPromptBuilderImpl implements AgentPromptBuilder {
     }
 
     private String buildSynthesisInstruction(AgentSession session) {
+        //--- Bind current session state into the synthesis system prompt
         String stage = session.getStage().name();
         String memoryJson = toCdataSafeText(String.valueOf(session.getMemoryJson()));
         return promptTemplateLoader.load(SYNTHESIS_TEMPLATE_PATH) + """
@@ -117,6 +122,7 @@ public class AgentPromptBuilderImpl implements AgentPromptBuilder {
      * Returns only the most recent messages to keep prompt size bounded.
      */
     private List<AgentMessage> selectRecentHistory(List<AgentMessage> history) {
+        //--- Drop old messages once the prompt history cap is reached
         if (history == null || history.isEmpty()) {
             return List.of();
         }
@@ -128,6 +134,7 @@ public class AgentPromptBuilderImpl implements AgentPromptBuilder {
      * Converts a stored agent message row into a Spring AI chat message.
      */
     private void appendMappedMessage(List<Message> target, AgentMessage source) {
+        //--- Normalize stored content before mapping by role
         String content = normalizeContent(source);
         AgentMessageRole role = source.getRole();
 
@@ -144,6 +151,7 @@ public class AgentPromptBuilderImpl implements AgentPromptBuilder {
             return;
         }
 
+        //--- Represent persisted tool output as model-readable context
         String toolLabel = source.getToolName() == null ? "unknown_tool" : source.getToolName();
         String toolCallId = source.getToolCallId() == null ? "unknown_call_id" : source.getToolCallId();
         target.add(new UserMessage("""
@@ -159,6 +167,7 @@ public class AgentPromptBuilderImpl implements AgentPromptBuilder {
      * Normalizes nullable message content before mapping to model messages.
      */
     private String normalizeContent(AgentMessage source) {
+        //--- Collapse nullable or blank content into an empty model message
         if (source == null || source.getContent() == null || source.getContent().isBlank()) {
             return "";
         }
@@ -169,6 +178,7 @@ public class AgentPromptBuilderImpl implements AgentPromptBuilder {
      * Checks if we should append latest user text as a fallback guard.
      */
     private boolean shouldAppendLatestUserMessage(List<AgentMessage> recentHistory, String latestUserMessage) {
+        //--- Avoid duplicating the latest user message when history already contains it
         if (latestUserMessage == null || latestUserMessage.isBlank()) {
             return false;
         }
@@ -183,6 +193,7 @@ public class AgentPromptBuilderImpl implements AgentPromptBuilder {
      * Makes text safe for XML CDATA sections.
      */
     private String toCdataSafeText(String value) {
+        //--- Escape CDATA terminators before placing memory in prompt XML
         if (value == null) {
             return "";
         }

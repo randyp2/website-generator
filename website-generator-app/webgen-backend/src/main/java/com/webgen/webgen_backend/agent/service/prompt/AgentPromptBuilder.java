@@ -1,4 +1,4 @@
-package com.webgen.webgen_backend.agent.service;
+package com.webgen.webgen_backend.agent.service.prompt;
 
 import com.webgen.webgen_backend.agent.dto.AgentStructuredPlanDTO;
 import com.webgen.webgen_backend.agent.entity.AgentMessage;

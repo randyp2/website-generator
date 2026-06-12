@@ -17,14 +17,17 @@ public class AgentAiClientImpl implements AgentAiClient {
 
     @Override
     public AgentAiResponse call(AgentAiRequest request) {
+        //--- Validate the prompt boundary before calling the model
         if (request == null || request.prompt() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "prompt is required");
         }
 
+        //--- Execute the Spring AI chat model with the prepared prompt
         ChatResponse response = agentChatModel.call(request.prompt());
         AssistantMessage assistant = response.getResult().getOutput();
         Usage usage = response.getMetadata().getUsage();
 
+        //--- Normalize text, model, and token metadata into the agent AI response
         return new AgentAiResponse(
                 assistant.getText(),
                 response.getMetadata().getModel(),

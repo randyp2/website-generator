@@ -22,6 +22,7 @@ public class AgentToolExecutor {
     }
 
     public List<AgentToolExecutionResult> execute(UUID portfolioId, List<AgentToolRequestDTO> toolRequests) {
+        //--- Execute each requested tool in planner order
         return toolRequests == null
                 ? List.of()
                 : toolRequests.stream()
@@ -30,21 +31,25 @@ public class AgentToolExecutor {
     }
 
     public AgentToolExecutionResult execute(UUID portfolioId, AgentToolRequestDTO toolRequest) {
+        //--- Reject malformed tool requests with a normalized skipped result
         if (toolRequest == null || toolRequest.getToolName() == null || toolRequest.getToolName() == AgentToolName.UNKNOWN) {
             return skippedTool(toolRequest, "Tool request is missing a valid toolName.");
         }
 
+        //--- Resolve a handler from the registry without coupling orchestration to tool classes
         AgentToolHandler handler = handlersByToolName.get(toolRequest.getToolName());
         if (handler == null) {
             return skippedTool(toolRequest, "Tool execution is not implemented yet.");
         }
 
+        //--- Execute the handler and carry synthesis behavior into the normalized result
         AgentToolExecutionResult result = handler.execute(portfolioId, toolRequest);
         result.setFeedsSynthesis(handler.feedsSynthesis());
         return result;
     }
 
     private Map<AgentToolName, AgentToolHandler> indexHandlers(List<AgentToolHandler> toolHandlers) {
+        //--- Build one lookup entry for every tool name exposed by each handler
         Map<AgentToolName, AgentToolHandler> indexedHandlers = new EnumMap<>(AgentToolName.class);
         for (AgentToolHandler handler : toolHandlers) {
             for (AgentToolName toolName : handler.toolNames()) {
@@ -58,6 +63,7 @@ public class AgentToolExecutor {
     }
 
     private AgentToolExecutionResult skippedTool(AgentToolRequestDTO toolRequest, String reason) {
+        //--- Normalize skipped execution so persistence and response rendering stay consistent
         return AgentToolExecutionResult.builder()
                 .toolName(toolRequest == null ? null : toolRequest.getToolName())
                 .toolType(TOOL_TYPE)

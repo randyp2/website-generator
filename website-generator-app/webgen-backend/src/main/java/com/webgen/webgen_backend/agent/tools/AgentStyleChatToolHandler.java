@@ -32,10 +32,12 @@ public class AgentStyleChatToolHandler implements AgentToolHandler {
 
     @Override
     public AgentToolExecutionResult execute(UUID portfolioId, AgentToolRequestDTO toolRequest) {
+        //--- Convert structured tool arguments into the style chat input contract
         StyleChatToolInputDTO input = objectMapper.convertValue(
                 toolRequest.getArguments() == null ? Map.of() : toolRequest.getArguments(),
                 StyleChatToolInputDTO.class);
 
+        //--- Build the downstream style chat request for the target portfolio
         StyleChatRequestDTO request = new StyleChatRequestDTO();
         request.setPortfolioId(portfolioId);
         request.setUserMessage(input.getUserMessage());
@@ -43,8 +45,10 @@ public class AgentStyleChatToolHandler implements AgentToolHandler {
         request.setFontSelections(input.getFontSelections());
         request.setLayoutSelection(input.getLayoutSelection());
 
+        //--- Execute the existing style chat service as an agent tool
         StyleChatResponseDTO response = styleChatService.chat(request);
 
+        //--- Normalize the downstream response into the agent tool result shape
         return AgentToolExecutionResult.builder()
                 .toolName(AgentToolName.STYLE_CHAT)
                 .toolType(TOOL_TYPE)

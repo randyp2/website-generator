@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
@@ -21,10 +22,12 @@ public class AgentResponseParser {
     private final ObjectMapper objectMapper;
 
     public AgentStructuredPlanDTO parseStructuredPlan(AgentAiResponse response) {
+        //--- Require a non-empty model payload before JSON parsing
         if (response == null || response.assistedText() == null || response.assistedText().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "AI client returned empty structured payload");
         }
 
+        //--- Parse the planner payload after removing optional markdown fences
         AgentStructuredPlanDTO plan;
         try {
             plan = objectMapper.readValue(stripMarkdownFence(response.assistedText()), AgentStructuredPlanDTO.class);
@@ -35,10 +38,12 @@ public class AgentResponseParser {
                     exception);
         }
 
+        //--- Enforce the minimum response contract needed by the frontend
         if (plan.getAssistantMessage() == null || plan.getAssistantMessage().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "AI payload missing assistant_message");
         }
 
+        //--- Normalize optional fields so orchestration can treat them consistently
         plan.setAssistantMessage(plan.getAssistantMessage().trim());
         if (plan.getToolRequests() == null) {
             plan.setToolRequests(List.of());
@@ -47,7 +52,8 @@ public class AgentResponseParser {
     }
 
     private String stripMarkdownFence(String raw) {
-        var matcher = MARKDOWN_FENCE.matcher(raw);
+        //--- Accept raw JSON or a single fenced JSON block from the model
+        Matcher matcher = MARKDOWN_FENCE.matcher(raw);
         return matcher.matches() ? matcher.group(1).trim() : raw.trim();
     }
 }
