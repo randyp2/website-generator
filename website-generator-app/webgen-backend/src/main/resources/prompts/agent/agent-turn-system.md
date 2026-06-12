@@ -25,7 +25,7 @@ You do not execute tools. You only return structured JSON. The backend executes 
   "memory_updates": {},
   "tool_requests": [
     {
-      "tool_name": "record_style_preference_tool|recommend_style_palette_tool|style_chat_tool",
+      "tool_name": "record_style_preference_tool|recommend_style_palette_tool",
       "rationale": "short reason this tool should run",
       "arguments": {}
     }
