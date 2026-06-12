@@ -22,6 +22,7 @@ public class AgentPromptBuilderImpl implements AgentPromptBuilder {
 
     private static final int MAX_HISTORY_MESSAGES = 24;
     private static final String SYSTEM_TEMPLATE_PATH = "prompts/agent/agent-turn-system.md";
+    private static final String TOOLS_TEMPLATE_PATH = "prompts/agent/agent-tools.md";
 
     private final PromptTemplateLoader promptTemplateLoader;
 
@@ -55,9 +56,11 @@ public class AgentPromptBuilderImpl implements AgentPromptBuilder {
         String stage = session.getStage().name();
         String memoryJson = toCdataSafeText(String.valueOf(session.getMemoryJson()));
 
-        return promptTemplateLoader
+        String systemInstruction = promptTemplateLoader
                 .load(SYSTEM_TEMPLATE_PATH)
                 .formatted(stage, stage, memoryJson);
+        String toolCatalog = promptTemplateLoader.load(TOOLS_TEMPLATE_PATH);
+        return systemInstruction + "\n\n" + toolCatalog;
     }
 
     /**

@@ -5,32 +5,13 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
-import org.springframework.ai.chat.model.ChatResponse;
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class AgentAiResponseDTO {
-    String assistedText; // UI response
-    List<ToolCallDTO> toolCalls;
-    String model;
-    Integer inputTokens;
-    Integer outputTokens;
-    ChatResponse rawResponse; // Keep for debugging
-
-    // DTO for the tools used
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class ToolCallDTO {
-        private String toolCallId;
-        private String type; // "function", "db look up"
-        private String toolName; // "style chat planner"
-        private String argumentsJson; // arg needed for tool
-    }
-
+    private String assistedText;
+    private String model;
+    private Integer inputTokens;
+    private Integer outputTokens;
 }

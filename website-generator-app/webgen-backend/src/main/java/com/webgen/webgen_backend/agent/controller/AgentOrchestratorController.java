@@ -1,7 +1,7 @@
 package com.webgen.webgen_backend.agent.controller;
 
+import com.webgen.webgen_backend.agent.dto.AgentChatTurnResponseDTO;
 import com.webgen.webgen_backend.agent.dto.AgentTurnRequestDTO;
-import com.webgen.webgen_backend.agent.dto.AgentTurnResultDTO;
 import com.webgen.webgen_backend.agent.service.AgentOrchestratorService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,16 +21,14 @@ public class AgentOrchestratorController {
     private final AgentOrchestratorService agentOrchestratorService;
 
     @PostMapping("/turn")
-    public ResponseEntity<AgentTurnResultDTO> turn(@RequestBody AgentTurnRequestDTO req) {
+    public ResponseEntity<AgentChatTurnResponseDTO> turn(@RequestBody AgentTurnRequestDTO req) {
         UUID userId = UUID.fromString(
-                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
-        );
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
 
-        AgentTurnResultDTO response = agentOrchestratorService.processTurn(
+        AgentChatTurnResponseDTO response = agentOrchestratorService.processTurn(
                 userId,
                 req.getPortfolioId(),
-                req.getUserMessage()
-        );
+                req.getUserMessage());
 
         return ResponseEntity.ok(response);
     }
