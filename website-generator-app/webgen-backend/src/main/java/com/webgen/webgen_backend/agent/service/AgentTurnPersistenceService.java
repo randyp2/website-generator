@@ -265,6 +265,7 @@ public class AgentTurnPersistenceService {
 
     private AgentToolRun persistToolRun(UUID sessionId, UUID runId, AgentToolExecutionResult result) {
         //--- Persist the normalized tool execution ledger row
+        OffsetDateTime timestamp = OffsetDateTime.now();
         AgentToolRun toolRun = new AgentToolRun();
         toolRun.setSessionId(sessionId);
         toolRun.setAgentRunId(runId);
@@ -273,7 +274,9 @@ public class AgentTurnPersistenceService {
         toolRun.setArgsJson(objectMapper.valueToTree(result.getInputJson() == null ? Map.of() : result.getInputJson()));
         toolRun.setResultJson(objectMapper.valueToTree(result.getOutputJson() == null ? Map.of() : result.getOutputJson()));
         toolRun.setErrorMessage(result.getErrorMessage());
-        toolRun.setFinishedAt(OffsetDateTime.now());
+        toolRun.setStartedAt(timestamp);
+        toolRun.setFinishedAt(timestamp);
+        toolRun.setDurationMs(0L);
         return agentToolRunRepository.save(toolRun);
     }
 
