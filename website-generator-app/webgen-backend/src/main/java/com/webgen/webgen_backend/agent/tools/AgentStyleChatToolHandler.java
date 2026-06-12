@@ -38,12 +38,13 @@ public class AgentStyleChatToolHandler implements AgentToolHandler {
                 StyleChatToolInputDTO.class);
 
         //--- Build the downstream style chat request for the target portfolio
-        StyleChatRequestDTO request = new StyleChatRequestDTO();
-        request.setPortfolioId(portfolioId);
-        request.setUserMessage(input.getUserMessage());
-        request.setColorSelections(input.getColorSelections());
-        request.setFontSelections(input.getFontSelections());
-        request.setLayoutSelection(input.getLayoutSelection());
+        StyleChatRequestDTO request = StyleChatRequestDTO.builder()
+                .portfolioId(portfolioId)
+                .userMessage(input.getUserMessage())
+                .colorSelections(input.getColorSelections())
+                .fontSelections(input.getFontSelections())
+                .layoutSelection(input.getLayoutSelection())
+                .build();
 
         //--- Execute the existing style chat service as an agent tool
         StyleChatResponseDTO response = styleChatService.chat(request);
