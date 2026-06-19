@@ -327,7 +327,7 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
                     </article>
                 ) : (
                     <div role="tabpanel" aria-label="Portfolio analytics" className="flex">
-                        <PublishedPortfolioAnalytics />
+                        <PublishedPortfolioAnalytics slug={slug ?? null} />
                     </div>
                 )}
             </div>
