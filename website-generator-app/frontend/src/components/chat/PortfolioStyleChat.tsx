@@ -39,6 +39,10 @@ interface PortfolioStyleChatProps {
     recommendedBodyFont?: string;
     onLayoutSubmit?: (layout: string) => void;
     agentUiHints?: NormalizedAgentUiHints;
+    isResumeProcessing?: boolean;
+    resumeUploadError?: string | null;
+    selectedResumeFileName?: string | null;
+    onResumeFileSelected?: (file: File) => void | Promise<void>;
     className?: string;
 }
 
@@ -202,6 +206,10 @@ export function PortfolioStyleChat({
     recommendedBodyFont,
     onLayoutSubmit,
     agentUiHints,
+    isResumeProcessing = false,
+    resumeUploadError,
+    selectedResumeFileName,
+    onResumeFileSelected,
     className,
 }: PortfolioStyleChatProps) {
     const [prompt, setPrompt] = useState("");
@@ -214,9 +222,18 @@ export function PortfolioStyleChat({
     const endRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const hasUserStarted = messages.some((message) => message.role === "user");
+    const activeAgentUiHints: NormalizedAgentUiHints =
+        agentUiHints ??
+        {
+            requestedResumeUpload: true,
+            requestedManualContext: false,
+            blockedOn: "resume_or_manual_context",
+        };
     const shouldShowAgentResumePrompt =
         agentUiHints?.requestedResumeUpload === true ||
-        agentUiHints?.requestedManualContext === true;
+        agentUiHints?.requestedManualContext === true ||
+        isResumeProcessing ||
+        Boolean(resumeUploadError);
     const hasStarted =
         hasUserStarted ||
         isSending ||
@@ -443,10 +460,14 @@ export function PortfolioStyleChat({
                                 </div>
                             )}
 
-                            {shouldShowAgentResumePrompt && agentUiHints && (
+                            {shouldShowAgentResumePrompt && (
                                 <div className="mt-8 w-full max-w-[980px]">
                                     <AgentResumeUploadPrompt
-                                        uiHints={agentUiHints}
+                                        uiHints={activeAgentUiHints}
+                                        isProcessing={isResumeProcessing}
+                                        errorMessage={resumeUploadError}
+                                        selectedFileName={selectedResumeFileName}
+                                        onResumeFileSelected={onResumeFileSelected}
                                     />
                                 </div>
                             )}
@@ -528,9 +549,13 @@ export function PortfolioStyleChat({
                                     />
                                 )}
 
-                                {shouldShowAgentResumePrompt && agentUiHints && (
+                                {shouldShowAgentResumePrompt && (
                                     <AgentResumeUploadPrompt
-                                        uiHints={agentUiHints}
+                                        uiHints={activeAgentUiHints}
+                                        isProcessing={isResumeProcessing}
+                                        errorMessage={resumeUploadError}
+                                        selectedFileName={selectedResumeFileName}
+                                        onResumeFileSelected={onResumeFileSelected}
                                     />
                                 )}
 

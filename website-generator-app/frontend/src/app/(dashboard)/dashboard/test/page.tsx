@@ -3,6 +3,11 @@
 import { PortfolioStyleChat } from "@/components/chat/PortfolioStyleChat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+    buildAgentResumeContextMessage,
+    parseResumeForAgent,
+    persistPortfolioResume,
+} from "@/lib/agent-resume";
 import { getAgentUiHints } from "@/lib/agent-ui-hints";
 import { cn } from "@/lib/utils";
 import type {
@@ -50,6 +55,12 @@ const getToolRequests = (
 
 const getToolRequestName = (toolRequest: AgentToolRequestDTO): string =>
     toolRequest.tool_name ?? toolRequest.toolName ?? "unknown_tool";
+
+type SubmitAgentTurnOptions = {
+    agentMessage: string;
+    visibleUserMessage?: string;
+    appendVisibleUserMessage?: boolean;
+};
 
 const DebugField = ({
     label,
@@ -184,6 +195,13 @@ export default function AgentTesttPage() {
     );
     const [lastError, setLastError] = useState<AgentTurnFailure | null>(null);
     const [isCreating, setIsCreating] = useState(false);
+    const [isParsingResume, setIsParsingResume] = useState(false);
+    const [resumeUploadError, setResumeUploadError] = useState<string | null>(
+        null,
+    );
+    const [selectedResumeFileName, setSelectedResumeFileName] = useState<
+        string | null
+    >(null);
 
     const plannerToolRequests = useMemo(
         () => getToolRequests(lastResponse),
@@ -229,6 +247,8 @@ export default function AgentTesttPage() {
             setPortfolioId(newId);
             setMessages([]);
             setLastResponse(null);
+            setResumeUploadError(null);
+            setSelectedResumeFileName(null);
         } catch (error) {
             const message =
                 error instanceof Error
@@ -240,19 +260,26 @@ export default function AgentTesttPage() {
         }
     };
 
-    const handleSend = async (prompt: string) => {
-        const normalizedPrompt = prompt.trim();
+    const submitAgentTurn = async ({
+        agentMessage,
+        visibleUserMessage = agentMessage,
+        appendVisibleUserMessage = true,
+    }: SubmitAgentTurnOptions) => {
+        const normalizedAgentMessage = agentMessage.trim();
+        const normalizedVisibleMessage = visibleUserMessage.trim();
         const normalizedPortfolioId = portfolioId.trim();
-        if (!normalizedPrompt || isSending) return;
+        if (!normalizedAgentMessage || isSending || isParsingResume) return;
 
-        const userMessage: Message = {
-            id: createMessageId(),
-            role: "user",
-            content: normalizedPrompt,
-            timestamp: new Date(),
-        };
+        if (appendVisibleUserMessage && normalizedVisibleMessage) {
+            const userMessage: Message = {
+                id: createMessageId(),
+                role: "user",
+                content: normalizedVisibleMessage,
+                timestamp: new Date(),
+            };
+            setMessages((current) => [...current, userMessage]);
+        }
 
-        setMessages((current) => [...current, userMessage]);
         setLastError(null);
         setLastResponse(null);
 
@@ -277,7 +304,7 @@ export default function AgentTesttPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     portfolioId: normalizedPortfolioId,
-                    userMessage: normalizedPrompt,
+                    userMessage: normalizedAgentMessage,
                 }),
             });
 
@@ -340,15 +367,106 @@ export default function AgentTesttPage() {
         }
     };
 
+    const handleSend = async (prompt: string) => {
+        await submitAgentTurn({ agentMessage: prompt });
+    };
+
+    const handleResumeFileSelected = async (file: File) => {
+        const normalizedPortfolioId = portfolioId.trim();
+        if (!normalizedPortfolioId) {
+            const error = "portfolioId is required before parsing a resume.";
+            setLastError({ error });
+            setResumeUploadError(error);
+            setMessages((current) => [
+                ...current,
+                {
+                    id: createMessageId(),
+                    role: "ai",
+                    content:
+                        "Add a portfolio ID in the debug panel before uploading a resume.",
+                    timestamp: new Date(),
+                    messageType: "error",
+                },
+            ]);
+            return;
+        }
+
+        const progressMessageId = createMessageId();
+        setIsParsingResume(true);
+        setSelectedResumeFileName(file.name);
+        setResumeUploadError(null);
+        setLastError(null);
+        setMessages((current) => [
+            ...current,
+            {
+                id: createMessageId(),
+                role: "user",
+                content: `Uploaded resume: ${file.name}`,
+                timestamp: new Date(),
+            },
+            {
+                id: progressMessageId,
+                role: "ai",
+                content: "Parsing your resume and saving it to this portfolio...",
+                timestamp: new Date(),
+                isGenerating: true,
+            },
+        ]);
+
+        try {
+            const parsedResume = await parseResumeForAgent(file);
+            await persistPortfolioResume(normalizedPortfolioId, parsedResume);
+            const resumeContextMessage = buildAgentResumeContextMessage({
+                fileName: file.name,
+                parsedResume,
+            });
+
+            setMessages((current) =>
+                current.filter((message) => message.id !== progressMessageId),
+            );
+            setIsParsingResume(false);
+
+            await submitAgentTurn({
+                agentMessage: resumeContextMessage,
+                appendVisibleUserMessage: false,
+            });
+        } catch (error) {
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : "Failed to parse resume.";
+            setResumeUploadError(message);
+            setLastError({ error: message });
+            setMessages((current) =>
+                current.map((existingMessage) =>
+                    existingMessage.id === progressMessageId
+                        ? {
+                              ...existingMessage,
+                              content: message,
+                              messageType: "error",
+                              isGenerating: false,
+                          }
+                        : existingMessage,
+                ),
+            );
+        } finally {
+            setIsParsingResume(false);
+        }
+    };
+
     return (
         <main className="min-h-[calc(100vh-4rem)] px-3 py-3 md:px-4">
             <div className="grid h-[calc(100vh-5.25rem)] grid-cols-1 gap-3 xl:grid-cols-2">
                 <section className="min-h-0 overflow-hidden rounded-3xl border border-white/10 bg-[#0f1014] shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
                     <PortfolioStyleChat
                         messages={messages}
-                        isSending={isSending}
+                        isSending={isSending || isParsingResume}
                         onSendMessage={handleSend}
                         agentUiHints={uiHints}
+                        isResumeProcessing={isParsingResume}
+                        resumeUploadError={resumeUploadError}
+                        selectedResumeFileName={selectedResumeFileName}
+                        onResumeFileSelected={handleResumeFileSelected}
                         className="h-full max-w-none"
                     />
                 </section>
@@ -416,6 +534,8 @@ export default function AgentTesttPage() {
                                         setMessages([]);
                                         setLastResponse(null);
                                         setLastError(null);
+                                        setResumeUploadError(null);
+                                        setSelectedResumeFileName(null);
                                     }}
                                     className="rounded-xl border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08] hover:text-white"
                                 >
