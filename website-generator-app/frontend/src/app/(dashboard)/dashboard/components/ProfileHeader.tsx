@@ -121,6 +121,9 @@ const ProfileHeader = ({
   const hasAnySocial = Boolean(cleanGithub || cleanLinkedin || cleanWebsite)
   const hasAnyMeta = Boolean(jobLine || educationLine || cleanLocation)
   const stats = socialStats ?? EMPTY_SOCIAL_STATS
+  const followButtonClassName = isFollowing
+    ? "inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:cursor-pointer hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+    : "inline-flex items-center gap-2 rounded-full bg-foreground px-6 py-2 text-sm font-medium text-background transition-opacity hover:cursor-pointer hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
 
   const socialLinks: { href: string; label: string; Icon: typeof Github }[] = []
   if (cleanGithub) socialLinks.push({ href: cleanGithub, label: "GitHub", Icon: Github })
@@ -218,7 +221,7 @@ const ProfileHeader = ({
                 type="button"
                 onClick={onToggleFollow}
                 disabled={!onToggleFollow || isFollowLoading}
-                className="inline-flex items-center gap-2 rounded-full bg-foreground px-6 py-2 text-sm font-medium text-background transition-opacity hover:cursor-pointer hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                className={followButtonClassName}
               >
                 {isFollowLoading && <Loader2 className="size-4 animate-spin" />}
                 {isFollowing ? "Following" : "Follow"}
