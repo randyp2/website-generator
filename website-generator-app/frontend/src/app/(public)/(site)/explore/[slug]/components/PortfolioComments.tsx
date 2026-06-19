@@ -42,7 +42,7 @@ const PortfolioComments = ({
         </div>
         <ChevronDown
           className={cn(
-            "size-5 text-muted-foreground transition-transform duration-300",
+            "size-5 text-muted-foreground transition-transform duration-300 group-hover:cursor-pointer",
             isOpen && "rotate-180",
           )}
         />
