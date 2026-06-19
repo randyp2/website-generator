@@ -3,73 +3,27 @@
 import { PortfolioStyleChat } from "@/components/chat/PortfolioStyleChat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getAgentUiHints } from "@/lib/agent-ui-hints";
 import { cn } from "@/lib/utils";
+import type {
+    AgentToolCallDTO,
+    AgentToolRequestDTO,
+    AgentTurnFailure,
+    AgentTurnResponse,
+} from "@/types/agent";
 import type { Message } from "@/types/preview";
 import {
     AlertCircle,
     Braces,
     CheckCircle2,
     ClipboardList,
+    FileText,
     Hammer,
     Loader2,
     Route,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
-
-type JsonMap = Record<string, unknown>;
-
-type AgentMessageDTO = {
-    id?: string;
-    sessionId?: string;
-    sequenceNo?: number;
-    role?: string;
-    content?: string;
-    createdAt?: string;
-};
-
-type AgentToolRequestDTO = {
-    tool_name?: string;
-    toolName?: string;
-    rationale?: string;
-    arguments?: JsonMap;
-};
-
-type AgentStructuredPlanDTO = {
-    assistant_message?: string;
-    assistantMessage?: string;
-    session_status?: string;
-    sessionStatus?: string;
-    memory_updates?: unknown;
-    memoryUpdates?: unknown;
-    tool_requests?: AgentToolRequestDTO[];
-    toolRequests?: AgentToolRequestDTO[];
-};
-
-type AgentToolCallDTO = {
-    toolName?: string;
-    toolType?: string;
-    status?: string;
-    rationale?: string;
-    inputJson?: JsonMap;
-    outputJson?: JsonMap;
-    errorMessage?: string;
-    feedsSynthesis?: boolean;
-};
-
-type AgentTurnResponse = {
-    sessionId?: string;
-    runId?: string;
-    assistantMessage?: AgentMessageDTO;
-    structuredResponse?: AgentStructuredPlanDTO;
-    toolCalls?: AgentToolCallDTO[];
-};
-
-type AgentTurnFailure = {
-    code?: string;
-    error?: string;
-    message?: string;
-};
 
 const createMessageId = (): string => {
     if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -235,6 +189,10 @@ export default function AgentTesttPage() {
         () => getToolRequests(lastResponse),
         [lastResponse],
     );
+    const uiHints = useMemo(
+        () => getAgentUiHints(lastResponse),
+        [lastResponse],
+    );
 
     const handleNewPortfolio = async () => {
         if (isCreating) return;
@@ -390,6 +348,7 @@ export default function AgentTesttPage() {
                         messages={messages}
                         isSending={isSending}
                         onSendMessage={handleSend}
+                        agentUiHints={uiHints}
                         className="h-full max-w-none"
                     />
                 </section>
@@ -489,6 +448,29 @@ export default function AgentTesttPage() {
                                     value={lastResponse?.runId}
                                 />
                             </div>
+
+                            <section className="space-y-3">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-2">
+                                        <FileText className="h-4 w-4 text-orange-300" />
+                                        <h2 className="text-sm font-semibold text-white">
+                                            Agent UI Hints
+                                        </h2>
+                                    </div>
+                                    <span
+                                        className={cn(
+                                            "rounded-full border px-2 py-1 text-xs",
+                                            uiHints.requestedResumeUpload ||
+                                                uiHints.requestedManualContext
+                                                ? "border-orange-300/30 bg-orange-300/10 text-orange-100"
+                                                : "border-white/10 bg-white/[0.04] text-white/45",
+                                        )}
+                                    >
+                                        {uiHints.blockedOn ?? "none"}
+                                    </span>
+                                </div>
+                                <JsonBlock value={uiHints} />
+                            </section>
 
                             {lastError && (
                                 <section className="rounded-2xl border border-red-400/20 bg-red-400/10 p-4">

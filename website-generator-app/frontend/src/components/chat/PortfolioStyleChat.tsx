@@ -16,7 +16,9 @@ import {
 import type { ColorPresetRecommendation, StylePreferences } from "@/types/style";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import type { NormalizedAgentUiHints } from "@/lib/agent-ui-hints";
 import ReactMarkdown from "react-markdown";
+import { AgentResumeUploadPrompt } from "./AgentResumeUploadPrompt";
 import { ColorPickerPanel } from "./ColorPickerPanel";
 import { TypographyPickerPanel } from "./TypographyPickerPanel";
 import { LayoutPreviewGrid } from "./layout-preview/LayoutPreviewGrid";
@@ -36,6 +38,7 @@ interface PortfolioStyleChatProps {
     recommendedHeadingFont?: string;
     recommendedBodyFont?: string;
     onLayoutSubmit?: (layout: string) => void;
+    agentUiHints?: NormalizedAgentUiHints;
     className?: string;
 }
 
@@ -198,6 +201,7 @@ export function PortfolioStyleChat({
     recommendedHeadingFont,
     recommendedBodyFont,
     onLayoutSubmit,
+    agentUiHints,
     className,
 }: PortfolioStyleChatProps) {
     const [prompt, setPrompt] = useState("");
@@ -210,8 +214,15 @@ export function PortfolioStyleChat({
     const endRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const hasUserStarted = messages.some((message) => message.role === "user");
+    const shouldShowAgentResumePrompt =
+        agentUiHints?.requestedResumeUpload === true ||
+        agentUiHints?.requestedManualContext === true;
     const hasStarted =
-        hasUserStarted || isSending || showColorPicker || showTypographyPicker;
+        hasUserStarted ||
+        isSending ||
+        showColorPicker ||
+        showTypographyPicker ||
+        shouldShowAgentResumePrompt;
 
     useEffect(() => {
         if (!hasStarted) return;
@@ -431,6 +442,14 @@ export function PortfolioStyleChat({
                                     />
                                 </div>
                             )}
+
+                            {shouldShowAgentResumePrompt && agentUiHints && (
+                                <div className="mt-8 w-full max-w-[980px]">
+                                    <AgentResumeUploadPrompt
+                                        uiHints={agentUiHints}
+                                    />
+                                </div>
+                            )}
                         </div>
                     </motion.div>
                 ) : (
@@ -506,6 +525,12 @@ export function PortfolioStyleChat({
                                         recommendedBodyFont={
                                             recommendedBodyFont
                                         }
+                                    />
+                                )}
+
+                                {shouldShowAgentResumePrompt && agentUiHints && (
+                                    <AgentResumeUploadPrompt
+                                        uiHints={agentUiHints}
                                     />
                                 )}
 
