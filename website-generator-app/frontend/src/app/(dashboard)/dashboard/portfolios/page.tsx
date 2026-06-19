@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
@@ -14,12 +14,15 @@ import {
   FiTrash2,
   FiGlobe,
   FiHeart,
+  FiMail,
   FiMessageCircle,
   FiShare2,
 } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
+import { buildPortfolioUrl } from "@/lib/public-env";
 import { DeletePortfolioOverlay } from "../components/DeletePortfolioOverlay";
+import { usePortfolioEngagementMetrics } from "../hooks/usePortfolioEngagementMetrics";
 
 interface Portfolio {
   id: string;
@@ -27,11 +30,7 @@ interface Portfolio {
   thumbnail: string;
   status: string;
   lastEdited: string;
-  views: number;
-  likes: number;
-  comments: number;
-  shares: number;
-  url?: string;
+  url: string | null;
 }
 
 interface PortfolioListItem {
@@ -41,9 +40,36 @@ interface PortfolioListItem {
   updated_at?: string;
   created_at?: string;
   url?: string | null;
+  slug?: string | null;
+  external_url?: string | null;
+  externalUrl?: string | null;
+  source_type?: string | null;
+  sourceType?: string | null;
   screenshot_url?: string | null;
   screenshotUrl?: string | null;
 }
+
+const DEPLOYED_STATUSES = new Set(["active", "publish", "published"]);
+
+const resolvePortfolioUrl = (
+  portfolio: PortfolioListItem,
+  username: string | null,
+): string | null => {
+  const normalizedStatus = (portfolio.status ?? "").toLowerCase().trim();
+  if (!DEPLOYED_STATUSES.has(normalizedStatus)) return null;
+
+  const sourceType = (portfolio.source_type ?? portfolio.sourceType ?? "")
+    .trim()
+    .toLowerCase();
+  const externalUrl = (portfolio.external_url ?? portfolio.externalUrl ?? "").trim();
+  if (sourceType === "external" && externalUrl) return externalUrl;
+  if (sourceType !== "generated" && externalUrl) return externalUrl;
+
+  const slug = portfolio.slug?.trim();
+  if (slug) return buildPortfolioUrl(slug, username);
+
+  return null;
+};
 
 interface PortfolioListResponse {
   portfolios: PortfolioListItem[];
@@ -76,6 +102,21 @@ const PortfolioManager: React.FC = () => {
   // Extract user from context
   const { user } = useUser();
   const { id: userId } = user;
+  const usernameOrEmail = user?.username?.trim() || user?.email?.trim() || null;
+
+  const { rows: engagementRows } = usePortfolioEngagementMetrics();
+  const engagementByPortfolioId = useMemo(() => {
+    const map = new Map<string, { views: number; likes: number; shares: number; comments: number }>();
+    for (const row of engagementRows) {
+      map.set(row.portfolioId, {
+        views: row.views,
+        likes: row.likes,
+        shares: row.shares,
+        comments: row.comments,
+      });
+    }
+    return map;
+  }, [engagementRows]);
 
 
   // API call to fetch portfolios - Occurs on mount
@@ -110,11 +151,7 @@ const PortfolioManager: React.FC = () => {
             lastEdited: lastEditedSource
               ? new Date(lastEditedSource).toLocaleDateString()
               : "Unknown",
-            views: 0, // Placeholder - replace with actual views logic
-            likes: 0, // Placeholder - replace with actual likes logic
-            comments: 0, // Placeholder - replace with actual comments logic
-            shares: 0, // Placeholder - replace with actual shares logic
-            url: item.url ?? "unpublished",
+            url: resolvePortfolioUrl(item, usernameOrEmail),
           };
         });
 
@@ -129,7 +166,7 @@ const PortfolioManager: React.FC = () => {
     }
 
     handleFetchPortfolios();
-  }, [userId]);
+  }, [userId, usernameOrEmail]);
 
   // Handler to open edit modal - triggered when user clicks Edit icon
   const handleEditClick = (portfolio: Portfolio) => {
@@ -327,6 +364,12 @@ const PortfolioManager: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {portfolios.map((portfolio, index) => {
           const status = getStatus(portfolio.status);
+          const engagement = engagementByPortfolioId.get(portfolio.id) ?? {
+            views: 0,
+            likes: 0,
+            shares: 0,
+            comments: 0,
+          };
 
           return (
             <motion.div
@@ -354,20 +397,6 @@ const PortfolioManager: React.FC = () => {
                   <div className="absolute inset-0 bg-linear-to-t from-black/45 via-black/10 to-transparent" />
                   <div className="absolute -top-20 right-[-20%] h-40 w-40 rounded-full bg-background/40 blur-3xl" />
 
-                  {/* Status Badge */}
-                  <div className="absolute top-3 left-3">
-                    <div
-                      className={`flex items-center gap-1.5 px-3 py-1.5 ${status.bgColor} backdrop-blur-sm rounded-full text-xs font-semibold ${status.textColor}`}
-                    >
-                      <motion.div
-                        animate={{ scale: [1, 1.2, 1] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                        className={`w-1.5 h-1.5 ${status.dotColor} rounded-full`}
-                      />
-                      {status.label}
-                    </div>
-                  </div>
-
                   {/* Quick Actions Overlay (on hover) */}
                   <AnimatePresence>
                     {hoveredId === portfolio.id && (
@@ -377,24 +406,52 @@ const PortfolioManager: React.FC = () => {
                         exit={{ opacity: 0 }}
                         className="absolute inset-0 flex items-center justify-center gap-3 bg-black/55 backdrop-blur-sm"
                       >
-                        {/* UPDATED: Added onClick handlers to quick action icons */}
                         {[
-                          { icon: FiEye, label: "Preview", onClick: () => {} },
-                          { icon: FiEdit2, label: "Edit", onClick: () => handleEditClick(portfolio) },
-                          { icon: FiCopy, label: "Duplicate", onClick: () => {} },
+                          {
+                            icon: FiEye,
+                            label: portfolio.url ? "Preview" : "Publish to preview",
+                            onClick: (e: React.MouseEvent) => {
+                              e.stopPropagation();
+                              if (portfolio.url) window.open(portfolio.url, "_blank", "noopener,noreferrer");
+                            },
+                            disabled: !portfolio.url,
+                          },
+                          {
+                            icon: FiEdit2,
+                            label: "Edit",
+                            onClick: (e: React.MouseEvent) => {
+                              e.stopPropagation();
+                              handleEditClick(portfolio);
+                            },
+                            disabled: false,
+                          },
+                          {
+                            icon: FiMail,
+                            label: portfolio.url ? "Share via email" : "Publish to share",
+                            onClick: (e: React.MouseEvent) => {
+                              e.stopPropagation();
+                              if (!portfolio.url) return;
+                              const subject = encodeURIComponent(
+                                `Check out my portfolio: ${portfolio.title}`,
+                              );
+                              const body = encodeURIComponent(
+                                `I wanted to share my portfolio with you:\n\n${portfolio.title}\n${portfolio.url}\n`,
+                              );
+                              window.location.href = `mailto:?subject=${subject}&body=${body}`;
+                            },
+                            disabled: !portfolio.url,
+                          },
                         ].map((action) => (
-                          <motion.button
+                          <button
                             key={action.label}
-                            whileHover={{ scale: 1.1, y: -2 }}
-                            whileTap={{ scale: 0.95 }}
+                            type="button"
                             onClick={action.onClick}
-                            className="group/btn rounded-xl bg-background/80 p-3 shadow-lg transition-all hover:cursor-pointer hover:bg-background"
+                            disabled={action.disabled}
+                            className="rounded-xl bg-background/80 p-3 shadow-lg hover:cursor-pointer hover:bg-background hover:scale-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
                             title={action.label}
                           >
-                            <action.icon
-                              className="h-5 w-5 text-foreground/80 transition-colors group-hover/btn:text-foreground"
-                            />
-                          </motion.button>
+                            <action.icon className="h-5 w-5 text-foreground" />
+                          </button>
                         ))}
                       </motion.div>
                     )}
@@ -404,40 +461,55 @@ const PortfolioManager: React.FC = () => {
                 {/* Card Content */}
                 <div className="p-5">
                   {/* Title */}
-                  <h3 className="mb-1 truncate text-lg font-semibold text-foreground">
+                  <h3 className="mb-2 truncate text-lg font-semibold text-foreground">
                     {portfolio.title}
                   </h3>
 
-                  {/* URL or Last Edited */}
-                  <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
-                    {portfolio.url ? (
-                      <>
-                        <FiGlobe className="w-4 h-4" />
-                        <span className="truncate">{portfolio.url}</span>
-                      </>
-                    ) : (
-                      <span>Edited {portfolio.lastEdited}</span>
-                    )}
+                  {/* Status + Last Edited */}
+                  <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-semibold ${status.bgColor} ${status.textColor}`}
+                    >
+                      <span className={`h-1.5 w-1.5 rounded-full ${status.dotColor}`} />
+                      {status.label}
+                    </span>
+                    <span>Edited {portfolio.lastEdited}</span>
                   </div>
+
+                  {/* URL (only when deployed) */}
+                  {portfolio.url ? (
+                    <a
+                      href={portfolio.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="mb-4 flex items-center gap-2 text-sm text-muted-foreground transition hover:text-primary"
+                    >
+                      <FiGlobe className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{portfolio.url}</span>
+                    </a>
+                  ) : (
+                    <div className="mb-4 h-px" />
+                  )}
 
                   {/* Stats */}
                   <div className="flex items-center justify-between border-t border-border pt-4">
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <FiEye className="w-4 h-4" />
-                        <span>{portfolio.views}</span>
+                        <span>{engagement.views}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <FiHeart className="w-4 h-4" />
-                        <span>{portfolio.likes}</span>
+                        <span>{engagement.likes}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <FiMessageCircle className="w-4 h-4" />
-                        <span>{portfolio.comments}</span>
+                        <span>{engagement.comments}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <FiShare2 className="w-4 h-4" />
-                        <span>{portfolio.shares}</span>
+                        <span>{engagement.shares}</span>
                       </div>
                     </div>
 
