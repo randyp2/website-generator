@@ -229,11 +229,58 @@ export default function AgentTesttPage() {
         null,
     );
     const [lastError, setLastError] = useState<AgentTurnFailure | null>(null);
+    const [isCreating, setIsCreating] = useState(false);
 
     const plannerToolRequests = useMemo(
         () => getToolRequests(lastResponse),
         [lastResponse],
     );
+
+    const handleNewPortfolio = async () => {
+        if (isCreating) return;
+        setIsCreating(true);
+        setLastError(null);
+        try {
+            const response = await fetch("/api/portfolio/draft", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ templateId: "blank" }),
+            });
+            const payload = (await response.json().catch(() => null)) as
+                | { portfolio?: { id?: string } }
+                | AgentTurnFailure
+                | null;
+
+            if (!response.ok) {
+                const failure = (payload ?? {
+                    error: "Failed to create portfolio",
+                }) as AgentTurnFailure;
+                setLastError(failure);
+                return;
+            }
+
+            const newId = (payload as { portfolio?: { id?: string } })
+                ?.portfolio?.id;
+            if (!newId) {
+                setLastError({
+                    error: "Draft created but no portfolio id returned.",
+                });
+                return;
+            }
+
+            setPortfolioId(newId);
+            setMessages([]);
+            setLastResponse(null);
+        } catch (error) {
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : "Unexpected error creating portfolio.";
+            setLastError({ error: message });
+        } finally {
+            setIsCreating(false);
+        }
+    };
 
     const handleSend = async (prompt: string) => {
         const normalizedPrompt = prompt.trim();
@@ -394,7 +441,7 @@ export default function AgentTesttPage() {
                                 </div>
                             </div>
 
-                            <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-[1fr_auto]">
+                            <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-[1fr_auto_auto]">
                                 <Input
                                     value={portfolioId}
                                     onChange={(event) =>
@@ -414,6 +461,19 @@ export default function AgentTesttPage() {
                                     className="rounded-xl border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08] hover:text-white"
                                 >
                                     Clear
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={handleNewPortfolio}
+                                    disabled={isCreating}
+                                    className="rounded-xl border-emerald-400/30 bg-emerald-400/10 text-emerald-100 hover:bg-emerald-400/20 hover:text-emerald-100"
+                                >
+                                    {isCreating ? (
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    ) : (
+                                        "New"
+                                    )}
                                 </Button>
                             </div>
                         </div>
