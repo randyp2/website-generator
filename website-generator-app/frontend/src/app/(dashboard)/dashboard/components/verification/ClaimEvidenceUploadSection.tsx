@@ -60,7 +60,12 @@ const ClaimEvidenceUploadSection = ({
     const { addToast } = useToast();
     const { isTransferring, deletingUploadId, upload, deleteUpload } =
         useClaimEvidenceUpload();
-    const { uploads, refetch: refetchUploads } = useClaimUploads(claimId);
+    const {
+        uploads,
+        refetch: refetchUploads,
+        removeUpload,
+        restoreUpload,
+    } = useClaimUploads(claimId);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -104,15 +109,22 @@ const ClaimEvidenceUploadSection = ({
     };
 
     const handleDeleteUpload = async (uploadId: string, fileName: string) => {
+        const uploadToDelete = uploads.find((uploadItem) => uploadItem.id === uploadId);
+        if (uploadToDelete) {
+            removeUpload(uploadId);
+        }
+
         try {
             await deleteUpload(claimId, uploadId);
-            await refetchUploads();
             addToast({
                 type: "success",
                 title: "Upload Deleted",
                 description: `${fileName} has been removed.`,
             });
         } catch (error) {
+            if (uploadToDelete) {
+                restoreUpload(uploadToDelete);
+            }
             addToast({
                 type: "error",
                 title: "Delete Failed",

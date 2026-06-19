@@ -9,6 +9,8 @@ interface UseClaimUploadsResult {
     uploads: ClaimUpload[];
     isLoading: boolean;
     refetch: () => Promise<void>;
+    removeUpload: (uploadId: string) => void;
+    restoreUpload: (upload: ClaimUpload) => void;
 }
 
 export const useClaimUploads = (claimId: string | null): UseClaimUploadsResult => {
@@ -37,5 +39,19 @@ export const useClaimUploads = (claimId: string | null): UseClaimUploadsResult =
         void load();
     }, [load]);
 
-    return { uploads, isLoading, refetch: load };
+    const removeUpload = useCallback((uploadId: string) => {
+        setUploads((current) => current.filter((upload) => upload.id !== uploadId));
+    }, []);
+
+    const restoreUpload = useCallback((upload: ClaimUpload) => {
+        setUploads((current) => {
+            if (current.some((item) => item.id === upload.id)) {
+                return current;
+            }
+
+            return [upload, ...current];
+        });
+    }, []);
+
+    return { uploads, isLoading, refetch: load, removeUpload, restoreUpload };
 };
