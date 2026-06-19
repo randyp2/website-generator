@@ -1,10 +1,29 @@
 "use client";
 
 import React from "react";
+import {
+    Activity,
+    BarChart3,
+    Check,
+    ChevronDown,
+    Clock,
+    Copy,
+    ExternalLink,
+    Globe,
+    Info,
+    LayoutTemplate,
+} from "lucide-react";
 import type { Portfolio } from "@/types/portfolio";
 import type { UserData } from "@/context/UserContext";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { buildPortfolioPath, buildPortfolioUrl } from "@/lib/public-env";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
+import { buildPortfolioUrl } from "@/lib/public-env";
 import {
     DEFAULT_DEPLOYED_PORTFOLIO_IMAGE,
     formatFieldValue,
@@ -42,14 +61,6 @@ const formatTemplateLabel = (value?: string | null): string => {
     return formatFieldValue(value);
 };
 
-const getInitials = (value: string): string =>
-    value
-        .trim()
-        .split(/\s+/)
-        .slice(0, 2)
-        .map((part) => part.charAt(0).toUpperCase())
-        .join("") || "U";
-
 export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> = ({
     portfolios,
     isLoading,
@@ -60,6 +71,18 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
         [portfolios],
     );
     const [selectedPortfolioId, setSelectedPortfolioId] = React.useState<string | null>(null);
+    const [activeTab, setActiveTab] = React.useState<"details" | "analytics">("details");
+    const [copied, setCopied] = React.useState(false);
+
+    const handleCopyUrl = React.useCallback(async (url: string) => {
+        try {
+            await navigator.clipboard.writeText(url);
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 1800);
+        } catch {
+            // clipboard unavailable — silently no-op
+        }
+    }, []);
 
     React.useEffect(() => {
         if (deployedPortfolios.length === 0) {
@@ -95,7 +118,6 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
     }
 
     const createdBy = user?.username?.trim() || user?.email?.trim() || "TBD (schema placeholder)";
-    const avatarUrl = typeof user?.avatar === "string" ? user.avatar.trim() : "";
     const slug = deployedPortfolio.slug?.trim();
     const externalUrl = (deployedPortfolio.external_url ?? deployedPortfolio.externalUrl ?? "").trim();
     const sourceTypeNormalized = (deployedPortfolio.source_type ?? deployedPortfolio.sourceType ?? "")
@@ -107,125 +129,207 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
     const browserUrl = isExternalDeployed && externalUrl
         ? externalUrl
         : buildPortfolioUrl(slug || "tbd-slug", createdBy);
-    const publicRoute = isExternalDeployed && externalUrl
-        ? externalUrl
-        : buildPortfolioPath(slug || "tbd-slug", createdBy);
     const lastUpdated = formatPortfolioDate(deployedPortfolio.updated_at);
     const normalizedStatus = normalizeStatus(deployedPortfolio.status);
 
+    const tabs: Array<{ key: "details" | "analytics"; label: string; icon: typeof Info }> = [
+        { key: "details", label: "Details", icon: Info },
+        { key: "analytics", label: "Analytics", icon: BarChart3 },
+    ];
+
     return (
-        <section className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_370px]">
-            <div className="flex h-full flex-col gap-2">
+        <section className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
                 <h3 className="text-lg md:text-xl font-semibold text-foreground">Current Deployed Portfolio</h3>
-                <article className="flex-1 overflow-hidden rounded-2xl border border-border bg-card/80 p-4 md:p-5">
-                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[480px_minmax(0,1fr)] lg:items-start">
-                        <div className="overflow-hidden rounded-xl border border-[#32353d] bg-[#1f2128]">
-                            <div className="flex items-center gap-2 border-b border-[#32353d] bg-[#2a2d35] px-3 py-2">
-                                <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
-                                <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
-                                <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
-                                <div className="ml-2 min-w-0 flex-1 rounded-full border border-[#3a3f49] bg-[#17191f] px-3 py-1">
-                                    <p className="truncate text-xs text-white/75">{browserUrl}</p>
-                                </div>
-                            </div>
-
-                            <div className="relative h-72">
-                                <div
-                                    className="absolute inset-0 bg-cover bg-center"
-                                    style={{ backgroundImage: `url(${deployedPortfolio.screenshot_url ?? DEFAULT_DEPLOYED_PORTFOLIO_IMAGE})` }}
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/10" />
-                                <div className="absolute inset-x-0 bottom-0 p-3">
-                                    <p className="truncate text-sm font-semibold text-white">
-                                        {deployedPortfolio.title ?? "Untitled Portfolio"}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <dl className="flex flex-col gap-5">
-                                <div className="space-y-1">
-                                    <dt className="text-sm font-semibold text-muted-foreground">Created By:</dt>
-                                    <dd className="flex items-center gap-3 break-words text-sm text-foreground">
-                                        <Avatar className="h-8 w-8 border border-border/60">
-                                            <AvatarImage src={avatarUrl || undefined} alt={`${createdBy} avatar`} />
-                                            <AvatarFallback className="text-xs font-semibold text-foreground">
-                                                {getInitials(createdBy)}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <span>{createdBy}</span>
-                                    </dd>
-                                </div>
-
-                                <div className="space-y-1">
-                                    <dt className="text-sm font-semibold text-muted-foreground">Date Created:</dt>
-                                    <dd className="break-words text-sm text-foreground">
-                                        {formatPortfolioDate(deployedPortfolio.created_at)}
-                                    </dd>
-                                </div>
-
-                                <div className="space-y-1">
-                                    <dt className="text-sm font-semibold text-muted-foreground">Status:</dt>
-                                    <dd className="break-words text-sm text-foreground">
-                                        <StatusIndicator status={normalizedStatus} />
-                                    </dd>
-                                </div>
-
-                                <div className="space-y-1">
-                                    <dt className="text-sm font-semibold text-muted-foreground">Template:</dt>
-                                    <dd className="break-words text-sm text-foreground">
-                                        {formatTemplateLabel(deployedPortfolio.template_id)}
-                                    </dd>
-                                    {deployedPortfolios.length > 1 ? (
-                                        <div className="pt-2">
-                                            <label
-                                                htmlFor="dashboard-published-portfolio-select"
-                                                className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-                                            >
-                                                Dashboard Portfolio
-                                            </label>
-                                            <select
-                                                id="dashboard-published-portfolio-select"
-                                                value={String(deployedPortfolio.id)}
-                                                onChange={(event) => setSelectedPortfolioId(event.target.value)}
-                                                className="w-full rounded-lg border border-border bg-background/80 px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary"
-                                            >
-                                                {deployedPortfolios.map((portfolio) => (
-                                                    <option key={String(portfolio.id)} value={String(portfolio.id)}>
-                                                        {portfolio.title?.trim() || "Untitled Portfolio"}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    ) : null}
-                                </div>
-                            </dl>
-                        </div>
-                    </div>
-
-                    <div className="mt-5 border-t border-border pt-4">
-                        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-foreground">
-                            <p className="flex items-center gap-1">
-                                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">URL:</span>
-                                <span className="break-all text-foreground">{browserUrl}</span>
-                            </p>
-                            <p className="flex items-center gap-1">
-                                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Public route:</span>
-                                <span className="break-all text-foreground">{publicRoute}</span>
-                            </p>
-                            <p className="flex items-center gap-1">
-                                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Last updated:</span>
-                                <span className="text-foreground">{lastUpdated}</span>
-                            </p>
-                        </div>
-                    </div>
-                </article>
+                <div
+                    role="tablist"
+                    aria-label="Portfolio view"
+                    className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 p-1"
+                >
+                    {tabs.map((tab) => {
+                        const isActive = activeTab === tab.key;
+                        const Icon = tab.icon;
+                        return (
+                            <button
+                                key={tab.key}
+                                type="button"
+                                role="tab"
+                                aria-selected={isActive}
+                                onClick={() => setActiveTab(tab.key)}
+                                className={cn(
+                                    "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wide transition",
+                                    isActive
+                                        ? "bg-background text-foreground shadow-sm"
+                                        : "text-muted-foreground hover:text-foreground",
+                                )}
+                            >
+                                <Icon className="h-3.5 w-3.5" />
+                                {tab.label}
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
 
-            <div className="flex h-full w-full flex-col gap-2 xl:justify-self-end">
-                <h3 className="text-lg md:text-xl font-semibold text-foreground">Portfolio Analytics</h3>
-                <PublishedPortfolioAnalytics />
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] xl:items-stretch">
+                <div className="flex flex-col overflow-hidden rounded-3xl border border-[#32353d] bg-[#1f2128] shadow-lg shadow-black/20">
+                    <div className="flex items-center gap-2 border-b border-[#32353d] bg-[#2a2d35] px-3 py-2">
+                        <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
+                        <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
+                        <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
+                        <div className="ml-2 min-w-0 flex-1 rounded-full border border-[#3a3f49] bg-[#17191f] px-3 py-1">
+                            <p className="truncate text-xs text-white/75">{browserUrl}</p>
+                        </div>
+                    </div>
+
+                    <div className="relative aspect-[16/10] w-full">
+                        <div
+                            className="absolute inset-0 bg-cover bg-top"
+                            style={{ backgroundImage: `url(${deployedPortfolio.screenshot_url ?? DEFAULT_DEPLOYED_PORTFOLIO_IMAGE})` }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                        <div className="absolute inset-x-0 bottom-0 p-3">
+                            <p className="truncate text-sm font-semibold text-white">
+                                {deployedPortfolio.title ?? "Untitled Portfolio"}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {activeTab === "details" ? (
+                    <article
+                        role="tabpanel"
+                        aria-label="Portfolio details"
+                        className="flex flex-col rounded-2xl border border-border bg-card/80 p-4 md:p-5"
+                    >
+                        <dl className="grid grid-cols-2 gap-3">
+                            {deployedPortfolios.length > 1 ? (
+                                <div className="col-span-2 space-y-1.5">
+                                    <dt className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                        <LayoutTemplate className="h-3.5 w-3.5" />
+                                        Dashboard Portfolio
+                                    </dt>
+                                    <dd>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <button
+                                                    type="button"
+                                                    className="group flex w-full items-center justify-between gap-2 rounded-lg border border-border bg-background/60 px-3 py-2 text-sm font-medium text-foreground transition hover:border-primary/50 hover:bg-background focus:border-primary focus:outline-none data-[state=open]:border-primary data-[state=open]:bg-background"
+                                                >
+                                                    <span className="truncate text-left">
+                                                        {deployedPortfolio.title?.trim() || "Untitled Portfolio"}
+                                                    </span>
+                                                    <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+                                                </button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent
+                                                align="start"
+                                                sideOffset={6}
+                                                className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-[14rem] max-h-64 overflow-y-auto"
+                                            >
+                                                <DropdownMenuRadioGroup
+                                                    value={String(deployedPortfolio.id)}
+                                                    onValueChange={setSelectedPortfolioId}
+                                                >
+                                                    {deployedPortfolios.map((portfolio) => (
+                                                        <DropdownMenuRadioItem
+                                                            key={String(portfolio.id)}
+                                                            value={String(portfolio.id)}
+                                                            className="cursor-pointer"
+                                                        >
+                                                            <span className="truncate">
+                                                                {portfolio.title?.trim() || "Untitled Portfolio"}
+                                                            </span>
+                                                        </DropdownMenuRadioItem>
+                                                    ))}
+                                                </DropdownMenuRadioGroup>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </dd>
+                                </div>
+                            ) : null}
+
+                            <div className="col-span-2 rounded-xl border border-border/60 bg-muted/30 p-3">
+                                <dt className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                    <Globe className="h-3.5 w-3.5" />
+                                    URL
+                                </dt>
+                                <dd className="text-sm text-foreground">
+                                    <a
+                                        href={browserUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex max-w-full items-center gap-1.5 font-medium text-foreground transition hover:text-primary"
+                                    >
+                                        <span className="truncate break-all">{browserUrl}</span>
+                                        <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                                    </a>
+                                </dd>
+                            </div>
+
+                            <div className="rounded-xl border border-border/60 bg-muted/30 p-3">
+                                <dt className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                    <Clock className="h-3.5 w-3.5" />
+                                    Last Updated
+                                </dt>
+                                <dd className="truncate text-sm font-medium text-foreground">{lastUpdated}</dd>
+                            </div>
+
+                            <div className="rounded-xl border border-border/60 bg-muted/30 p-3">
+                                <dt className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                    <Activity className="h-3.5 w-3.5" />
+                                    Status
+                                </dt>
+                                <dd>
+                                    <StatusIndicator status={normalizedStatus} />
+                                </dd>
+                            </div>
+
+                            <div className="col-span-2 rounded-xl border border-border/60 bg-muted/30 p-3">
+                                <dt className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                    <LayoutTemplate className="h-3.5 w-3.5" />
+                                    Template
+                                </dt>
+                                <dd className="truncate text-sm font-medium text-foreground">
+                                    {formatTemplateLabel(deployedPortfolio.template_id)}
+                                </dd>
+                            </div>
+                        </dl>
+
+                        <div className="mt-auto flex flex-wrap gap-2 pt-4">
+                            <a
+                                href={browserUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90"
+                            >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                                Visit Site
+                            </a>
+                            <button
+                                type="button"
+                                onClick={() => handleCopyUrl(browserUrl)}
+                                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-background/60 px-3 py-2 text-xs font-semibold text-foreground transition hover:border-primary/50 hover:bg-background"
+                            >
+                                {copied ? (
+                                    <>
+                                        <Check className="h-3.5 w-3.5 text-primary" />
+                                        Copied
+                                    </>
+                                ) : (
+                                    <>
+                                        <Copy className="h-3.5 w-3.5" />
+                                        Copy URL
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </article>
+                ) : (
+                    <div role="tabpanel" aria-label="Portfolio analytics" className="flex">
+                        <PublishedPortfolioAnalytics />
+                    </div>
+                )}
             </div>
         </section>
     );
