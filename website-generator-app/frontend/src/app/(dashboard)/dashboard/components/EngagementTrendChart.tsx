@@ -2,106 +2,142 @@
 
 import { motion } from "framer-motion";
 import React from "react";
+import {
+    Bar,
+    BarChart,
+    CartesianGrid,
+    Legend,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis,
+} from "recharts";
+import { usePortfolioEngagementMetrics } from "../hooks/usePortfolioEngagementMetrics";
+
+const truncate = (value: string, max = 18): string =>
+    value.length > max ? `${value.slice(0, max - 1)}…` : value;
+
+type TooltipPayloadItem = {
+    name?: string;
+    value?: number;
+    color?: string;
+};
+
+const ChartTooltip: React.FC<{
+    active?: boolean;
+    payload?: TooltipPayloadItem[];
+    label?: string;
+}> = ({ active, payload, label }) => {
+    if (!active || !payload || payload.length === 0) return null;
+    const total = payload.reduce((sum, item) => sum + (item.value ?? 0), 0);
+    return (
+        <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs shadow-md">
+            <p className="mb-1.5 font-semibold text-foreground">{label}</p>
+            <div className="space-y-1">
+                {payload.map((item) => (
+                    <div key={item.name} className="flex items-center justify-between gap-3">
+                        <span className="flex items-center gap-1.5 text-muted-foreground">
+                            <span
+                                className="h-2 w-2 rounded-full"
+                                style={{ backgroundColor: item.color }}
+                            />
+                            {item.name}
+                        </span>
+                        <span className="font-medium text-foreground">{item.value}</span>
+                    </div>
+                ))}
+                <div className="mt-1.5 flex items-center justify-between border-t border-border pt-1.5">
+                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Total</span>
+                    <span className="font-semibold text-foreground">{total}</span>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 export const EngagementTrendChart: React.FC = () => {
-  // Weekly data - can be replaced with real data from API
-  const weeklyData = [20, 35, 28, 42, 38, 50];
-  const maxValue = Math.max(...weeklyData);
-  const yAxisLabels = [0, 15, 30, 45, 60];
+    const { rows, isLoading } = usePortfolioEngagementMetrics();
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.4, duration: 0.5 }}
-      className="relative rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-lg"
-    >
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-xl font-semibold">Engagement Trend</h3>
-          <p className="text-sm text-muted-foreground">Views and exports over time</p>
-        </div>
-      </div>
-      <div className="mt-4 h-48 rounded-xl relative">
-        {/* Y-axis labels */}
-        <div className="absolute bottom-6 left-0 top-0 flex flex-col justify-between text-[10px] text-muted-foreground/70">
-          {yAxisLabels.reverse().map((label) => (
-            <span key={label}>{label}</span>
-          ))}
-        </div>
+    const chartData = rows.map((row) => ({
+        title: truncate(row.title),
+        Views: row.views,
+        Likes: row.likes,
+        Shares: row.shares,
+        Comments: row.comments,
+    }));
 
-        {/* Horizontal grid lines */}
-        <div className="absolute left-8 right-2 top-0 bottom-6 flex flex-col justify-between">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-px w-full bg-border/70" />
-          ))}
-        </div>
+    const chartHeight = Math.max(chartData.length * 64 + 56, 280);
 
-        {/* Vertical grid lines */}
-        <div className="absolute left-8 right-2 top-0 bottom-6 flex justify-between">
-          {weeklyData.map((_, i) => (
-            <div key={i} className="h-full w-px bg-border/40" />
-          ))}
-        </div>
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.5 }}
+            className="relative flex flex-col rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-lg"
+        >
+            <div className="mb-4 flex items-center justify-between">
+                <div>
+                    <h3 className="text-xl font-semibold">Engagement by Portfolio</h3>
+                    <p className="text-sm text-muted-foreground">
+                        Views, likes, shares, and comments per deployed portfolio
+                    </p>
+                </div>
+            </div>
 
-        {/* Chart area */}
-        <div className="absolute left-8 right-2 top-0 bottom-6">
-          <svg className="w-full h-full" preserveAspectRatio="none">
-            {/* Line path */}
-            <defs>
-              <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="var(--chart-2)" />
-                <stop offset="100%" stopColor="var(--chart-1)" />
-              </linearGradient>
-              <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="var(--chart-1)" stopOpacity="0.3" />
-                <stop offset="100%" stopColor="var(--chart-1)" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-
-            {/* Area under line */}
-            <path
-              d={`M 0,${100 - (weeklyData[0] / maxValue) * 100} ${weeklyData.map((val, i) => `L ${(i / (weeklyData.length - 1)) * 100},${100 - (val / maxValue) * 100}`).join(' ')} L 100,100 L 0,100 Z`}
-              fill="url(#areaGradient)"
-              vectorEffect="non-scaling-stroke"
-            />
-
-            {/* Line */}
-            <motion.path
-              initial={{ pathLength: 0 }}
-              animate={{ pathLength: 1 }}
-              transition={{ duration: 1.5, delay: 0.5 }}
-              d={`M 0,${100 - (weeklyData[0] / maxValue) * 100} ${weeklyData.map((val, i) => `L ${(i / (weeklyData.length - 1)) * 100},${100 - (val / maxValue) * 100}`).join(' ')}`}
-              stroke="url(#lineGradient)"
-              strokeWidth="2"
-              fill="none"
-              vectorEffect="non-scaling-stroke"
-            />
-
-            {/* Data points */}
-            {weeklyData.map((val, i) => (
-              <motion.circle
-                key={i}
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ duration: 0.3, delay: 0.5 + i * 0.1 }}
-                cx={`${(i / (weeklyData.length - 1)) * 100}`}
-                cy={`${100 - (val / maxValue) * 100}`}
-                r="3"
-                fill="var(--chart-1)"
-                className="drop-shadow-[0_0_6px_rgba(245,158,11,0.55)]"
-              />
-            ))}
-          </svg>
-        </div>
-
-        {/* X-axis labels */}
-        <div className="absolute bottom-0 left-8 right-2 flex justify-between text-[10px] text-muted-foreground/70">
-          {weeklyData.map((_, i) => (
-            <span key={i}>{`W${i + 1}`}</span>
-          ))}
-        </div>
-      </div>
-    </motion.div>
-  );
+            <div
+                className="w-full"
+                style={{ height: chartData.length === 0 || isLoading ? 280 : chartHeight }}
+            >
+                {isLoading ? (
+                    <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                        Loading engagement…
+                    </div>
+                ) : chartData.length === 0 ? (
+                    <div className="flex h-full flex-col items-center justify-center gap-1 text-center text-sm text-muted-foreground">
+                        <p className="font-medium text-foreground">No deployed portfolios yet</p>
+                        <p>Publish a portfolio to see real engagement data here.</p>
+                    </div>
+                ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                            data={chartData}
+                            layout="vertical"
+                            margin={{ top: 8, right: 16, bottom: 0, left: 8 }}
+                            barCategoryGap="22%"
+                            maxBarSize={40}
+                        >
+                            <CartesianGrid horizontal={false} stroke="var(--border)" strokeOpacity={0.5} />
+                            <XAxis
+                                type="number"
+                                tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+                                axisLine={false}
+                                tickLine={false}
+                                allowDecimals={false}
+                            />
+                            <YAxis
+                                type="category"
+                                dataKey="title"
+                                tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+                                axisLine={false}
+                                tickLine={false}
+                                width={120}
+                            />
+                            <Tooltip
+                                cursor={{ fill: "var(--muted)", fillOpacity: 0.3 }}
+                                content={<ChartTooltip />}
+                            />
+                            <Legend
+                                iconType="circle"
+                                wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+                            />
+                            <Bar dataKey="Views" stackId="engagement" fill="var(--chart-1)" radius={[4, 0, 0, 4]} />
+                            <Bar dataKey="Likes" stackId="engagement" fill="var(--chart-2)" />
+                            <Bar dataKey="Shares" stackId="engagement" fill="var(--chart-3)" />
+                            <Bar dataKey="Comments" stackId="engagement" fill="var(--chart-4)" radius={[0, 4, 4, 0]} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                )}
+            </div>
+        </motion.div>
+    );
 };
