@@ -23,6 +23,7 @@ const introStyleMessage: Message = {
     timestamp: new Date(),
 };
 
+const DEFAULT_TEMPLATE_ID = "blank";
 const STYLE_CHAT_SYNC_DEBOUNCE_MS = 800;
 const INSUFFICIENT_CREDITS_CODE = "INSUFFICIENT_CREDITS";
 
@@ -148,8 +149,9 @@ function normalizeRecommendedPresets(value: unknown): ColorPresetRecommendation[
 export function useStyleChat(params: {
     portfolioId: string | null;
     templateId: string | null;
+    onPortfolioCreated?: (portfolioId: string) => void;
 }) {
-    const { portfolioId, templateId } = params;
+    const { portfolioId: routePortfolioId, templateId, onPortfolioCreated } = params;
     const { addToast } = useToast();
 
     const {
@@ -171,6 +173,9 @@ export function useStyleChat(params: {
     const [recommendedHeadingFont, setRecommendedHeadingFont] = useState<string | undefined>();
     const [recommendedBodyFont, setRecommendedBodyFont] = useState<string | undefined>();
     const [isInsufficientCreditsModalOpen, setIsInsufficientCreditsModalOpen] = useState(false);
+    const [activePortfolioId, setActivePortfolioId] = useState<string | null>(routePortfolioId);
+    const createdDraftIdRef = useRef<string | null>(null);
+    const draftCreationPromiseRef = useRef<Promise<string> | null>(null);
     const styleSyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastSyncedHistoryRef = useRef<string>("");
 
@@ -193,6 +198,56 @@ export function useStyleChat(params: {
         },
         [addToast],
     );
+
+    useEffect(() => {
+        setActivePortfolioId(routePortfolioId);
+    }, [routePortfolioId]);
+
+    const ensurePortfolioDraft = useCallback(async (): Promise<string> => {
+        if (activePortfolioId) return activePortfolioId;
+        if (draftCreationPromiseRef.current) return draftCreationPromiseRef.current;
+
+        const draftTemplateId = templateId?.trim() || DEFAULT_TEMPLATE_ID;
+
+        draftCreationPromiseRef.current = (async () => {
+            const res = await fetch("/api/portfolio/draft", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ templateId: draftTemplateId }),
+            });
+
+            if (!res.ok) {
+                const errorBody = await res.json().catch(() => null);
+                throw new Error(errorBody?.error ?? "Failed to create draft");
+            }
+
+            const data = await res.json();
+            const createdPortfolioId = data?.portfolio?.id;
+            if (!createdPortfolioId || typeof createdPortfolioId !== "string") {
+                throw new Error("Draft was created without a portfolio id");
+            }
+
+            createdDraftIdRef.current = createdPortfolioId;
+            setTemplateId(draftTemplateId);
+            setPortfolioId(createdPortfolioId);
+            setActivePortfolioId(createdPortfolioId);
+            onPortfolioCreated?.(createdPortfolioId);
+
+            return createdPortfolioId;
+        })();
+
+        try {
+            return await draftCreationPromiseRef.current;
+        } finally {
+            draftCreationPromiseRef.current = null;
+        }
+    }, [
+        activePortfolioId,
+        onPortfolioCreated,
+        setPortfolioId,
+        setTemplateId,
+        templateId,
+    ]);
 
     // Effect 1: Hydration watcher
     useEffect(() => {
@@ -217,7 +272,7 @@ export function useStyleChat(params: {
         lastSyncedHistoryRef.current = "";
 
         const loadHistory = async () => {
-            if (!portfolioId) {
+            if (!activePortfolioId) {
                 setShowColorPicker(false);
                 setRecommendedColorPresets([]);
                 setStyleMessages([introStyleMessage]);
@@ -225,8 +280,13 @@ export function useStyleChat(params: {
                 return;
             }
 
+            if (createdDraftIdRef.current === activePortfolioId) {
+                setHasLoadedHistory(true);
+                return;
+            }
+
             try {
-                const res = await fetch(`/api/portfolio/${portfolioId}/get`);
+                const res = await fetch(`/api/portfolio/${activePortfolioId}/get`);
                 const data = res.ok ? await res.json() : null;
                 const rawHistory = data?.portfolio?.style_chat_history;
 
@@ -257,7 +317,7 @@ export function useStyleChat(params: {
         return () => {
             cancelled = true;
         };
-    }, [isHydrated, portfolioId, setStyleMessages]);
+    }, [activePortfolioId, isHydrated, setStyleMessages]);
 
     // Normalize timestamps for rendering
     const normalizedStyleMessages = useMemo(
@@ -277,31 +337,31 @@ export function useStyleChat(params: {
         if (templateId) {
             setTemplateId(templateId);
         }
-        if (portfolioId) {
-            setPortfolioId(portfolioId);
+        if (activePortfolioId) {
+            setPortfolioId(activePortfolioId);
         }
-    }, [portfolioId, setPortfolioId, setTemplateId, templateId]);
+    }, [activePortfolioId, setPortfolioId, setTemplateId, templateId]);
 
     // Effect 4: Patch last_step to DB
     useEffect(() => {
-        if (!portfolioId) return;
-        fetch(`/api/portfolio/${portfolioId}/update`, {
+        if (!activePortfolioId) return;
+        fetch(`/api/portfolio/${activePortfolioId}/update`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ last_step: "style" }),
         }).catch(() => null);
-    }, [portfolioId]);
+    }, [activePortfolioId]);
 
     // Sync helper
     const syncStyleHistoryToDb = useCallback(
         async (serializedHistory: string) => {
-            if (!portfolioId) return;
+            if (!activePortfolioId) return;
 
             const parsedHistory = JSON.parse(
                 serializedHistory,
             ) as PersistedStyleChatMessage[];
 
-            const res = await fetch(`/api/portfolio/${portfolioId}/update`, {
+            const res = await fetch(`/api/portfolio/${activePortfolioId}/update`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -313,11 +373,11 @@ export function useStyleChat(params: {
                 lastSyncedHistoryRef.current = serializedHistory;
             }
         },
-        [portfolioId],
+        [activePortfolioId],
     );
 
     const flushStyleHistorySync = useCallback(async () => {
-        if (!isHydrated || !portfolioId || !hasLoadedHistory) return;
+        if (!isHydrated || !activePortfolioId || !hasLoadedHistory) return;
 
         if (styleSyncTimeoutRef.current) {
             clearTimeout(styleSyncTimeoutRef.current);
@@ -335,7 +395,7 @@ export function useStyleChat(params: {
     }, [
         hasLoadedHistory,
         isHydrated,
-        portfolioId,
+        activePortfolioId,
         styleMessages,
         syncStyleHistoryToDb,
     ]);
@@ -365,7 +425,7 @@ export function useStyleChat(params: {
 
     // Effect 5: Debounced styleMessages sync to DB
     useEffect(() => {
-        if (!isHydrated || !portfolioId || !hasLoadedHistory) return;
+        if (!isHydrated || !activePortfolioId || !hasLoadedHistory) return;
 
         const serializedHistory = JSON.stringify(
             toPersistedStyleChatHistory(styleMessages),
@@ -392,7 +452,7 @@ export function useStyleChat(params: {
     }, [
         hasLoadedHistory,
         isHydrated,
-        portfolioId,
+        activePortfolioId,
         styleMessages,
         syncStyleHistoryToDb,
     ]);
@@ -420,16 +480,15 @@ export function useStyleChat(params: {
                 },
             ]);
 
-            if (!portfolioId) return;
-
             setIsSendingStyle(true);
             try {
+                const targetPortfolioId = await ensurePortfolioDraft();
                 console.log(
                     "[style-chat] Sending message with stylePrefs:",
                     stylePreferences,
                 );
                 const data = await requestStyleChat(
-                    { portfolioId, userMessage: prompt },
+                    { portfolioId: targetPortfolioId, userMessage: prompt },
                     "Style chat request failed.",
                     "Style chat unavailable",
                 );
@@ -493,7 +552,7 @@ export function useStyleChat(params: {
             }
         },
         [
-            portfolioId,
+            ensurePortfolioDraft,
             styleMessages,
             stylePreferences,
             setStyleMessages,
@@ -523,7 +582,7 @@ export function useStyleChat(params: {
             setShowColorPicker(false);
             setRecommendedColorPresets([]);
 
-            if (!portfolioId) return;
+            if (!activePortfolioId) return;
 
             setIsSendingStyle(true);
             try {
@@ -533,7 +592,7 @@ export function useStyleChat(params: {
                 );
                 const data = await requestStyleChat(
                     {
-                        portfolioId,
+                        portfolioId: activePortfolioId,
                         colorSelections: colors,
                     },
                     "Color submission failed.",
@@ -586,7 +645,7 @@ export function useStyleChat(params: {
             }
         },
         [
-            portfolioId,
+            activePortfolioId,
             stylePreferences,
             setStyleMessages,
             setStylePreferences,
@@ -612,13 +671,13 @@ export function useStyleChat(params: {
 
             setShowTypographyPicker(false);
 
-            if (!portfolioId) return;
+            if (!activePortfolioId) return;
 
             setIsSendingStyle(true);
             try {
                 const data = await requestStyleChat(
                     {
-                        portfolioId,
+                        portfolioId: activePortfolioId,
                         fontSelections: { heading: fonts.heading, body: fonts.body },
                     },
                     "Font submission failed.",
@@ -661,7 +720,7 @@ export function useStyleChat(params: {
             }
         },
         [
-            portfolioId,
+            activePortfolioId,
             stylePreferences,
             setStyleMessages,
             setStylePreferences,
@@ -683,13 +742,13 @@ export function useStyleChat(params: {
                 },
             ]);
 
-            if (!portfolioId) return;
+            if (!activePortfolioId) return;
 
             setIsSendingStyle(true);
             try {
                 const data = await requestStyleChat(
                     {
-                        portfolioId,
+                        portfolioId: activePortfolioId,
                         layoutSelection: layoutName,
                     },
                     "Layout submission failed.",
@@ -732,7 +791,7 @@ export function useStyleChat(params: {
             }
         },
         [
-            portfolioId,
+            activePortfolioId,
             stylePreferences,
             setStyleMessages,
             setStylePreferences,
@@ -743,6 +802,7 @@ export function useStyleChat(params: {
     );
 
     return {
+        portfolioId: activePortfolioId,
         normalizedStyleMessages,
         isSending: isSendingStyle,
         showColorPicker,

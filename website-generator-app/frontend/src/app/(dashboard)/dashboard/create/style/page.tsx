@@ -3,6 +3,7 @@
 import { PortfolioStyleChat } from "@/components/chat/PortfolioStyleChat";
 import { useStyleChat } from "@/hooks/useStyleChat";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback } from "react";
 import {
     isPristineManualResumeTemplate,
 } from "@/utils/resume/manualResumeTemplate";
@@ -11,9 +12,19 @@ const StyleDiscussionPage: React.FC = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const templateId = searchParams.get("templateId");
-    const portfolioId = searchParams.get("portfolioId");
+    const routePortfolioId = searchParams.get("portfolioId");
+
+    const handlePortfolioCreated = useCallback(
+        (createdPortfolioId: string) => {
+            router.replace(`/dashboard/create/style?portfolioId=${createdPortfolioId}`, {
+                scroll: false,
+            });
+        },
+        [router],
+    );
 
     const {
+        portfolioId,
         normalizedStyleMessages,
         isSending,
         showColorPicker,
@@ -28,15 +39,14 @@ const StyleDiscussionPage: React.FC = () => {
         handleFontSubmit,
         handleLayoutSubmit,
         flushStyleHistorySync,
-    } = useStyleChat({ portfolioId, templateId });
+    } = useStyleChat({
+        portfolioId: routePortfolioId,
+        templateId,
+        onPortfolioCreated: handlePortfolioCreated,
+    });
 
     const handleContinueToResume = async () => {
         if (!portfolioId) {
-            if (templateId) {
-                router.push(`/dashboard/create/upload?templateId=${templateId}`);
-                return;
-            }
-            router.push("/dashboard/create/upload");
             return;
         }
 
@@ -87,6 +97,7 @@ const StyleDiscussionPage: React.FC = () => {
                 onSendMessage={handleSend}
                 onContinue={handleContinueToResume}
                 continueLabel="Continue to Review & Edit"
+                isContinueDisabled={!portfolioId || isSending}
                 showColorPicker={showColorPicker}
                 recommendedColorPresets={recommendedColorPresets}
                 onColorSubmit={handleColorSubmit}
