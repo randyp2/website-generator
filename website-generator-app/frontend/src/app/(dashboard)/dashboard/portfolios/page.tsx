@@ -41,6 +41,8 @@ interface PortfolioListItem {
   updated_at?: string;
   created_at?: string;
   url?: string | null;
+  screenshot_url?: string | null;
+  screenshotUrl?: string | null;
 }
 
 interface PortfolioListResponse {
@@ -49,6 +51,11 @@ interface PortfolioListResponse {
 
 const DEFAULT_PORTFOLIO_CARD_IMAGE =
   "https://images.unsplash.com/photo-1545665277-5937489579f2?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+
+const getPortfolioCardImage = (portfolio: PortfolioListItem): string =>
+  portfolio.screenshot_url?.trim() ||
+  portfolio.screenshotUrl?.trim() ||
+  DEFAULT_PORTFOLIO_CARD_IMAGE;
 
 const PortfolioManager: React.FC = () => {
   const router = useRouter();
@@ -98,7 +105,7 @@ const PortfolioManager: React.FC = () => {
           return {
             id: item.id,
             title: item.title,
-            thumbnail: DEFAULT_PORTFOLIO_CARD_IMAGE,
+            thumbnail: getPortfolioCardImage(item),
             status: item.status ?? "draft",
             lastEdited: lastEditedSource
               ? new Date(lastEditedSource).toLocaleDateString()
