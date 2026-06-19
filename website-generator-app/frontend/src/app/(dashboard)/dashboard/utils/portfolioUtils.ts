@@ -21,7 +21,7 @@ export const normalizeStatus = (status?: string | null): "active" | "draft" | "a
 
 export const resolveResumePath = (portfolio: Portfolio): string => {
     const step = portfolio.last_step ?? "refine";
-    if (step === "template") return "/dashboard/create";
+    if (step === "template") return `/dashboard/create/style?portfolioId=${portfolio.id}`;
     if (step === "style") return `/dashboard/create/style?portfolioId=${portfolio.id}`;
     if (step === "upload") return `/dashboard/create/upload?portfolioId=${portfolio.id}`;
     if (step === "review") return `/dashboard/create/review?portfolioId=${portfolio.id}`;

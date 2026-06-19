@@ -55,9 +55,9 @@ describe("resolveResumePath", () => {
   })
   const id = portfolio.id
 
-  it('routes "template" to the create entry point without a portfolio id', () => {
+  it('routes "template" to the style step with portfolio id', () => {
     expect(resolveResumePath({ ...portfolio, last_step: "template" })).toBe(
-      "/dashboard/create",
+      `/dashboard/create/style?portfolioId=${id}`,
     )
   })
 
