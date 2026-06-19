@@ -8,5 +8,6 @@ export const GET = async (
 
     return proxyBackendRequest(
         `/api/v1/public/portfolio/${encodeURIComponent(slug)}/engagement/comments`,
+        { optionalAuth: true },
     );
 };

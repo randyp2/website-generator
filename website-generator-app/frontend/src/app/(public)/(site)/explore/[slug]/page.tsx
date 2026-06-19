@@ -14,7 +14,6 @@ import {
   getPortfolioDescriptionSnippet,
   formatTimeAgo,
   getPortfolioFullHref,
-  getPortfolioMetrics,
   splitTimeAgo,
 } from "./explore-portfolio-detail.utils";
 
@@ -46,7 +45,6 @@ const ExplorePortfolioDetailPage = async ({ params }: Props) => {
 
   const updatedAgo = formatTimeAgo(portfolio.publishedAt);
   const updatedTime = splitTimeAgo(updatedAgo);
-  const metrics = getPortfolioMetrics(portfolio.slug);
   const heroSummary = getPortfolioDescriptionSnippet(portfolio, 280);
 
   return (
@@ -97,13 +95,16 @@ const ExplorePortfolioDetailPage = async ({ params }: Props) => {
 
           <ExplorePortfolioSidebar
             portfolio={portfolio}
-            metrics={metrics}
             updatedTime={updatedTime}
           />
 
           <div className="flex min-w-0 flex-col gap-8">
             <ExplorePortfolioDescription portfolio={portfolio} />
-            <PortfolioComments />
+            <PortfolioComments
+              portfolioId={portfolio.portfolioId}
+              portfolioOwnerId={portfolio.userId}
+              slug={portfolio.slug}
+            />
           </div>
 
           <ExplorePortfolioPlaceholderCard username={portfolio.ownerUsername} />

@@ -10,6 +10,7 @@ type BackendProxyOptions = {
     method?: ProxyMethod;
     request?: Request;
     authenticated?: boolean;
+    optionalAuth?: boolean;
 };
 
 const readRequestBody = async (
@@ -38,7 +39,6 @@ const toProxyResponse = async (response: Response): Promise<NextResponse> => {
     if (contentType) {
         headers.set("content-type", contentType);
     }
-    headers.set("cache-control", "no-store");
 
     return new NextResponse(body, {
         status: response.status,
@@ -55,7 +55,7 @@ export const proxyBackendRequest = async (
     try {
         const headers = new Headers();
 
-        if (options.authenticated) {
+        if (options.authenticated || options.optionalAuth) {
             const supabase = await createServerSupabaseClient();
             const {
                 data: { session },
@@ -63,13 +63,15 @@ export const proxyBackendRequest = async (
             } = await supabase.auth.getSession();
 
             if (error || !session?.access_token) {
-                return NextResponse.json(
-                    { error: "Unauthorized" },
-                    { status: 401 },
-                );
+                if (options.authenticated) {
+                    return NextResponse.json(
+                        { error: "Unauthorized" },
+                        { status: 401 },
+                    );
+                }
+            } else {
+                headers.set("Authorization", `Bearer ${session.access_token}`);
             }
-
-            headers.set("Authorization", `Bearer ${session.access_token}`);
         }
 
         const body = await readRequestBody(options.request, method);
