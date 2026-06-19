@@ -47,6 +47,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/public/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/public/portfolio/*/engagement/views").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/public/portfolio/*/engagement/shares").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/public/profile/*/social/views").permitAll()
 //                        .requestMatchers("/api/generate/ping", "/api/generate", "/api/debug/create", "/api/debug/all")
 //                        .permitAll() // Endpoints that don't need auth
                         .anyRequest().authenticated())
