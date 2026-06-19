@@ -10,6 +10,7 @@ import EditProfileModal, {
     type EditableProfileFields,
 } from "./EditProfileModal";
 import PublicVerificationTab from "./PublicVerificationTab";
+import { useProfileSocial } from "./useProfileSocial";
 
 const PUBLIC_PROFILE_TABS = ["Portfolios", "Verification"] as const;
 
@@ -29,6 +30,11 @@ const PublicProfileView = ({
     const [activeTab, setActiveTab] = useState<PublicProfileTab>("Portfolios");
     const [displayedProfile, setDisplayedProfile] = useState(profile);
     const [isEditOpen, setIsEditOpen] = useState(false);
+    const profileSocial = useProfileSocial({
+        isOwner,
+        profileId: displayedProfile.id,
+        username: displayedProfile.username,
+    });
 
     useEffect(() => {
         setDisplayedProfile(profile);
@@ -59,6 +65,18 @@ const PublicProfileView = ({
                 linkedinUrl={displayedProfile.linkedinUrl}
                 githubUrl={displayedProfile.githubUrl}
                 showEditProfileButton={isOwner}
+                showFollowButton={!isOwner}
+                socialStats={{
+                    followersCount: profileSocial.summary.followersCount,
+                    followingCount: profileSocial.summary.followingCount,
+                    profileViewsCount: profileSocial.summary.profileViewsCount,
+                    portfolioLikesCount: profileSocial.summary.portfolioLikesCount,
+                }}
+                socialError={profileSocial.error}
+                isFollowing={profileSocial.summary.viewerIsFollowing}
+                isFollowLoading={profileSocial.isTogglingFollow}
+                isSocialLoading={profileSocial.isLoading}
+                onToggleFollow={profileSocial.toggleFollow}
                 onEditProfile={
                     isOwner ? () => setIsEditOpen(true) : undefined
                 }

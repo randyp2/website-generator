@@ -9,5 +9,5 @@ public interface ProfileSocialService {
     ProfileSocialSummaryDTO getSummaryByProfileId(UUID profileId, UUID viewerId);
     ProfileSocialSummaryDTO followProfile(UUID followerProfileId, UUID followedProfileId);
     ProfileSocialSummaryDTO unfollowProfile(UUID followerProfileId, UUID followedProfileId);
-    ProfileSocialSummaryDTO recordProfileView(String username);
+    ProfileSocialSummaryDTO recordProfileView(String username, UUID viewerId);
 }

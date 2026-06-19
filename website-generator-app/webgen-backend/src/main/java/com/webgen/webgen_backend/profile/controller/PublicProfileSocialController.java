@@ -30,7 +30,7 @@ public class PublicProfileSocialController {
     @PostMapping("/views")
     public ResponseEntity<ProfileSocialSummaryDTO> recordView(
             @PathVariable String username) {
-        return ResponseEntity.ok(profileSocialService.recordProfileView(username));
+        return ResponseEntity.ok(profileSocialService.recordProfileView(username, resolveViewerId()));
     }
 
     private UUID resolveViewerId() {

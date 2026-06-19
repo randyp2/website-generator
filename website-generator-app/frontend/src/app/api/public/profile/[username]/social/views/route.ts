@@ -8,6 +8,9 @@ export const POST = async (
 
     return proxyBackendRequest(
         `/api/v1/public/profile/${encodeURIComponent(username)}/social/views`,
-        { method: "POST" },
+        {
+            method: "POST",
+            optionalAuth: true,
+        },
     );
 };

@@ -67,11 +67,11 @@ public class ProfileSocialServiceImpl implements ProfileSocialService {
 
     @Override
     @Transactional
-    public ProfileSocialSummaryDTO recordProfileView(String username) {
+    public ProfileSocialSummaryDTO recordProfileView(String username, UUID viewerId) {
         Profile profile = findProfileByUsername(username);
         ensureCounter(profile);
         counterRepository.incrementProfileViewsCount(profile.getId());
-        return toSummary(profile, null);
+        return toSummary(profile, viewerId);
     }
 
     private Profile findProfile(UUID profileId) {
