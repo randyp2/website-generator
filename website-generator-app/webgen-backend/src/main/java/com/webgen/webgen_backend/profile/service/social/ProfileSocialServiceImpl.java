@@ -1,12 +1,16 @@
 package com.webgen.webgen_backend.profile.service.social;
 
 import com.webgen.webgen_backend.profile.dto.social.ProfileSocialSummaryDTO;
+import com.webgen.webgen_backend.profile.dto.social.ProfileSocialUserDTO;
 import com.webgen.webgen_backend.profile.entity.Profile;
+import com.webgen.webgen_backend.profile.entity.ProfileFollow;
 import com.webgen.webgen_backend.profile.entity.ProfileSocialCounter;
 import com.webgen.webgen_backend.profile.repository.ProfileFollowRepository;
 import com.webgen.webgen_backend.profile.repository.ProfileRepository;
 import com.webgen.webgen_backend.profile.repository.ProfileSocialCounterRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +40,22 @@ public class ProfileSocialServiceImpl implements ProfileSocialService {
     public ProfileSocialSummaryDTO getSummaryByProfileId(UUID profileId, UUID viewerId) {
         Profile profile = findProfile(profileId);
         return toSummary(profile, viewerId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ProfileSocialUserDTO> listFollowersByUsername(String username, Pageable pageable) {
+        Profile profile = findProfileByUsername(username);
+        return profileFollowRepository.findByFollowedProfile_Id(profile.getId(), pageable)
+                .map(follow -> toSocialUserDto(follow.getFollowerProfile(), follow));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ProfileSocialUserDTO> listFollowingByUsername(String username, Pageable pageable) {
+        Profile profile = findProfileByUsername(username);
+        return profileFollowRepository.findByFollowerProfile_Id(profile.getId(), pageable)
+                .map(follow -> toSocialUserDto(follow.getFollowedProfile(), follow));
     }
 
     @Override
@@ -126,6 +146,19 @@ public class ProfileSocialServiceImpl implements ProfileSocialService {
                         && profileFollowRepository.existsByFollowerProfile_IdAndFollowedProfile_Id(
                                 viewerId,
                                 profile.getId()))
+                .build();
+    }
+
+    private ProfileSocialUserDTO toSocialUserDto(Profile profile, ProfileFollow follow) {
+        return ProfileSocialUserDTO.builder()
+                .profileId(profile.getId())
+                .username(profile.getUsername())
+                .fullName(profile.getFullName())
+                .avatarUrl(profile.getAvatarUrl())
+                .jobTitle(profile.getJobTitle())
+                .company(profile.getCompany())
+                .location(profile.getLocation())
+                .followedAt(follow.getCreatedAt())
                 .build();
     }
 

@@ -1,6 +1,9 @@
 package com.webgen.webgen_backend.profile.repository;
 
 import com.webgen.webgen_backend.profile.entity.ProfileFollow;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -8,6 +11,12 @@ import org.springframework.data.jpa.repository.Query;
 import java.util.UUID;
 
 public interface ProfileFollowRepository extends JpaRepository<ProfileFollow, UUID> {
+
+    @EntityGraph(attributePaths = "followerProfile")
+    Page<ProfileFollow> findByFollowedProfile_Id(UUID followedProfileId, Pageable pageable);
+
+    @EntityGraph(attributePaths = "followedProfile")
+    Page<ProfileFollow> findByFollowerProfile_Id(UUID followerProfileId, Pageable pageable);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = """

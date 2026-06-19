@@ -52,6 +52,8 @@ interface ProfileHeaderProps {
   isSocialLoading?: boolean
   showFollowButton?: boolean
   onToggleFollow?: () => void
+  onFollowersClick?: () => void
+  onFollowingClick?: () => void
 }
 
 const nonEmpty = (value: string | null | undefined): string | null => {
@@ -91,6 +93,8 @@ const ProfileHeader = ({
   isSocialLoading = false,
   showFollowButton = true,
   onToggleFollow,
+  onFollowersClick,
+  onFollowingClick,
 }: ProfileHeaderProps) => {
   const initials = getInitials(username)
   const displayBio = bio?.trim() || PROFILE_MOCK_DATA.bio
@@ -124,6 +128,12 @@ const ProfileHeader = ({
   const followButtonClassName = isFollowing
     ? "inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:cursor-pointer hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
     : "inline-flex items-center gap-2 rounded-full bg-foreground px-6 py-2 text-sm font-medium text-background transition-opacity hover:cursor-pointer hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+  const statItems = [
+    { label: "Followers", value: stats.followersCount, onClick: onFollowersClick },
+    { label: "Following", value: stats.followingCount, onClick: onFollowingClick },
+    { label: "Views", value: stats.profileViewsCount },
+    { label: "Likes", value: stats.portfolioLikesCount },
+  ]
 
   const socialLinks: { href: string; label: string; Icon: typeof Github }[] = []
   if (cleanGithub) socialLinks.push({ href: cleanGithub, label: "GitHub", Icon: Github })
@@ -224,7 +234,7 @@ const ProfileHeader = ({
                 className={followButtonClassName}
               >
                 {isFollowLoading && <Loader2 className="size-4 animate-spin" />}
-                {isFollowing ? "Following" : "Follow"}
+                {isFollowing ? "Unfollow" : "Follow"}
               </button>
             )}
             <button className="rounded-full border border-border px-6 py-2 text-sm font-medium text-foreground transition-colors hover:cursor-pointer hover:bg-muted">
@@ -265,21 +275,41 @@ const ProfileHeader = ({
 
         {/* Stats */}
         <div className="flex items-center gap-8 pt-2 sm:gap-10">
-          {[
-            { label: "Followers", value: stats.followersCount },
-            { label: "Following", value: stats.followingCount },
-            { label: "Views", value: stats.profileViewsCount },
-            { label: "Likes", value: stats.portfolioLikesCount },
-          ].map((stat) => (
-            <div key={stat.label} className="flex flex-col items-center">
-              <span className="text-xs text-muted-foreground">
-                {stat.label}
-              </span>
-              <span className="text-3xl font-bold text-foreground">
-                {isSocialLoading ? "..." : stat.value.toLocaleString()}
-              </span>
-            </div>
-          ))}
+          {statItems.map((stat) => {
+            const statContent = (
+              <>
+                <span
+                  className={`text-xs text-muted-foreground ${
+                    stat.onClick ? "transition-colors group-hover:text-primary" : ""
+                  }`}
+                >
+                  {stat.label}
+                </span>
+                <span
+                  className={`text-3xl font-bold text-foreground ${
+                    stat.onClick ? "transition-colors group-hover:text-primary" : ""
+                  }`}
+                >
+                  {isSocialLoading ? "..." : stat.value.toLocaleString()}
+                </span>
+              </>
+            )
+
+            return stat.onClick ? (
+              <button
+                key={stat.label}
+                type="button"
+                onClick={stat.onClick}
+                className="group flex flex-col items-center rounded-md focus:outline-none hover:cursor-pointer"
+              >
+                {statContent}
+              </button>
+            ) : (
+              <div key={stat.label} className="flex flex-col items-center">
+                {statContent}
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>

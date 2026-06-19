@@ -6,9 +6,11 @@ import ProfileHeader from "@/app/(dashboard)/dashboard/components/ProfileHeader"
 import ProfilePortfoliosGrid from "@/app/(dashboard)/dashboard/components/ProfilePortfoliosGrid";
 import type { PortfolioCard } from "@/app/(public)/(site)/explore/components/explore.types";
 import type { PublicProfileDTO } from "@/types/public-profile";
+import type { ProfileSocialListKind } from "../profile-social.types";
 import EditProfileModal, {
     type EditableProfileFields,
 } from "./EditProfileModal";
+import ProfileSocialListDialog from "./ProfileSocialListDialog";
 import PublicVerificationTab from "./PublicVerificationTab";
 import { useProfileSocial } from "./useProfileSocial";
 
@@ -30,6 +32,8 @@ const PublicProfileView = ({
     const [activeTab, setActiveTab] = useState<PublicProfileTab>("Portfolios");
     const [displayedProfile, setDisplayedProfile] = useState(profile);
     const [isEditOpen, setIsEditOpen] = useState(false);
+    const [openSocialList, setOpenSocialList] =
+        useState<ProfileSocialListKind | null>(null);
     const profileSocial = useProfileSocial({
         isOwner,
         profileId: displayedProfile.id,
@@ -77,6 +81,8 @@ const PublicProfileView = ({
                 isFollowLoading={profileSocial.isTogglingFollow}
                 isSocialLoading={profileSocial.isLoading}
                 onToggleFollow={profileSocial.toggleFollow}
+                onFollowersClick={() => setOpenSocialList("followers")}
+                onFollowingClick={() => setOpenSocialList("following")}
                 onEditProfile={
                     isOwner ? () => setIsEditOpen(true) : undefined
                 }
@@ -125,6 +131,23 @@ const PublicProfileView = ({
                     onOpenChange={setIsEditOpen}
                     profile={displayedProfile}
                     onSaved={handleProfileSaved}
+                />
+            )}
+
+            {openSocialList && (
+                <ProfileSocialListDialog
+                    count={
+                        openSocialList === "followers"
+                            ? profileSocial.summary.followersCount
+                            : profileSocial.summary.followingCount
+                    }
+                    displayName={displayName}
+                    kind={openSocialList}
+                    open={openSocialList !== null}
+                    onOpenChange={(open) => {
+                        if (!open) setOpenSocialList(null);
+                    }}
+                    username={displayedProfile.username}
                 />
             )}
         </div>

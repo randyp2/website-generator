@@ -1,4 +1,8 @@
-import type { ProfileSocialSummary } from "./profile-social.types";
+import type {
+    ProfileSocialListKind,
+    ProfileSocialSummary,
+    ProfileSocialUsersPage,
+} from "./profile-social.types";
 
 const readJson = async <T>(
     response: Response,
@@ -59,6 +63,30 @@ export const recordProfileView = async (
     return readJson<ProfileSocialSummary>(
         response,
         "Failed to record profile view.",
+    );
+};
+
+export const fetchProfileSocialUsers = async (
+    username: string,
+    kind: ProfileSocialListKind,
+    page: number,
+    size: number,
+): Promise<ProfileSocialUsersPage> => {
+    const searchParams = new URLSearchParams({
+        page: String(page),
+        size: String(size),
+    });
+    const response = await fetch(
+        `${publicSocialPath(username)}/${kind}?${searchParams.toString()}`,
+        {
+            cache: "no-store",
+            credentials: "same-origin",
+        },
+    );
+
+    return readJson<ProfileSocialUsersPage>(
+        response,
+        `Failed to load ${kind}.`,
     );
 };
 
