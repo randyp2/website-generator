@@ -15,7 +15,8 @@ import { cn } from "@/lib/utils"
 
 import { ExploreCard } from "./ExploreCard"
 import { ExploreEmptyState } from "./ExploreEmptyState"
-import type { PageResponse, PortfolioCard } from "./explore.types"
+import { fetchExplorePortfolioMetrics } from "./explore.metrics"
+import type { PageResponse, PortfolioCard, PortfolioCardMetrics } from "./explore.types"
 import { matchesPortfolioFilter } from "./explore.utils"
 
 type ShowcaseMajor = "Design" | "Product" | "Research"
@@ -52,6 +53,7 @@ const PAGE_HORIZONTAL_PADDING_CLASSNAME =
 
 export const ExplorePageClient = () => {
   const [portfolios, setPortfolios] = useState<PortfolioCard[]>([])
+  const [metricsBySlug, setMetricsBySlug] = useState<Record<string, PortfolioCardMetrics>>({})
   const [isLast, setIsLast] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -61,6 +63,7 @@ export const ExplorePageClient = () => {
   const [activeExperience, setActiveExperience] = useState<ShowcaseExperience | "All">("All")
   const deferredSearchQuery = useDeferredValue(searchQuery)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
+  const requestedMetricSlugsRef = useRef<Set<string>>(new Set())
   const pageRef = useRef(0)
 
   const fetchPage = useCallback(async (pageNumber: number) => {
@@ -81,6 +84,47 @@ export const ExplorePageClient = () => {
   useEffect(() => {
     fetchPage(0)
   }, [fetchPage])
+
+  useEffect(() => {
+    const missingPortfolios = portfolios.filter(
+      (portfolio) => !requestedMetricSlugsRef.current.has(portfolio.slug),
+    )
+    if (missingPortfolios.length === 0) return
+
+    let isMounted = true
+    missingPortfolios.forEach((portfolio) => {
+      requestedMetricSlugsRef.current.add(portfolio.slug)
+    })
+
+    const loadMetrics = async () => {
+      const results = await Promise.allSettled(
+        missingPortfolios.map(async (portfolio) => ({
+          slug: portfolio.slug,
+          metrics: await fetchExplorePortfolioMetrics(portfolio.slug),
+        })),
+      )
+
+      if (!isMounted) return
+
+      setMetricsBySlug((current) => {
+        const next = { ...current }
+        results.forEach((result, index) => {
+          if (result.status === "fulfilled") {
+            next[result.value.slug] = result.value.metrics
+          } else {
+            requestedMetricSlugsRef.current.delete(missingPortfolios[index].slug)
+          }
+        })
+        return next
+      })
+    }
+
+    void loadMetrics()
+
+    return () => {
+      isMounted = false
+    }
+  }, [portfolios])
 
   useEffect(() => {
     const sentinel = sentinelRef.current
@@ -249,7 +293,11 @@ export const ExplorePageClient = () => {
             )}
           >
             {filtered.map((portfolio) => (
-              <ExploreCard key={portfolio.slug} portfolio={portfolio} />
+              <ExploreCard
+                key={portfolio.slug}
+                metrics={metricsBySlug[portfolio.slug] ?? null}
+                portfolio={portfolio}
+              />
             ))}
           </div>
         )}

@@ -11,6 +11,12 @@ export interface PortfolioCard {
   externalUrl: string | null
 }
 
+export interface PortfolioCardMetrics {
+  likes: number
+  comments: number
+  views: number
+}
+
 export interface PageResponse {
   content: PortfolioCard[]
   totalPages: number

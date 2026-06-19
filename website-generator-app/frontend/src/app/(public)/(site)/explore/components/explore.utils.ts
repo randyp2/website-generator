@@ -3,9 +3,6 @@ import type { PortfolioCard } from "./explore.types"
 const toTitleCase = (value: string): string =>
   value.replace(/\b\w/g, (char) => char.toUpperCase())
 
-const hashString = (value: string): number =>
-  value.split("").reduce((acc, char) => acc * 31 + char.charCodeAt(0), 7)
-
 const stripMarkdown = (value: string): string =>
   value
     .replace(/!\[[^\]]*]\([^)]*\)/g, " ")
@@ -70,16 +67,6 @@ export const getPortfolioSummary = (portfolio: PortfolioCard): string => {
   const ownerLabel = portfolio.ownerName ?? "an independent creator"
 
   return `${templateLabel} portfolio published by ${ownerLabel}.`
-}
-
-export const getPortfolioMetrics = (portfolio: PortfolioCard) => {
-  const seed = Math.abs(hashString(portfolio.slug))
-
-  return {
-    likes: 120 + (seed % 780),
-    comments: 8 + (seed % 92),
-    views: 900 + (seed % 9100),
-  }
 }
 
 export const isExternalPortfolio = (portfolio: {

@@ -5,11 +5,10 @@ import { Eye, Heart, MessageCircle } from "lucide-react"
 
 import { LazyImage } from "@/components/ui/lazy-image"
 
-import type { PortfolioCard } from "./explore.types"
+import type { PortfolioCard, PortfolioCardMetrics } from "./explore.types"
 import {
   formatPublishedDate,
   getPortfolioInitials,
-  getPortfolioMetrics,
   getPortfolioSummary,
   getTemplateLabel,
 } from "./explore.utils"
@@ -19,13 +18,25 @@ const DEFAULT_PREVIEW_IMAGE =
 
 interface ExploreCardProps {
   portfolio: PortfolioCard
+  metrics?: PortfolioCardMetrics | null
 }
 
-export const ExploreCard = ({ portfolio }: ExploreCardProps) => {
+const ZERO_METRICS: PortfolioCardMetrics = {
+  likes: 0,
+  comments: 0,
+  views: 0,
+}
+
+const formatMetric = (value: number | null): string =>
+  value === null ? "..." : value.toLocaleString()
+
+export const ExploreCard = ({
+  portfolio,
+  metrics = ZERO_METRICS,
+}: ExploreCardProps) => {
   const href = `/explore/${portfolio.slug}`
   const templateLabel = getTemplateLabel(portfolio.templateId)
   const summary = getPortfolioSummary(portfolio)
-  const metrics = getPortfolioMetrics(portfolio)
 
   return (
     <Link
@@ -78,15 +89,15 @@ export const ExploreCard = ({ portfolio }: ExploreCardProps) => {
           <div className="flex items-center justify-end gap-4 text-xs text-muted-foreground">
             <div className="flex items-center gap-1.5">
               <Heart className="size-4" />
-              <span>{metrics.likes.toLocaleString()}</span>
+              <span>{formatMetric(metrics?.likes ?? null)}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Eye className="size-4" />
-              <span>{metrics.views.toLocaleString()}</span>
+              <span>{formatMetric(metrics?.views ?? null)}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <MessageCircle className="size-4" />
-              <span>{metrics.comments}</span>
+              <span>{formatMetric(metrics?.comments ?? null)}</span>
             </div>
           </div>
         </div>
