@@ -45,6 +45,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/debug/create").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/billing/webhook/stripe").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/public/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/public/portfolio/*/engagement/views").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/public/portfolio/*/engagement/shares").permitAll()
 //                        .requestMatchers("/api/generate/ping", "/api/generate", "/api/debug/create", "/api/debug/all")
 //                        .permitAll() // Endpoints that don't need auth
                         .anyRequest().authenticated())
