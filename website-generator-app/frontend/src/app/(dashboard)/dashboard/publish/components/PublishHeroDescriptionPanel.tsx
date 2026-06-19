@@ -71,8 +71,8 @@ export const PublishHeroDescriptionPanel = ({
   }
 
   return (
-    <div className="px-6 pt-6">
-      <div className="overflow-hidden rounded-2xl border border-border bg-background/60">
+    <div className="h-full">
+      <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-background/60">
         <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
           <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
             <FiFileText className="h-4 w-4" />
