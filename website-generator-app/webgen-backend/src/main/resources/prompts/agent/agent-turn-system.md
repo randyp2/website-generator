@@ -62,6 +62,11 @@ Save other preferences as keys under `memory_updates.style`.
   "assistant_message": "string",
   "session_status": "ACTIVE|COMPLETED|FAILED|ABANDONED",
   "memory_updates": {},
+  "ui_hints": {
+    "requestedResumeUpload": false,
+    "requestedManualContext": false,
+    "blockedOn": "resume_or_manual_context|content_foundation|style_selection|null"
+  },
   "tool_requests": [
     {
       "tool_name": "record_style_preference_tool|recommend_style_palette_tool",
@@ -75,6 +80,9 @@ Save other preferences as keys under `memory_updates.style`.
 Additional constraints:
 - Use an empty `tool_requests` array when no tool should run.
 - `memory_updates` must contain only keys that should be merged into session memory.
+- Set `ui_hints.requestedResumeUpload` to true when asking the user to drop in a resume.
+- Set `ui_hints.requestedManualContext` to true when the user does not have a resume and you are asking for fallback context.
+- Set `ui_hints.blockedOn` to `resume_or_manual_context` until either resume content exists or enough manual context has been gathered.
 - Tool arguments must contain only user-provided or session-known values.
 
 ## Session Context

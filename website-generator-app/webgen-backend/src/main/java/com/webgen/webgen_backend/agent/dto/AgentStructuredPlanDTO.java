@@ -26,6 +26,9 @@ public class AgentStructuredPlanDTO {
     @JsonProperty("memory_updates")
     private JsonNode memoryUpdates;
 
+    @JsonProperty("ui_hints")
+    private AgentUiHintsDTO uiHints;
+
     @JsonProperty("tool_requests")
     private List<AgentToolRequestDTO> toolRequests;
 }
