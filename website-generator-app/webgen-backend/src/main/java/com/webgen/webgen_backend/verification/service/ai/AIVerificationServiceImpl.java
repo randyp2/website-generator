@@ -300,6 +300,7 @@ public class AIVerificationServiceImpl implements AIVerificationService {
 
     private void markUploadFailed(ClaimEvidenceUpload upload, String errorMessage) {
         OffsetDateTime now = OffsetDateTime.now();
+        upload.setStatus(STATUS_FAILED);
         upload.setAnalysisError(truncate(Optional.ofNullable(errorMessage).orElse("Unknown verification error")));
         upload.setUpdatedAt(now);
 
