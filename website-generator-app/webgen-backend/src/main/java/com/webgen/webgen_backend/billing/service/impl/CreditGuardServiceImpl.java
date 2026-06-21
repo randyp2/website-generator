@@ -3,6 +3,8 @@ package com.webgen.webgen_backend.billing.service.impl;
 import com.webgen.webgen_backend.billing.repository.BillingCreditLedgerEntryRepository;
 import com.webgen.webgen_backend.billing.service.CreditGuardService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -14,9 +16,13 @@ import java.util.UUID;
 public class CreditGuardServiceImpl implements CreditGuardService {
 
     private final BillingCreditLedgerEntryRepository billingCreditLedgerEntryRepository;
+    private final Environment environment;
 
     @Override
     public void assertHasRequiredCredits(UUID profileId, int requiredCredits, String operationCode) {
+        if (environment.acceptsProfiles(Profiles.of("dev"))) {
+            return;
+        }
         if (requiredCredits <= 0) {
             return;
         }
