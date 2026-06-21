@@ -30,6 +30,7 @@ interface PublishWizardModalProps {
     drafts: Portfolio[];
     ownerName: string;
     ownerAvatarUrl: string | null;
+    initialPortfolioId?: string | null;
     onClose: () => void;
     onPublished: (
         portfolioId: string,
@@ -42,20 +43,29 @@ export const PublishWizardModal = ({
     drafts,
     ownerName,
     ownerAvatarUrl,
+    initialPortfolioId = null,
     onClose,
     onPublished,
 }: PublishWizardModalProps) => {
-    const [currentStep, setCurrentStep] = useState(0);
+    // When a specific draft is preselected (e.g. the user clicked a draft card),
+    // step 1 ("Pick") is already complete, so open the wizard on step 2 ("Slug").
+    const initialDraft = initialPortfolioId
+        ? drafts.find((p) => String(p.id) === initialPortfolioId) ?? null
+        : null;
+
+    const [currentStep, setCurrentStep] = useState(initialDraft ? 1 : 0);
     const [direction, setDirection] = useState(1);
     const [source, setSource] = useState<PublishSource>("generated");
     const [externalUrl, setExternalUrl] = useState("");
     const [selectedPortfolioId, setSelectedPortfolioId] = useState<
         string | null
-    >(null);
-    const [slugInput, setSlugInput] = useState("");
+    >(initialDraft ? String(initialDraft.id) : null);
+    const [slugInput, setSlugInput] = useState(initialDraft?.slug ?? "");
     const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
     const [slugChecking, setSlugChecking] = useState(false);
-    const [descriptionInput, setDescriptionInput] = useState("");
+    const [descriptionInput, setDescriptionInput] = useState(
+        initialDraft?.description ?? "",
+    );
     const [publishState, setPublishState] =
         useState<PublishActionState>("idle");
     const [publishError, setPublishError] = useState<string | null>(null);

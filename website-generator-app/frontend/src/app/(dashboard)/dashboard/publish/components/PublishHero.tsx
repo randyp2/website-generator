@@ -12,6 +12,7 @@ import {
   FiEyeOff,
   FiGlobe,
   FiPlus,
+  FiUploadCloud,
   FiX,
   FiZap,
 } from "react-icons/fi"
@@ -279,8 +280,15 @@ export const PublishHero = ({
               <dt className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                 Public URL
               </dt>
-              <dd className="mt-0.5 truncate font-mono text-xs text-foreground">
-                {displayUrl}
+              <dd className="mt-0.5 truncate font-mono text-xs">
+                <a
+                  href={livePath}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 underline underline-offset-2 transition-colors hover:cursor-pointer hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
+                >
+                  {displayUrl}
+                </a>
               </dd>
             </div>
             <div className="min-w-0 flex-1 basis-[140px]">
@@ -318,7 +326,7 @@ export const PublishHero = ({
               onClick={onOpenWizard}
               className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-primary bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:cursor-pointer hover:bg-primary/90 sm:flex-none"
             >
-              <FiZap className="h-4 w-4" />
+              <FiUploadCloud className="h-4 w-4" />
               Publish a new portfolio
             </button>
           </div>

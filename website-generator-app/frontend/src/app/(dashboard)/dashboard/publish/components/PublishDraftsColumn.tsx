@@ -9,9 +9,14 @@ import { PublishListCard } from "./PublishListCard"
 interface PublishDraftsColumnProps {
   drafts: Portfolio[]
   ownerName: string
+  onSelectDraft: (portfolioId: string) => void
 }
 
-export const PublishDraftsColumn = ({ drafts, ownerName }: PublishDraftsColumnProps) => (
+export const PublishDraftsColumn = ({
+  drafts,
+  ownerName,
+  onSelectDraft,
+}: PublishDraftsColumnProps) => (
   <section className="flex flex-col gap-3">
     <div className="flex items-center justify-between">
       <h2 className="text-lg font-semibold text-foreground">
@@ -36,6 +41,7 @@ export const PublishDraftsColumn = ({ drafts, ownerName }: PublishDraftsColumnPr
             portfolio={portfolio}
             variant="draft"
             ownerName={ownerName}
+            onClick={() => onSelectDraft(String(portfolio.id))}
           />
         ))}
       </div>

@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { FiEdit3, FiEye, FiTrash2 } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import { Portfolio } from "@/types/portfolio";
+import { cn } from "@/lib/utils";
 import { StatusIndicator } from "./StatusIndicator";
 import { normalizeStatus, formatRelativeTime, resolveResumePath } from "../utils/portfolioUtils";
 
@@ -23,10 +24,15 @@ export const PortfolioListView: React.FC<PortfolioListViewProps> = ({
 
     return (
         <div className="h-full divide-y divide-border overflow-y-auto [scrollbar-color:var(--primary)_var(--muted)] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb:hover]:bg-primary [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-primary/65 [&::-webkit-scrollbar-track]:bg-muted/60 [&::-webkit-scrollbar]:w-2 [&>*:last-child]:border-b [&>*:last-child]:border-border">
-            {portfolios.map((portfolio) => (
+            {portfolios.map((portfolio, index) => (
                 <motion.div
                     key={portfolio.id}
-                    className="flex cursor-pointer items-center justify-between px-5 py-5 transition-all hover:bg-muted/50 md:px-6"
+                    className={cn(
+                        "flex cursor-pointer items-center justify-between px-5 py-5 transition-all hover:bg-muted/50 md:px-6",
+                        index % 2 === 0
+                            ? "bg-transparent"
+                            : "bg-black/[0.04] dark:bg-white/[0.04]",
+                    )}
                 >
                     <div className="flex flex-1 items-center gap-2 truncate font-medium text-foreground">
                         <span className="truncate">{portfolio.title}</span>

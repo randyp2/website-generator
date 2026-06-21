@@ -37,7 +37,7 @@ export const PublishListCard = ({
   onUnpublish,
 }: PublishListCardProps) => {
   const isLive = variant === "live"
-  const isClickable = isLive && Boolean(onClick)
+  const isClickable = Boolean(onClick)
   const slug = portfolio.slug?.trim()
   const externalUrl = (portfolio.external_url ?? portfolio.externalUrl ?? "").trim()
   const sourceTypeNormalized = (portfolio.source_type ?? portfolio.sourceType ?? "")
@@ -64,7 +64,7 @@ export const PublishListCard = ({
         isFeatured
           ? "border-emerald-500/50 shadow-[0_0_0_1px_rgba(16,185,129,0.35)]"
           : "border-border hover:border-primary/30",
-        isClickable && "cursor-pointer",
+        isClickable && "hover:cursor-pointer",
       )}
       onClick={isClickable ? onClick : undefined}
     >
