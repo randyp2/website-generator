@@ -2,14 +2,18 @@
 
 import { useState, useEffect } from "react";
 import { useUser } from "@/context/UserContext";
+import { useToast } from "@/hooks/useToast";
 import { Portfolio } from "@/types/portfolio";
 
 export const usePortfolios = () => {
     const { user } = useUser();
+    const { addToast } = useToast();
     const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [deleteTarget, setDeleteTarget] = useState<Portfolio | null>(null);
-    const [isDeleting, setIsDeleting] = useState(false);
+    // Deletion is optimistic (the modal closes instantly), so there is no
+    // pending state to track.
+    const isDeleting = false;
     const [renameTarget, setRenameTarget] = useState<Portfolio | null>(null);
     const [renameTitle, setRenameTitle] = useState("");
     const [isRenaming, setIsRenaming] = useState(false);
@@ -41,19 +45,38 @@ export const usePortfolios = () => {
     }, [user?.id]);
 
     const handleDelete = async (portfolioId: string) => {
+        const target = portfolios.find((p) => p.id === portfolioId) ?? deleteTarget;
+
+        // Optimistically remove the portfolio and close the modal so the UI
+        // updates instantly; we roll back if the request fails.
+        setPortfolios((prev) => prev.filter((p) => p.id !== portfolioId));
+        setDeleteTarget(null);
+        addToast({
+            type: "success",
+            title: "Portfolio deleted",
+            description: target?.title
+                ? `"${target.title}" and its metrics were permanently removed.`
+                : "The portfolio was permanently removed.",
+        });
+
         try {
-            setIsDeleting(true);
             const res = await fetch(`/api/portfolio/${portfolioId}/delete`, {
                 method: "DELETE",
             });
             if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
-            setPortfolios((prev) => prev.filter((p) => p.id !== portfolioId));
-            setDeleteTarget(null);
         } catch (error) {
             console.error("Deletion failed:", error);
-            alert("Failed to delete portfolio.");
-        } finally {
-            setIsDeleting(false);
+            // Roll back the optimistic removal.
+            if (target) {
+                setPortfolios((prev) =>
+                    prev.some((p) => p.id === target.id) ? prev : [...prev, target],
+                );
+            }
+            addToast({
+                type: "error",
+                title: "Failed to delete portfolio",
+                description: "Something went wrong. Please try again.",
+            });
         }
     };
 

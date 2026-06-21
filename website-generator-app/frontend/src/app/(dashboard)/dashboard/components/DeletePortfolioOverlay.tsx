@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { FiTrash2 } from "react-icons/fi";
+import { FiAlertTriangle, FiTrash2 } from "react-icons/fi";
 
 type DeletePortfolioOverlayProps = {
   isOpen: boolean;
@@ -19,6 +19,16 @@ export const DeletePortfolioOverlay: React.FC<DeletePortfolioOverlayProps> = ({
   onConfirm,
   isDeleting = false,
 }) => {
+  const [confirmText, setConfirmText] = useState("");
+
+  const expectedName = portfolioTitle?.trim() || "";
+  const isConfirmed = expectedName.length > 0 && confirmText.trim() === expectedName;
+
+  // Reset the typed confirmation each time the modal is opened.
+  useEffect(() => {
+    if (isOpen) setConfirmText("");
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -46,19 +56,52 @@ export const DeletePortfolioOverlay: React.FC<DeletePortfolioOverlayProps> = ({
               . This action cannot be undone.
             </p>
           </div>
-          <FiTrash2 className="h-5 w-5 text-destructive" />
+          <FiTrash2 className="h-6 w-6 shrink-0 text-destructive" />
         </div>
-        <div className="mt-6 flex items-center justify-end gap-3">
+
+        {/* Caution callout */}
+        <div className="-mx-6 mt-5 flex items-start gap-3 border-y border-red-500/40 bg-red-900/20 px-6 py-3">
+          <FiAlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+          <p className="text-sm text-red-200">
+            This permanently erases the portfolio along with all of its analytics
+            and metrics. None of this data can be recovered once deleted.
+          </p>
+        </div>
+
+        {/* Type-to-confirm */}
+        <div className="mt-5">
+          <label
+            htmlFor="delete-confirm-input"
+            className="block text-sm text-muted-foreground"
+          >
+            To confirm, type{" "}
+            <span className="font-semibold text-red-500">
+              {expectedName || "the portfolio name"}
+            </span>{" "}
+            below.
+          </label>
+          <input
+            id="delete-confirm-input"
+            type="text"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            autoComplete="off"
+            placeholder={expectedName || "Portfolio name"}
+            className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-destructive"
+          />
+        </div>
+
+        <div className="mt-6 flex items-center gap-3">
           <button
             onClick={onCancel}
-            className="cursor-pointer rounded-lg border border-border bg-muted px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/80"
+            className="flex-1 cursor-pointer rounded-lg border border-border bg-muted px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/80"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
-            disabled={isDeleting}
-            className="cursor-pointer rounded-lg bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isDeleting || !isConfirmed}
+            className="flex-1 cursor-pointer rounded-lg bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isDeleting ? "Deleting..." : "Delete"}
           </button>
