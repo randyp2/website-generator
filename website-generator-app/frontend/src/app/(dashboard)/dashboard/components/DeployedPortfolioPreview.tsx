@@ -259,10 +259,10 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
                                         href={browserUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex max-w-full items-center gap-1.5 font-medium text-foreground transition hover:text-primary"
+                                        className="inline-flex max-w-full items-center gap-1.5 font-medium text-blue-600 underline underline-offset-2 transition hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
                                     >
                                         <span className="truncate break-all">{browserUrl}</span>
-                                        <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                                        <ExternalLink className="h-3.5 w-3.5 shrink-0" />
                                     </a>
                                 </dd>
                             </div>
