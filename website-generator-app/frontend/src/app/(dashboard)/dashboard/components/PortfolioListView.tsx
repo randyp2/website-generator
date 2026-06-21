@@ -27,6 +27,7 @@ export const PortfolioListView: React.FC<PortfolioListViewProps> = ({
             {portfolios.map((portfolio, index) => (
                 <motion.div
                     key={portfolio.id}
+                    onClick={() => router.push(resolveResumePath(portfolio))}
                     className={cn(
                         "flex cursor-pointer items-center justify-between px-5 py-5 transition-all hover:bg-muted/50 md:px-6",
                         index % 2 === 0
@@ -54,7 +55,10 @@ export const PortfolioListView: React.FC<PortfolioListViewProps> = ({
                     </div>
 
                     <div className="flex items-center justify-end gap-2">
-                        <button className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted hover:bg-muted/80 transition-colors">
+                        <button
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+                        >
                             <FiEye className="h-4 w-4 text-foreground" />
                         </button>
                         <button
