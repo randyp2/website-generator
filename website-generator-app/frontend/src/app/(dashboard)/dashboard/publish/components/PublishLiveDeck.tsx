@@ -70,7 +70,20 @@ export const PublishLiveDeck = ({
   onUnpublish,
 }: PublishLiveDeckProps) => {
   const [expanded, setExpanded] = useState(false)
+  // The card that slid to the bottom when the deck was expanded. Snapshotted so
+  // the expanded order stays put even if the featured selection changes.
+  const [slideId, setSlideId] = useState<string | null>(null)
   const isDeck = live.length >= DECK_THRESHOLD
+
+  const openDeck = (topId: string) => {
+    setSlideId(topId)
+    setExpanded(true)
+  }
+
+  const closeDeck = () => {
+    setExpanded(false)
+    setSlideId(null)
+  }
 
   // Featured card sits on top of the deck.
   const ordered = useMemo(() => {
@@ -141,12 +154,12 @@ export const PublishLiveDeck = ({
             />
           ))}
           <motion.div layoutId="deck-top" className="relative z-10">
-            {renderCard(top, () => setExpanded(true), false)}
+            {renderCard(top, () => openDeck(String(top.id)), false)}
           </motion.div>
         </div>
         <button
           type="button"
-          onClick={() => setExpanded(true)}
+          onClick={() => openDeck(String(top.id))}
           aria-expanded={false}
           className="mt-5 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border bg-transparent px-3.5 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:cursor-pointer hover:border-primary/50 hover:bg-muted/30 hover:text-foreground"
         >
@@ -157,14 +170,16 @@ export const PublishLiveDeck = ({
     )
   }
 
-  // Expanded: the cards behind deal out at the top while the deck's top card
-  // slides down to become the bottom-most card.
-  const topId = String(ordered[0].id)
-  const expandedOrder = [...ordered.slice(1), ordered[0]]
+  // Expanded: the card that was on top slides down to become the bottom-most
+  // card. Order is derived from the snapshotted slideId (not the featured
+  // selection) so picking a portfolio doesn't reshuffle the stack.
+  const slideCard = live.find((p) => String(p.id) === slideId)
+  const rest = live.filter((p) => String(p.id) !== slideId)
+  const expandedOrder = slideCard ? [...rest, slideCard] : live
   return (
     <div className="space-y-3">
       {expandedOrder.map((portfolio, index) => {
-        const isTopCard = String(portfolio.id) === topId
+        const isTopCard = String(portfolio.id) === slideId
         return (
           <motion.div
             key={String(portfolio.id)}
@@ -187,7 +202,7 @@ export const PublishLiveDeck = ({
       })}
       <button
         type="button"
-        onClick={() => setExpanded(false)}
+        onClick={closeDeck}
         aria-expanded
         className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border bg-transparent px-3.5 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:cursor-pointer hover:border-primary/50 hover:bg-muted/30 hover:text-foreground"
       >
