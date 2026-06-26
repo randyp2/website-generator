@@ -179,188 +179,192 @@ export const PublishHero = ({
   }
 
   return (
-    <section className="rounded-3xl border border-border bg-card p-5 md:p-6">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex min-w-0 flex-1 items-center gap-3">
-            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-400">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+    <section className="space-y-5">
+      <figure className="mx-auto w-full max-w-[1100px]">
+        <BrowserPreviewFrame
+          src={previewSrc}
+          alt={`${portfolio.title} screenshot`}
+          url={displayUrl}
+          className="rounded-2xl shadow-2xl shadow-black/25"
+        />
+      </figure>
+
+      <div className="rounded-3xl border border-border bg-card p-5 md:p-6">
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-400">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                </span>
+                Live
               </span>
-              Live
-            </span>
-            <p className="hidden shrink-0 text-[11px] text-muted-foreground sm:block">
-              {liveCount} {liveCount === 1 ? "portfolio" : "portfolios"} published
-            </p>
-            <span className="hidden h-4 w-px shrink-0 bg-border sm:block" />
-            <h1 className="min-w-0 truncate text-base font-semibold tracking-tight text-foreground sm:text-lg">
-              {portfolio.title}
-            </h1>
+              <p className="hidden shrink-0 text-[11px] text-muted-foreground sm:block">
+                {liveCount} {liveCount === 1 ? "portfolio" : "portfolios"} published
+              </p>
+              <span className="hidden h-4 w-px shrink-0 bg-border sm:block" />
+              <h1 className="min-w-0 truncate text-base font-semibold tracking-tight text-foreground sm:text-lg">
+                {portfolio.title}
+              </h1>
+            </div>
+            {slug && (
+              <a
+                href={livePath}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:cursor-pointer hover:text-orange-400"
+              >
+                <FiExternalLink className="h-3.5 w-3.5" />
+                Open live
+              </a>
+            )}
           </div>
-          {slug && (
-            <a
-              href={livePath}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:cursor-pointer hover:text-orange-400"
-            >
-              <FiExternalLink className="h-3.5 w-3.5" />
-              Open live
-            </a>
-          )}
-        </div>
 
-        {/* HERO: screenshot only — edit happens in the modal */}
-        <div className="mx-auto w-full max-w-[1100px]">
-          <BrowserPreviewFrame
-            src={previewSrc}
-            alt={`${portfolio.title} screenshot`}
-            url={displayUrl}
-            className="rounded-2xl shadow-2xl shadow-black/30"
-          />
-        </div>
-
-        {/* Description preview + metadata */}
-        <div className="space-y-3">
-          {hasDescription ? (
-            <div className="min-h-[132px]">
-              {!isModalOpen && (
-                <motion.div
-                  layoutId="description-card"
-                  role="button"
-                  tabIndex={0}
-                  onClick={openInReadMode}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault()
-                      openInReadMode()
-                    }
-                  }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 280,
-                    damping: 28,
-                    mass: 0.9,
-                  }}
-                  className="group relative block w-full overflow-hidden rounded-xl border border-border/60 bg-muted/30 px-3.5 pt-3 pb-2 text-left hover:cursor-pointer hover:border-primary/40 hover:bg-muted/50"
-                >
-                  <motion.div layout="position" className="relative max-h-[88px] overflow-hidden">
-                    <DescriptionMarkdown
-                      content={description.trim()}
-                      className="space-y-1.5"
-                    />
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-card via-card/70 to-transparent" />
+          {/* Description preview + metadata */}
+          <div className="space-y-3">
+            {hasDescription ? (
+              <div className="min-h-[132px]">
+                {!isModalOpen && (
+                  <motion.div
+                    layoutId="description-card"
+                    role="button"
+                    tabIndex={0}
+                    onClick={openInReadMode}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault()
+                        openInReadMode()
+                      }
+                    }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 280,
+                      damping: 28,
+                      mass: 0.9,
+                    }}
+                    className="group relative block w-full overflow-hidden rounded-xl border border-border/60 bg-muted/30 px-3.5 pt-3 pb-2 text-left hover:cursor-pointer hover:border-primary/40 hover:bg-muted/50"
+                  >
+                    <motion.div
+                      layout="position"
+                      className="relative max-h-[88px] overflow-hidden"
+                    >
+                      <DescriptionMarkdown
+                        content={description.trim()}
+                        className="space-y-1.5"
+                      />
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-card via-card/70 to-transparent" />
+                    </motion.div>
+                    <div className="relative mt-1.5 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground transition-colors group-hover:text-orange-400">
+                      <FiBookOpen className="h-3 w-3" />
+                      Read full description
+                    </div>
                   </motion.div>
-                  <div className="relative mt-1.5 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground transition-colors group-hover:text-orange-400">
-                    <FiBookOpen className="h-3 w-3" />
-                    Read full description
-                  </div>
-                </motion.div>
-              )}
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={openInEditMode}
-              className="group flex w-full items-center justify-between gap-2 rounded-xl border border-dashed border-border bg-transparent px-3.5 py-3 text-left transition-colors hover:cursor-pointer hover:border-primary/50 hover:bg-muted/30"
-            >
-              <span className="text-sm italic text-muted-foreground/70">
-                No description yet — visitors won&apos;t see a summary on Explore.
-              </span>
-              <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground transition-colors group-hover:text-orange-400">
-                <FiPlus className="h-3 w-3" />
-                Add
-              </span>
-            </button>
-          )}
-          <dl className="flex flex-wrap items-start gap-x-6 gap-y-3">
-            <div className="min-w-0 flex-1 basis-full sm:basis-[280px]">
-              <dt className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                Public URL
-              </dt>
-              <dd className="mt-0.5 truncate font-mono text-xs">
-                <a
-                  href={livePath}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 underline underline-offset-2 transition-colors hover:cursor-pointer hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
-                >
-                  {displayUrl}
-                </a>
-              </dd>
-            </div>
-            <div className="min-w-0 flex-1 basis-[140px]">
-              <dt className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                Template
-              </dt>
-              <dd className="mt-0.5 truncate text-sm font-medium text-foreground">
-                {templateLabel}
-              </dd>
-            </div>
-            <div className="min-w-0 flex-1 basis-[140px]">
-              <dt className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                Last deployed
-              </dt>
-              <dd className="mt-0.5 truncate text-sm font-medium text-foreground">
-                {lastUpdated}
-              </dd>
-            </div>
-          </dl>
-        </div>
-
-        {/* CTA action row */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-1 flex-wrap items-center gap-2.5">
-            <button
-              type="button"
-              onClick={openInEditMode}
-              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:cursor-pointer hover:border-primary/50 hover:bg-muted sm:flex-none"
-            >
-              <FiEdit3 className="h-4 w-4" />
-              Edit description
-            </button>
-            <button
-              type="button"
-              onClick={onOpenWizard}
-              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-primary bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:cursor-pointer hover:bg-primary/90 sm:flex-none"
-            >
-              <FiUploadCloud className="h-4 w-4" />
-              Publish a new portfolio
-            </button>
+                )}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={openInEditMode}
+                className="group flex w-full items-center justify-between gap-2 rounded-xl border border-dashed border-border bg-transparent px-3.5 py-3 text-left transition-colors hover:cursor-pointer hover:border-primary/50 hover:bg-muted/30"
+              >
+                <span className="text-sm italic text-muted-foreground/70">
+                  No description yet — visitors won&apos;t see a summary on Explore.
+                </span>
+                <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground transition-colors group-hover:text-orange-400">
+                  <FiPlus className="h-3 w-3" />
+                  Add
+                </span>
+              </button>
+            )}
+            <dl className="flex flex-wrap items-start gap-x-6 gap-y-3">
+              <div className="min-w-0 flex-1 basis-full sm:basis-[280px]">
+                <dt className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  Public URL
+                </dt>
+                <dd className="mt-0.5 truncate font-mono text-xs">
+                  <a
+                    href={livePath}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 underline underline-offset-2 transition-colors hover:cursor-pointer hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
+                  >
+                    {displayUrl}
+                  </a>
+                </dd>
+              </div>
+              <div className="min-w-0 flex-1 basis-[140px]">
+                <dt className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  Template
+                </dt>
+                <dd className="mt-0.5 truncate text-sm font-medium text-foreground">
+                  {templateLabel}
+                </dd>
+              </div>
+              <div className="min-w-0 flex-1 basis-[140px]">
+                <dt className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  Last deployed
+                </dt>
+                <dd className="mt-0.5 truncate text-sm font-medium text-foreground">
+                  {lastUpdated}
+                </dd>
+              </div>
+            </dl>
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
-            <button
-              type="button"
-              onClick={onCopyUrl}
-              disabled={!slug}
-              className={cn(
-                "inline-flex items-center gap-1.5 font-medium text-muted-foreground transition-colors hover:cursor-pointer hover:text-foreground",
-                !slug && "cursor-not-allowed opacity-40 hover:cursor-not-allowed hover:text-muted-foreground",
-              )}
-            >
-              {copied ? (
-                <>
-                  <FiCheck className="h-4 w-4 text-emerald-400" />
-                  Copied
-                </>
-              ) : (
-                <>
-                  <FiCopy className="h-4 w-4" />
-                  Copy URL
-                </>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={onUnpublish}
-              className="inline-flex items-center gap-1.5 font-medium text-muted-foreground transition-colors hover:cursor-pointer hover:text-red-400"
-            >
-              <FiEyeOff className="h-4 w-4" />
-              Unpublish
-            </button>
+          {/* CTA action row */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-1 flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                onClick={openInEditMode}
+                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:cursor-pointer hover:border-primary/50 hover:bg-muted sm:flex-none"
+              >
+                <FiEdit3 className="h-4 w-4" />
+                Edit description
+              </button>
+              <button
+                type="button"
+                onClick={onOpenWizard}
+                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-primary bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:cursor-pointer hover:bg-primary/90 sm:flex-none"
+              >
+                <FiUploadCloud className="h-4 w-4" />
+                Publish a new portfolio
+              </button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
+              <button
+                type="button"
+                onClick={onCopyUrl}
+                disabled={!slug}
+                className={cn(
+                  "inline-flex items-center gap-1.5 font-medium text-muted-foreground transition-colors hover:cursor-pointer hover:text-foreground",
+                  !slug && "cursor-not-allowed opacity-40 hover:cursor-not-allowed hover:text-muted-foreground",
+                )}
+              >
+                {copied ? (
+                  <>
+                    <FiCheck className="h-4 w-4 text-emerald-400" />
+                    Copied
+                  </>
+                ) : (
+                  <>
+                    <FiCopy className="h-4 w-4" />
+                    Copy URL
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={onUnpublish}
+                className="inline-flex items-center gap-1.5 font-medium text-muted-foreground transition-colors hover:cursor-pointer hover:text-red-400"
+              >
+                <FiEyeOff className="h-4 w-4" />
+                Unpublish
+              </button>
+            </div>
           </div>
         </div>
       </div>

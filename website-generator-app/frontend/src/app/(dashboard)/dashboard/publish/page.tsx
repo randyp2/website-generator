@@ -127,8 +127,8 @@ const PublishPage = () => {
             <div className="grid gap-6 xl:grid-cols-2">
                 <PublishDraftsColumn
                     drafts={drafts}
-                    ownerName={ownerName}
                     onSelectDraft={handleSelectDraft}
+                    onCreateNew={handleOpenWizard}
                 />
                 <PublishLiveColumn
                     live={live}
