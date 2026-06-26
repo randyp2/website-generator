@@ -12,9 +12,11 @@ export interface PortfolioCard {
 }
 
 export interface PortfolioCardMetrics {
+  portfolioId: string
   likes: number
   comments: number
   views: number
+  viewerHasLiked: boolean
 }
 
 export interface PageResponse {

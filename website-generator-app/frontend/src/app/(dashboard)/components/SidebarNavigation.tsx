@@ -185,7 +185,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
     };
 
     const SidebarContent = () => (
-        <div className="flex flex-col h-full">
+        <div className="flex h-full flex-col [&_button:hover]:cursor-pointer">
             {/* Logo / Brand */}
             <div
                 className={`border-b border-sidebar-border ${collapsed ? "px-3 py-3.5" : "px-5 pt-4 pb-3.5"}`}

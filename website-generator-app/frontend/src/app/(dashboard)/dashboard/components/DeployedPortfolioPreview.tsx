@@ -157,9 +157,9 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
                                 aria-selected={isActive}
                                 onClick={() => setActiveTab(tab.key)}
                                 className={cn(
-                                    "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wide transition",
+                                    "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wide transition hover:cursor-pointer",
                                     isActive
-                                        ? "bg-background text-foreground shadow-sm"
+                                        ? "bg-primary text-primary-foreground shadow-sm"
                                         : "text-muted-foreground hover:text-foreground",
                                 )}
                             >
