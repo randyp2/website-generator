@@ -1,9 +1,11 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Eye, Heart, MessageCircle } from "lucide-react"
 
 import { LazyImage } from "@/components/ui/lazy-image"
+import { cn } from "@/lib/utils"
 
 import type { PortfolioCard, PortfolioCardMetrics } from "./explore.types"
 import {
@@ -19,12 +21,7 @@ const DEFAULT_PREVIEW_IMAGE =
 interface ExploreCardProps {
   portfolio: PortfolioCard
   metrics?: PortfolioCardMetrics | null
-}
-
-const ZERO_METRICS: PortfolioCardMetrics = {
-  likes: 0,
-  comments: 0,
-  views: 0,
+  onToggleLike?: (slug: string) => void
 }
 
 const formatMetric = (value: number | null): string =>
@@ -32,17 +29,32 @@ const formatMetric = (value: number | null): string =>
 
 export const ExploreCard = ({
   portfolio,
-  metrics = ZERO_METRICS,
+  metrics = null,
+  onToggleLike,
 }: ExploreCardProps) => {
+  const router = useRouter()
   const href = `/explore/${portfolio.slug}`
+  const commentsHref = `${href}#comments`
   const templateLabel = getTemplateLabel(portfolio.templateId)
   const summary = getPortfolioSummary(portfolio)
+  const metricsLoaded = metrics !== null
+  const hasLiked = metrics?.viewerHasLiked ?? false
+
+  const handleLikeClick = () => {
+    if (!metricsLoaded) return
+    onToggleLike?.(portfolio.slug)
+  }
 
   return (
-    <Link
-      href={href}
-      className="group flex flex-col gap-2 rounded-lg p-2 duration-75 hover:bg-accent-foreground/10 active:bg-accent-foreground/15 dark:hover:bg-accent/60 dark:active:bg-accent"
-    >
+    <div className="group relative flex flex-col gap-2 rounded-lg p-2 duration-75 hover:bg-accent-foreground/10 active:bg-accent-foreground/15 dark:hover:bg-accent/60 dark:active:bg-accent">
+      {/* Overlay link makes the whole card navigate while leaving the
+          metric buttons (rendered above it) independently clickable. */}
+      <Link
+        href={href}
+        aria-label={portfolio.title}
+        className="absolute inset-0 z-0 rounded-lg"
+      />
+
       <LazyImage
         src={portfolio.screenshotUrl ?? DEFAULT_PREVIEW_IMAGE}
         fallback="https://placehold.co/640x360?text=Portfolio+Preview"
@@ -86,22 +98,37 @@ export const ExploreCard = ({
               </p>
             </div>
           </div>
-          <div className="flex items-center justify-end gap-4 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1.5">
-              <Heart className="size-4" />
+          <div className="flex items-center justify-end gap-3 text-xs text-muted-foreground">
+            <button
+              type="button"
+              onClick={handleLikeClick}
+              disabled={!metricsLoaded}
+              aria-pressed={hasLiked}
+              aria-label={hasLiked ? "Unlike portfolio" : "Like portfolio"}
+              className={cn(
+                "relative z-10 flex items-center gap-1.5 rounded-md px-1 py-1 transition-colors hover:cursor-pointer hover:text-primary disabled:cursor-not-allowed disabled:opacity-60",
+                hasLiked && "text-primary",
+              )}
+            >
+              <Heart className={cn("size-4", hasLiked && "fill-primary")} />
               <span>{formatMetric(metrics?.likes ?? null)}</span>
-            </div>
+            </button>
             <div className="flex items-center gap-1.5">
               <Eye className="size-4" />
               <span>{formatMetric(metrics?.views ?? null)}</span>
             </div>
-            <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => router.push(commentsHref)}
+              aria-label="View comments"
+              className="relative z-10 flex items-center gap-1.5 rounded-md px-1 py-1 transition-colors hover:cursor-pointer hover:text-primary"
+            >
               <MessageCircle className="size-4" />
               <span>{formatMetric(metrics?.comments ?? null)}</span>
-            </div>
+            </button>
           </div>
         </div>
       </div>
-    </Link>
+    </div>
   )
 }

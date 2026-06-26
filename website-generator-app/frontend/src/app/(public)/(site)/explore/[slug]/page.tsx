@@ -96,11 +96,13 @@ const ExplorePortfolioDetailPage = async ({ params }: Props) => {
 
           <div className="flex min-w-0 flex-col gap-8">
             <ExplorePortfolioDescription portfolio={portfolio} />
-            <PortfolioComments
-              portfolioId={portfolio.portfolioId}
-              portfolioOwnerId={portfolio.userId}
-              slug={portfolio.slug}
-            />
+            <div id="comments" className="scroll-mt-24">
+              <PortfolioComments
+                portfolioId={portfolio.portfolioId}
+                portfolioOwnerId={portfolio.userId}
+                slug={portfolio.slug}
+              />
+            </div>
           </div>
 
           <ExplorePortfolioPlaceholderCard

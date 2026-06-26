@@ -3,6 +3,8 @@
 import { Search } from "lucide-react"
 import { startTransition, useCallback, useDeferredValue, useEffect, useRef, useState } from "react"
 
+import { usePublicAuthGate } from "@/context/PublicAuthGateContext"
+import { likePortfolio, unlikePortfolio } from "@/app/(public)/(site)/explore/[slug]/portfolio-engagement.api"
 import { Input } from "@/components/ui/input"
 import {
   NavigationMenu,
@@ -64,7 +66,9 @@ export const ExplorePageClient = () => {
   const deferredSearchQuery = useDeferredValue(searchQuery)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
   const requestedMetricSlugsRef = useRef<Set<string>>(new Set())
+  const likeInFlightRef = useRef<Set<string>>(new Set())
   const pageRef = useRef(0)
+  const { requireAuth } = usePublicAuthGate()
 
   const fetchPage = useCallback(async (pageNumber: number) => {
     setIsLoading(true)
@@ -124,6 +128,50 @@ export const ExplorePageClient = () => {
 
     void loadMetrics()
   }, [portfolios])
+
+  const handleToggleLike = useCallback(
+    async (slug: string) => {
+      if (!requireAuth("engagement")) return
+      if (likeInFlightRef.current.has(slug)) return
+
+      const current = metricsBySlug[slug]
+      // Metrics haven't loaded yet — nothing to toggle against.
+      if (!current) return
+
+      const wasLiked = current.viewerHasLiked
+      const optimistic: PortfolioCardMetrics = {
+        ...current,
+        viewerHasLiked: !wasLiked,
+        likes: wasLiked ? Math.max(0, current.likes - 1) : current.likes + 1,
+      }
+
+      likeInFlightRef.current.add(slug)
+      setMetricsBySlug((prev) => ({ ...prev, [slug]: optimistic }))
+
+      try {
+        const summary = wasLiked
+          ? await unlikePortfolio(current.portfolioId)
+          : await likePortfolio(current.portfolioId)
+        setMetricsBySlug((prev) => ({
+          ...prev,
+          [slug]: {
+            portfolioId: summary.portfolioId,
+            likes: summary.likesCount,
+            comments: summary.commentsCount,
+            views: summary.viewsCount,
+            viewerHasLiked: summary.viewerHasLiked,
+          },
+        }))
+      } catch (error) {
+        console.error("Failed to toggle like:", error)
+        // Revert to the pre-click state.
+        setMetricsBySlug((prev) => ({ ...prev, [slug]: current }))
+      } finally {
+        likeInFlightRef.current.delete(slug)
+      }
+    },
+    [metricsBySlug, requireAuth],
+  )
 
   useEffect(() => {
     const sentinel = sentinelRef.current
@@ -296,6 +344,7 @@ export const ExplorePageClient = () => {
                 key={portfolio.slug}
                 metrics={metricsBySlug[portfolio.slug] ?? null}
                 portfolio={portfolio}
+                onToggleLike={handleToggleLike}
               />
             ))}
           </div>

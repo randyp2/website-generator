@@ -1,9 +1,11 @@
 import type { PortfolioCardMetrics } from "./explore.types"
 
 interface PortfolioEngagementSummary {
+  portfolioId: string
   likesCount: number
   commentsCount: number
   viewsCount: number
+  viewerHasLiked: boolean
 }
 
 export const fetchExplorePortfolioMetrics = async (
@@ -24,8 +26,10 @@ export const fetchExplorePortfolioMetrics = async (
   const summary = (await response.json()) as PortfolioEngagementSummary
 
   return {
+    portfolioId: summary.portfolioId,
     likes: summary.likesCount,
     comments: summary.commentsCount,
     views: summary.viewsCount,
+    viewerHasLiked: summary.viewerHasLiked,
   }
 }
