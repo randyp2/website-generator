@@ -173,7 +173,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                             </span>
 
                             {item.badge && (
-                                <span className="rounded-sm bg-sidebar-accent px-2 py-0.5 text-[11px] font-bold text-sidebar-accent-foreground transition-all duration-200">
+                                <span className="text-sm font-bold tabular-nums text-orange-400 transition-all duration-200">
                                     {item.badge}
                                 </span>
                             )}
