@@ -30,7 +30,7 @@ export const PortfolioCommentComposer = ({
   onChange,
   onSubmit,
   placeholder,
-  rows = 3,
+  rows = 1,
   submitLabel,
   value,
 }: PortfolioCommentComposerProps) => (
@@ -49,7 +49,7 @@ export const PortfolioCommentComposer = ({
           maxLength={COMMENT_MAX_LENGTH}
           rows={rows}
           placeholder={placeholder}
-          className="min-h-20 resize-none pb-9"
+          className="min-h-11 resize-none pb-9"
         />
         <button
           type="submit"

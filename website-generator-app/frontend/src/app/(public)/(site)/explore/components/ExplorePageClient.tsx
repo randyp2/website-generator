@@ -91,7 +91,6 @@ export const ExplorePageClient = () => {
     )
     if (missingPortfolios.length === 0) return
 
-    let isMounted = true
     missingPortfolios.forEach((portfolio) => {
       requestedMetricSlugsRef.current.add(portfolio.slug)
     })
@@ -104,14 +103,18 @@ export const ExplorePageClient = () => {
         })),
       )
 
-      if (!isMounted) return
-
+      // Always apply results. Setting state after unmount is a safe no-op in
+      // React 19, whereas an `isMounted` guard here drops valid metrics when
+      // the effect re-runs (e.g. Strict Mode double-invokes the initial fetch
+      // so `portfolios` is set twice) — the slugs stay marked as requested and
+      // never get retried, which is why metrics only appeared after a refresh.
       setMetricsBySlug((current) => {
         const next = { ...current }
         results.forEach((result, index) => {
           if (result.status === "fulfilled") {
             next[result.value.slug] = result.value.metrics
           } else {
+            // Allow a failed slug to be retried on a later render.
             requestedMetricSlugsRef.current.delete(missingPortfolios[index].slug)
           }
         })
@@ -120,10 +123,6 @@ export const ExplorePageClient = () => {
     }
 
     void loadMetrics()
-
-    return () => {
-      isMounted = false
-    }
   }, [portfolios])
 
   useEffect(() => {
