@@ -45,7 +45,6 @@ const ExplorePortfolioDetailPage = async ({ params }: Props) => {
 
   const updatedAgo = formatTimeAgo(portfolio.publishedAt);
   const updatedTime = splitTimeAgo(updatedAgo);
-  const heroSummary = getPortfolioDescriptionSnippet(portfolio, 280);
 
   return (
     <section className="min-h-screen bg-background px-6 py-10 sm:px-8 lg:px-12">
@@ -64,14 +63,11 @@ const ExplorePortfolioDetailPage = async ({ params }: Props) => {
                 <p className="text-xs font-semibold tracking-[0.24em] text-primary uppercase">
                   Portfolio Preview
                 </p>
-                <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                  {portfolio.title}
-                </h1>
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <p className="max-w-[56rem] flex-1 text-sm leading-6 text-muted-foreground sm:text-base">
-                    {heroSummary}
-                  </p>
-                  <div className="flex shrink-0 items-center gap-3 self-start lg:self-auto">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                    {portfolio.title}
+                  </h1>
+                  <div className="flex shrink-0 items-center gap-3 self-start sm:self-auto">
                     <Link
                       href={getPortfolioFullHref(portfolio)}
                       target="_blank"

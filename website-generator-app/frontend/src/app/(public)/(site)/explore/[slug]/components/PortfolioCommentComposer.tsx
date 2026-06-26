@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent } from "react";
-import { Loader2, Send } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,37 +42,35 @@ export const PortfolioCommentComposer = ({
     </Avatar>
 
     <div className="min-w-0 flex-1 space-y-2">
-      <Textarea
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        maxLength={COMMENT_MAX_LENGTH}
-        rows={rows}
-        placeholder={placeholder}
-        className="min-h-20 resize-none pr-10"
-      />
-      <div className="flex items-center justify-end gap-2">
-        {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="inline-flex h-9 items-center justify-center rounded-md border border-border px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          >
-            {cancelLabel}
-          </button>
-        )}
+      <div className="relative">
+        <Textarea
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          maxLength={COMMENT_MAX_LENGTH}
+          rows={rows}
+          placeholder={placeholder}
+          className="min-h-20 resize-none pb-9"
+        />
         <button
           type="submit"
           disabled={isSubmitting || !value.trim()}
-          className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="absolute bottom-2.5 right-3 inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors hover:cursor-pointer hover:text-primary/80 disabled:cursor-not-allowed disabled:text-muted-foreground disabled:opacity-60"
         >
-          {isSubmitting ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Send className="size-4" />
-          )}
-          {submitLabel}
+          {isSubmitting && <Loader2 className="size-3.5 animate-spin" />}
+          {isSubmitting ? "Sending..." : submitLabel}
         </button>
       </div>
+      {onCancel && (
+        <div className="flex items-center justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="inline-flex h-9 items-center justify-center rounded-md border border-border px-3 text-sm font-medium text-muted-foreground transition-colors hover:cursor-pointer hover:bg-accent hover:text-foreground"
+          >
+            {cancelLabel}
+          </button>
+        </div>
+      )}
     </div>
   </form>
 );

@@ -122,7 +122,7 @@ const PortfolioComments = ({
                 onChange={commentsState.setCommentBody}
                 onSubmit={commentsState.createComment}
                 placeholder="Add a comment"
-                submitLabel="Post"
+                submitLabel="Send"
                 value={commentsState.commentBody}
               />
             ) : (
