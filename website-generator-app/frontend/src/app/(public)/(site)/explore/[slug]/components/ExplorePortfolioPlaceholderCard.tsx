@@ -20,6 +20,7 @@ import type { VerificationSummaryDTO } from "@/types/verification-summary";
 
 interface ExplorePortfolioPlaceholderCardProps {
   profileId: string | null;
+  username: string | null;
 }
 
 const MAX_TOP_SKILLS = 5;
@@ -35,13 +36,16 @@ const formatStatusLabel = (status: string): string =>
     .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
     .join(" ");
 
-const useExploreVerificationSummary = (profileId: string | null) => {
+const useExploreVerificationSummary = (
+  profileId: string | null,
+  username: string | null,
+) => {
   const [summary, setSummary] = useState<VerificationSummaryDTO | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchSummary = useCallback(async () => {
-    if (!profileId) {
+    if (!profileId && !username) {
       setSummary(null);
       setError(null);
       setIsLoading(false);
@@ -52,16 +56,26 @@ const useExploreVerificationSummary = (profileId: string | null) => {
     setError(null);
 
     try {
-      const response = await fetch(
-        `/api/public/profile/by-id/${encodeURIComponent(profileId)}/verification/summary`,
-        { cache: "no-store" },
-      );
+      const response = profileId
+        ? await fetch(
+            `/api/public/profile/by-id/${encodeURIComponent(profileId)}/verification/summary`,
+            { cache: "no-store" },
+          )
+        : null;
+      const fallbackResponse =
+        response?.status === 404 && username
+          ? await fetch(
+              `/api/public/profile/${encodeURIComponent(username)}/verification/summary`,
+              { cache: "no-store" },
+            )
+          : null;
+      const summaryResponse = fallbackResponse ?? response;
 
-      if (!response.ok) {
+      if (!summaryResponse?.ok) {
         throw new Error("Failed to fetch verification summary");
       }
 
-      const data = (await response.json()) as PublicVerificationSummaryDTO;
+      const data = (await summaryResponse.json()) as PublicVerificationSummaryDTO;
       setSummary(data);
     } catch (requestError) {
       console.error("Error fetching explore verification summary:", requestError);
@@ -74,7 +88,7 @@ const useExploreVerificationSummary = (profileId: string | null) => {
     } finally {
       setIsLoading(false);
     }
-  }, [profileId]);
+  }, [profileId, username]);
 
   useEffect(() => {
     void fetchSummary();
@@ -85,9 +99,10 @@ const useExploreVerificationSummary = (profileId: string | null) => {
 
 export const ExplorePortfolioPlaceholderCard = ({
   profileId,
+  username,
 }: ExplorePortfolioPlaceholderCardProps) => {
   const { summary, isLoading, error, refetch } =
-    useExploreVerificationSummary(profileId);
+    useExploreVerificationSummary(profileId, username);
   const [hoveredSkill, setHoveredSkill] = useState<SkillVerification | null>(null);
   const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
   const canUseDom = typeof window !== "undefined" && typeof document !== "undefined";
@@ -162,7 +177,7 @@ export const ExplorePortfolioPlaceholderCard = ({
             Verification Snapshot
           </p>
           <div className="mt-6 border-t border-border pt-6">
-            {!profileId ? (
+            {!profileId && !username ? (
               <p className="text-sm leading-7 text-muted-foreground">
                 Verification summary is not available for this portfolio owner yet.
               </p>
