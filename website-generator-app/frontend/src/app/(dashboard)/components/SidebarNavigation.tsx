@@ -17,6 +17,8 @@ import {
     FiUser,
     FiMoreHorizontal,
     FiShield,
+    FiUsers,
+    FiArrowUpRight,
 } from "react-icons/fi";
 import { MdOutlineCreate } from "react-icons/md";
 import { IconType } from "react-icons";
@@ -32,6 +34,10 @@ interface NavItem {
     icon: IconType;
     path: string;
     badge?: string | number;
+    /** Links out of the dashboard shell (e.g. the public site); shows an outbound arrow. */
+    external?: boolean;
+    /** Renders a separator above this item. */
+    dividerBefore?: boolean;
 }
 
 interface SidebarNavigationProps {
@@ -128,6 +134,21 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
             icon: FiShield,
             path: "/dashboard/verification",
         },
+        {
+            id: "explore",
+            label: "Explore",
+            icon: FiUsers,
+            path: "/explore",
+            external: true,
+            dividerBefore: true,
+        },
+        {
+            id: "profile",
+            label: "Profile",
+            icon: FiUser,
+            path: profilePath ?? "/dashboard",
+            external: true,
+        },
     ];
 
     const NavItemComponent = ({ item }: { item: NavItem }) => {
@@ -177,6 +198,10 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                                     {item.badge}
                                 </span>
                             )}
+
+                            {item.external && (
+                                <FiArrowUpRight className="h-3.5 w-3.5 text-sidebar-foreground/50 transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-primary" />
+                            )}
                         </>
                     )}
                 </motion.div>
@@ -207,7 +232,12 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
             {/* Main Navigation */}
             <div className="flex-1 overflow-y-auto px-3 py-3.5 space-y-1.5">
                 {navItems.map((item) => (
-                    <NavItemComponent key={item.id} item={item} />
+                    <React.Fragment key={item.id}>
+                        {item.dividerBefore && (
+                            <div className="my-2 border-t border-sidebar-border/60" />
+                        )}
+                        <NavItemComponent item={item} />
+                    </React.Fragment>
                 ))}
             </div>
 
@@ -299,7 +329,6 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                         }`}
                     >
                         {[
-                            { icon: FiUser, label: "Profile", path: profilePath ?? "/dashboard" },
                             { icon: FiSettings, label: "Settings", path: "/dashboard/settings/profile" },
                             { icon: FiShare2, label: "Pricing", path: "/pricing" },
                             { icon: FiHelpCircle, label: "Help" },
