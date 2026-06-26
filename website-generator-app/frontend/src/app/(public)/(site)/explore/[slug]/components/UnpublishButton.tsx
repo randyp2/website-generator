@@ -67,7 +67,7 @@ export const UnpublishButton = ({ portfolioId, userId }: UnpublishButtonProps) =
   return (
     <button
       onClick={() => setShowConfirm(true)}
-      className="inline-flex h-11 shrink-0 items-center justify-center gap-2 self-start rounded-md border border-red-500/30 px-4 text-sm font-medium text-red-500 transition-colors hover:bg-red-500/10 lg:self-auto"
+      className="inline-flex h-11 shrink-0 items-center justify-center gap-2 self-start rounded-md border border-red-500/30 px-4 text-sm font-medium text-red-500 transition-colors hover:cursor-pointer hover:bg-red-500/10 lg:self-auto"
     >
       <EyeOff className="size-4" />
       Unpublish

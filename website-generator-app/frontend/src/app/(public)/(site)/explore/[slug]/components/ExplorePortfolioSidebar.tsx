@@ -187,7 +187,7 @@ export const ExplorePortfolioSidebar = ({
               onClick={handleLike}
               disabled={isLiking}
               aria-pressed={metrics.viewerHasLiked}
-              className="flex min-w-0 items-center gap-2 rounded-md px-1 py-1 text-left transition-colors hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex min-w-0 items-center gap-2 rounded-md px-1 py-1 text-left transition-colors hover:cursor-pointer hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Heart
                 className={cn(
@@ -205,7 +205,7 @@ export const ExplorePortfolioSidebar = ({
               type="button"
               onClick={handleShare}
               disabled={isSharing}
-              className="flex min-w-0 items-center gap-2 rounded-md px-1 py-1 text-left transition-colors hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex min-w-0 items-center gap-2 rounded-md px-1 py-1 text-left transition-colors hover:cursor-pointer hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Share2 className="size-4 text-muted-foreground" />
               <span>{metrics.sharesCount.toLocaleString()}</span>
