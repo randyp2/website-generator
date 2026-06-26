@@ -84,8 +84,7 @@ const ConnectionCard = ({
   onConnect,
   onDisconnect,
 }: ConnectionCardProps) => {
-  const { Icon, wrapperClassName, iconClassName } =
-    PROVIDER_ICON_CONFIG[connection.provider]
+  const { Icon } = PROVIDER_ICON_CONFIG[connection.provider]
   const isConnected = connection.status === "connected"
   const isBusy = connectionActionInFlight?.provider === connection.provider
   const busyAction = isBusy ? connectionActionInFlight?.action : null
@@ -106,100 +105,105 @@ const ConnectionCard = ({
 
   return (
     <Card className="relative overflow-hidden">
-      <CardContent className="p-4">
-        <div className="mb-3 flex items-start justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className={cn("rounded-lg p-2", wrapperClassName)}>
-              <Icon className={iconClassName} />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-foreground">
-                {connection.displayName}
-              </p>
-              <Badge
-                variant="outline"
-                className={cn(
-                  "mt-0.5 border-0 text-[10px]",
-                  getConnectionStatusColor(connection.status),
-                )}
-              >
-                {STATUS_LABELS[connection.status]}
-              </Badge>
-            </div>
-          </div>
-        </div>
+      {/* Oversized, translucent provider mark anchored to the right edge */}
+      <Icon
+        aria-hidden
+        className="pointer-events-none absolute -bottom-8 -right-10 h-56 w-56 rotate-[8deg] text-foreground/[0.06]"
+      />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-1/2 bg-gradient-to-l from-foreground/[0.03] to-transparent" />
 
-        {isConnected && connectedDate && (
-          <p className="mb-1 text-xs text-muted-foreground">
-            Connected since {connectedDate}
-          </p>
-        )}
-
-        <p className="mb-1 text-xs text-muted-foreground">
-          {SYNC_STATUS_LABELS[connection.lastSyncStatus] ?? "Never synced"}
-          {lastSyncedDate ? ` (${lastSyncedDate})` : ""}
-        </p>
-
-        {connection.lastSyncStatus === "success" && (
-          <p className="mb-1 text-xs text-muted-foreground">
-            Imported {connection.lastSyncImportedCount} evidence, linked {connection.lastSyncLinkedCount}
-          </p>
-        )}
-
-        {connection.lastSyncStatus === "failed" && connection.lastSyncError && (
-          <p className="mb-1 text-xs text-destructive">
-            {connection.lastSyncError}
-          </p>
-        )}
-
-        {isConnected && connection.endorsementCount > 0 && (
-          <p className="mb-2 text-xs text-muted-foreground">
-            {connection.endorsementCount} evidence items imported
-          </p>
-        )}
-
-        {!isConnected && !readOnly && (
-          <p className="mb-2 text-xs text-amber-500/80">
-            Can add up to +{connection.potentialPoints} points
-          </p>
-        )}
-
-        <div className="mb-3 flex items-center gap-2 text-[10px] text-muted-foreground">
-          <Lock className="h-3 w-3" />
-          {connection.permissionScope}
-        </div>
-
-        {readOnly ? null : isConnected ? (
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              className={DISCONNECT_BUTTON_CLASSES}
-              disabled={isBusy}
-              onClick={() => onDisconnect(connection.provider)}
+      <CardContent className="relative z-10 flex h-full p-0">
+        {/* Content zone — padded clear of the watermark */}
+        <div className="flex min-w-0 flex-1 flex-col p-4 pr-24">
+          <div className="flex items-start justify-between gap-2">
+            <p className="min-w-0 flex-1 truncate text-base font-semibold text-foreground">
+              {connection.displayName}
+            </p>
+            <Badge
+              variant="outline"
+              className={cn(
+                "shrink-0 border-0 px-2.5 py-1 text-xs",
+                getConnectionStatusColor(connection.status),
+              )}
             >
-              {busyAction === "disconnect" ? "Disconnecting..." : "Disconnect"}
-            </Button>
+              {STATUS_LABELS[connection.status]}
+            </Badge>
           </div>
-        ) : connection.status === "expired" ? (
-          <Button
-            variant="outline"
-            size="sm"
-            className={RECONNECT_BUTTON_CLASSES}
-            disabled={isBusy}
-            onClick={() => onConnect(connection.provider)}
-          >
-            {busyAction === "connect" ? "Connecting..." : "Reconnect"}
-          </Button>
-        ) : (
-          <Button
-            size="sm"
-            className={CONNECT_BUTTON_CLASSES}
-            disabled={isBusy}
-            onClick={() => onConnect(connection.provider)}
-          >
-            {busyAction === "connect" ? "Connecting..." : "Connect"}
-          </Button>
-        )}
+
+          <div className="mt-2.5 space-y-1 text-xs leading-relaxed text-muted-foreground">
+            {isConnected && connectedDate && (
+              <p>Connected since {connectedDate}</p>
+            )}
+
+            <p>
+              {SYNC_STATUS_LABELS[connection.lastSyncStatus] ?? "Never synced"}
+              {lastSyncedDate ? ` · ${lastSyncedDate}` : ""}
+            </p>
+
+            {connection.lastSyncStatus === "success" && (
+              <p>
+                Imported {connection.lastSyncImportedCount} evidence · linked{" "}
+                {connection.lastSyncLinkedCount}
+              </p>
+            )}
+
+            {connection.lastSyncStatus === "failed" &&
+              connection.lastSyncError && (
+                <p className="text-destructive">{connection.lastSyncError}</p>
+              )}
+
+            {isConnected && connection.endorsementCount > 0 && (
+              <p>{connection.endorsementCount} evidence items imported</p>
+            )}
+
+            {!isConnected && !readOnly && (
+              <p className="font-medium text-amber-500">
+                Can add up to +{connection.potentialPoints} points
+              </p>
+            )}
+          </div>
+
+          <div className="mt-3 flex h-8 w-36 items-center gap-1.5 rounded-md bg-muted/50 px-2.5 text-xs text-muted-foreground">
+            <Lock className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{connection.permissionScope}</span>
+          </div>
+
+          {!readOnly && (
+            <div className="mt-auto pt-4">
+              {isConnected ? (
+                <Button
+                  size="sm"
+                  className={cn(DISCONNECT_BUTTON_CLASSES, "h-8 w-36 self-start")}
+                  disabled={isBusy}
+                  onClick={() => onDisconnect(connection.provider)}
+                >
+                  {busyAction === "disconnect"
+                    ? "Disconnecting..."
+                    : "Disconnect"}
+                </Button>
+              ) : connection.status === "expired" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={RECONNECT_BUTTON_CLASSES}
+                  disabled={isBusy}
+                  onClick={() => onConnect(connection.provider)}
+                >
+                  {busyAction === "connect" ? "Connecting..." : "Reconnect"}
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  className={CONNECT_BUTTON_CLASSES}
+                  disabled={isBusy}
+                  onClick={() => onConnect(connection.provider)}
+                >
+                  {busyAction === "connect" ? "Connecting..." : "Connect"}
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   )
