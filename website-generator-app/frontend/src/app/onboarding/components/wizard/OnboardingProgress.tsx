@@ -15,40 +15,44 @@ export const OnboardingProgress = ({
     step,
     onJumpTo,
 }: OnboardingProgressProps) => (
-    <div className="space-y-2.5">
-        <div className="flex items-baseline justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Step {step + 1} of {ONBOARDING_STEPS.length}
-            </p>
-            <p className="text-xs text-muted-foreground">
-                {ONBOARDING_STEPS[step].title}
-            </p>
-        </div>
-        <div className="flex items-center gap-2">
-            {ONBOARDING_STEPS.map((current, index) => {
-                const isFilled = index <= step;
-                return (
-                    <button
-                        key={current.key}
-                        type="button"
-                        aria-label={`Go to step ${index + 1}: ${current.title}`}
-                        onClick={() => index < step && onJumpTo(index)}
-                        disabled={index > step}
+    <div className="flex items-end gap-2">
+        {ONBOARDING_STEPS.map((current, index) => {
+            const isFilled = index <= step;
+            return (
+                <button
+                    key={current.key}
+                    type="button"
+                    aria-label={`Go to step ${index + 1}: ${current.title}`}
+                    aria-current={index === step ? "step" : undefined}
+                    onClick={() => index < step && onJumpTo(index)}
+                    disabled={index > step}
+                    className={cn(
+                        "group flex flex-1 flex-col gap-1.5 text-left",
+                        index < step && "cursor-pointer",
+                        index >= step && "cursor-default",
+                    )}
+                >
+                    <span
                         className={cn(
-                            "relative h-2 flex-1 overflow-hidden rounded-full bg-muted",
-                            index < step && "cursor-pointer",
-                            index >= step && "cursor-default",
+                            "text-xs font-medium transition-colors",
+                            index === step
+                                ? "text-foreground"
+                                : "text-muted-foreground",
+                            index < step && "group-hover:text-foreground",
                         )}
                     >
+                        {current.title}
+                    </span>
+                    <span className="relative h-2 overflow-hidden rounded-full bg-muted">
                         <motion.span
                             initial={false}
                             animate={{ scaleX: isFilled ? 1 : 0 }}
                             transition={{ duration: 0.45, ease: "easeInOut" }}
                             className="absolute inset-0 origin-left rounded-full bg-primary"
                         />
-                    </button>
-                );
-            })}
-        </div>
+                    </span>
+                </button>
+            );
+        })}
     </div>
 );

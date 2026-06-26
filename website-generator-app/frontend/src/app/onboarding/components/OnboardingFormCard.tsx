@@ -136,9 +136,9 @@ const OnboardingFormCard = ({
                                         type="button"
                                         variant="ghost"
                                         onClick={goBack}
-                                        className="h-11 gap-2"
+                                        className="group h-11 gap-2 hover:cursor-pointer hover:bg-transparent"
                                     >
-                                        <ArrowLeft className="h-4 w-4" />
+                                        <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1" />
                                         Back
                                     </Button>
                                 ) : (
@@ -151,7 +151,7 @@ const OnboardingFormCard = ({
                                     <Button
                                         type="submit"
                                         disabled={!canSubmit}
-                                        className="h-11 min-w-40 text-base"
+                                        className="h-11 min-w-40 text-base hover:cursor-pointer"
                                     >
                                         {isSubmitting ? (
                                             <span className="inline-flex items-center gap-2">
@@ -166,10 +166,10 @@ const OnboardingFormCard = ({
                                     <Button
                                         type="submit"
                                         disabled={!canLeaveStep}
-                                        className="h-11 min-w-32 gap-2 text-base"
+                                        className="group h-11 min-w-32 gap-2 text-base hover:cursor-pointer hover:bg-primary"
                                     >
                                         Continue
-                                        <ArrowRight className="h-4 w-4" />
+                                        <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
                                     </Button>
                                 )}
                             </div>
