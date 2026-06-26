@@ -4,7 +4,6 @@ import * as React from "react"
 import type { User } from "@supabase/supabase-js"
 import { motion } from "framer-motion"
 import {
-  Bell,
   Inbox,
   LayoutDashboard,
   LogIn,
@@ -16,6 +15,8 @@ import { usePathname, useRouter } from "next/navigation"
 
 import BrandWordmark from "@/components/branding/BrandWordmark"
 import { navbarNavigation } from "@/components/navbar/navbar.config"
+import { NotificationBell } from "@/components/notifications/NotificationBell"
+import { getUnreadCount } from "@/components/notifications/notifications.mock"
 import { ThemeModeToggle } from "@/components/theme/ThemeModeToggle"
 import type {
   DesktopNavCategory,
@@ -237,15 +238,7 @@ const NavbarClient: React.FC = () => {
               >
                 <Inbox className="size-4" />
               </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="size-9 rounded-md border border-border/70 bg-background/80 hover:cursor-pointer hover:bg-accent/60"
-                aria-label="Notifications"
-              >
-                <Bell className="size-4" />
-              </Button>
+              <NotificationBell count={getUnreadCount()} />
             </div>
             <motion.div {...actionButtonMotion}>
               <DropdownMenu modal={false}>
