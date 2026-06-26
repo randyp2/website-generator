@@ -39,6 +39,16 @@ public class PublicVerificationServiceImpl implements PublicVerificationService 
     }
 
     @Override
+    public Optional<PublicVerificationSummaryDTO> getSummaryByProfileId(UUID profileId) {
+        if (profileId == null) {
+            return Optional.empty();
+        }
+
+        return Optional.of(skillVerificationSummaryService.getSkillVerificationSummary(profileId))
+                .map(publicVerificationMapper::toPublicSummaryDto);
+    }
+
+    @Override
     public Optional<List<PublicClaimDTO>> getClaimsByUsername(String username) {
         return resolveProfileId(username)
                 .map(claimIngestionService::getSkillClaims)

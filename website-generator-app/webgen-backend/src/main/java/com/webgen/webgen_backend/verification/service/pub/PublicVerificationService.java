@@ -7,6 +7,7 @@ import com.webgen.webgen_backend.verification.dto.pub.PublicVerificationSummaryD
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface PublicVerificationService {
 
@@ -17,6 +18,14 @@ public interface PublicVerificationService {
      * @return public verification summary when profile exists
      */
     Optional<PublicVerificationSummaryDTO> getSummaryByUsername(String username);
+
+    /**
+     * Fetches verification summary for a public profile id.
+     *
+     * @param profileId stable public owner id
+     * @return public verification summary when profile id is valid
+     */
+    Optional<PublicVerificationSummaryDTO> getSummaryByProfileId(UUID profileId);
 
     /**
      * Fetches skill claims for a public profile route.

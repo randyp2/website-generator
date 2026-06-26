@@ -19,7 +19,7 @@ import type { PublicVerificationSummaryDTO } from "@/types/public-verification";
 import type { VerificationSummaryDTO } from "@/types/verification-summary";
 
 interface ExplorePortfolioPlaceholderCardProps {
-  username: string | null;
+  profileId: string | null;
 }
 
 const MAX_TOP_SKILLS = 5;
@@ -35,13 +35,13 @@ const formatStatusLabel = (status: string): string =>
     .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
     .join(" ");
 
-const useExploreVerificationSummary = (username: string | null) => {
+const useExploreVerificationSummary = (profileId: string | null) => {
   const [summary, setSummary] = useState<VerificationSummaryDTO | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchSummary = useCallback(async () => {
-    if (!username) {
+    if (!profileId) {
       setSummary(null);
       setError(null);
       setIsLoading(false);
@@ -53,7 +53,7 @@ const useExploreVerificationSummary = (username: string | null) => {
 
     try {
       const response = await fetch(
-        `/api/public/profile/${encodeURIComponent(username)}/verification/summary`,
+        `/api/public/profile/by-id/${encodeURIComponent(profileId)}/verification/summary`,
         { cache: "no-store" },
       );
 
@@ -74,7 +74,7 @@ const useExploreVerificationSummary = (username: string | null) => {
     } finally {
       setIsLoading(false);
     }
-  }, [username]);
+  }, [profileId]);
 
   useEffect(() => {
     void fetchSummary();
@@ -84,10 +84,10 @@ const useExploreVerificationSummary = (username: string | null) => {
 };
 
 export const ExplorePortfolioPlaceholderCard = ({
-  username,
+  profileId,
 }: ExplorePortfolioPlaceholderCardProps) => {
   const { summary, isLoading, error, refetch } =
-    useExploreVerificationSummary(username);
+    useExploreVerificationSummary(profileId);
   const [hoveredSkill, setHoveredSkill] = useState<SkillVerification | null>(null);
   const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
   const canUseDom = typeof window !== "undefined" && typeof document !== "undefined";
@@ -162,7 +162,7 @@ export const ExplorePortfolioPlaceholderCard = ({
             Verification Snapshot
           </p>
           <div className="mt-6 border-t border-border pt-6">
-            {!username ? (
+            {!profileId ? (
               <p className="text-sm leading-7 text-muted-foreground">
                 Verification summary is not available for this portfolio owner yet.
               </p>
