@@ -41,7 +41,7 @@ type DeployedPortfolioPreviewProps = {
 };
 
 const PreviewSkeleton: React.FC = () => (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card/80 p-4 md:p-5">
+    <div className="overflow-hidden rounded-2xl border border-border bg-card/80 p-5 md:p-6">
         <div className="animate-pulse space-y-3">
             <div className="h-5 w-48 rounded bg-muted" />
             <div className="h-40 rounded-xl bg-muted" />
@@ -108,8 +108,8 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
 
     if (!deployedPortfolio) {
         return (
-            <div className="rounded-2xl border border-border bg-card/80 p-4 md:p-5">
-                <h3 className="text-lg md:text-xl font-semibold text-foreground">Current Deployed Portfolio</h3>
+            <div className="rounded-2xl border border-border bg-card/80 p-5 md:p-6">
+                <h3 className="text-lg font-semibold tracking-tight text-foreground md:text-xl">Current Deployed Portfolio</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
                     No active or published portfolio found yet. Publish one to show a live preview here.
                 </p>
@@ -140,7 +140,7 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
     return (
         <section className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
-                <h3 className="text-lg md:text-xl font-semibold text-foreground">Current Deployed Portfolio</h3>
+                <h3 className="text-lg font-semibold tracking-tight text-foreground md:text-xl">Current Deployed Portfolio</h3>
                 <div
                     role="tablist"
                     aria-label="Portfolio view"
@@ -200,7 +200,7 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
                     <article
                         role="tabpanel"
                         aria-label="Portfolio details"
-                        className="flex flex-col rounded-2xl border border-border bg-card/80 p-4 md:p-5"
+                        className="flex flex-col rounded-2xl border border-border bg-card/80 p-5 md:p-6"
                     >
                         <dl className="grid grid-cols-2 gap-3">
                             {deployedPortfolios.length > 1 ? (

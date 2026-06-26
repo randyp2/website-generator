@@ -96,7 +96,7 @@ export const ExploreCard = ({
               {portfolio.ownerUsername && (
                 <Link
                   href={`/${portfolio.ownerUsername}`}
-                  className="relative z-10 block truncate text-xs text-muted-foreground transition-colors hover:cursor-pointer hover:text-primary"
+                  className="relative z-10 block truncate text-xs font-medium text-primary hover:cursor-pointer"
                 >
                   @{portfolio.ownerUsername}
                 </Link>

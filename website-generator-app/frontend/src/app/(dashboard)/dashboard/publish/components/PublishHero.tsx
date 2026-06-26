@@ -179,7 +179,7 @@ export const PublishHero = ({
   }
 
   return (
-    <section className="rounded-3xl border border-border bg-card p-5 lg:p-7">
+    <section className="rounded-3xl border border-border bg-card p-5 md:p-6">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -267,7 +267,7 @@ export const PublishHero = ({
               className="group flex w-full items-center justify-between gap-2 rounded-xl border border-dashed border-border bg-transparent px-3.5 py-3 text-left transition-colors hover:cursor-pointer hover:border-primary/50 hover:bg-muted/30"
             >
               <span className="text-sm italic text-muted-foreground/70">
-                No description yet — visitors won't see a summary on Explore.
+                No description yet — visitors won&apos;t see a summary on Explore.
               </span>
               <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground transition-colors group-hover:text-orange-400">
                 <FiPlus className="h-3 w-3" />

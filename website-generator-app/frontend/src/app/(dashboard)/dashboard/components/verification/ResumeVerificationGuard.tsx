@@ -118,7 +118,7 @@ const ResumeVerificationGuard = ({
     );
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-6">
             {/* Sub-tab bar — all verification tabs remain available. */}
             <div className="flex gap-6 border-b border-border">
                 {SUB_TABS.map((tab) => {
@@ -142,7 +142,7 @@ const ResumeVerificationGuard = ({
             {/* Step 1 — Review the uploaded resume and continue to parsing */}
             {activeTab === "resume-review" && (
                 resume ? (
-                    <div className="space-y-8">
+                    <div className="space-y-6">
                         <ResumePreviewCard
                             resume={resume}
                             onRemove={handleResumeRemoved}

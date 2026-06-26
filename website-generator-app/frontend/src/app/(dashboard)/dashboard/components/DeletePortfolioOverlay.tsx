@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { FiAlertTriangle, FiTrash2 } from "react-icons/fi";
 
@@ -19,17 +19,26 @@ export const DeletePortfolioOverlay: React.FC<DeletePortfolioOverlayProps> = ({
   onConfirm,
   isDeleting = false,
 }) => {
+  if (!isOpen) return null;
+
+  return (
+    <DeletePortfolioDialogContent
+      key={portfolioTitle ?? "delete-portfolio"}
+      portfolioTitle={portfolioTitle}
+      onCancel={onCancel}
+      onConfirm={onConfirm}
+      isDeleting={isDeleting}
+    />
+  );
+};
+
+const DeletePortfolioDialogContent: React.FC<
+  Omit<DeletePortfolioOverlayProps, "isOpen">
+> = ({ portfolioTitle, onCancel, onConfirm, isDeleting = false }) => {
   const [confirmText, setConfirmText] = useState("");
 
   const expectedName = portfolioTitle?.trim() || "";
   const isConfirmed = expectedName.length > 0 && confirmText.trim() === expectedName;
-
-  // Reset the typed confirmation each time the modal is opened.
-  useEffect(() => {
-    if (isOpen) setConfirmText("");
-  }, [isOpen]);
-
-  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">

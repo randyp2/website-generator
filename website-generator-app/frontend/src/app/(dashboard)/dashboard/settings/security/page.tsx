@@ -14,7 +14,9 @@ const SecuritySettingsPage = () => {
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>Sign-in security</CardTitle>
+                    <CardTitle className="text-lg font-semibold tracking-tight">
+                        Sign-in security
+                    </CardTitle>
                     <CardDescription>
                         Manage your password and second-factor settings.
                     </CardDescription>
@@ -52,7 +54,9 @@ const SecuritySettingsPage = () => {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Connected accounts</CardTitle>
+                    <CardTitle className="text-lg font-semibold tracking-tight">
+                        Connected accounts
+                    </CardTitle>
                     <CardDescription>
                         OAuth providers linked to your account.
                     </CardDescription>
@@ -91,7 +95,9 @@ const SecuritySettingsPage = () => {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Active sessions</CardTitle>
+                    <CardTitle className="text-lg font-semibold tracking-tight">
+                        Active sessions
+                    </CardTitle>
                     <CardDescription>
                         Devices currently signed in to your account.
                     </CardDescription>

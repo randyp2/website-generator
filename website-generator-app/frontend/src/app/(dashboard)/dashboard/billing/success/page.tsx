@@ -123,7 +123,7 @@ const SuccessCard: React.FC = () => {
                             }}
                         />
                     </motion.svg>
-                    <CardTitle className="mt-2 text-3xl font-bold text-card-foreground md:text-4xl">
+                    <CardTitle className="mt-2 text-3xl font-semibold tracking-tight text-card-foreground">
                         Payment succeeded!
                     </CardTitle>
                     <CardDescription className="mt-2 text-base">

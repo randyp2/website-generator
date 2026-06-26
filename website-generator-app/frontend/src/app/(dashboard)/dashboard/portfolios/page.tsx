@@ -340,10 +340,10 @@ const PortfolioManager: React.FC = () => {
         className="flex items-center justify-between"
       >
         <div>
-          <h1 className="mb-2 text-4xl font-bold text-foreground">
+          <h1 className="mb-2 text-3xl font-semibold tracking-tight text-foreground">
             Your Portfolios
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {portfolios.length} portfolio{portfolios.length !== 1 ? "s" : ""}{" "}
             created
           </p>

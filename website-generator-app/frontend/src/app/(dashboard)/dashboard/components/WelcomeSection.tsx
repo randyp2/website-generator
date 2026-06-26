@@ -18,13 +18,13 @@ export const WelcomeSection: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
         >
-            <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-card/80 px-6 py-5 shadow-lg">
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-card/80 p-5 shadow-lg md:p-6">
                 <div>
-                    <h1 className="mb-2 text-3xl font-semibold text-foreground md:text-4xl">
-                        Welcome back , {username}!
+                    <h1 className="mb-2 text-3xl font-semibold tracking-tight text-foreground">
+                        Welcome back, {username}!
                     </h1>
-                    <p className="text-base text-muted-foreground">
-                        Lets Customize Your Portfolio
+                    <p className="text-sm text-muted-foreground">
+                        Let&apos;s customize your portfolio
                     </p>
                 </div>
 

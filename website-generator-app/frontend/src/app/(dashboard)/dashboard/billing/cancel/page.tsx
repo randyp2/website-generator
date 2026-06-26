@@ -22,7 +22,7 @@ const BillingCancelPage: React.FC = () => {
                                 :(
                             </span>
                         </div>
-                        <CardTitle className="mt-2 text-3xl font-bold text-card-foreground md:text-4xl">
+                        <CardTitle className="mt-2 text-3xl font-semibold tracking-tight text-card-foreground">
                             Payment canceled
                         </CardTitle>
                         <CardDescription className="mt-2 text-base">

@@ -73,11 +73,11 @@ export const EngagementTrendChart: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.5 }}
-            className="relative flex flex-col rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-lg"
+            className="relative flex flex-col rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-lg md:p-6"
         >
             <div className="mb-4 flex items-center justify-between">
                 <div>
-                    <h3 className="text-xl font-semibold">Engagement by Portfolio</h3>
+                    <h3 className="text-lg font-semibold tracking-tight text-foreground md:text-xl">Engagement by Portfolio</h3>
                     <p className="text-sm text-muted-foreground">
                         Views, likes, shares, and comments per deployed portfolio
                     </p>

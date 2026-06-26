@@ -78,7 +78,7 @@ export const StatsSection: React.FC = () => {
                         whileHover={{ y: -4 }}
                         className="group relative"
                     >
-                        <div className="relative rounded-2xl border border-border bg-card p-6 shadow-lg transition-shadow hover:shadow-xl">
+                        <div className="relative rounded-2xl border border-border bg-card p-5 shadow-lg transition-shadow hover:shadow-xl md:p-6">
                             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15 text-primary transition-transform group-hover:scale-110">
                                 <Icon className="h-5 w-5" />
                             </div>

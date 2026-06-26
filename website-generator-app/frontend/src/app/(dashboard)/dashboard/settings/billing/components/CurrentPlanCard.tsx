@@ -18,7 +18,9 @@ export const CurrentPlanCard = ({ plan }: CurrentPlanCardProps) => {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Current plan</CardTitle>
+                <CardTitle className="text-lg font-semibold tracking-tight">
+                    Current plan
+                </CardTitle>
                 <CardDescription>
                     Manage your subscription, payment method, and billing
                     details.

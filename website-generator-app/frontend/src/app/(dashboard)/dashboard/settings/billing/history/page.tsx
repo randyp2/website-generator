@@ -53,10 +53,10 @@ const BillingHistoryPage = () => {
     );
 
     return (
-        <section className="space-y-5">
+        <section className="space-y-6">
             <div className="flex items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-2xl font-semibold tracking-tight">
+                    <h2 className="text-xl font-semibold tracking-tight text-foreground">
                         Billing history
                     </h2>
                     <p className="text-sm text-muted-foreground">
@@ -74,13 +74,13 @@ const BillingHistoryPage = () => {
             </div>
 
             {isLoading ? (
-                <div className="rounded-2xl border border-border/60 bg-card/50 px-5 py-6">
+                <div className="rounded-2xl border border-border/60 bg-card/50 p-5 md:p-6">
                     <p className="text-sm text-muted-foreground">
                         Loading invoices...
                     </p>
                 </div>
             ) : errorMessage ? (
-                <div className="rounded-2xl border border-red-500/35 bg-red-500/10 px-5 py-6">
+                <div className="rounded-2xl border border-red-500/35 bg-red-500/10 p-5 md:p-6">
                     <p className="text-sm text-red-700 dark:text-red-300">
                         {errorMessage}
                     </p>

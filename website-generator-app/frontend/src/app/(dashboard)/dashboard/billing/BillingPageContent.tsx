@@ -196,7 +196,7 @@ const BillingPageContent: React.FC = () => {
 
                     <div className="relative z-30 pt-12 md:pt-16">
                         <div className="mx-auto max-w-2xl space-y-6 text-center">
-                            <h2 className="text-center text-3xl font-semibold lg:text-4xl">
+                            <h2 className="text-center text-3xl font-semibold tracking-tight lg:text-4xl">
                                 Pricing that scales with you
                             </h2>
                             <p className="text-sm text-muted-foreground">

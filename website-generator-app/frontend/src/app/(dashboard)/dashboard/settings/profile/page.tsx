@@ -15,7 +15,9 @@ const ProfileSettingsPage = () => {
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>Profile details</CardTitle>
+                    <CardTitle className="text-lg font-semibold tracking-tight">
+                        Profile details
+                    </CardTitle>
                     <CardDescription>
                         Public and account profile information.
                     </CardDescription>

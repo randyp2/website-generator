@@ -29,7 +29,9 @@ export const BillingHistoryCard = ({ invoices }: BillingHistoryCardProps) => {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Billing history</CardTitle>
+                <CardTitle className="text-lg font-semibold tracking-tight">
+                    Billing history
+                </CardTitle>
                 <CardDescription>
                     Past invoices and receipts.
                 </CardDescription>

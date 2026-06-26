@@ -20,14 +20,14 @@ export const ReviewPageHeader: React.FC<ReviewPageHeaderProps> = ({
         <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="max-w-5xl mx-auto mb-8"
+            className="mx-auto mb-8 max-w-5xl"
         >
-            <div className="flex items-center justify-between mb-4">
+            <div className="mb-4 flex items-center justify-between">
                 <div>
-                    <h1 className="text-4xl font-bold text-white mb-2">
+                    <h1 className="mb-2 text-3xl font-semibold tracking-tight text-white md:text-4xl">
                         Review Your Information
                     </h1>
-                    <p className="text-slate-400 text-lg max-w-2xl">
+                    <p className="max-w-2xl text-sm leading-6 text-slate-400 md:text-base">
                         Review and edit the information extracted from your resume
                     </p>
                 </div>

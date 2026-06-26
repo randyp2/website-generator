@@ -24,7 +24,7 @@ const CreatePortfolioPage: React.FC = () => {
         </div>
 
         <p className="text-sm font-semibold text-muted-foreground">Step 1 of 3</p>
-        <h1 className="mt-2 text-3xl font-bold text-foreground md:text-4xl">
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
           Opening style chat
         </h1>
         <p className="mt-3 text-sm leading-6 text-muted-foreground" aria-live="polite">

@@ -1,7 +1,7 @@
 "use client"
 
 import { Globe, Link2, Sparkles } from "lucide-react"
-import { FaGithub, FaLinkedinIn } from "react-icons/fa"
+import { FaLinkedinIn } from "react-icons/fa"
 
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"

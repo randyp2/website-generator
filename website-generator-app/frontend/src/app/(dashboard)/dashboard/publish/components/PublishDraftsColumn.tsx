@@ -19,7 +19,7 @@ export const PublishDraftsColumn = ({
 }: PublishDraftsColumnProps) => (
   <section className="flex flex-col gap-3">
     <div className="flex items-center justify-between">
-      <h2 className="text-lg font-semibold text-foreground">
+      <h2 className="text-lg font-semibold tracking-tight text-foreground">
         Drafts — ready to publish
       </h2>
       <span className="text-xs text-muted-foreground">{drafts.length}</span>

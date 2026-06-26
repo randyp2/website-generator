@@ -233,7 +233,7 @@ const BillingSettingsPage = () => {
     };
 
     return (
-        <section className="space-y-8">
+        <section className="space-y-6">
             <div className="space-y-5">
                 <div className="space-y-2">
                     <p className="text-xs font-medium text-muted-foreground">
@@ -306,7 +306,7 @@ const BillingSettingsPage = () => {
                 ) : null}
             </div>
 
-            <div className="grid w-full gap-x-12 gap-y-6 md:grid-cols-2">
+            <div className="grid w-full gap-4 md:grid-cols-2">
                 {BILLING_SHORTCUTS.map((item) => {
                     const Icon = item.icon;
                     const content = (
@@ -330,7 +330,7 @@ const BillingSettingsPage = () => {
                             <Link
                                 key={item.title}
                                 href={item.href}
-                                className="group flex items-center gap-4 rounded-xl py-1.5 transition-colors hover:text-primary"
+                                className="group flex items-center gap-4 rounded-xl border border-border bg-card/60 p-4 transition-colors hover:border-primary/40 hover:bg-muted/40 hover:text-primary"
                             >
                                 {content}
                             </Link>
@@ -341,7 +341,7 @@ const BillingSettingsPage = () => {
                         <button
                             key={item.title}
                             type="button"
-                            className="group flex items-center gap-4 rounded-xl py-1.5 text-left transition-colors hover:cursor-pointer hover:text-primary"
+                            className="group flex w-full items-center gap-4 rounded-xl border border-border bg-card/60 p-4 text-left transition-colors hover:cursor-pointer hover:border-primary/40 hover:bg-muted/40 hover:text-primary"
                         >
                             {content}
                         </button>
