@@ -1,6 +1,7 @@
 "use client"
 
-import { Search } from "lucide-react"
+import { AnimatePresence, motion } from "framer-motion"
+import { Search, X } from "lucide-react"
 import { startTransition, useCallback, useDeferredValue, useEffect, useRef, useState } from "react"
 
 import { usePublicAuthGate } from "@/context/PublicAuthGateContext"
@@ -285,15 +286,17 @@ export const ExplorePageClient = () => {
               </NavigationMenu>
             </div>
 
-            <div className="flex w-full justify-end md:col-start-3 md:justify-self-stretch">
-              <div
-                className={cn(
-                  "relative flex items-center justify-end transition-[width] duration-300",
-                  isSearchOpen ? "w-full max-w-sm" : "w-10",
-                )}
-              >
+            <div className="flex w-full items-center justify-end md:col-start-3 md:justify-self-stretch">
+              <AnimatePresence mode="popLayout" initial={false}>
                 {isSearchOpen ? (
-                  <>
+                  <motion.div
+                    key="search-input"
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: "100%", opacity: 1 }}
+                    exit={{ width: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="relative flex max-w-sm items-center overflow-hidden"
+                  >
                     <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       autoFocus
@@ -308,20 +311,33 @@ export const ExplorePageClient = () => {
                         startTransition(() => setSearchQuery(nextValue))
                       }}
                       placeholder="Search portfolios, creators..."
-                      className="w-full pl-11 pr-4"
+                      className="w-full pl-11 pr-10"
                     />
-                  </>
+                    <button
+                      type="button"
+                      aria-label="Clear search"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => {
+                        startTransition(() => setSearchQuery(""))
+                        setIsSearchOpen(false)
+                      }}
+                      className="absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-all duration-200 hover:cursor-pointer hover:rotate-90 hover:bg-muted hover:text-foreground"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </motion.div>
                 ) : (
                   <button
+                    key="search-trigger"
                     type="button"
                     aria-label="Search portfolios"
-                    className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:cursor-pointer hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
                     onClick={() => setIsSearchOpen(true)}
                   >
                     <Search className="h-4 w-4" />
                   </button>
                 )}
-              </div>
+              </AnimatePresence>
             </div>
           </div>
         </div>
