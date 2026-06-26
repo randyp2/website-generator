@@ -10,6 +10,7 @@ public class PublicPortfolioCardDTO {
     private String slug;
     private String templateId;
     private String ownerName;
+    private String ownerUsername;
     private String ownerAvatarUrl;
     private OffsetDateTime publishedAt;
     private String screenshotUrl;

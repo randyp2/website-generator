@@ -163,6 +163,7 @@ public class PublicPortfolioServiceImpl implements PublicPortfolioService {
 
         profileRepository.findById(portfolio.getUserId()).ifPresent(profile -> {
             card.setOwnerName(profile.getFullName());
+            card.setOwnerUsername(profile.getUsername());
             card.setOwnerAvatarUrl(profile.getAvatarUrl());
         });
 

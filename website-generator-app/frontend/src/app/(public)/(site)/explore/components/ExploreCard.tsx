@@ -93,9 +93,14 @@ export const ExploreCard = ({
               <p className="truncate text-sm font-medium text-foreground">
                 {portfolio.ownerName ?? "Anonymous Creator"}
               </p>
-              <p className="truncate text-xs text-muted-foreground">
-                {templateLabel}
-              </p>
+              {portfolio.ownerUsername && (
+                <Link
+                  href={`/${portfolio.ownerUsername}`}
+                  className="relative z-10 block truncate text-xs text-muted-foreground transition-colors hover:cursor-pointer hover:text-primary"
+                >
+                  @{portfolio.ownerUsername}
+                </Link>
+              )}
             </div>
           </div>
           <div className="flex items-center justify-end gap-3 text-xs text-muted-foreground">

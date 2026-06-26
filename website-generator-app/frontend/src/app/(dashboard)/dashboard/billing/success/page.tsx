@@ -155,7 +155,7 @@ const SuccessCard: React.FC = () => {
 
 const BillingSuccessPage: React.FC = () => {
     return (
-        <div className="relative min-h-[80vh] px-4 pb-14 pt-12 md:px-6">
+        <div className="relative min-h-[80vh] px-4 pb-14 pt-12 md:px-6 lg:px-8">
             <div className="mx-auto max-w-xl">
                 <Suspense fallback={null}>
                     <SuccessCard />

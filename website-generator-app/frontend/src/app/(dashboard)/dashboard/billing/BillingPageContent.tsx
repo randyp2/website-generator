@@ -173,7 +173,7 @@ const BillingPageContent: React.FC = () => {
     }, [isAuthReady, isAuthenticated]);
 
     return (
-        <div className="relative px-4 pb-20 pt-0 md:px-6 md:pb-24 md:pt-0 [&_button]:cursor-pointer">
+        <div className="relative px-4 pb-20 pt-0 md:px-6 md:pb-24 md:pt-0 lg:px-8 [&_button]:cursor-pointer">
             <div className="relative z-10 mx-auto max-w-6xl space-y-12">
                 <section className="relative pb-12 pt-0 md:pb-16 md:pt-0">
                     <div

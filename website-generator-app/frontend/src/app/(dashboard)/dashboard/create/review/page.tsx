@@ -82,7 +82,7 @@ const ReviewPage: React.FC = () => {
     const effectiveIsEditing = isManualTemplate || isEditing;
 
     return (
-        <div className="relative min-h-screen px-3 py-8 text-white sm:px-4 lg:px-6">
+        <div className="relative min-h-screen px-4 py-8 text-white md:px-6 lg:px-8">
             <div className="relative">
             <ReviewPageHeader
                 isEditing={effectiveIsEditing}

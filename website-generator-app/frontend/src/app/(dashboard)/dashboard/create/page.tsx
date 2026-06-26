@@ -17,7 +17,7 @@ const CreatePortfolioPage: React.FC = () => {
   }, [router]);
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-8 md:px-6">
+    <main className="flex min-h-screen items-center justify-center px-4 py-8 md:px-6 lg:px-8">
       <div className="w-full max-w-xl rounded-lg border border-border bg-card p-6 text-center shadow-sm">
         <div className="mx-auto mb-5 flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
           <FiRefreshCw className="h-5 w-5 animate-spin" aria-hidden="true" />

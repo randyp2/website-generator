@@ -104,7 +104,7 @@ const PublishPage = () => {
     if (loading) return <PublishLoadingState />;
 
     return (
-        <div className="space-y-6 px-4 py-8 md:px-6">
+        <div className="space-y-6 px-4 py-8 md:px-6 lg:px-8">
             <div>
                 <PublishHero
                     portfolio={featuredPortfolio}

@@ -7,7 +7,7 @@ interface SettingsLayoutProps {
 
 const SettingsLayout = ({ children }: SettingsLayoutProps) => {
     return (
-        <div className="w-full space-y-8 px-6 py-8 md:px-8">
+        <div className="w-full space-y-8 px-4 py-8 md:px-6 lg:px-8">
             <header className="space-y-1">
                 <h1 className="text-3xl font-bold tracking-tight">
                     Settings
@@ -17,7 +17,7 @@ const SettingsLayout = ({ children }: SettingsLayoutProps) => {
                 </p>
             </header>
             <SettingsTabsNav />
-            <main className="px-4 md:px-6">{children}</main>
+            <main>{children}</main>
         </div>
     );
 };

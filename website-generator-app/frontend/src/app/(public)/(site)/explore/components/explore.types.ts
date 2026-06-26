@@ -4,6 +4,7 @@ export interface PortfolioCard {
   templateId: string | null
   description: string | null
   ownerName: string | null
+  ownerUsername: string | null
   ownerAvatarUrl: string | null
   publishedAt: string
   screenshotUrl: string | null
