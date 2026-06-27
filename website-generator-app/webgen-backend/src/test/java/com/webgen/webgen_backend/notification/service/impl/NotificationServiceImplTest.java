@@ -45,7 +45,11 @@ class NotificationServiceImplTest {
 
         repository.profiles.put(recipientId, profile(recipientId, "Recipient", "recipient"));
         repository.profiles.put(actorId, profile(actorId, "Actor Name", "actor"));
-        repository.portfolios.put(portfolioId, portfolio(portfolioId, "Portfolio Title", "portfolio-slug"));
+        repository.portfolios.put(portfolioId, portfolio(
+                portfolioId,
+                "Portfolio Title",
+                "portfolio-slug",
+                "https://example.com/screenshots/portfolio.png"));
         repository.comments.put(commentId, comment(commentId));
 
         Optional<NotificationDTO> result = service.createNotification(
@@ -69,6 +73,7 @@ class NotificationServiceImplTest {
         assertThat(dto.getPortfolioId()).isEqualTo(portfolioId);
         assertThat(dto.getPortfolioTitle()).isEqualTo("Portfolio Title");
         assertThat(dto.getPortfolioSlug()).isEqualTo("portfolio-slug");
+        assertThat(dto.getPortfolioScreenshotUrl()).isEqualTo("https://example.com/screenshots/portfolio.png");
         assertThat(dto.getCommentId()).isEqualTo(commentId);
         assertThat(dto.getType()).isEqualTo(NotificationService.TYPE_COMMENT_LIKED);
         assertThat(dto.isRead()).isFalse();
@@ -140,6 +145,7 @@ class NotificationServiceImplTest {
         assertThat(dto.getPortfolioId()).isNull();
         assertThat(dto.getPortfolioTitle()).isNull();
         assertThat(dto.getPortfolioSlug()).isNull();
+        assertThat(dto.getPortfolioScreenshotUrl()).isNull();
         assertThat(dto.getCommentId()).isNull();
         assertThat(dto.getActorUsername()).isEqualTo("actor");
     }
@@ -173,7 +179,7 @@ class NotificationServiceImplTest {
                 notificationId,
                 profile(recipientId, "Recipient", "recipient"),
                 null,
-                portfolio(UUID.randomUUID(), "Portfolio", "portfolio"),
+                portfolio(UUID.randomUUID(), "Portfolio", "portfolio", "https://example.com/screenshots/list.png"),
                 null,
                 NotificationService.TYPE_PORTFOLIO_LIKED,
                 objectMapper.createObjectNode(),
@@ -187,8 +193,11 @@ class NotificationServiceImplTest {
         assertThat(response.getNotifications())
                 .hasSize(1)
                 .first()
-                .extracting(NotificationDTO::getId)
-                .isEqualTo(notificationId);
+                .satisfies(notification -> {
+                    assertThat(notification.getId()).isEqualTo(notificationId);
+                    assertThat(notification.getPortfolioScreenshotUrl())
+                            .isEqualTo("https://example.com/screenshots/list.png");
+                });
     }
 
     @Test
@@ -201,7 +210,7 @@ class NotificationServiceImplTest {
                 notificationId,
                 profile(recipientId, "Recipient", "recipient"),
                 null,
-                portfolio(UUID.randomUUID(), "Portfolio", "portfolio"),
+                portfolio(UUID.randomUUID(), "Portfolio", "portfolio", null),
                 null,
                 NotificationService.TYPE_PORTFOLIO_LIKED,
                 objectMapper.createObjectNode(),
@@ -228,7 +237,7 @@ class NotificationServiceImplTest {
                 notificationId,
                 profile(recipientId, "Recipient", "recipient"),
                 null,
-                portfolio(UUID.randomUUID(), "Portfolio", "portfolio"),
+                portfolio(UUID.randomUUID(), "Portfolio", "portfolio", null),
                 null,
                 NotificationService.TYPE_PORTFOLIO_LIKED,
                 objectMapper.createObjectNode(),
@@ -298,10 +307,15 @@ class NotificationServiceImplTest {
     }
 
     private Portfolio portfolio(UUID id, String title, String slug) {
+        return portfolio(id, title, slug, null);
+    }
+
+    private Portfolio portfolio(UUID id, String title, String slug, String screenshotUrl) {
         Portfolio portfolio = new Portfolio();
         portfolio.setId(id);
         portfolio.setTitle(title);
         portfolio.setSlug(slug);
+        portfolio.setScreenshotUrl(screenshotUrl);
         return portfolio;
     }
 

@@ -20,6 +20,7 @@ public class NotificationDTO {
     private UUID portfolioId;
     private String portfolioTitle;
     private String portfolioSlug;
+    private String portfolioScreenshotUrl;
     private UUID commentId;
     private JsonNode metadata;
     private boolean read;

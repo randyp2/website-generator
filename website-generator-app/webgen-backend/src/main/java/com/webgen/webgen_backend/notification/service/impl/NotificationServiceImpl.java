@@ -159,6 +159,7 @@ public class NotificationServiceImpl implements NotificationService {
                 .portfolioId(portfolio == null ? null : portfolio.getId())
                 .portfolioTitle(portfolio == null ? null : portfolio.getTitle())
                 .portfolioSlug(portfolio == null ? null : portfolio.getSlug())
+                .portfolioScreenshotUrl(portfolio == null ? null : portfolio.getScreenshotUrl())
                 .commentId(comment == null ? null : comment.getId())
                 .metadata(objectOrEmpty(notification.getMetadata()))
                 .read(notification.getReadAt() != null)

@@ -33,12 +33,8 @@ export interface NotificationDTO {
   portfolioId: string | null
   portfolioTitle: string | null
   portfolioSlug: string | null
-  /**
-   * Preview image of the related portfolio.
-   * TODO(backend): add `portfolioScreenshotUrl` to NotificationDTO (it can be
-   * joined from the portfolio's `screenshot_url`). Null until the screenshot exists.
-   */
-  portfolioScreenshotUrl?: string | null
+  /** Preview image of the related portfolio. Null for profile-scoped notifications or missing screenshots. */
+  portfolioScreenshotUrl: string | null
   commentId: string | null
   /** Arbitrary server-attached JSON (e.g. a comment preview). */
   metadata: Record<string, unknown> | null
