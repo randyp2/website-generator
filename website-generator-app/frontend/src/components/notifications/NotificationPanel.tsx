@@ -8,9 +8,7 @@ import type { NotificationDTO } from "./notifications.types"
 interface NotificationPanelProps {
   notifications: NotificationDTO[]
   onSelect?: (notification: NotificationDTO) => void
-  onMarkAllRead?: () => void
   onRetry?: () => void
-  hasUnread?: boolean
   isLoading?: boolean
   error?: string | null
 }
@@ -18,9 +16,7 @@ interface NotificationPanelProps {
 export const NotificationPanel = ({
   notifications,
   onSelect,
-  onMarkAllRead,
   onRetry,
-  hasUnread = false,
   isLoading = false,
   error = null,
 }: NotificationPanelProps) => {
@@ -29,16 +25,8 @@ export const NotificationPanel = ({
   return (
     <div className="flex max-h-[32rem] w-[30rem] max-w-[calc(100vw-2rem)] flex-col">
       {/* Header */}
-      <header className="flex items-center justify-between border-b border-border px-4 py-3">
+      <header className="border-b border-border px-4 py-3">
         <h2 className="text-sm font-semibold text-foreground">Notifications</h2>
-        <button
-          type="button"
-          onClick={onMarkAllRead}
-          disabled={!hasUnread || isLoading}
-          className="text-xs font-medium text-primary transition-colors hover:cursor-pointer hover:text-primary/80 disabled:pointer-events-none disabled:text-muted-foreground"
-        >
-          Mark all read
-        </button>
       </header>
 
       {/* List / empty state */}

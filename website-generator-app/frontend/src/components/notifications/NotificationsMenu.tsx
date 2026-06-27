@@ -48,8 +48,34 @@ export const NotificationsMenu = () => {
         fetchNotifications({ page: 0, size: 20 }),
         fetchUnreadNotificationCount(),
       ])
-      setNotifications(notificationsResponse.notifications)
-      setUnreadCount(unreadCountResponse.unreadCount)
+
+      const loadedNotifications = notificationsResponse.notifications
+      const loadedUnreadCount = unreadCountResponse.unreadCount
+      const hasUnread =
+        loadedUnreadCount > 0 ||
+        loadedNotifications.some((notification) => !notification.read)
+
+      if (!hasUnread) {
+        setNotifications(loadedNotifications)
+        setUnreadCount(loadedUnreadCount)
+        return
+      }
+
+      const now = new Date().toISOString()
+      setNotifications(
+        loadedNotifications.map((notification) => ({
+          ...notification,
+          read: true,
+          readAt: notification.readAt ?? now,
+        })),
+      )
+      setUnreadCount(0)
+
+      void markAllNotificationsRead().catch((error) => {
+        console.error("Failed to mark notifications as read:", error)
+        setNotifications(loadedNotifications)
+        setUnreadCount(loadedUnreadCount)
+      })
     } catch (error) {
       console.error("Failed to load notifications:", error)
       setError("Could not load notifications.")
@@ -121,31 +147,6 @@ export const NotificationsMenu = () => {
     [loadUnreadCount, markNotificationLocallyRead, router],
   )
 
-  const handleMarkAllRead = React.useCallback(async () => {
-    if (unreadCount <= 0) return
-
-    const previousNotifications = notifications
-    const previousUnreadCount = unreadCount
-    const now = new Date().toISOString()
-
-    setNotifications((current) =>
-      current.map((notification) => ({
-        ...notification,
-        read: true,
-        readAt: notification.readAt ?? now,
-      })),
-    )
-    setUnreadCount(0)
-
-    try {
-      await markAllNotificationsRead()
-    } catch (error) {
-      console.error("Failed to mark notifications as read:", error)
-      setNotifications(previousNotifications)
-      setUnreadCount(previousUnreadCount)
-    }
-  }, [notifications, unreadCount])
-
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -159,9 +160,7 @@ export const NotificationsMenu = () => {
         <NotificationPanel
           notifications={notifications}
           onSelect={handleSelect}
-          onMarkAllRead={handleMarkAllRead}
           onRetry={loadNotifications}
-          hasUnread={unreadCount > 0}
           isLoading={isLoading}
           error={error}
         />
