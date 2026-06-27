@@ -65,7 +65,6 @@ const initialsOf = (name: string): string =>
 
 interface NotificationItemProps {
   notification: NotificationDTO
-  /** Placeholder click handler — wire to mark-as-read / navigation later. */
   onSelect?: (notification: NotificationDTO) => void
 }
 

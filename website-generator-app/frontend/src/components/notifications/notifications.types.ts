@@ -24,20 +24,20 @@ export interface NotificationDTO {
   id: string
   recipientProfileId: string
   actorProfileId: string | null
-  actorName: string
-  actorUsername: string
+  actorName: string | null
+  actorUsername: string | null
   actorAvatarUrl: string | null
   /** One of NotificationType; typed loosely to tolerate future server values. */
   type: NotificationType | (string & {})
   portfolioId: string
-  portfolioTitle: string
-  portfolioSlug: string
+  portfolioTitle: string | null
+  portfolioSlug: string | null
   /**
    * Preview image of the related portfolio.
    * TODO(backend): add `portfolioScreenshotUrl` to NotificationDTO (it can be
    * joined from the portfolio's `screenshot_url`). Null until the screenshot exists.
    */
-  portfolioScreenshotUrl: string | null
+  portfolioScreenshotUrl?: string | null
   commentId: string | null
   /** Arbitrary server-attached JSON (e.g. a comment preview). */
   metadata: Record<string, unknown> | null

@@ -1,5 +1,8 @@
 "use client"
 
+import * as React from "react"
+import { useRouter } from "next/navigation"
+
 import {
   Popover,
   PopoverContent,
@@ -8,22 +11,138 @@ import {
 
 import { NotificationBell } from "./NotificationBell"
 import { NotificationPanel } from "./NotificationPanel"
-import { MOCK_NOTIFICATIONS, getUnreadCount } from "./notifications.mock"
+import {
+  fetchNotifications,
+  fetchUnreadNotificationCount,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from "./notifications.api"
+import type { NotificationDTO } from "./notifications.types"
 
 /**
  * Composes the bell trigger with the notifications panel.
- *
- * Currently fed by mock data and the action handlers are intentionally omitted
- * (no-ops). To wire it up: fetch notifications + unread count, then pass them
- * in along with `onSelect` / `onMarkAllRead` / `onViewAll` handlers that call
- * the PATCH endpoints. No presentational changes required.
  */
 export const NotificationsMenu = () => {
-  const notifications = MOCK_NOTIFICATIONS
-  const unreadCount = getUnreadCount(notifications)
+  const router = useRouter()
+  const [open, setOpen] = React.useState(false)
+  const [notifications, setNotifications] = React.useState<NotificationDTO[]>([])
+  const [unreadCount, setUnreadCount] = React.useState(0)
+  const [isLoading, setIsLoading] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
+
+  const loadUnreadCount = React.useCallback(async () => {
+    try {
+      const response = await fetchUnreadNotificationCount()
+      setUnreadCount(response.unreadCount)
+    } catch (error) {
+      console.error("Failed to load unread notifications:", error)
+    }
+  }, [])
+
+  const loadNotifications = React.useCallback(async () => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const [notificationsResponse, unreadCountResponse] = await Promise.all([
+        fetchNotifications({ page: 0, size: 20 }),
+        fetchUnreadNotificationCount(),
+      ])
+      setNotifications(notificationsResponse.notifications)
+      setUnreadCount(unreadCountResponse.unreadCount)
+    } catch (error) {
+      console.error("Failed to load notifications:", error)
+      setError("Could not load notifications.")
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  React.useEffect(() => {
+    void loadUnreadCount()
+  }, [loadUnreadCount])
+
+  React.useEffect(() => {
+    if (open) {
+      void loadNotifications()
+    }
+  }, [loadNotifications, open])
+
+  const markNotificationLocallyRead = React.useCallback(
+    (notificationId: string) => {
+      setNotifications((current) =>
+        current.map((notification) =>
+          notification.id === notificationId
+            ? {
+                ...notification,
+                read: true,
+                readAt: notification.readAt ?? new Date().toISOString(),
+              }
+            : notification,
+        ),
+      )
+      setUnreadCount((current) => Math.max(0, current - 1))
+    },
+    [],
+  )
+
+  const handleSelect = React.useCallback(
+    async (notification: NotificationDTO) => {
+      if (!notification.read) {
+        markNotificationLocallyRead(notification.id)
+        try {
+          const updatedNotification = await markNotificationRead(notification.id)
+          setNotifications((current) =>
+            current.map((candidate) =>
+              candidate.id === updatedNotification.id
+                ? {
+                    ...candidate,
+                    ...updatedNotification,
+                  }
+                : candidate,
+            ),
+          )
+        } catch (error) {
+          console.error("Failed to mark notification as read:", error)
+          void loadUnreadCount()
+        }
+      }
+
+      setOpen(false)
+      if (notification.portfolioSlug) {
+        router.push(`/explore/${encodeURIComponent(notification.portfolioSlug)}`)
+      }
+    },
+    [loadUnreadCount, markNotificationLocallyRead, router],
+  )
+
+  const handleMarkAllRead = React.useCallback(async () => {
+    if (unreadCount <= 0) return
+
+    const previousNotifications = notifications
+    const previousUnreadCount = unreadCount
+    const now = new Date().toISOString()
+
+    setNotifications((current) =>
+      current.map((notification) => ({
+        ...notification,
+        read: true,
+        readAt: notification.readAt ?? now,
+      })),
+    )
+    setUnreadCount(0)
+
+    try {
+      await markAllNotificationsRead()
+    } catch (error) {
+      console.error("Failed to mark notifications as read:", error)
+      setNotifications(previousNotifications)
+      setUnreadCount(previousUnreadCount)
+    }
+  }, [notifications, unreadCount])
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <NotificationBell count={unreadCount} />
       </PopoverTrigger>
@@ -32,7 +151,15 @@ export const NotificationsMenu = () => {
         sideOffset={10}
         className="w-auto overflow-hidden rounded-xl p-0"
       >
-        <NotificationPanel notifications={notifications} />
+        <NotificationPanel
+          notifications={notifications}
+          onSelect={handleSelect}
+          onMarkAllRead={handleMarkAllRead}
+          onRetry={loadNotifications}
+          hasUnread={unreadCount > 0}
+          isLoading={isLoading}
+          error={error}
+        />
       </PopoverContent>
     </Popover>
   )

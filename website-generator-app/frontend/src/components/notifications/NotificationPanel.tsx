@@ -7,15 +7,22 @@ import type { NotificationDTO } from "./notifications.types"
 
 interface NotificationPanelProps {
   notifications: NotificationDTO[]
-  /** Placeholder actions — currently no-ops; wire to the API later. */
   onSelect?: (notification: NotificationDTO) => void
-  onViewAll?: () => void
+  onMarkAllRead?: () => void
+  onRetry?: () => void
+  hasUnread?: boolean
+  isLoading?: boolean
+  error?: string | null
 }
 
 export const NotificationPanel = ({
   notifications,
   onSelect,
-  onViewAll,
+  onMarkAllRead,
+  onRetry,
+  hasUnread = false,
+  isLoading = false,
+  error = null,
 }: NotificationPanelProps) => {
   const isEmpty = notifications.length === 0
 
@@ -26,15 +33,40 @@ export const NotificationPanel = ({
         <h2 className="text-sm font-semibold text-foreground">Notifications</h2>
         <button
           type="button"
-          onClick={onViewAll}
-          className="text-xs font-medium text-primary transition-colors hover:cursor-pointer hover:text-primary/80"
+          onClick={onMarkAllRead}
+          disabled={!hasUnread || isLoading}
+          className="text-xs font-medium text-primary transition-colors hover:cursor-pointer hover:text-primary/80 disabled:pointer-events-none disabled:text-muted-foreground"
         >
-          View all
+          Mark all read
         </button>
       </header>
 
       {/* List / empty state */}
-      {isEmpty ? (
+      {isLoading ? (
+        <div className="flex flex-col gap-3 px-4 py-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="flex animate-pulse items-start gap-3">
+              <div className="size-9 rounded-full bg-muted" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="h-3 w-3/4 rounded bg-muted" />
+                <div className="h-3 w-1/2 rounded bg-muted" />
+              </div>
+              <div className="aspect-[16/10] w-24 rounded-lg bg-muted" />
+            </div>
+          ))}
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
+          <p className="text-sm font-medium text-foreground">{error}</p>
+          <button
+            type="button"
+            onClick={onRetry}
+            className="text-xs font-medium text-primary transition-colors hover:cursor-pointer hover:text-primary/80"
+          >
+            Try again
+          </button>
+        </div>
+      ) : isEmpty ? (
         <div className="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center">
           <BellOff className="size-7 text-muted-foreground" />
           <p className="text-sm font-medium text-foreground">No notifications</p>
