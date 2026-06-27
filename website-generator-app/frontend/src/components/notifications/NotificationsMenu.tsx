@@ -160,6 +160,10 @@ export const NotificationsMenu = () => {
         <NotificationPanel
           notifications={notifications}
           onSelect={handleSelect}
+          onViewAll={() => {
+            setOpen(false)
+            router.push("/notifications")
+          }}
           onRetry={loadNotifications}
           isLoading={isLoading}
           error={error}

@@ -9,6 +9,8 @@ interface NotificationPanelProps {
   notifications: NotificationDTO[]
   onSelect?: (notification: NotificationDTO) => void
   onRetry?: () => void
+  /** Navigates to the full notifications page. */
+  onViewAll?: () => void
   isLoading?: boolean
   error?: string | null
 }
@@ -17,6 +19,7 @@ export const NotificationPanel = ({
   notifications,
   onSelect,
   onRetry,
+  onViewAll,
   isLoading = false,
   error = null,
 }: NotificationPanelProps) => {
@@ -25,8 +28,15 @@ export const NotificationPanel = ({
   return (
     <div className="flex max-h-[32rem] w-[30rem] max-w-[calc(100vw-2rem)] flex-col">
       {/* Header */}
-      <header className="border-b border-border px-4 py-3">
+      <header className="flex items-center justify-between border-b border-border px-4 py-3">
         <h2 className="text-sm font-semibold text-foreground">Notifications</h2>
+        <button
+          type="button"
+          onClick={onViewAll}
+          className="text-xs font-medium text-primary transition-colors hover:cursor-pointer hover:text-primary/80"
+        >
+          View all
+        </button>
       </header>
 
       {/* List / empty state */}
