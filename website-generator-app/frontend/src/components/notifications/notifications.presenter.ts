@@ -30,6 +30,7 @@ const ACTION_BY_TYPE: Record<NotificationType, string> = {
   portfolio_commented: "commented on your portfolio",
   comment_replied: "replied to your comment",
   comment_liked: "liked your comment",
+  profile_followed: "started following you",
 }
 
 /** Reads a short comment preview off metadata when present. */
@@ -42,6 +43,10 @@ const getCommentPreview = (notification: NotificationDTO): string | null => {
 
 /** Builds the secondary context line for a notification. */
 const buildContext = (notification: NotificationDTO): string | null => {
+  if (notification.type === "profile_followed") {
+    return notification.actorUsername ? `@${notification.actorUsername}` : null
+  }
+
   const preview = getCommentPreview(notification)
   if (preview) return `“${preview}”`
   return notification.portfolioTitle || null
@@ -81,7 +86,9 @@ export const toNotificationView = (
     "sent you a notification",
   actorName: notification.actorName || "Someone",
   actorAvatarUrl: notification.actorAvatarUrl,
-  portfolioTitle: notification.portfolioTitle || "your portfolio",
+  portfolioTitle:
+    notification.portfolioTitle ||
+    (notification.type === "profile_followed" ? "profile" : "your portfolio"),
   screenshotUrl: notification.portfolioScreenshotUrl ?? null,
   context: buildContext(notification),
   timeAgo: formatRelativeTime(notification.createdAt),

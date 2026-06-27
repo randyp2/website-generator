@@ -116,6 +116,35 @@ class NotificationServiceImplTest {
     }
 
     @Test
+    void createProfileFollowedNotificationAllowsNoPortfolioOrComment() {
+        RepositoryStub repository = new RepositoryStub();
+        NotificationServiceImpl service = new NotificationServiceImpl(repository.proxy(), objectMapper);
+
+        UUID recipientId = UUID.randomUUID();
+        UUID actorId = UUID.randomUUID();
+        repository.profiles.put(recipientId, profile(recipientId, "Recipient", "recipient"));
+        repository.profiles.put(actorId, profile(actorId, "Actor Name", "actor"));
+
+        Optional<NotificationDTO> result = service.createNotification(
+                recipientId,
+                actorId,
+                NotificationService.TYPE_PROFILE_FOLLOWED,
+                null,
+                null,
+                "profile-follow:" + recipientId + ":" + actorId,
+                objectMapper.createObjectNode());
+
+        assertThat(result).isPresent();
+        NotificationDTO dto = result.get();
+        assertThat(dto.getType()).isEqualTo(NotificationService.TYPE_PROFILE_FOLLOWED);
+        assertThat(dto.getPortfolioId()).isNull();
+        assertThat(dto.getPortfolioTitle()).isNull();
+        assertThat(dto.getPortfolioSlug()).isNull();
+        assertThat(dto.getCommentId()).isNull();
+        assertThat(dto.getActorUsername()).isEqualTo("actor");
+    }
+
+    @Test
     void createNotificationRejectsCommentTypeWithoutCommentId() {
         RepositoryStub repository = new RepositoryStub();
         NotificationServiceImpl service = new NotificationServiceImpl(repository.proxy(), objectMapper);
@@ -390,10 +419,9 @@ class NotificationServiceImplTest {
                             ? null
                             : profiles.computeIfAbsent(actorProfileId, id -> profile(id, null, null)))
                     .type(type)
-                    .portfolio(portfolios.computeIfAbsent(
-                            portfolioId,
-                            id -> portfolio(id, null, null)
-                    ))
+                    .portfolio(portfolioId == null
+                            ? null
+                            : portfolios.computeIfAbsent(portfolioId, id -> portfolio(id, null, null)))
                     .comment(commentId == null
                             ? null
                             : comments.computeIfAbsent(commentId, NotificationServiceImplTest.this::comment))

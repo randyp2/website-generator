@@ -19,6 +19,7 @@ export type NotificationType =
   | "portfolio_commented"
   | "comment_replied"
   | "comment_liked"
+  | "profile_followed"
 
 export interface NotificationDTO {
   id: string
@@ -29,7 +30,7 @@ export interface NotificationDTO {
   actorAvatarUrl: string | null
   /** One of NotificationType; typed loosely to tolerate future server values. */
   type: NotificationType | (string & {})
-  portfolioId: string
+  portfolioId: string | null
   portfolioTitle: string | null
   portfolioSlug: string | null
   /**

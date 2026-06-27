@@ -7,6 +7,7 @@ import {
   CornerUpLeft,
   ThumbsUp,
   Image as ImageIcon,
+  UserPlus,
 } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -20,6 +21,7 @@ const ICON_BY_TYPE: Record<NotificationType, React.ComponentType<{ className?: s
   portfolio_commented: MessageSquare,
   comment_replied: CornerUpLeft,
   comment_liked: ThumbsUp,
+  profile_followed: UserPlus,
 }
 
 /** Portfolio preview thumbnail with a graceful fallback. */
@@ -74,6 +76,8 @@ export const NotificationItem = ({
 }: NotificationItemProps) => {
   const view = toNotificationView(notification)
   const TypeIcon = ICON_BY_TYPE[notification.type as NotificationType] ?? Heart
+  const showPortfolioThumbnail =
+    notification.portfolioId !== null || view.screenshotUrl !== null
 
   return (
     <button
@@ -112,7 +116,9 @@ export const NotificationItem = ({
       </div>
 
       {/* Portfolio preview */}
-      <PortfolioThumbnail src={view.screenshotUrl} alt={view.portfolioTitle} />
+      {showPortfolioThumbnail && (
+        <PortfolioThumbnail src={view.screenshotUrl} alt={view.portfolioTitle} />
+      )}
 
       {/* Unread dot */}
       {!view.read && (

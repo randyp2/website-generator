@@ -13,6 +13,7 @@ public interface NotificationService {
     String TYPE_PORTFOLIO_COMMENTED = "portfolio_commented";
     String TYPE_COMMENT_REPLIED = "comment_replied";
     String TYPE_COMMENT_LIKED = "comment_liked";
+    String TYPE_PROFILE_FOLLOWED = "profile_followed";
 
     NotificationListResponseDTO listNotifications(UUID recipientProfileId, Integer page, Integer size);
 

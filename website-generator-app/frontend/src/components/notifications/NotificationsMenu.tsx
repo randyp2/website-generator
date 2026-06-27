@@ -111,6 +111,11 @@ export const NotificationsMenu = () => {
       setOpen(false)
       if (notification.portfolioSlug) {
         router.push(`/explore/${encodeURIComponent(notification.portfolioSlug)}`)
+      } else if (
+        notification.type === "profile_followed" &&
+        notification.actorUsername
+      ) {
+        router.push(`/${encodeURIComponent(notification.actorUsername)}`)
       }
     },
     [loadUnreadCount, markNotificationLocallyRead, router],

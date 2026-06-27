@@ -1,5 +1,7 @@
 package com.webgen.webgen_backend.profile.service.social;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.webgen.webgen_backend.notification.service.NotificationService;
 import com.webgen.webgen_backend.profile.dto.social.ProfileSocialSummaryDTO;
 import com.webgen.webgen_backend.profile.dto.social.ProfileSocialUserDTO;
 import com.webgen.webgen_backend.profile.entity.Profile;
@@ -27,6 +29,8 @@ public class ProfileSocialServiceImpl implements ProfileSocialService {
     private final ProfileRepository profileRepository;
     private final ProfileFollowRepository profileFollowRepository;
     private final ProfileSocialCounterRepository counterRepository;
+    private final NotificationService notificationService;
+    private final ObjectMapper objectMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -67,7 +71,10 @@ public class ProfileSocialServiceImpl implements ProfileSocialService {
 
         getOrCreateProfile(followerProfileId);
         Profile followedProfile = findProfile(followedProfileId);
-        profileFollowRepository.insertIgnore(UUID.randomUUID(), followerProfileId, followedProfileId);
+        int inserted = profileFollowRepository.insertIgnore(UUID.randomUUID(), followerProfileId, followedProfileId);
+        if (inserted == 1) {
+            notifyProfileFollowed(followedProfile, followerProfileId);
+        }
         return toSummary(followedProfile, followerProfileId);
     }
 
@@ -147,6 +154,17 @@ public class ProfileSocialServiceImpl implements ProfileSocialService {
                                 viewerId,
                                 profile.getId()))
                 .build();
+    }
+
+    private void notifyProfileFollowed(Profile followedProfile, UUID followerProfileId) {
+        notificationService.createNotification(
+                followedProfile.getId(),
+                followerProfileId,
+                NotificationService.TYPE_PROFILE_FOLLOWED,
+                null,
+                null,
+                "profile_follow:" + followedProfile.getId() + ":" + followerProfileId,
+                objectMapper.createObjectNode());
     }
 
     private ProfileSocialUserDTO toSocialUserDto(Profile profile, ProfileFollow follow) {

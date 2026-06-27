@@ -100,14 +100,14 @@ public class NotificationServiceImpl implements NotificationService {
             UUID commentId,
             String dedupeKey,
             JsonNode metadata) {
-        if (recipientProfileId == null || portfolioId == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Notification recipient and portfolio are required");
+        if (recipientProfileId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Notification recipient is required");
         }
         if (actorProfileId != null && actorProfileId.equals(recipientProfileId)) {
             return Optional.empty();
         }
 
-        String normalizedType = normalizeType(type, commentId);
+        String normalizedType = normalizeType(type, portfolioId, commentId);
         String normalizedDedupeKey = normalizeOptionalText(dedupeKey);
         if (normalizedDedupeKey != null && notificationRepository.findByDedupeKey(normalizedDedupeKey).isPresent()) {
             return Optional.empty();
@@ -167,15 +167,22 @@ public class NotificationServiceImpl implements NotificationService {
                 .build();
     }
 
-    private String normalizeType(String type, UUID commentId) {
+    private String normalizeType(String type, UUID portfolioId, UUID commentId) {
         if (!StringUtils.hasText(type)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Notification type is required");
         }
 
         String normalized = type.trim().toLowerCase(Locale.ROOT);
+        if (TYPE_PROFILE_FOLLOWED.equals(normalized)) {
+            if (portfolioId != null || commentId != null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Profile follow notifications cannot target a portfolio or comment");
+            }
+            return normalized;
+        }
+
         if (TYPE_PORTFOLIO_LIKED.equals(normalized)) {
-            if (commentId != null) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Portfolio like notifications cannot target a comment");
+            if (portfolioId == null || commentId != null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Portfolio like notifications require a portfolio only");
             }
             return normalized;
         }
@@ -183,8 +190,8 @@ public class NotificationServiceImpl implements NotificationService {
         if (TYPE_PORTFOLIO_COMMENTED.equals(normalized)
                 || TYPE_COMMENT_REPLIED.equals(normalized)
                 || TYPE_COMMENT_LIKED.equals(normalized)) {
-            if (commentId == null) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Comment notifications require a comment");
+            if (portfolioId == null || commentId == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Comment notifications require a portfolio and comment");
             }
             return normalized;
         }
