@@ -1,17 +1,57 @@
 /**
- * Shape of a single in-app notification.
+ * Frontend mirror of the backend notification contract.
  *
- * NOTE: This mirrors what the (already wired) notifications backend returns so
- * the UI can be swapped from mock data to live data without component changes.
+ * Backend source of truth:
+ *   - DTO:    webgen-backend ... notification/dto/NotificationDTO.java
+ *   - Routes (proxied under /api/notifications):
+ *       GET   /api/notifications?page=&size=  -> NotificationListResponse
+ *       GET   /api/notifications/unread-count -> UnreadCountResponse
+ *       PATCH /api/notifications/{id}/read    -> NotificationDTO
+ *       PATCH /api/notifications/read-all      -> { updatedCount: number }
+ *
+ * Keeping these in sync means swapping mock data for live fetches later requires
+ * no changes to the presenter or components.
  */
-export interface AppNotification {
+
+/** Notification kinds emitted by the backend (NotificationService constants). */
+export type NotificationType =
+  | "portfolio_liked"
+  | "portfolio_commented"
+  | "comment_replied"
+  | "comment_liked"
+
+export interface NotificationDTO {
   id: string
-  /** Short headline shown in bold. */
-  title: string
-  /** Supporting line of detail. */
-  body: string
-  /** ISO timestamp of when the notification was created. */
-  createdAt: string
-  /** Whether the user has already read it. */
+  recipientProfileId: string
+  actorProfileId: string | null
+  actorName: string
+  actorUsername: string
+  actorAvatarUrl: string | null
+  /** One of NotificationType; typed loosely to tolerate future server values. */
+  type: NotificationType | (string & {})
+  portfolioId: string
+  portfolioTitle: string
+  portfolioSlug: string
+  /**
+   * Preview image of the related portfolio.
+   * TODO(backend): add `portfolioScreenshotUrl` to NotificationDTO (it can be
+   * joined from the portfolio's `screenshot_url`). Null until the screenshot exists.
+   */
+  portfolioScreenshotUrl: string | null
+  commentId: string | null
+  /** Arbitrary server-attached JSON (e.g. a comment preview). */
+  metadata: Record<string, unknown> | null
   read: boolean
+  readAt: string | null
+  createdAt: string
+}
+
+/** Response of `GET /api/notifications`. */
+export interface NotificationListResponse {
+  notifications: NotificationDTO[]
+}
+
+/** Response of `GET /api/notifications/unread-count`. */
+export interface UnreadCountResponse {
+  unreadCount: number
 }

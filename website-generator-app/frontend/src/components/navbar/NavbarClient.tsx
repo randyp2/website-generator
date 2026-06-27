@@ -15,8 +15,7 @@ import { usePathname, useRouter } from "next/navigation"
 
 import BrandWordmark from "@/components/branding/BrandWordmark"
 import { navbarNavigation } from "@/components/navbar/navbar.config"
-import { NotificationBell } from "@/components/notifications/NotificationBell"
-import { getUnreadCount } from "@/components/notifications/notifications.mock"
+import { NotificationsMenu } from "@/components/notifications/NotificationsMenu"
 import { ThemeModeToggle } from "@/components/theme/ThemeModeToggle"
 import type {
   DesktopNavCategory,
@@ -238,7 +237,7 @@ const NavbarClient: React.FC = () => {
               >
                 <Inbox className="size-4" />
               </Button>
-              <NotificationBell count={getUnreadCount()} />
+              <NotificationsMenu />
             </div>
             <motion.div {...actionButtonMotion}>
               <DropdownMenu modal={false}>
