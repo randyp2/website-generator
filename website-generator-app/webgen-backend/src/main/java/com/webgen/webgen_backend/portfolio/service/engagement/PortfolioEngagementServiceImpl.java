@@ -1,5 +1,8 @@
 package com.webgen.webgen_backend.portfolio.service.engagement;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.webgen.webgen_backend.notification.service.NotificationService;
 import com.webgen.webgen_backend.portfolio.dto.engagement.CreatePortfolioCommentRequestDTO;
 import com.webgen.webgen_backend.portfolio.dto.engagement.PortfolioCommentDTO;
 import com.webgen.webgen_backend.portfolio.dto.engagement.PortfolioCommentListResponseDTO;
@@ -36,6 +39,7 @@ public class PortfolioEngagementServiceImpl implements PortfolioEngagementServic
     private static final String COMMENT_DELETED = "deleted";
     private static final int MAX_COMMENT_LENGTH = 2000;
     private static final int DEFAULT_COMMENT_PAGE_SIZE = 100;
+    private static final int COMMENT_PREVIEW_LENGTH = 140;
 
     private final PortfolioRepository portfolioRepository;
     private final ProfileRepository profileRepository;
@@ -43,6 +47,8 @@ public class PortfolioEngagementServiceImpl implements PortfolioEngagementServic
     private final PortfolioLikeRepository portfolioLikeRepository;
     private final PortfolioCommentRepository commentRepository;
     private final PortfolioCommentLikeRepository commentLikeRepository;
+    private final NotificationService notificationService;
+    private final ObjectMapper objectMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -74,7 +80,10 @@ public class PortfolioEngagementServiceImpl implements PortfolioEngagementServic
     public PortfolioEngagementSummaryDTO likePortfolio(UUID userId, UUID portfolioId) {
         Portfolio portfolio = findPublishedPortfolio(portfolioId);
         findProfile(userId);
-        portfolioLikeRepository.insertIgnore(UUID.randomUUID(), portfolioId, userId);
+        int inserted = portfolioLikeRepository.insertIgnore(UUID.randomUUID(), portfolioId, userId);
+        if (inserted == 1) {
+            notifyPortfolioLiked(portfolio, userId);
+        }
         return toSummary(portfolio, userId);
     }
 
@@ -122,7 +131,9 @@ public class PortfolioEngagementServiceImpl implements PortfolioEngagementServic
                 .updatedAt(now)
                 .build();
 
-        return toCommentDto(commentRepository.save(comment), userId, List.of());
+        PortfolioComment savedComment = commentRepository.save(comment);
+        notifyCommentCreated(savedComment, userId);
+        return toCommentDto(savedComment, userId, List.of());
     }
 
     @Override
@@ -161,7 +172,10 @@ public class PortfolioEngagementServiceImpl implements PortfolioEngagementServic
     public PortfolioCommentDTO likeComment(UUID userId, UUID commentId) {
         PortfolioComment comment = findVisibleComment(commentId);
         findProfile(userId);
-        commentLikeRepository.insertIgnore(UUID.randomUUID(), commentId, userId);
+        int inserted = commentLikeRepository.insertIgnore(UUID.randomUUID(), commentId, userId);
+        if (inserted == 1) {
+            notifyCommentLiked(comment, userId);
+        }
         return toCommentDtoWithReplies(findComment(commentId), userId);
     }
 
@@ -257,6 +271,61 @@ public class PortfolioEngagementServiceImpl implements PortfolioEngagementServic
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid comment status");
         }
         return status;
+    }
+
+    private void notifyPortfolioLiked(Portfolio portfolio, UUID actorProfileId) {
+        notificationService.createNotification(
+                portfolio.getUserId(),
+                actorProfileId,
+                NotificationService.TYPE_PORTFOLIO_LIKED,
+                portfolio.getId(),
+                null,
+                "portfolio_like:" + portfolio.getId() + ":" + actorProfileId,
+                objectMapper.createObjectNode());
+    }
+
+    private void notifyCommentCreated(PortfolioComment comment, UUID actorProfileId) {
+        PortfolioComment parent = comment.getParentComment();
+        boolean isReply = parent != null;
+        UUID recipientProfileId = isReply
+                ? parent.getProfile().getId()
+                : comment.getPortfolio().getUserId();
+
+        notificationService.createNotification(
+                recipientProfileId,
+                actorProfileId,
+                isReply
+                        ? NotificationService.TYPE_COMMENT_REPLIED
+                        : NotificationService.TYPE_PORTFOLIO_COMMENTED,
+                comment.getPortfolio().getId(),
+                comment.getId(),
+                (isReply ? "comment_reply:" : "portfolio_comment:") + comment.getId(),
+                commentMetadata(comment.getBody()));
+    }
+
+    private void notifyCommentLiked(PortfolioComment comment, UUID actorProfileId) {
+        notificationService.createNotification(
+                comment.getProfile().getId(),
+                actorProfileId,
+                NotificationService.TYPE_COMMENT_LIKED,
+                comment.getPortfolio().getId(),
+                comment.getId(),
+                "comment_like:" + comment.getId() + ":" + actorProfileId,
+                commentMetadata(comment.getBody()));
+    }
+
+    private ObjectNode commentMetadata(String body) {
+        ObjectNode metadata = objectMapper.createObjectNode();
+        metadata.put("commentPreview", preview(body));
+        return metadata;
+    }
+
+    private String preview(String value) {
+        String normalized = value == null ? "" : value.trim().replaceAll("\\s+", " ");
+        if (normalized.length() <= COMMENT_PREVIEW_LENGTH) {
+            return normalized;
+        }
+        return normalized.substring(0, COMMENT_PREVIEW_LENGTH).trim() + "...";
     }
 
     private PortfolioEngagementCounter ensureCounter(Portfolio portfolio) {
