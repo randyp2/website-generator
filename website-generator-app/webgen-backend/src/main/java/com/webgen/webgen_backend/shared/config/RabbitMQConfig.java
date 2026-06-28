@@ -31,6 +31,12 @@ public class RabbitMQConfig {
     public static final String ASSET_VERIFICATION_DLQ = "verification.asset.dlq";
     public static final String ASSET_VERIFICATION_DLQ_ROUTING_KEY = "verification.asset.dead";
 
+    // Notification email delivery queue
+    public static final String NOTIFICATION_EMAIL_QUEUE = "notification.email.queue";
+    public static final String NOTIFICATION_EMAIL_ROUTING_KEY = "notification.email";
+    public static final String NOTIFICATION_EMAIL_DLQ = "notification.email.dlq";
+    public static final String NOTIFICATION_EMAIL_DLQ_ROUTING_KEY = "notification.email.dead";
+
     // Exchange for DLQ
     public static final String DLX = "portfolio.dlx";
     // Dead letter queue for retries/inspections
@@ -129,6 +135,36 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(assetVerificationDeadLetterQueue)
                 .to(deadLetterExchange)
                 .with(ASSET_VERIFICATION_DLQ_ROUTING_KEY);
+    }
+
+    /* ======== NOTIFICATION EMAIL QUEUE ======== */
+    @Bean
+    public Queue notificationEmailQueue() {
+        return QueueBuilder.durable(NOTIFICATION_EMAIL_QUEUE)
+                .withArgument("x-dead-letter-exchange", DLX)
+                .withArgument("x-dead-letter-routing-key", NOTIFICATION_EMAIL_DLQ_ROUTING_KEY)
+                .build();
+    }
+
+    @Bean
+    public Binding notificationEmailBinding(Queue notificationEmailQueue, DirectExchange exchange) {
+        return BindingBuilder.bind(notificationEmailQueue).to(exchange).with(NOTIFICATION_EMAIL_ROUTING_KEY);
+    }
+
+    @Bean
+    public Queue notificationEmailDeadLetterQueue() {
+        return QueueBuilder.durable(NOTIFICATION_EMAIL_DLQ)
+                .withArgument("x-message-ttl", 86400000) // 24 hours
+                .build();
+    }
+
+    @Bean
+    public Binding notificationEmailDlqBinding(
+            Queue notificationEmailDeadLetterQueue,
+            DirectExchange deadLetterExchange) {
+        return BindingBuilder.bind(notificationEmailDeadLetterQueue)
+                .to(deadLetterExchange)
+                .with(NOTIFICATION_EMAIL_DLQ_ROUTING_KEY);
     }
 
     /* ======== DEAD LETTER QUEUE ======== */
