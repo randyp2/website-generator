@@ -47,7 +47,9 @@ public class PortfolioEngagementServiceImpl implements PortfolioEngagementServic
     private final PortfolioLikeRepository portfolioLikeRepository;
     private final PortfolioCommentRepository commentRepository;
     private final PortfolioCommentLikeRepository commentLikeRepository;
+
     private final NotificationService notificationService;
+
     private final ObjectMapper objectMapper;
 
     @Override
@@ -329,8 +331,8 @@ public class PortfolioEngagementServiceImpl implements PortfolioEngagementServic
     }
 
     private PortfolioEngagementCounter ensureCounter(Portfolio portfolio) {
-        return counterRepository.findById(portfolio.getId()).orElseGet(() ->
-                counterRepository.save(PortfolioEngagementCounter.builder()
+        return counterRepository.findById(portfolio.getId())
+                .orElseGet(() -> counterRepository.save(PortfolioEngagementCounter.builder()
                         .portfolio(portfolio)
                         .portfolioId(portfolio.getId())
                         .likesCount(0)
