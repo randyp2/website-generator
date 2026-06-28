@@ -87,6 +87,26 @@ class NotificationEmailWorkerTest {
     }
 
     @Test
+    void handleNotificationEmailStoresRootCauseWhenProviderFailureIsWrapped() throws Exception {
+        UUID deliveryId = UUID.randomUUID();
+        RecordingDeliveryService deliveryService = new RecordingDeliveryService();
+        deliveryService.claimedDelivery = Optional.of(delivery(deliveryId, "recipient@example.com"));
+        RecordingEmailSender emailSender = new RecordingEmailSender();
+        emailSender.failure = new IllegalStateException(
+                "Failed to send notification email",
+                new RuntimeException("The from address is not verified"));
+        RecordingChannel channel = new RecordingChannel();
+        NotificationEmailWorker worker = new NotificationEmailWorker(deliveryService, emailSender);
+
+        worker.handleNotificationEmail(message(deliveryId), channel.proxy(), DELIVERY_TAG);
+
+        assertThat(deliveryService.markFailedId).isEqualTo(deliveryId);
+        assertThat(deliveryService.failureReason).isEqualTo("The from address is not verified");
+        assertThat(channel.ackCount).isEqualTo(1);
+        assertThat(channel.nackCount).isZero();
+    }
+
+    @Test
     void handleNotificationEmailAcksWhenDeliveryCannotBeClaimed() throws Exception {
         UUID deliveryId = UUID.randomUUID();
         RecordingDeliveryService deliveryService = new RecordingDeliveryService();

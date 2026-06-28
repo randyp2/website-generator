@@ -109,11 +109,12 @@ public class NotificationEmailWorker {
                     content.textBody()
             );
         } catch (Exception exception) {
+            String failureReason = failureReason(exception);
             log.warn(
                     "notification.email.worker.send_failed deliveryId={} reason={}",
                     deliveryId,
-                    exception.getMessage());
-            markFailedAndAck(deliveryId, exception, channel, deliveryTag);
+                    failureReason);
+            markFailedAndAck(deliveryId, failureReason, channel, deliveryTag);
             return;
         }
 
@@ -162,16 +163,16 @@ public class NotificationEmailWorker {
 
     private void markFailedAndAck(
             UUID deliveryId,
-            Exception exception,
+            String reason,
             Channel channel,
             long deliveryTag) throws IOException {
         try {
-            notificationEmailDeliveryService.markFailed(deliveryId, exception.getMessage());
+            notificationEmailDeliveryService.markFailed(deliveryId, reason);
             channel.basicAck(deliveryTag, false);
             log.warn(
                     "notification.email.worker.failed deliveryId={} reason={} deliveryTag={}",
                     deliveryId,
-                    exception.getMessage(),
+                    reason,
                     deliveryTag);
         } catch (Exception statusException) {
             log.warn(
@@ -181,6 +182,25 @@ public class NotificationEmailWorker {
                     statusException);
             channel.basicNack(deliveryTag, false, false);
         }
+    }
+
+    private String failureReason(Exception exception) {
+        Throwable rootCause = exception;
+        while (rootCause.getCause() != null) {
+            rootCause = rootCause.getCause();
+        }
+
+        String rootCauseMessage = rootCause.getMessage();
+        if (StringUtils.hasText(rootCauseMessage)) {
+            return rootCauseMessage.trim();
+        }
+
+        String exceptionMessage = exception.getMessage();
+        if (StringUtils.hasText(exceptionMessage)) {
+            return exceptionMessage.trim();
+        }
+
+        return exception.getClass().getSimpleName();
     }
 
     private String recipientEmail(NotificationEmailDelivery delivery) {
