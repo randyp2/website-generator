@@ -11,6 +11,7 @@ import com.webgen.webgen_backend.profile.repository.ProfileFollowRepository;
 import com.webgen.webgen_backend.profile.repository.ProfileRepository;
 import com.webgen.webgen_backend.profile.repository.ProfileSocialCounterRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -24,6 +25,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ProfileSocialServiceImpl implements ProfileSocialService {
 
     private final ProfileRepository profileRepository;
@@ -73,7 +75,16 @@ public class ProfileSocialServiceImpl implements ProfileSocialService {
         Profile followedProfile = findProfile(followedProfileId);
         int inserted = profileFollowRepository.insertIgnore(UUID.randomUUID(), followerProfileId, followedProfileId);
         if (inserted == 1) {
+            log.info(
+                    "profile.follow.created followerProfileId={} followedProfileId={}",
+                    followerProfileId,
+                    followedProfileId);
             notifyProfileFollowed(followedProfile, followerProfileId);
+        } else {
+            log.debug(
+                    "profile.follow.skipped_duplicate followerProfileId={} followedProfileId={}",
+                    followerProfileId,
+                    followedProfileId);
         }
         return toSummary(followedProfile, followerProfileId);
     }
@@ -164,7 +175,17 @@ public class ProfileSocialServiceImpl implements ProfileSocialService {
                 null,
                 null,
                 "profile_follow:" + followedProfile.getId() + ":" + followerProfileId,
-                objectMapper.createObjectNode());
+                objectMapper.createObjectNode())
+                .ifPresentOrElse(
+                        notification -> log.info(
+                                "profile.follow.notification.created notificationId={} followerProfileId={} followedProfileId={}",
+                                notification.getId(),
+                                followerProfileId,
+                                followedProfile.getId()),
+                        () -> log.debug(
+                                "profile.follow.notification.skipped followerProfileId={} followedProfileId={}",
+                                followerProfileId,
+                                followedProfile.getId()));
     }
 
     private ProfileSocialUserDTO toSocialUserDto(Profile profile, ProfileFollow follow) {
