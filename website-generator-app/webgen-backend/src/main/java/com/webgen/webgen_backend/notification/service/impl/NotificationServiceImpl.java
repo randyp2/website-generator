@@ -12,8 +12,7 @@ import com.webgen.webgen_backend.portfolio.entity.Portfolio;
 import com.webgen.webgen_backend.portfolio.entity.PortfolioComment;
 import com.webgen.webgen_backend.profile.entity.Profile;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -32,9 +31,8 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class NotificationServiceImpl implements NotificationService {
-
-    private static final Logger log = LoggerFactory.getLogger(NotificationServiceImpl.class);
 
     private static final int DEFAULT_PAGE = 0;
     private static final int DEFAULT_SIZE = 20;
@@ -115,12 +113,22 @@ public class NotificationServiceImpl implements NotificationService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Notification recipient is required");
         }
         if (actorProfileId != null && actorProfileId.equals(recipientProfileId)) {
+            log.debug(
+                    "notification.create.skipped_self recipientProfileId={} actorProfileId={} type={}",
+                    recipientProfileId,
+                    actorProfileId,
+                    type);
             return Optional.empty();
         }
 
         String normalizedType = normalizeType(type, portfolioId, commentId);
         String normalizedDedupeKey = normalizeOptionalText(dedupeKey);
         if (normalizedDedupeKey != null && notificationRepository.findByDedupeKey(normalizedDedupeKey).isPresent()) {
+            log.debug(
+                    "notification.create.skipped_duplicate recipientProfileId={} type={} dedupeKey={}",
+                    recipientProfileId,
+                    normalizedType,
+                    normalizedDedupeKey);
             return Optional.empty();
         }
 
@@ -137,11 +145,24 @@ public class NotificationServiceImpl implements NotificationService {
                 nowUtc());
 
         if (inserted == 0) {
+            log.debug(
+                    "notification.create.skipped_insert_conflict recipientProfileId={} type={} dedupeKey={}",
+                    recipientProfileId,
+                    normalizedType,
+                    normalizedDedupeKey);
             return Optional.empty();
         }
 
         return notificationRepository.findByIdAndRecipientProfile_Id(notificationId, recipientProfileId)
                 .map(notification -> {
+                    log.info(
+                            "notification.created notificationId={} recipientProfileId={} actorProfileId={} type={} portfolioId={} commentId={}",
+                            notification.getId(),
+                            recipientProfileId,
+                            actorProfileId,
+                            normalizedType,
+                            portfolioId,
+                            commentId);
                     createAndQueueEmailDelivery(notification.getId(), recipientProfileId);
                     return toDto(notification);
                 });
@@ -150,15 +171,24 @@ public class NotificationServiceImpl implements NotificationService {
     private void createAndQueueEmailDelivery(UUID notificationId, UUID recipientProfileId) {
         notificationEmailDeliveryService
                 .createPendingDelivery(notificationId, recipientProfileId)
-                .ifPresent(this::queueEmailDeliveryAfterCommit);
+                .ifPresent(deliveryId -> {
+                    log.info(
+                            "notification.email.delivery.created notificationId={} deliveryId={} recipientProfileId={}",
+                            notificationId,
+                            deliveryId,
+                            recipientProfileId);
+                    queueEmailDeliveryAfterCommit(deliveryId);
+                });
     }
 
     private void queueEmailDeliveryAfterCommit(UUID deliveryId) {
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            log.debug("notification.email.delivery.queueing_without_transaction deliveryId={}", deliveryId);
             queueEmailDelivery(deliveryId);
             return;
         }
 
+        log.debug("notification.email.delivery.queue_after_commit_registered deliveryId={}", deliveryId);
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
@@ -170,8 +200,9 @@ public class NotificationServiceImpl implements NotificationService {
     private void queueEmailDelivery(UUID deliveryId) {
         try {
             notificationEmailQueueService.queueDelivery(deliveryId);
+            log.info("notification.email.delivery.queued deliveryId={}", deliveryId);
         } catch (Exception exception) {
-            log.warn("Failed to queue notification email delivery {}", deliveryId, exception);
+            log.warn("notification.email.delivery.queue_failed deliveryId={}", deliveryId, exception);
         }
     }
 

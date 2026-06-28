@@ -11,6 +11,7 @@ import com.webgen.webgen_backend.portfolio.entity.Portfolio;
 import com.webgen.webgen_backend.profile.entity.Profile;
 import com.webgen.webgen_backend.shared.config.RabbitMQConfig;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.messaging.handler.annotation.Header;
@@ -24,6 +25,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class NotificationEmailWorker {
 
     private static final String PRODUCT_NAME = "PortfolioGen";
@@ -39,19 +41,27 @@ public class NotificationEmailWorker {
     ) throws IOException {
         UUID deliveryId = message == null ? null : message.getDeliveryId();
         if (deliveryId == null) {
+            log.warn("notification.email.worker.invalid_message deliveryTag={}", deliveryTag);
             channel.basicNack(deliveryTag, false, false);
             return;
         }
 
+        log.info("notification.email.worker.received deliveryId={} deliveryTag={}", deliveryId, deliveryTag);
         Optional<NotificationEmailDelivery> claimedDelivery;
         try {
             claimedDelivery = notificationEmailDeliveryService.markProcessing(deliveryId);
         } catch (Exception exception) {
+            log.warn(
+                    "notification.email.worker.claim_failed deliveryId={} deliveryTag={}",
+                    deliveryId,
+                    deliveryTag,
+                    exception);
             channel.basicNack(deliveryTag, false, false);
             return;
         }
 
         if (claimedDelivery.isEmpty()) {
+            log.info("notification.email.worker.no_claim deliveryId={} deliveryTag={}", deliveryId, deliveryTag);
             channel.basicAck(deliveryTag, false);
             return;
         }
@@ -64,8 +74,22 @@ public class NotificationEmailWorker {
             Channel channel,
             long deliveryTag) throws IOException {
         UUID deliveryId = delivery.getId();
+        Notification notification = delivery.getNotification();
+        UUID notificationId = notification == null ? null : notification.getId();
+        UUID recipientProfileId = delivery.getRecipientProfile() == null
+                ? null
+                : delivery.getRecipientProfile().getId();
+
+        log.info(
+                "notification.email.worker.claimed deliveryId={} notificationId={} recipientProfileId={} deliveryTag={}",
+                deliveryId,
+                notificationId,
+                recipientProfileId,
+                deliveryTag);
+
         String recipientEmail = recipientEmail(delivery);
         if (!StringUtils.hasText(recipientEmail)) {
+            log.info("notification.email.worker.skip_missing_email deliveryId={}", deliveryId);
             markSkippedAndAck(deliveryId, "Recipient email is missing", channel, deliveryTag);
             return;
         }
@@ -73,6 +97,11 @@ public class NotificationEmailWorker {
         NotificationEmailContent content = buildContent(delivery);
         String providerMessageId;
         try {
+            log.info(
+                    "notification.email.worker.sending deliveryId={} notificationId={} type={}",
+                    deliveryId,
+                    notificationId,
+                    notification == null ? null : notification.getType());
             providerMessageId = resendNotificationEmailSender.sendEmail(
                     recipientEmail,
                     content.subject(),
@@ -80,6 +109,10 @@ public class NotificationEmailWorker {
                     content.textBody()
             );
         } catch (Exception exception) {
+            log.warn(
+                    "notification.email.worker.send_failed deliveryId={} reason={}",
+                    deliveryId,
+                    exception.getMessage());
             markFailedAndAck(deliveryId, exception, channel, deliveryTag);
             return;
         }
@@ -87,7 +120,18 @@ public class NotificationEmailWorker {
         try {
             notificationEmailDeliveryService.markSent(deliveryId, providerMessageId);
             channel.basicAck(deliveryTag, false);
+            log.info(
+                    "notification.email.worker.sent deliveryId={} providerMessageId={} deliveryTag={}",
+                    deliveryId,
+                    providerMessageId,
+                    deliveryTag);
         } catch (Exception exception) {
+            log.warn(
+                    "notification.email.worker.mark_sent_failed deliveryId={} providerMessageId={} deliveryTag={}",
+                    deliveryId,
+                    providerMessageId,
+                    deliveryTag,
+                    exception);
             channel.basicNack(deliveryTag, false, false);
         }
     }
@@ -100,7 +144,18 @@ public class NotificationEmailWorker {
         try {
             notificationEmailDeliveryService.markSkipped(deliveryId, reason);
             channel.basicAck(deliveryTag, false);
+            log.info(
+                    "notification.email.worker.skipped deliveryId={} reason={} deliveryTag={}",
+                    deliveryId,
+                    reason,
+                    deliveryTag);
         } catch (Exception exception) {
+            log.warn(
+                    "notification.email.worker.mark_skipped_failed deliveryId={} reason={} deliveryTag={}",
+                    deliveryId,
+                    reason,
+                    deliveryTag,
+                    exception);
             channel.basicNack(deliveryTag, false, false);
         }
     }
@@ -113,7 +168,17 @@ public class NotificationEmailWorker {
         try {
             notificationEmailDeliveryService.markFailed(deliveryId, exception.getMessage());
             channel.basicAck(deliveryTag, false);
+            log.warn(
+                    "notification.email.worker.failed deliveryId={} reason={} deliveryTag={}",
+                    deliveryId,
+                    exception.getMessage(),
+                    deliveryTag);
         } catch (Exception statusException) {
+            log.warn(
+                    "notification.email.worker.mark_failed_failed deliveryId={} deliveryTag={}",
+                    deliveryId,
+                    deliveryTag,
+                    statusException);
             channel.basicNack(deliveryTag, false, false);
         }
     }

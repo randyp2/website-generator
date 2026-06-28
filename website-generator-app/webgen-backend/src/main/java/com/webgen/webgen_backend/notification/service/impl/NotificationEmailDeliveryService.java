@@ -3,6 +3,7 @@ package com.webgen.webgen_backend.notification.service.impl;
 import com.webgen.webgen_backend.notification.entity.NotificationEmailDelivery;
 import com.webgen.webgen_backend.notification.repository.NotificationEmailDeliveryRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class NotificationEmailDeliveryService {
 
     public static final String PROVIDER_RESEND = "resend";
@@ -51,7 +53,22 @@ public class NotificationEmailDeliveryService {
                 now
         );
 
-        return inserted == 1 ? Optional.of(deliveryId) : Optional.empty();
+        if (inserted == 1) {
+            log.info(
+                    "notification.email.delivery.pending_created deliveryId={} notificationId={} recipientProfileId={} provider={}",
+                    deliveryId,
+                    notificationId,
+                    recipientProfileId,
+                    PROVIDER_RESEND);
+            return Optional.of(deliveryId);
+        }
+
+        log.debug(
+                "notification.email.delivery.pending_exists notificationId={} recipientProfileId={} provider={}",
+                notificationId,
+                recipientProfileId,
+                PROVIDER_RESEND);
+        return Optional.empty();
     }
 
     @Transactional(readOnly = true)
@@ -77,7 +94,12 @@ public class NotificationEmailDeliveryService {
                     delivery.setLastAttemptAt(now);
                     delivery.setFailedAt(null);
                     delivery.setLastError(null);
-                    return notificationEmailDeliveryRepository.save(delivery);
+                    NotificationEmailDelivery savedDelivery = notificationEmailDeliveryRepository.save(delivery);
+                    log.info(
+                            "notification.email.delivery.processing deliveryId={} attemptCount={}",
+                            savedDelivery.getId(),
+                            savedDelivery.getAttemptCount());
+                    return savedDelivery;
                 });
     }
 
@@ -95,7 +117,12 @@ public class NotificationEmailDeliveryService {
                     delivery.setSentAt(now);
                     delivery.setFailedAt(null);
                     delivery.setLastError(null);
-                    return notificationEmailDeliveryRepository.save(delivery);
+                    NotificationEmailDelivery savedDelivery = notificationEmailDeliveryRepository.save(delivery);
+                    log.info(
+                            "notification.email.delivery.sent deliveryId={} providerMessageId={}",
+                            savedDelivery.getId(),
+                            normalizedProviderMessageId);
+                    return savedDelivery;
                 });
     }
 
@@ -114,7 +141,12 @@ public class NotificationEmailDeliveryService {
                     delivery.setNextAttemptAt(nextAttemptAt);
                     delivery.setFailedAt(null);
                     delivery.setLastError(normalizeLastError(lastError));
-                    return notificationEmailDeliveryRepository.save(delivery);
+                    NotificationEmailDelivery savedDelivery = notificationEmailDeliveryRepository.save(delivery);
+                    log.info(
+                            "notification.email.delivery.retry_scheduled deliveryId={} nextAttemptAt={}",
+                            savedDelivery.getId(),
+                            nextAttemptAt);
+                    return savedDelivery;
                 });
     }
 
@@ -129,7 +161,12 @@ public class NotificationEmailDeliveryService {
                     delivery.setStatus(STATUS_FAILED);
                     delivery.setFailedAt(now);
                     delivery.setLastError(normalizeLastError(lastError));
-                    return notificationEmailDeliveryRepository.save(delivery);
+                    NotificationEmailDelivery savedDelivery = notificationEmailDeliveryRepository.save(delivery);
+                    log.warn(
+                            "notification.email.delivery.failed deliveryId={} reason={}",
+                            savedDelivery.getId(),
+                            normalizeLastError(lastError));
+                    return savedDelivery;
                 });
     }
 
@@ -144,7 +181,12 @@ public class NotificationEmailDeliveryService {
                     delivery.setStatus(STATUS_SKIPPED);
                     delivery.setFailedAt(null);
                     delivery.setLastError(normalizeLastError(reason));
-                    return notificationEmailDeliveryRepository.save(delivery);
+                    NotificationEmailDelivery savedDelivery = notificationEmailDeliveryRepository.save(delivery);
+                    log.info(
+                            "notification.email.delivery.skipped deliveryId={} reason={}",
+                            savedDelivery.getId(),
+                            normalizeLastError(reason));
+                    return savedDelivery;
                 });
     }
 
