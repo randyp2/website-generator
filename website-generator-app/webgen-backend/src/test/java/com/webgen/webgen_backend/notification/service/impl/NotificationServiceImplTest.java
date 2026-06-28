@@ -342,9 +342,9 @@ class NotificationServiceImplTest {
             RecordingEmailQueueService emailQueueService) {
         return new NotificationServiceImpl(
                 repository.proxy(),
-                objectMapper,
                 emailDeliveryService,
-                emailQueueService
+                emailQueueService,
+                objectMapper
         );
     }
 
