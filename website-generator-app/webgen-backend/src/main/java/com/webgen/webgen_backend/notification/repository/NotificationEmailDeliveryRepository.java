@@ -32,6 +32,10 @@ public interface NotificationEmailDeliveryRepository extends JpaRepository<Notif
     @Query("""
             select delivery
             from NotificationEmailDelivery delivery
+            join fetch delivery.notification notification
+            join fetch delivery.recipientProfile recipientProfile
+            left join fetch notification.actorProfile actorProfile
+            left join fetch notification.portfolio portfolio
             where delivery.id = :id
             """)
     Optional<NotificationEmailDelivery> findByIdForUpdate(UUID id);
