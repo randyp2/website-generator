@@ -11,6 +11,7 @@ import com.webgen.webgen_backend.verification.service.scoring.VerificationSignal
 import com.webgen.webgen_backend.verification.service.scoring.model.EvidenceLinkSignal;
 import com.webgen.webgen_backend.verification.service.scoring.model.SkillClaimInput;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -25,6 +26,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ClaimEvidenceScoringInputAssemblerServiceImpl
@@ -186,25 +188,22 @@ public class ClaimEvidenceScoringInputAssemblerServiceImpl
                 .multiply(recencyDecay)
                 .setScale(SIGNAL_SCALE, RoundingMode.HALF_UP);
 
-        if (ageDays >= 180 || "name_match".equals(normalizedLinkType)) {
-            String signalTimestampSource = resolveSignalTimestampSource(evidence);
-            System.out.println(String.format(
-                    "[EvidenceInput] claimId=%s rawValue=%s evidenceId=%s externalId=%s linkType=%s confidence=%s "
-                            + "signalTimestampSource=%s occurredAt=%s capturedAt=%s asOf=%s ageDays=%d recencyDecay=%s decayedStrength=%s",
+        if (log.isDebugEnabled()) {
+            log.debug("[EvidenceInput] claimId={} rawValue={} evidenceId={} externalId={} linkType={} confidence={} "
+                            + "signalTimestampSource={} occurredAt={} capturedAt={} asOf={} ageDays={} recencyDecay={} decayedStrength={}",
                     claim == null ? null : claim.getId(),
                     claim == null ? null : claim.getRawValue(),
                     evidence.getId(),
                     evidence.getExternalId(),
                     normalizedLinkType,
                     boundedConfidence,
-                    signalTimestampSource,
+                    resolveSignalTimestampSource(evidence),
                     evidence.getOccurredAt(),
                     evidence.getCapturedAt(),
                     asOf,
                     ageDays,
                     recencyDecay,
-                    decayedStrength
-            ));
+                    decayedStrength);
         }
 
         return new EvidenceLinkSignal(

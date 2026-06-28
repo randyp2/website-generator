@@ -6,6 +6,7 @@ import com.webgen.webgen_backend.verification.service.scoring.model.SkillClaimSc
 import com.webgen.webgen_backend.verification.service.scoring.model.SkillScoreRequest;
 import com.webgen.webgen_backend.verification.service.scoring.model.SkillScoreSummary;
 import com.webgen.webgen_backend.verification.service.scoring.model.SuggestedAction;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -14,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+@Slf4j
 @Component
 public class SkillVerificationScoringKernel {
 
@@ -160,64 +162,28 @@ public class SkillVerificationScoringKernel {
         int overallScore = overallEvidenceComputation.overallScore();
         int evidenceDelta = overallScore - baselineOverallScore;
 
-        System.out.println(
-                "[BASELINE SCORE] Formula computes initial trust score from average per-claim priors. "
-                        + "claimPrior_i = 0.70*matchValue_i + 0.30*sourceWeight_i, "
-                        + "base = average(claimPrior_i)"
-                        + (boundedParserConfidence == null ? "" : ", final = 0.90*base + 0.10*parserConfidence")
-        );
-        System.out.println(String.format(
-                "[BASELINE SCORE] coverage = matched/total = %d/%d = %s",
-                matchedSkills,
-                totalSkills,
-                normalizedCoverage
-        ));
-        System.out.println(String.format(
-                "[BASELINE SCORE] sourceQuality = sourceWeightSum/total = %s/%d = %s",
-                sourceWeightSum,
-                totalSkills,
-                sourceQuality
-        ));
-        System.out.println(String.format(
-                "[BASELINE SCORE] claimPriorAverage = claimPriorSum/total = %s/%d = %s",
-                claimPriorSum,
-                totalSkills,
-                baseNormalizedScore
-        ));
+        log.debug("[BASELINE SCORE] coverage = matched/total = {}/{} = {}",
+                matchedSkills, totalSkills, normalizedCoverage);
+        log.debug("[BASELINE SCORE] sourceQuality = sourceWeightSum/total = {}/{} = {}",
+                sourceWeightSum, totalSkills, sourceQuality);
+        log.debug("[BASELINE SCORE] claimPriorAverage = claimPriorSum/total = {}/{} = {}",
+                claimPriorSum, totalSkills, baseNormalizedScore);
         if (boundedParserConfidence != null) {
-            System.out.println(String.format(
-                    "[BASELINE SCORE] finalNormalized = (0.90*%s) + (0.10*%s) = %s",
-                    baseNormalizedScore,
-                    boundedParserConfidence,
-                    baselineOverallNormalized
-            ));
+            log.debug("[BASELINE SCORE] finalNormalized = (0.90*{}) + (0.10*{}) = {}",
+                    baseNormalizedScore, boundedParserConfidence, baselineOverallNormalized);
         }
-        System.out.println(String.format(
-                "[BASELINE SCORE] baselineOverallScore = round(100*%s) = %d",
-                baselineOverallNormalized,
-                baselineOverallScore
-        ));
+        log.debug("[BASELINE SCORE] baselineOverallScore = round(100*{}) = {}",
+                baselineOverallNormalized, baselineOverallScore);
         if (hasAnyEvidence) {
-            System.out.println(String.format(
-                    "[EVIDENCE SCORE] meanClaimDelta = totalClaimDelta/matchedClaims = %s/%d = %s",
+            log.debug("[EVIDENCE SCORE] meanClaimDelta = totalClaimDelta/matchedClaims = {}/{} = {}",
                     overallEvidenceComputation.totalClaimDelta(),
                     Math.max(1, matchedSkills),
-                    overallEvidenceComputation.averageClaimDelta()
-            ));
-            System.out.println(String.format(
-                    "[EVIDENCE SCORE] finalOverallScore = clamp_0_100(%d + %d) = %d",
-                    baselineOverallScore,
-                    overallEvidenceComputation.roundedAverageDelta(),
-                    overallScore
-            ));
+                    overallEvidenceComputation.averageClaimDelta());
+            log.debug("[EVIDENCE SCORE] finalOverallScore = clamp_0_100({} + {}) = {}",
+                    baselineOverallScore, overallEvidenceComputation.roundedAverageDelta(), overallScore);
         }
-        System.out.println(String.format(
-                "[EVIDENCE SCORE] hasEvidence=%s evidenceDelta=%d finalOverallScore=%d (scoreType=%s)",
-                hasAnyEvidence,
-                evidenceDelta,
-                overallScore,
-                scoreType
-        ));
+        log.debug("[EVIDENCE SCORE] hasEvidence={} evidenceDelta={} finalOverallScore={} (scoreType={})",
+                hasAnyEvidence, evidenceDelta, overallScore, scoreType);
 
         List<SkillClaimScore> unverifiedClaims = claimScores.stream()
                 .filter(c -> !"verified".equals(c.status()))
@@ -277,12 +243,8 @@ public class SkillVerificationScoringKernel {
         BigDecimal matchValue = resolveMatchValue(matched);
         boolean llmVerified = isLlmVerified(input);
         int claimScoreCap = verificationSignalPolicy.claimScoreCap(llmVerified);
-        System.out.println(String.format(
-                "[CLAIM SCORE][LLM] claimId=%s llmVerified=%s claimScoreCap=%d",
-                input.claimId(),
-                llmVerified,
-                claimScoreCap
-        ));
+        log.debug("[CLAIM SCORE][LLM] claimId={} llmVerified={} claimScoreCap={}",
+                input.claimId(), llmVerified, claimScoreCap);
 
         // claimPriorNormalized =
         //   (matchValue   * COVERAGE_WEIGHT)
@@ -294,22 +256,10 @@ public class SkillVerificationScoringKernel {
         int uncappedBaselineClaimScore = scoringPolicy.toPercent(baselineClaimNormalized);
         int baselineClaimScore = Math.min(uncappedBaselineClaimScore, claimScoreCap);
 
-        System.out.println(String.format(
-                "[CLAIM SCORE] claimId=%s rawValue=%s source=%s matched=%s status=%s",
-                input.claimId(),
-                input.rawValue(),
-                source,
-                matched,
-                status
-        ));
-        System.out.println(String.format(
-                "[CLAIM SCORE] claimId=%s baselineNormalized = (0.70*%s) + (0.30*%s) = %s -> baselineScore=%d",
-                input.claimId(),
-                matchValue,
-                sourceWeight,
-                baselineClaimNormalized,
-                baselineClaimScore
-        ));
+        log.debug("[CLAIM SCORE] claimId={} rawValue={} source={} matched={} status={}",
+                input.claimId(), input.rawValue(), source, matched, status);
+        log.debug("[CLAIM SCORE] claimId={} baselineNormalized = (0.70*{}) + (0.30*{}) = {} -> baselineScore={}",
+                input.claimId(), matchValue, sourceWeight, baselineClaimNormalized, baselineClaimScore);
 
         String state = resolveClaimState(matched, status);
 
@@ -325,45 +275,35 @@ public class SkillVerificationScoringKernel {
                 BigDecimal boundedStrength = link == null || link.decayedStrength() == null
                         ? SkillScoringPolicy.ZERO
                         : scoringPolicy.clamp01(link.decayedStrength());
-                System.out.println(String.format(
-                        "[CLAIM SCORE] claimId=%s evidence[%d] type=%s rawWeight=%s recencyMultiplier=%s ageDays=%d decayedStrength=%s",
+                log.debug("[CLAIM SCORE] claimId={} evidence[{}] type={} rawWeight={} recencyMultiplier={} ageDays={} decayedStrength={}",
                         input.claimId(),
                         i,
                         link == null ? null : link.linkType(),
                         link == null ? null : link.linkTypeWeight(),
                         link == null ? null : link.recencyDecay(),
                         link == null ? null : link.ageDays(),
-                        boundedStrength
-                ));
+                        boundedStrength);
             }
 
             if (matched) {
                 evidenceNudge = computeEvidenceNudge(evidenceLinks, baselineClaimNormalized, claimScoreCap);
                 finalClaimNormalized = evidenceNudge.finalClaimNormalized();
-                System.out.println(String.format(
-                        "[CLAIM SCORE] claimId=%s evidenceNudge effectiveEvidence=%s support=%s boostProgress=%s "
-                                + "headroom=%s boostNormalized=%s",
+                log.debug("[CLAIM SCORE] claimId={} evidenceNudge effectiveEvidence={} support={} boostProgress={} headroom={} boostNormalized={}",
                         input.claimId(),
                         evidenceNudge.effectiveEvidenceStrength(),
                         evidenceNudge.support(),
                         evidenceNudge.boostProgress(),
                         evidenceNudge.headroomNormalized(),
-                        evidenceNudge.boostNormalized()
-                ));
-                System.out.println(String.format(
-                        "[CLAIM SCORE] claimId=%s finalNormalized = baseline + (headroom*boostProgress) = %s + (%s*%s) = %s "
-                                + "-> finalScore pending-cap",
+                        evidenceNudge.boostNormalized());
+                log.debug("[CLAIM SCORE] claimId={} finalNormalized = baseline + (headroom*boostProgress) = {} + ({}*{}) = {} -> finalScore pending-cap",
                         input.claimId(),
                         baselineClaimNormalized,
                         evidenceNudge.headroomNormalized(),
                         evidenceNudge.boostProgress(),
-                        finalClaimNormalized
-                ));
+                        finalClaimNormalized);
             } else {
-                System.out.println(String.format(
-                        "[CLAIM SCORE] claimId=%s evidence links present but claim is unresolved; skipping evidence nudge until canonical match exists",
-                        input.claimId()
-                ));
+                log.debug("[CLAIM SCORE] claimId={} evidence links present but claim is unresolved; skipping evidence nudge until canonical match exists",
+                        input.claimId());
             }
         }
         finalClaimNormalized = scoringPolicy.clamp01(finalClaimNormalized);
@@ -383,34 +323,24 @@ public class SkillVerificationScoringKernel {
                 ? collectEvidenceSignalStats(evidenceLinks)
                 : EvidenceSignalStats.empty();
         if (evidenceLinksUsedForScoring > 0) {
-            System.out.println(String.format(
-                    "[CLAIM SCORE] claimId=%s finalScore=%d baselineScore=%d evidenceContribution=%+d linksUsed=%d",
+            log.debug("[CLAIM SCORE] claimId={} finalScore={} baselineScore={} evidenceContribution={} linksUsed={}",
                     input.claimId(),
                     finalClaimScore,
                     baselineClaimScore,
                     evidenceContribution,
-                    evidenceLinksUsedForScoring
-            ));
+                    evidenceLinksUsedForScoring);
             if (evidenceContribution < 0) {
                 BigDecimal normalizedGap = finalClaimNormalized.subtract(baselineClaimNormalized);
-                BigDecimal weightedGapNormalized = normalizedGap;
-                BigDecimal weightedGapPoints = weightedGapNormalized.multiply(SkillScoringPolicy.HUNDRED)
+                BigDecimal weightedGapPoints = normalizedGap.multiply(SkillScoringPolicy.HUNDRED)
                         .setScale(4, RoundingMode.HALF_UP);
 
-                System.out.println(String.format(
-                        "[CLAIM SCORE][NEGATIVE] claimId=%s reason=evidence_normalized_below_baseline "
-                                + "baselineNormalized=%s finalNormalized=%s normalizedGap=%s "
-                                + "weightedGapPointsApprox=%s",
+                log.debug("[CLAIM SCORE][NEGATIVE] claimId={} reason=evidence_normalized_below_baseline baselineNormalized={} finalNormalized={} normalizedGap={} weightedGapPointsApprox={}",
                         input.claimId(),
                         baselineClaimNormalized,
                         finalClaimNormalized,
                         normalizedGap,
-                        weightedGapPoints
-                ));
-                System.out.println(String.format(
-                        "[CLAIM SCORE][NEGATIVE] claimId=%s linksUsed=%d stale180=%d stale365=%d "
-                                + "strongestSignal={type=%s,strength=%s,ageDays=%s} "
-                                + "weakestSignal={type=%s,strength=%s,ageDays=%s}",
+                        weightedGapPoints);
+                log.debug("[CLAIM SCORE][NEGATIVE] claimId={} linksUsed={} stale180={} stale365={} strongestSignal=[type={},strength={},ageDays={}] weakestSignal=[type={},strength={},ageDays={}]",
                         input.claimId(),
                         evidenceLinksUsed,
                         evidenceStats.stale180Count(),
@@ -420,27 +350,14 @@ public class SkillVerificationScoringKernel {
                         evidenceStats.strongestAgeDays(),
                         evidenceStats.weakestType(),
                         evidenceStats.weakestStrength(),
-                        evidenceStats.weakestAgeDays()
-                ));
+                        evidenceStats.weakestAgeDays());
             }
         } else if (evidenceLinksUsed > 0) {
-            System.out.println(String.format(
-                    "[CLAIM SCORE] claimId=%s evidence links ignored for unresolved claim -> finalScore=%d",
-                    input.claimId(),
-                    finalClaimScore
-            ));
-        } else {
-            System.out.println(String.format(
-                    "[CLAIM SCORE] claimId=%s no evidence links -> finalScore=%d",
-                    input.claimId(),
-                    finalClaimScore
-            ));
+            log.debug("[CLAIM SCORE] claimId={} evidence links ignored for unresolved claim -> finalScore={}",
+                    input.claimId(), finalClaimScore);
         }
         if (baselineScoreCapped || finalScoreCapped) {
-            System.out.println(String.format(
-                    "[CLAIM SCORE][CAP] claimId=%s llmVerified=%s claimScoreCap=%d "
-                            + "uncappedBaseline=%d baselineScore=%d uncappedFinal=%d finalScore=%d "
-                            + "uncappedEvidenceContribution=%+d displayEvidenceContribution=%+d",
+            log.debug("[CLAIM SCORE][CAP] claimId={} llmVerified={} claimScoreCap={} uncappedBaseline={} baselineScore={} uncappedFinal={} finalScore={} uncappedEvidenceContribution={} displayEvidenceContribution={}",
                     input.claimId(),
                     llmVerified,
                     claimScoreCap,
@@ -449,8 +366,7 @@ public class SkillVerificationScoringKernel {
                     uncappedFinalClaimScore,
                     finalClaimScore,
                     uncappedEvidenceContribution,
-                    evidenceContribution
-            ));
+                    evidenceContribution);
         }
 
         ClaimReasonComputation claimReason = buildClaimReason(
@@ -468,13 +384,6 @@ public class SkillVerificationScoringKernel {
                             + "Higher scores require a deeper review — that feature is coming soon."
             );
         }
-        System.out.println(String.format(
-                "[CLAIM SCORE][REASON] claimId=%s code=%s text=%s",
-                input.claimId(),
-                claimReason.code(),
-                claimReason.text()
-        ));
-
         SkillClaimScore score = new SkillClaimScore(
                 input.claimId(),
                 input.rawValue(),
@@ -859,11 +768,10 @@ public class SkillVerificationScoringKernel {
                     current = next;
                 }
             } catch (Exception exception) {
-                System.out.println(String.format(
-                        "[POST SCORE] processor=%s failed reason=%s",
+                log.warn("[POST SCORE] processor={} failed reason={}",
                         postProcessor.getClass().getSimpleName(),
-                        exception.getMessage()
-                ));
+                        exception.getMessage(),
+                        exception);
             }
         }
         return current;
