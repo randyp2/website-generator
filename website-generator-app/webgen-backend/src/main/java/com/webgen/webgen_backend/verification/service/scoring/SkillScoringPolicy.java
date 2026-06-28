@@ -103,6 +103,30 @@ public class SkillScoringPolicy {
      */
     public static final BigDecimal EVIDENCE_BOOST_CURVE_EXPONENT = new BigDecimal("1.35");
 
+    /**
+     * Damping exponent applied to evidence coverage when rolling the per-claim
+     * evidence lifts up into one overall delta:
+     *
+     * overallDelta = meanEvidencedDelta * coverage^COVERAGE_DAMPING
+     *
+     * where coverage = evidencedClaims / matchedClaims.
+     *
+     * Why this exists:
+     * - The overall lift is first averaged over only the claims that actually
+     *   have evidence (so empty skills cannot dilute it), then breadth is
+     *   re-applied as this damped multiplier instead of a raw divisor.
+     *
+     * Behavior at the extremes:
+     * - 1.00 reproduces the legacy mean-over-all-matched behavior, where coverage
+     *   acts as a plain divisor and sparse-but-real evidence is crushed toward zero.
+     * - 0.00 ignores breadth entirely, so proving one skill lifts the overall
+     *   score as much as proving every skill (over-rewarding, gameable).
+     * - 0.50 (current) keeps breadth meaningful — backing more of the profile
+     *   always scores strictly higher — while letting concentrated, genuine
+     *   evidence register a visible lift.
+     */
+    public static final BigDecimal COVERAGE_DAMPING = new BigDecimal("0.50");
+
     /** Scale used for division to keep deterministic rounding behavior stable. */
     public static final int DIV_SCALE = 6;
 

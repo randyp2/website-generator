@@ -163,6 +163,73 @@ class SkillVerificationScoringKernelTest {
     }
 
     @Test
+    void sparseEvidenceIsNotDilutedByUnevidencedSkills() {
+        // Four recognized resume skills, only one of which has strong, fresh proof.
+        // Under the old mean-over-all-matched formula the single +12 lift was divided
+        // across all four matched skills (12/4 = +3 -> overall 52). The coverage-damped
+        // formula averages over only the evidenced skill, then re-applies breadth as a
+        // damped multiplier: 12 * (1/4)^0.5 = 12 * 0.5 = +6 -> overall 55.
+        UUID evidencedId = UUID.randomUUID();
+        UUID bare1 = UUID.randomUUID();
+        UUID bare2 = UUID.randomUUID();
+        UUID bare3 = UUID.randomUUID();
+
+        List<SkillClaimInput> claims = List.of(
+                claimWithEvidence(
+                        evidencedId,
+                        "React",
+                        UUID.randomUUID(),
+                        "React",
+                        "resume",
+                        "pending",
+                        "engineering",
+                        "1.0",
+                        List.of(evidence("1.0"))
+                ),
+                claim(bare1, "Java", UUID.randomUUID(), "Java", "resume", "pending", "engineering", "1.0"),
+                claim(bare2, "Spring", UUID.randomUUID(), "Spring", "resume", "pending", "engineering", "1.0"),
+                claim(bare3, "Docker", UUID.randomUUID(), "Docker", "resume", "pending", "engineering", "1.0")
+        );
+
+        SkillScoreSummary summary = kernel.score(new SkillScoreRequest(claims, null));
+
+        assertThat(summary.baselineOverallScore()).isEqualTo(49);
+        assertThat(summary.overallScore()).isEqualTo(55);
+        assertThat(summary.evidenceDelta()).isEqualTo(6);
+
+        Map<UUID, SkillClaimScore> byId = summary.claims().stream()
+                .collect(Collectors.toMap(SkillClaimScore::claimId, Function.identity()));
+        // The per-claim card is unaffected: only the roll-up into the overall changed.
+        assertThat(byId.get(evidencedId).claimScore()).isEqualTo(61);
+        assertThat(byId.get(evidencedId).evidenceContribution()).isEqualTo(12);
+    }
+
+    @Test
+    void broaderEvidenceCoverageScoresStrictlyHigherThanSparse() {
+        // Same evidenced lift per skill, but more of the profile is backed. Breadth
+        // must still win: higher coverage -> strictly higher overall score.
+        UUID e1 = UUID.randomUUID();
+        UUID e2 = UUID.randomUUID();
+        UUID e3 = UUID.randomUUID();
+        UUID bare = UUID.randomUUID();
+
+        SkillScoreSummary sparse = kernel.score(new SkillScoreRequest(List.of(
+                claimWithEvidence(e1, "React", UUID.randomUUID(), "React", "resume", "pending", "engineering", "1.0",
+                        List.of(evidence("1.0"))),
+                claim(bare, "Java", UUID.randomUUID(), "Java", "resume", "pending", "engineering", "1.0")
+        ), null));
+
+        SkillScoreSummary broad = kernel.score(new SkillScoreRequest(List.of(
+                claimWithEvidence(e2, "React", UUID.randomUUID(), "React", "resume", "pending", "engineering", "1.0",
+                        List.of(evidence("1.0"))),
+                claimWithEvidence(e3, "Java", UUID.randomUUID(), "Java", "resume", "pending", "engineering", "1.0",
+                        List.of(evidence("1.0")))
+        ), null));
+
+        assertThat(broad.overallScore()).isGreaterThan(sparse.overallScore());
+    }
+
+    @Test
     void weakEvidenceCanDecreaseClaimAndOverallScores() {
         UUID c1 = UUID.randomUUID();
         UUID skillOne = UUID.randomUUID();
