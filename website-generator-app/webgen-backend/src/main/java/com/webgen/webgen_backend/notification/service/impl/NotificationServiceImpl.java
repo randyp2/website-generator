@@ -41,9 +41,11 @@ public class NotificationServiceImpl implements NotificationService {
     private static final int MAX_SIZE = 100;
 
     private final NotificationRepository notificationRepository;
-    private final ObjectMapper objectMapper;
+
     private final NotificationEmailDeliveryService notificationEmailDeliveryService;
     private final NotificationEmailQueueService notificationEmailQueueService;
+
+    private final ObjectMapper objectMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -216,14 +218,16 @@ public class NotificationServiceImpl implements NotificationService {
         String normalized = type.trim().toLowerCase(Locale.ROOT);
         if (TYPE_PROFILE_FOLLOWED.equals(normalized)) {
             if (portfolioId != null || commentId != null) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Profile follow notifications cannot target a portfolio or comment");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Profile follow notifications cannot target a portfolio or comment");
             }
             return normalized;
         }
 
         if (TYPE_PORTFOLIO_LIKED.equals(normalized)) {
             if (portfolioId == null || commentId != null) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Portfolio like notifications require a portfolio only");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Portfolio like notifications require a portfolio only");
             }
             return normalized;
         }
@@ -232,7 +236,8 @@ public class NotificationServiceImpl implements NotificationService {
                 || TYPE_COMMENT_REPLIED.equals(normalized)
                 || TYPE_COMMENT_LIKED.equals(normalized)) {
             if (portfolioId == null || commentId == null) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Comment notifications require a portfolio and comment");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Comment notifications require a portfolio and comment");
             }
             return normalized;
         }
@@ -254,8 +259,7 @@ public class NotificationServiceImpl implements NotificationService {
             throw new ResponseStatusException(
                     HttpStatus.INTERNAL_SERVER_ERROR,
                     "Unable to serialize notification metadata",
-                    exception
-            );
+                    exception);
         }
     }
 
