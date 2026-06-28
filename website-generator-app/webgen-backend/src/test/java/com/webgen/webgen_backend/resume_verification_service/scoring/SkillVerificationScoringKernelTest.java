@@ -1,9 +1,12 @@
 package com.webgen.webgen_backend.resume_verification_service.scoring;
 
 import com.webgen.webgen_backend.verification.service.scoring.model.*;
+import com.webgen.webgen_backend.verification.service.scoring.ClaimScoreNarrator;
+import com.webgen.webgen_backend.verification.service.scoring.EvidenceNudgeCalculator;
 import com.webgen.webgen_backend.verification.service.scoring.SkillScoringPolicy;
 import com.webgen.webgen_backend.verification.service.scoring.SkillSuggestedActionRuleBook;
 import com.webgen.webgen_backend.verification.service.scoring.SkillVerificationScoringKernel;
+import com.webgen.webgen_backend.verification.service.scoring.SuggestedActionBuilder;
 import com.webgen.webgen_backend.verification.service.scoring.VerificationSignalPolicy;
 import org.junit.jupiter.api.Test;
 
@@ -19,11 +22,15 @@ import java.util.stream.Collectors;
 
 class SkillVerificationScoringKernelTest {
 
+    private final SkillScoringPolicy scoringPolicy = new SkillScoringPolicy();
+    private final VerificationSignalPolicy verificationSignalPolicy = new VerificationSignalPolicy();
+
     private final SkillVerificationScoringKernel kernel =
             new SkillVerificationScoringKernel(
-                    new SkillScoringPolicy(),
-                    new VerificationSignalPolicy(),
-                    new SkillSuggestedActionRuleBook(),
+                    scoringPolicy,
+                    new EvidenceNudgeCalculator(scoringPolicy, verificationSignalPolicy),
+                    new ClaimScoreNarrator(scoringPolicy),
+                    new SuggestedActionBuilder(scoringPolicy, new SkillSuggestedActionRuleBook()),
                     List.of()
             );
 
@@ -121,6 +128,50 @@ class SkillVerificationScoringKernelTest {
 
         assertThat(summary.suggestedActions())
                 .anyMatch(a -> a.claimId().equals(matchedClaimId) && a.action().equals("Connect GitHub"));
+    }
+
+    @Test
+    void evidencedClaimSuggestsUpgradeInsteadOfRepeatingConnect() {
+        UUID claimId = UUID.randomUUID();
+        UUID skillId = UUID.randomUUID();
+
+        // Matched engineering claim that already has GitHub proof (caps at 80).
+        SkillScoreSummary summary = kernel.score(new SkillScoreRequest(List.of(
+                claimWithEvidence(claimId, "React", skillId, "React", "resume", "pending", "engineering", "1.0",
+                        List.of(evidence("1.0")))
+        ), null));
+
+        List<String> actions = summary.suggestedActions().stream()
+                .filter(a -> a.claimId().equals(claimId))
+                .map(SuggestedAction::action)
+                .toList();
+
+        assertThat(actions).contains("Upload a portfolio piece for an in-depth review", "Add a more recent project");
+        assertThat(actions).doesNotContain("Connect GitHub", "Link portfolio project URL");
+    }
+
+    @Test
+    void adequatelyEvidencedClaimSuggestsNoFurtherActions() {
+        UUID claimId = UUID.randomUUID();
+        UUID skillId = UUID.randomUUID();
+
+        // Strong, AI-reviewed evidence clears the expert ceiling (> 80), so there is
+        // nothing left to nudge the user toward.
+        List<EvidenceLinkSignal> expertSignals = List.of(
+                evidence("1.0", "manual_upload", "llm_document_match", new BigDecimal("0.95")),
+                evidence("1.0", "manual_upload", "llm_document_match", new BigDecimal("0.95")),
+                evidence("1.0", "manual_upload", "llm_document_match", new BigDecimal("0.95")),
+                evidence("1.0", "manual_upload", "llm_document_match", new BigDecimal("0.95")),
+                evidence("1.0", "manual_upload", "llm_document_match", new BigDecimal("0.95"))
+        );
+
+        SkillScoreSummary summary = kernel.score(new SkillScoreRequest(List.of(
+                claimWithEvidence(claimId, "React", skillId, "React", "resume", "pending", "engineering", "1.0",
+                        expertSignals)
+        ), null));
+
+        assertThat(summary.claims().getFirst().claimScore()).isGreaterThan(80);
+        assertThat(summary.suggestedActions()).noneMatch(a -> a.claimId().equals(claimId));
     }
 
     @Test
