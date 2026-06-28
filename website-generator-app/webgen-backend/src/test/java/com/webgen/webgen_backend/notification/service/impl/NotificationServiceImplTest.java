@@ -151,6 +151,13 @@ class NotificationServiceImplTest {
 
         assertThat(result).isPresent();
         NotificationDTO dto = result.get();
+        assertThat(repository.recentProfileFollowCalls).isEqualTo(1);
+        assertThat(repository.findByDedupeKeyCalls).isZero();
+        assertThat(repository.lastRecentProfileFollowRecipientId).isEqualTo(recipientId);
+        assertThat(repository.lastRecentProfileFollowActorId).isEqualTo(actorId);
+        assertThat(repository.lastRecentProfileFollowType).isEqualTo(NotificationService.TYPE_PROFILE_FOLLOWED);
+        assertThat(repository.lastRecentProfileFollowCreatedAtAfter).isNotNull();
+        assertThat(repository.lastInsert.dedupeKey()).isNull();
         assertThat(dto.getType()).isEqualTo(NotificationService.TYPE_PROFILE_FOLLOWED);
         assertThat(dto.getPortfolioId()).isNull();
         assertThat(dto.getPortfolioTitle()).isNull();
@@ -158,6 +165,34 @@ class NotificationServiceImplTest {
         assertThat(dto.getPortfolioScreenshotUrl()).isNull();
         assertThat(dto.getCommentId()).isNull();
         assertThat(dto.getActorUsername()).isEqualTo("actor");
+    }
+
+    @Test
+    void createProfileFollowedNotificationSkipsRecentDuplicate() {
+        RepositoryStub repository = new RepositoryStub();
+        RecordingEmailDeliveryService emailDeliveryService = new RecordingEmailDeliveryService();
+        RecordingEmailQueueService emailQueueService = new RecordingEmailQueueService();
+        NotificationServiceImpl service = service(repository, emailDeliveryService, emailQueueService);
+        repository.recentProfileFollowExists = true;
+
+        UUID recipientId = UUID.randomUUID();
+        UUID actorId = UUID.randomUUID();
+
+        Optional<NotificationDTO> result = service.createNotification(
+                recipientId,
+                actorId,
+                NotificationService.TYPE_PROFILE_FOLLOWED,
+                null,
+                null,
+                "profile-follow:" + recipientId + ":" + actorId,
+                objectMapper.createObjectNode());
+
+        assertThat(result).isEmpty();
+        assertThat(repository.recentProfileFollowCalls).isEqualTo(1);
+        assertThat(repository.findByDedupeKeyCalls).isZero();
+        assertThat(repository.insertCalls).isZero();
+        assertThat(emailDeliveryService.createCalls).isZero();
+        assertThat(emailQueueService.queueCalls).isZero();
     }
 
     @Test
@@ -456,6 +491,8 @@ class NotificationServiceImplTest {
         private int saveCalls;
         private int markAllCalls;
         private int markAllResult;
+        private int recentProfileFollowCalls;
+        private boolean recentProfileFollowExists;
         private long unreadCount;
         private List<Notification> rows = List.of();
         private Pageable lastPageable;
@@ -463,6 +500,10 @@ class NotificationServiceImplTest {
         private Notification savedNotification;
         private UUID lastMarkAllRecipientId;
         private OffsetDateTime lastMarkAllReadAt;
+        private UUID lastRecentProfileFollowRecipientId;
+        private UUID lastRecentProfileFollowActorId;
+        private String lastRecentProfileFollowType;
+        private OffsetDateTime lastRecentProfileFollowCreatedAtAfter;
 
         private NotificationRepository proxy() {
             return (NotificationRepository) Proxy.newProxyInstance(
@@ -493,6 +534,14 @@ class NotificationServiceImplTest {
                             case "findByDedupeKey" -> {
                                 findByDedupeKeyCalls++;
                                 yield Optional.ofNullable(notificationsByDedupeKey.get((String) args[0]));
+                            }
+                            case "existsByRecipientProfile_IdAndActorProfile_IdAndTypeAndCreatedAtAfter" -> {
+                                recentProfileFollowCalls++;
+                                lastRecentProfileFollowRecipientId = (UUID) args[0];
+                                lastRecentProfileFollowActorId = (UUID) args[1];
+                                lastRecentProfileFollowType = (String) args[2];
+                                lastRecentProfileFollowCreatedAtAfter = (OffsetDateTime) args[3];
+                                yield recentProfileFollowExists;
                             }
                             case "countByRecipientProfile_IdAndReadAtIsNull" -> unreadCount;
                             case "markUnreadNotificationsRead" -> {
@@ -528,7 +577,7 @@ class NotificationServiceImplTest {
             String metadataJson = (String) args[7];
             OffsetDateTime createdAt = (OffsetDateTime) args[8];
 
-            lastInsert = new InsertCall(type, metadataJson);
+            lastInsert = new InsertCall(type, dedupeKey, metadataJson);
 
             Notification notification = Notification.builder()
                     .id(notificationId)
@@ -559,6 +608,6 @@ class NotificationServiceImplTest {
         }
     }
 
-    private record InsertCall(String type, String metadataJson) {
+    private record InsertCall(String type, String dedupeKey, String metadataJson) {
     }
 }

@@ -39,8 +39,7 @@ class ProfileSocialServiceImplTest {
         assertThat(event.type()).isEqualTo(NotificationService.TYPE_PROFILE_FOLLOWED);
         assertThat(event.portfolioId()).isNull();
         assertThat(event.commentId()).isNull();
-        assertThat(event.dedupeKey())
-                .isEqualTo("profile_follow:" + fixture.followedId + ":" + fixture.followerId);
+        assertThat(event.dedupeKey()).isNull();
 
         Fixture duplicateFixture = new Fixture();
         duplicateFixture.followInsertResult = 0;

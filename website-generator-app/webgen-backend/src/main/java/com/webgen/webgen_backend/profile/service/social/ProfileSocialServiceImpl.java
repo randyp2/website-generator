@@ -174,7 +174,7 @@ public class ProfileSocialServiceImpl implements ProfileSocialService {
                 NotificationService.TYPE_PROFILE_FOLLOWED,
                 null,
                 null,
-                "profile_follow:" + followedProfile.getId() + ":" + followerProfileId,
+                null,
                 objectMapper.createObjectNode())
                 .ifPresentOrElse(
                         notification -> log.info(

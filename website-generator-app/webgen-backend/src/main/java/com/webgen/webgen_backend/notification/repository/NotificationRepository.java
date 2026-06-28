@@ -24,6 +24,12 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
 
     Optional<Notification> findByDedupeKey(String dedupeKey);
 
+    boolean existsByRecipientProfile_IdAndActorProfile_IdAndTypeAndCreatedAtAfter(
+            UUID recipientProfileId,
+            UUID actorProfileId,
+            String type,
+            OffsetDateTime createdAt);
+
     long countByRecipientProfile_IdAndReadAtIsNull(UUID recipientProfileId);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)

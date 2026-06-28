@@ -22,6 +22,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -37,6 +38,7 @@ public class NotificationServiceImpl implements NotificationService {
     private static final int DEFAULT_PAGE = 0;
     private static final int DEFAULT_SIZE = 20;
     private static final int MAX_SIZE = 100;
+    private static final Duration PROFILE_FOLLOW_COOLDOWN = Duration.ofMinutes(30);
 
     private final NotificationRepository notificationRepository;
 
@@ -122,7 +124,19 @@ public class NotificationServiceImpl implements NotificationService {
         }
 
         String normalizedType = normalizeType(type, portfolioId, commentId);
-        String normalizedDedupeKey = normalizeOptionalText(dedupeKey);
+        OffsetDateTime createdAt = nowUtc();
+        if (isRecentProfileFollowNotification(recipientProfileId, actorProfileId, normalizedType, createdAt)) {
+            log.debug(
+                    "notification.create.skipped_recent_profile_follow recipientProfileId={} actorProfileId={} cutoff={}",
+                    recipientProfileId,
+                    actorProfileId,
+                    createdAt.minus(PROFILE_FOLLOW_COOLDOWN));
+            return Optional.empty();
+        }
+
+        String normalizedDedupeKey = TYPE_PROFILE_FOLLOWED.equals(normalizedType)
+                ? null
+                : normalizeOptionalText(dedupeKey);
         if (normalizedDedupeKey != null && notificationRepository.findByDedupeKey(normalizedDedupeKey).isPresent()) {
             log.debug(
                     "notification.create.skipped_duplicate recipientProfileId={} type={} dedupeKey={}",
@@ -142,7 +156,7 @@ public class NotificationServiceImpl implements NotificationService {
                 commentId,
                 normalizedDedupeKey,
                 metadataJson(objectOrEmpty(metadata)),
-                nowUtc());
+                createdAt);
 
         if (inserted == 0) {
             log.debug(
@@ -166,6 +180,22 @@ public class NotificationServiceImpl implements NotificationService {
                     createAndQueueEmailDelivery(notification.getId(), recipientProfileId);
                     return toDto(notification);
                 });
+    }
+
+    private boolean isRecentProfileFollowNotification(
+            UUID recipientProfileId,
+            UUID actorProfileId,
+            String type,
+            OffsetDateTime now) {
+        if (!TYPE_PROFILE_FOLLOWED.equals(type) || actorProfileId == null) {
+            return false;
+        }
+
+        return notificationRepository.existsByRecipientProfile_IdAndActorProfile_IdAndTypeAndCreatedAtAfter(
+                recipientProfileId,
+                actorProfileId,
+                TYPE_PROFILE_FOLLOWED,
+                now.minus(PROFILE_FOLLOW_COOLDOWN));
     }
 
     private void createAndQueueEmailDelivery(UUID notificationId, UUID recipientProfileId) {
