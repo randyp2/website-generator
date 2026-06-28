@@ -110,14 +110,19 @@ public class SkillVerificationScoringKernel {
         // sourceQuality = sourceWeightSum / totalSkills
         BigDecimal sourceQuality = scoringPolicy.safeDivide(sourceWeightSum, totalSkills);
 
-        // Baseline overall tracks the average per-claim prior so the profile score
-        // reflects the same evidence-aware prior logic users see on claim cards.
+        // Baseline overall tracks the average per-claim prior over RECOGNIZED skills
+        // only, so the profile score reflects the same evidence-aware prior logic
+        // users see on claim cards. Unmatched (unrecognized) skills carry no trust
+        // signal and can never be improved by evidence, so they are excluded from
+        // the average instead of silently dragging it down; they surface separately
+        // as rename actions. When nothing is recognized the baseline is 0.
         // claimPrior_i = (0.70 * matchValue_i) + (0.30 * sourceWeight_i)
-        // baseNormalizedScore = average(claimPrior_i)
-        BigDecimal claimPriorSum = claimComputations.stream()
+        // baseNormalizedScore = average(claimPrior_i over matched claims)
+        BigDecimal matchedClaimPriorSum = claimComputations.stream()
+                .filter(c -> c.score().matched())
                 .map(ClaimScoreComputation::baselineClaimNormalized)
                 .reduce(SkillScoringPolicy.ZERO, BigDecimal::add);
-        BigDecimal baseNormalizedScore = scoringPolicy.safeDivide(claimPriorSum, totalSkills);
+        BigDecimal baseNormalizedScore = scoringPolicy.safeDivide(matchedClaimPriorSum, matchedSkills);
 
         // Baseline overall before evidence adjustments.
         BigDecimal baselineOverallNormalized = baseNormalizedScore;
@@ -170,8 +175,8 @@ public class SkillVerificationScoringKernel {
                 matchedSkills, totalSkills, normalizedCoverage);
         log.debug("[BASELINE SCORE] sourceQuality = sourceWeightSum/total = {}/{} = {}",
                 sourceWeightSum, totalSkills, sourceQuality);
-        log.debug("[BASELINE SCORE] claimPriorAverage = claimPriorSum/total = {}/{} = {}",
-                claimPriorSum, totalSkills, baseNormalizedScore);
+        log.debug("[BASELINE SCORE] claimPriorAverage = matchedClaimPriorSum/matched = {}/{} = {}",
+                matchedClaimPriorSum, matchedSkills, baseNormalizedScore);
         if (boundedParserConfidence != null) {
             log.debug("[BASELINE SCORE] finalNormalized = (0.90*{}) + (0.10*{}) = {}",
                     baseNormalizedScore, boundedParserConfidence, baselineOverallNormalized);
@@ -631,8 +636,10 @@ public class SkillVerificationScoringKernel {
             }
             if (unmatchedSkills > 0) {
                 return "This is your starting score — we pulled your skills from your resume but haven't seen any real-world proof yet. "
-                        + unmatchedSkills + " skill" + (unmatchedSkills == 1 ? " also couldn't" : "s also couldn't")
-                        + " be recognized, which is holding things down. "
+                        + unmatchedSkills + " skill" + (unmatchedSkills == 1 ? " couldn't" : "s couldn't")
+                        + " be recognized, so " + (unmatchedSkills == 1 ? "it isn't" : "they aren't")
+                        + " counted toward your score yet — rename " + (unmatchedSkills == 1 ? "it" : "them")
+                        + " to more common terms to include " + (unmatchedSkills == 1 ? "it" : "them") + ". "
                         + "Connect your GitHub or add portfolio links to start raising your score.";
             }
             return "This is your starting score — we pulled your skills from your resume but haven't seen any real-world proof yet. "

@@ -65,9 +65,11 @@ public class SkillScoringPolicy {
     /**
      * Canonical-matched claims without linked evidence keep reduced prior value.
      * This avoids treating extraction/canonical mapping as proof before accounts
-     * are connected.
+     * are connected, while still giving recognized skills a credible starting
+     * score (a clean resume of recognized skills lands in the mid-50s rather than
+     * looking like a failing grade before any account is connected).
      */
-    public static final BigDecimal MATCHED_WITHOUT_EVIDENCE_VALUE = new BigDecimal("0.35");
+    public static final BigDecimal MATCHED_WITHOUT_EVIDENCE_VALUE = new BigDecimal("0.45");
 
     /**
      * Additional evidence links are down-weighted geometrically by rank:

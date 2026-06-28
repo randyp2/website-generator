@@ -60,9 +60,9 @@ class SkillVerificationScoringKernelTest {
 
         SkillScoreSummary summary = kernel.score(new SkillScoreRequest(claims, null));
 
-        assertThat(summary.baselineOverallScore()).isEqualTo(35);
+        assertThat(summary.baselineOverallScore()).isEqualTo(51);
         assertThat(summary.evidenceDelta()).isZero();
-        assertThat(summary.overallScore()).isEqualTo(35);
+        assertThat(summary.overallScore()).isEqualTo(51);
         assertThat(summary.totalSkills()).isEqualTo(4);
         assertThat(summary.matchedSkills()).isEqualTo(2);
         assertThat(summary.unmatchedSkills()).isEqualTo(2);
@@ -70,12 +70,12 @@ class SkillVerificationScoringKernelTest {
         Map<UUID, SkillClaimScore> byId = summary.claims().stream()
                 .collect(Collectors.toMap(SkillClaimScore::claimId, Function.identity()));
 
-        assertThat(byId.get(c1).claimScore()).isEqualTo(49);
-        assertThat(byId.get(c1).baselineClaimScore()).isEqualTo(49);
+        assertThat(byId.get(c1).claimScore()).isEqualTo(56);
+        assertThat(byId.get(c1).baselineClaimScore()).isEqualTo(56);
         assertThat(byId.get(c1).evidenceContribution()).isZero();
         assertThat(byId.get(c1).evidenceLinksUsed()).isZero();
         assertThat(byId.get(c2).claimScore()).isEqualTo(24);
-        assertThat(byId.get(c3).claimScore()).isEqualTo(40);
+        assertThat(byId.get(c3).claimScore()).isEqualTo(47);
         assertThat(byId.get(c4).claimScore()).isEqualTo(27);
 
         assertThat(summary.unverifiedClaims()).hasSize(3);
@@ -97,9 +97,9 @@ class SkillVerificationScoringKernelTest {
 
         assertThat(summary.scoreType()).isEqualTo("initial_with_parser_confidence");
         assertThat(summary.parserConfidence()).isEqualByComparingTo("0.90");
-        assertThat(summary.baselineOverallScore()).isEqualTo(38);
+        assertThat(summary.baselineOverallScore()).isEqualTo(59);
         assertThat(summary.evidenceDelta()).isZero();
-        assertThat(summary.overallScore()).isEqualTo(38);
+        assertThat(summary.overallScore()).isEqualTo(59);
     }
 
     @Test
@@ -147,17 +147,17 @@ class SkillVerificationScoringKernelTest {
         SkillScoreSummary summary = kernel.score(new SkillScoreRequest(claims, null));
 
         assertThat(summary.scoreType()).isEqualTo("evidence_enhanced");
-        assertThat(summary.baselineOverallScore()).isEqualTo(32);
-        assertThat(summary.overallScore()).isEqualTo(44);
-        assertThat(summary.evidenceDelta()).isEqualTo(12);
+        assertThat(summary.baselineOverallScore()).isEqualTo(56);
+        assertThat(summary.overallScore()).isEqualTo(65);
+        assertThat(summary.evidenceDelta()).isEqualTo(9);
 
         Map<UUID, SkillClaimScore> byId = summary.claims().stream()
                 .collect(Collectors.toMap(SkillClaimScore::claimId, Function.identity()));
 
         SkillClaimScore evidenceClaim = byId.get(c1);
-        assertThat(evidenceClaim.baselineClaimScore()).isEqualTo(49);
-        assertThat(evidenceClaim.claimScore()).isEqualTo(61);
-        assertThat(evidenceClaim.evidenceContribution()).isEqualTo(12);
+        assertThat(evidenceClaim.baselineClaimScore()).isEqualTo(56);
+        assertThat(evidenceClaim.claimScore()).isEqualTo(65);
+        assertThat(evidenceClaim.evidenceContribution()).isEqualTo(9);
         assertThat(evidenceClaim.evidenceLinksUsed()).isEqualTo(1);
         assertThat(evidenceClaim.scoreReasonCode()).isEqualTo("evidence_boost_recent_strong");
     }
@@ -165,10 +165,11 @@ class SkillVerificationScoringKernelTest {
     @Test
     void sparseEvidenceIsNotDilutedByUnevidencedSkills() {
         // Four recognized resume skills, only one of which has strong, fresh proof.
-        // Under the old mean-over-all-matched formula the single +12 lift was divided
-        // across all four matched skills (12/4 = +3 -> overall 52). The coverage-damped
-        // formula averages over only the evidenced skill, then re-applies breadth as a
-        // damped multiplier: 12 * (1/4)^0.5 = 12 * 0.5 = +6 -> overall 55.
+        // That skill earns a +9 lift on its own card (baseline 56). Under the old
+        // mean-over-all-matched formula the +9 was divided across all four matched
+        // skills (9/4 = +2 -> overall 58). The coverage-damped formula averages over
+        // only the evidenced skill, then re-applies breadth as a damped multiplier:
+        // 9 * (1/4)^0.5 = 9 * 0.5 = +4.5 -> +5 -> overall 61.
         UUID evidencedId = UUID.randomUUID();
         UUID bare1 = UUID.randomUUID();
         UUID bare2 = UUID.randomUUID();
@@ -193,15 +194,15 @@ class SkillVerificationScoringKernelTest {
 
         SkillScoreSummary summary = kernel.score(new SkillScoreRequest(claims, null));
 
-        assertThat(summary.baselineOverallScore()).isEqualTo(49);
-        assertThat(summary.overallScore()).isEqualTo(55);
-        assertThat(summary.evidenceDelta()).isEqualTo(6);
+        assertThat(summary.baselineOverallScore()).isEqualTo(56);
+        assertThat(summary.overallScore()).isEqualTo(61);
+        assertThat(summary.evidenceDelta()).isEqualTo(5);
 
         Map<UUID, SkillClaimScore> byId = summary.claims().stream()
                 .collect(Collectors.toMap(SkillClaimScore::claimId, Function.identity()));
         // The per-claim card is unaffected: only the roll-up into the overall changed.
-        assertThat(byId.get(evidencedId).claimScore()).isEqualTo(61);
-        assertThat(byId.get(evidencedId).evidenceContribution()).isEqualTo(12);
+        assertThat(byId.get(evidencedId).claimScore()).isEqualTo(65);
+        assertThat(byId.get(evidencedId).evidenceContribution()).isEqualTo(9);
     }
 
     @Test
@@ -252,12 +253,12 @@ class SkillVerificationScoringKernelTest {
         SkillClaimScore claimScore = summary.claims().getFirst();
 
         assertThat(summary.scoreType()).isEqualTo("evidence_enhanced");
-        assertThat(summary.baselineOverallScore()).isEqualTo(49);
-        assertThat(summary.overallScore()).isEqualTo(49);
+        assertThat(summary.baselineOverallScore()).isEqualTo(56);
+        assertThat(summary.overallScore()).isEqualTo(56);
         assertThat(summary.evidenceDelta()).isZero();
 
-        assertThat(claimScore.baselineClaimScore()).isEqualTo(49);
-        assertThat(claimScore.claimScore()).isEqualTo(49);
+        assertThat(claimScore.baselineClaimScore()).isEqualTo(56);
+        assertThat(claimScore.claimScore()).isEqualTo(56);
         assertThat(claimScore.evidenceContribution()).isZero();
         assertThat(claimScore.evidenceLinksUsed()).isEqualTo(1);
     }
