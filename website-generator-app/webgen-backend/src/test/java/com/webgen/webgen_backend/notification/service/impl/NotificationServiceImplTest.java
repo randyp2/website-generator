@@ -8,6 +8,7 @@ import com.webgen.webgen_backend.notification.dto.NotificationListResponseDTO;
 import com.webgen.webgen_backend.notification.entity.Notification;
 import com.webgen.webgen_backend.notification.repository.NotificationRepository;
 import com.webgen.webgen_backend.notification.service.NotificationService;
+import com.webgen.webgen_backend.notification.service.job.NotificationEmailQueueService;
 import com.webgen.webgen_backend.portfolio.entity.Portfolio;
 import com.webgen.webgen_backend.portfolio.entity.PortfolioComment;
 import com.webgen.webgen_backend.profile.entity.Profile;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.lang.reflect.Proxy;
@@ -35,7 +37,7 @@ class NotificationServiceImplTest {
     @Test
     void createNotificationInsertsAndReturnsMappedDto() {
         RepositoryStub repository = new RepositoryStub();
-        NotificationServiceImpl service = new NotificationServiceImpl(repository.proxy(), objectMapper);
+        NotificationServiceImpl service = service(repository);
 
         UUID recipientId = UUID.randomUUID();
         UUID actorId = UUID.randomUUID();
@@ -83,7 +85,9 @@ class NotificationServiceImplTest {
     @Test
     void createNotificationSkipsSelfNotification() {
         RepositoryStub repository = new RepositoryStub();
-        NotificationServiceImpl service = new NotificationServiceImpl(repository.proxy(), objectMapper);
+        RecordingEmailDeliveryService emailDeliveryService = new RecordingEmailDeliveryService();
+        RecordingEmailQueueService emailQueueService = new RecordingEmailQueueService();
+        NotificationServiceImpl service = service(repository, emailDeliveryService, emailQueueService);
         UUID profileId = UUID.randomUUID();
 
         Optional<NotificationDTO> result = service.createNotification(
@@ -97,12 +101,16 @@ class NotificationServiceImplTest {
 
         assertThat(result).isEmpty();
         assertThat(repository.invocations).isZero();
+        assertThat(emailDeliveryService.createCalls).isZero();
+        assertThat(emailQueueService.queueCalls).isZero();
     }
 
     @Test
     void createNotificationSkipsExistingDedupeKey() {
         RepositoryStub repository = new RepositoryStub();
-        NotificationServiceImpl service = new NotificationServiceImpl(repository.proxy(), objectMapper);
+        RecordingEmailDeliveryService emailDeliveryService = new RecordingEmailDeliveryService();
+        RecordingEmailQueueService emailQueueService = new RecordingEmailQueueService();
+        NotificationServiceImpl service = service(repository, emailDeliveryService, emailQueueService);
         String dedupeKey = "portfolio-like:1";
         repository.notificationsByDedupeKey.put(dedupeKey, new Notification());
 
@@ -118,12 +126,14 @@ class NotificationServiceImplTest {
         assertThat(result).isEmpty();
         assertThat(repository.findByDedupeKeyCalls).isEqualTo(1);
         assertThat(repository.insertCalls).isZero();
+        assertThat(emailDeliveryService.createCalls).isZero();
+        assertThat(emailQueueService.queueCalls).isZero();
     }
 
     @Test
     void createProfileFollowedNotificationAllowsNoPortfolioOrComment() {
         RepositoryStub repository = new RepositoryStub();
-        NotificationServiceImpl service = new NotificationServiceImpl(repository.proxy(), objectMapper);
+        NotificationServiceImpl service = service(repository);
 
         UUID recipientId = UUID.randomUUID();
         UUID actorId = UUID.randomUUID();
@@ -153,7 +163,7 @@ class NotificationServiceImplTest {
     @Test
     void createNotificationRejectsCommentTypeWithoutCommentId() {
         RepositoryStub repository = new RepositoryStub();
-        NotificationServiceImpl service = new NotificationServiceImpl(repository.proxy(), objectMapper);
+        NotificationServiceImpl service = service(repository);
 
         assertThatThrownBy(() -> service.createNotification(
                 UUID.randomUUID(),
@@ -170,9 +180,52 @@ class NotificationServiceImplTest {
     }
 
     @Test
+    void createNotificationCreatesEmailDeliveryAndQueuesAfterCommit() {
+        RepositoryStub repository = new RepositoryStub();
+        RecordingEmailDeliveryService emailDeliveryService = new RecordingEmailDeliveryService();
+        RecordingEmailQueueService emailQueueService = new RecordingEmailQueueService();
+        NotificationServiceImpl service = service(repository, emailDeliveryService, emailQueueService);
+
+        UUID recipientId = UUID.randomUUID();
+        UUID actorId = UUID.randomUUID();
+        UUID portfolioId = UUID.randomUUID();
+        UUID deliveryId = UUID.randomUUID();
+        emailDeliveryService.nextDeliveryId = Optional.of(deliveryId);
+        repository.profiles.put(recipientId, profile(recipientId, "Recipient", "recipient"));
+        repository.profiles.put(actorId, profile(actorId, "Actor Name", "actor"));
+        repository.portfolios.put(portfolioId, portfolio(portfolioId, "Portfolio Title", "portfolio-slug"));
+
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            Optional<NotificationDTO> result = service.createNotification(
+                    recipientId,
+                    actorId,
+                    NotificationService.TYPE_PORTFOLIO_LIKED,
+                    portfolioId,
+                    null,
+                    "portfolio-like:" + portfolioId + ":" + actorId,
+                    objectMapper.createObjectNode());
+
+            assertThat(result).isPresent();
+            assertThat(emailDeliveryService.createCalls).isEqualTo(1);
+            assertThat(emailDeliveryService.notificationId).isEqualTo(result.get().getId());
+            assertThat(emailDeliveryService.recipientProfileId).isEqualTo(recipientId);
+            assertThat(emailQueueService.queueCalls).isZero();
+
+            TransactionSynchronizationManager.getSynchronizations()
+                    .forEach(synchronization -> synchronization.afterCommit());
+
+            assertThat(emailQueueService.queueCalls).isEqualTo(1);
+            assertThat(emailQueueService.deliveryId).isEqualTo(deliveryId);
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
+    @Test
     void listNotificationsNormalizesPaginationAndMapsRows() {
         RepositoryStub repository = new RepositoryStub();
-        NotificationServiceImpl service = new NotificationServiceImpl(repository.proxy(), objectMapper);
+        NotificationServiceImpl service = service(repository);
         UUID recipientId = UUID.randomUUID();
         UUID notificationId = UUID.randomUUID();
         repository.rows = List.of(notification(
@@ -203,7 +256,7 @@ class NotificationServiceImplTest {
     @Test
     void markReadSetsReadAtAndSavesUnreadNotification() {
         RepositoryStub repository = new RepositoryStub();
-        NotificationServiceImpl service = new NotificationServiceImpl(repository.proxy(), objectMapper);
+        NotificationServiceImpl service = service(repository);
         UUID recipientId = UUID.randomUUID();
         UUID notificationId = UUID.randomUUID();
         Notification notification = notification(
@@ -229,7 +282,7 @@ class NotificationServiceImplTest {
     @Test
     void markReadDoesNotSaveAlreadyReadNotification() {
         RepositoryStub repository = new RepositoryStub();
-        NotificationServiceImpl service = new NotificationServiceImpl(repository.proxy(), objectMapper);
+        NotificationServiceImpl service = service(repository);
         UUID recipientId = UUID.randomUUID();
         UUID notificationId = UUID.randomUUID();
         OffsetDateTime readAt = OffsetDateTime.parse("2026-01-01T00:00:00Z");
@@ -254,7 +307,7 @@ class NotificationServiceImplTest {
     @Test
     void countUnreadAndMarkAllReadHandleNullRecipientWithoutRepositoryCalls() {
         RepositoryStub repository = new RepositoryStub();
-        NotificationServiceImpl service = new NotificationServiceImpl(repository.proxy(), objectMapper);
+        NotificationServiceImpl service = service(repository);
 
         assertThat(service.countUnread(null)).isZero();
         assertThat(service.markAllRead(null)).isZero();
@@ -265,7 +318,7 @@ class NotificationServiceImplTest {
     @Test
     void markAllReadDelegatesToRepositoryForRecipient() {
         RepositoryStub repository = new RepositoryStub();
-        NotificationServiceImpl service = new NotificationServiceImpl(repository.proxy(), objectMapper);
+        NotificationServiceImpl service = service(repository);
         UUID recipientId = UUID.randomUUID();
         repository.markAllResult = 3;
 
@@ -273,6 +326,26 @@ class NotificationServiceImplTest {
         assertThat(repository.markAllCalls).isEqualTo(1);
         assertThat(repository.lastMarkAllRecipientId).isEqualTo(recipientId);
         assertThat(repository.lastMarkAllReadAt).isNotNull();
+    }
+
+    private NotificationServiceImpl service(RepositoryStub repository) {
+        return service(
+                repository,
+                new RecordingEmailDeliveryService(),
+                new RecordingEmailQueueService()
+        );
+    }
+
+    private NotificationServiceImpl service(
+            RepositoryStub repository,
+            RecordingEmailDeliveryService emailDeliveryService,
+            RecordingEmailQueueService emailQueueService) {
+        return new NotificationServiceImpl(
+                repository.proxy(),
+                objectMapper,
+                emailDeliveryService,
+                emailQueueService
+        );
     }
 
     private Notification notification(
@@ -334,6 +407,40 @@ class NotificationServiceImplTest {
                     "Unexpected repository method invocation: " + methodName
             );
         };
+    }
+
+    private static class RecordingEmailDeliveryService extends NotificationEmailDeliveryService {
+        private Optional<UUID> nextDeliveryId = Optional.of(UUID.randomUUID());
+        private int createCalls;
+        private UUID notificationId;
+        private UUID recipientProfileId;
+
+        private RecordingEmailDeliveryService() {
+            super(null);
+        }
+
+        @Override
+        public Optional<UUID> createPendingDelivery(UUID notificationId, UUID recipientProfileId) {
+            createCalls++;
+            this.notificationId = notificationId;
+            this.recipientProfileId = recipientProfileId;
+            return nextDeliveryId;
+        }
+    }
+
+    private static class RecordingEmailQueueService extends NotificationEmailQueueService {
+        private int queueCalls;
+        private UUID deliveryId;
+
+        private RecordingEmailQueueService() {
+            super(null);
+        }
+
+        @Override
+        public void queueDelivery(UUID deliveryId) {
+            queueCalls++;
+            this.deliveryId = deliveryId;
+        }
     }
 
     private class RepositoryStub {

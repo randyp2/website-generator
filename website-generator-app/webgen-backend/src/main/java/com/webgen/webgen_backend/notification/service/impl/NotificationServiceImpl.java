@@ -7,14 +7,19 @@ import com.webgen.webgen_backend.notification.dto.NotificationListResponseDTO;
 import com.webgen.webgen_backend.notification.entity.Notification;
 import com.webgen.webgen_backend.notification.repository.NotificationRepository;
 import com.webgen.webgen_backend.notification.service.NotificationService;
+import com.webgen.webgen_backend.notification.service.job.NotificationEmailQueueService;
 import com.webgen.webgen_backend.portfolio.entity.Portfolio;
 import com.webgen.webgen_backend.portfolio.entity.PortfolioComment;
 import com.webgen.webgen_backend.profile.entity.Profile;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -29,12 +34,16 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
 
+    private static final Logger log = LoggerFactory.getLogger(NotificationServiceImpl.class);
+
     private static final int DEFAULT_PAGE = 0;
     private static final int DEFAULT_SIZE = 20;
     private static final int MAX_SIZE = 100;
 
     private final NotificationRepository notificationRepository;
     private final ObjectMapper objectMapper;
+    private final NotificationEmailDeliveryService notificationEmailDeliveryService;
+    private final NotificationEmailQueueService notificationEmailQueueService;
 
     @Override
     @Transactional(readOnly = true)
@@ -130,7 +139,38 @@ public class NotificationServiceImpl implements NotificationService {
         }
 
         return notificationRepository.findByIdAndRecipientProfile_Id(notificationId, recipientProfileId)
-                .map(this::toDto);
+                .map(notification -> {
+                    createAndQueueEmailDelivery(notification.getId(), recipientProfileId);
+                    return toDto(notification);
+                });
+    }
+
+    private void createAndQueueEmailDelivery(UUID notificationId, UUID recipientProfileId) {
+        notificationEmailDeliveryService
+                .createPendingDelivery(notificationId, recipientProfileId)
+                .ifPresent(this::queueEmailDeliveryAfterCommit);
+    }
+
+    private void queueEmailDeliveryAfterCommit(UUID deliveryId) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            queueEmailDelivery(deliveryId);
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                queueEmailDelivery(deliveryId);
+            }
+        });
+    }
+
+    private void queueEmailDelivery(UUID deliveryId) {
+        try {
+            notificationEmailQueueService.queueDelivery(deliveryId);
+        } catch (Exception exception) {
+            log.warn("Failed to queue notification email delivery {}", deliveryId, exception);
+        }
     }
 
     private Notification findOwnedNotification(UUID recipientProfileId, UUID notificationId) {
