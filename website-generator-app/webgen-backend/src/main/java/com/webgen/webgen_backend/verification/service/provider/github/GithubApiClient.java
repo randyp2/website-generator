@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubContentResponse;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubPathEntry;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubRepoResponse;
+import com.webgen.webgen_backend.verification.service.provider.github.model.GithubTreeResponse;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubUserResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -27,6 +29,7 @@ import java.util.List;
 import static com.webgen.webgen_backend.verification.service.sync.VerificationMatchTextHelper.isBlank;
 import static com.webgen.webgen_backend.verification.service.sync.VerificationMatchTextHelper.readText;
 
+@Slf4j
 @Component
 public class GithubApiClient {
 
@@ -189,6 +192,69 @@ public class GithubApiClient {
             }
             return List.of();
         } catch (Exception exception) {
+            return List.of();
+        }
+    }
+
+    /**
+     * Fetches a repository's full file listing in a single call via the Git Trees
+     * API (GET /repos/{owner}/{repo}/git/trees/{ref}?recursive=1), returning the
+     * flat list of file (blob) paths. This replaces directory-by-directory
+     * traversal for locating files of interest.
+     *
+     * For very large repositories GitHub may truncate the tree; that case is
+     * logged and the partial listing is returned rather than failing the sync.
+     *
+     * @param ref branch name or commit/tree SHA to read the tree at
+     * @return repo-root-relative file paths, or an empty list if unavailable
+     */
+    public List<String> fetchRepositoryTree(
+            String accessToken,
+            String owner,
+            String repo,
+            String ref) {
+        String url = UriComponentsBuilder
+                .fromUriString("https://api.github.com/repos/{owner}/{repo}/git/trees/{ref}")
+                .queryParam("recursive", "1")
+                .buildAndExpand(owner, repo, isBlank(ref) ? "main" : ref)
+                .toUriString();
+
+        try {
+            ResponseEntity<GithubTreeResponse> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    new HttpEntity<>(buildGithubApiHeaders(accessToken)),
+                    GithubTreeResponse.class);
+
+            GithubTreeResponse body = response.getBody();
+            if (body == null || body.tree() == null) {
+                return List.of();
+            }
+
+            if (body.truncated()) {
+                log.warn(
+                        "github.tree.truncated owner={} repo={} ref={} returnedEntries={}",
+                        owner,
+                        repo,
+                        ref,
+                        body.tree().size());
+            }
+
+            return body.tree().stream()
+                    .filter(entry -> entry != null && "blob".equals(entry.type()))
+                    .map(GithubTreeResponse.Entry::path)
+                    .filter(path -> !isBlank(path))
+                    .toList();
+        } catch (RestClientResponseException exception) {
+            if (exception.getStatusCode() == HttpStatus.UNAUTHORIZED
+                    || exception.getStatusCode() == HttpStatus.FORBIDDEN) {
+                throw new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "GitHub repository tree fetch unauthorized. Reconnect is required.",
+                        exception);
+            }
+            return List.of();
+        } catch (RestClientException exception) {
             return List.of();
         }
     }
