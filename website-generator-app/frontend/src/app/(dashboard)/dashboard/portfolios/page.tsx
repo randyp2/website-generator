@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
@@ -21,8 +21,14 @@ import {
 import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
 import { buildPortfolioUrl } from "@/lib/public-env";
+import type { Portfolio as PortfolioRecord } from "@/types/portfolio";
 import { DeletePortfolioOverlay } from "../components/DeletePortfolioOverlay";
 import { usePortfolioEngagementMetrics } from "../hooks/usePortfolioEngagementMetrics";
+import {
+  usePortfolioDeleteMutation,
+  usePortfolioListQuery,
+  usePortfolioUpdateMutation,
+} from "../hooks/usePortfolioListQuery";
 
 interface Portfolio {
   id: string;
@@ -33,21 +39,12 @@ interface Portfolio {
   url: string | null;
 }
 
-interface PortfolioListItem {
-  id: string;
-  title: string;
-  status?: string;
-  updated_at?: string;
-  created_at?: string;
+type PortfolioListItem = PortfolioRecord & {
   url?: string | null;
-  slug?: string | null;
   external_url?: string | null;
   externalUrl?: string | null;
-  source_type?: string | null;
-  sourceType?: string | null;
-  screenshot_url?: string | null;
   screenshotUrl?: string | null;
-}
+};
 
 const DEPLOYED_STATUSES = new Set(["active", "publish", "published"]);
 
@@ -71,10 +68,6 @@ const resolvePortfolioUrl = (
   return null;
 };
 
-interface PortfolioListResponse {
-  portfolios: PortfolioListItem[];
-}
-
 const DEFAULT_PORTFOLIO_CARD_IMAGE =
   "https://images.unsplash.com/photo-1545665277-5937489579f2?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
 
@@ -87,22 +80,26 @@ const PortfolioManager: React.FC = () => {
   const router = useRouter();
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
-  const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
 
   // NEW: State for edit modal - tracks which portfolio is being edited
   const [editingPortfolio, setEditingPortfolio] = useState<Portfolio | null>(null);
   const [editFormData, setEditFormData] = useState({ title: "", url: "" });
-  const [isSaving, setIsSaving] = useState<boolean>(false);
 
   // State for delete confirmation modal
   const [deleteTarget, setDeleteTarget] = useState<Portfolio | null>(null);
-  const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   // Extract user from context
   const { user } = useUser();
   const { id: userId } = user;
   const usernameOrEmail = user?.username?.trim() || user?.email?.trim() || null;
+  const {
+    data: portfolioRows = [],
+    isLoading: loading,
+  } = usePortfolioListQuery(userId);
+  const updatePortfolioMutation = usePortfolioUpdateMutation(userId);
+  const deletePortfolioMutation = usePortfolioDeleteMutation(userId);
+  const isSaving = updatePortfolioMutation.isPending;
+  const isDeleting = deletePortfolioMutation.isPending;
 
   const { rows: engagementRows } = usePortfolioEngagementMetrics();
   const engagementByPortfolioId = useMemo(() => {
@@ -119,54 +116,24 @@ const PortfolioManager: React.FC = () => {
   }, [engagementRows]);
 
 
-  // API call to fetch portfolios - Occurs on mount
-  useEffect(() => {
-    if (!userId) {
-      setLoading(false);
-      return;
-    }
+  const portfolios = useMemo<Portfolio[]>(
+    () =>
+      portfolioRows.map((item) => {
+        const lastEditedSource = item.updated_at ?? item.created_at;
 
-    const handleFetchPortfolios = async () => {
-      try {
-        setLoading(true);
-
-        // Make api call to fetch portfolios
-        const response: Response = await fetch(`/api/portfolio/list?userId=${userId}`, {
-          method: "GET",
-        });
-
-        if (!response.ok ) throw new Error(`HTTP error! status: ${response.status}`);
-        
-        const data: PortfolioListResponse = await response.json();
-
-        // Convert DB Rows to card format
-        const formattedPortfolios: Portfolio[] = data.portfolios.map((item) => {
-          const lastEditedSource = item.updated_at ?? item.created_at;
-
-          return {
-            id: item.id,
-            title: item.title,
-            thumbnail: getPortfolioCardImage(item),
-            status: item.status ?? "draft",
-            lastEdited: lastEditedSource
-              ? new Date(lastEditedSource).toLocaleDateString()
-              : "Unknown",
-            url: resolvePortfolioUrl(item, usernameOrEmail),
-          };
-        });
-
-        setPortfolios(formattedPortfolios);
-
-      } catch (err) {
-        console.error("Error fetching portfolios:", err);
-        alert("Failed to fetch portfolios. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    handleFetchPortfolios();
-  }, [userId, usernameOrEmail]);
+        return {
+          id: String(item.id),
+          title: item.title,
+          thumbnail: getPortfolioCardImage(item),
+          status: item.status ?? "draft",
+          lastEdited: lastEditedSource
+            ? new Date(lastEditedSource).toLocaleDateString()
+            : "Unknown",
+          url: resolvePortfolioUrl(item, usernameOrEmail),
+        };
+      }),
+    [portfolioRows, usernameOrEmail],
+  );
 
   // Handler to open edit modal - triggered when user clicks Edit icon
   const handleEditClick = (portfolio: Portfolio) => {
@@ -189,38 +156,12 @@ const PortfolioManager: React.FC = () => {
     if (!editingPortfolio) return;
 
     try {
-      setIsSaving(true);
-
-      const response = await fetch(`/api/portfolio/${editingPortfolio.id}/update`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      await updatePortfolioMutation.mutateAsync({
+        portfolioId: editingPortfolio.id,
+        patch: {
           title: editFormData.title,
-          // Include other fields if neede
-        }),
+        },
       });
-
-      if (!response.ok) {
-        throw new Error(`Failed to update portfolio: ${response.status}`);
-      }
-
-      await response.json();
-
-      // Update local state to reflect changes immediately
-      setPortfolios((prev) =>
-        prev.map((p) =>
-          p.id === editingPortfolio.id
-            ? {
-                ...p,
-                title: editFormData.title,
-                url: editFormData.url,
-                lastEdited: new Date().toLocaleDateString(),
-              }
-            : p
-        )
-      );
 
       // Close modal and show success
       handleCloseEdit();
@@ -228,32 +169,18 @@ const PortfolioManager: React.FC = () => {
     } catch (error) {
       console.error("Error updating portfolio:", error);
       alert("Failed to update portfolio. Please try again.");
-    } finally {
-      setIsSaving(false);
     }
   };
 
     // Handler to delete portfolio
     const handleDelete = async (portfolioId: string) => {
         try {
-            setIsDeleting(true);
-            const res: Response = await fetch(`/api/portfolio/${portfolioId}/delete`, {
-                method: "DELETE",
-            });
-
-            if (!res.ok) {
-                throw new Error(`HTTP error: ${res.status}`);
-            }
-
-            // Update UI
-            setPortfolios(prev => prev.filter(p => p.id !== portfolioId));
+            await deletePortfolioMutation.mutateAsync(portfolioId);
             setDeleteTarget(null);
 
         } catch (error) {
             console.error("Deletion failed: ", error);
             alert("Failed to delete portfolio.");
-        } finally {
-            setIsDeleting(false);
         }
     }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -27,6 +27,7 @@ import { signoutClient } from "@/lib/logout-client";
 import { useUser } from "@/context/UserContext";
 import BrandWordmark from "@/components/branding/BrandWordmark";
 import useMyProfilePath from "@/hooks/useMyProfilePath";
+import { usePortfolioListQuery } from "../dashboard/hooks/usePortfolioListQuery";
 
 interface NavItem {
     id: string;
@@ -62,43 +63,14 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
     const router = useRouter();
     const { profilePath } = useMyProfilePath(true);
     const { theme, setTheme } = useTheme();
-    const [portfoliosCount, setPortfoliosCount] = useState<number>(0);
+    const { data: portfolios = [] } = usePortfolioListQuery(user?.id);
+    const portfoliosCount = portfolios.length;
     const [showProfileMenu, setShowProfileMenu] = useState<boolean>(false);
     const [showThemeModal, setShowThemeModal] = useState<boolean>(false);
     const currentTheme =
         theme === "light" || theme === "dark" || theme === "system"
             ? theme
             : "system";
-
-    // Make GET request to fetch portfolios count
-    useEffect(() => {
-        if (!user?.id) return;
-
-        const fetchPortfoliosCount = async () => {
-            try {
-                // Make api call
-                const response: Response = await fetch(
-                    `/api/portfolio/list?userId=${user.id}`,
-                    {
-                        method: "GET",
-                    },
-                );
-
-                if (!response.ok)
-                    throw new Error(`HTTP error! status: ${response.status}`);
-
-                const json = await response.json();
-
-                // Update state with count
-                setPortfoliosCount(json.portfolios.length);
-            } catch (err) {
-                console.error("Error fetching portfolios:", err);
-                alert("Failed to fetch portfolios. Please try again.");
-            }
-        };
-
-        fetchPortfoliosCount();
-    }, [user?.id]);
 
     const collapsed = externalCollapsed ?? false;
 
@@ -209,7 +181,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
         );
     };
 
-    const SidebarContent = () => (
+    const renderSidebarContent = () => (
         <div className="flex h-full flex-col [&_button:hover]:cursor-pointer">
             {/* Logo / Brand */}
             <div
@@ -429,7 +401,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                 transition={{ duration: 0.3, ease: "easeInOut" }}
                 className="fixed left-0 top-0 z-40 hidden h-screen bg-sidebar shadow-2xl shadow-black/40 md:block"
             >
-                <SidebarContent />
+                {renderSidebarContent()}
             </motion.aside>
 
             {/* Mobile Drawer */}
@@ -461,7 +433,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                                 <FiX className="h-5 w-5 text-sidebar-foreground/80" />
                             </button>
 
-                            <SidebarContent />
+                            {renderSidebarContent()}
                         </motion.aside>
                     </>
                 )}

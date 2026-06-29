@@ -1,9 +1,13 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useMemo } from "react"
 
 import type { Portfolio } from "@/types/portfolio"
 
+import {
+  usePortfolioListCache,
+  usePortfolioListQuery,
+} from "../../hooks/usePortfolioListQuery"
 import { isDeployedPortfolio, isExternalPortfolio } from "../../utils/deployedPortfolio"
 import { compareByUpdatedAtDesc } from "../lib/sortPortfolios"
 
@@ -24,32 +28,21 @@ const normalizePortfolio = (item: Portfolio): Portfolio => ({
 export const usePortfoliosList = (
   userId: string | null | undefined,
 ): UsePortfoliosListResult => {
-  const [portfolios, setPortfolios] = useState<Portfolio[]>([])
-  const [loading, setLoading] = useState<boolean>(true)
+  const {
+    data: portfolioRows = [],
+    isLoading,
+    refetch,
+  } = usePortfolioListQuery(userId)
+  const { setPortfolios } = usePortfolioListCache(userId)
 
   const reload = useCallback(async (): Promise<void> => {
-    if (!userId) return
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/portfolio/list?userId=${userId}`)
-      if (!res.ok) throw new Error("Failed to fetch portfolios")
-      const data: unknown = await res.json()
-      const rawRows = (data as { portfolios?: unknown })?.portfolios
-      const rows: Portfolio[] = Array.isArray(rawRows)
-        ? (rawRows as Portfolio[]).map(normalizePortfolio)
-        : []
-      setPortfolios(rows)
-    } catch (error) {
-      console.error("Failed to fetch portfolios", error)
-      setPortfolios([])
-    } finally {
-      setLoading(false)
-    }
-  }, [userId])
+    await refetch()
+  }, [refetch])
 
-  useEffect(() => {
-    void reload()
-  }, [reload])
+  const portfolios = useMemo<Portfolio[]>(
+    () => portfolioRows.map(normalizePortfolio),
+    [portfolioRows],
+  )
 
   const drafts = useMemo<Portfolio[]>(
     () =>
@@ -64,5 +57,5 @@ export const usePortfoliosList = (
     [portfolios],
   )
 
-  return { portfolios, drafts, live, loading, reload, setPortfolios }
+  return { portfolios, drafts, live, loading: isLoading, reload, setPortfolios }
 }

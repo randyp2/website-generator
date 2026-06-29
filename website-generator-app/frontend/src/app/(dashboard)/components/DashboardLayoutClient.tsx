@@ -8,6 +8,7 @@ import { SidebarProvider, useSidebar } from "@/context/SidebarContext";
 import { usePathname } from "next/navigation";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import HeaderCreditsChip from "./HeaderCreditsChip";
+import DashboardQueryProvider from "./DashboardQueryProvider";
 
 interface DashboardLayoutClientProps {
   children: React.ReactNode;
@@ -156,9 +157,11 @@ const DashboardLayoutClient: React.FC<DashboardLayoutClientProps> = ({
   children,
 }) => {
   return (
-    <SidebarProvider>
-      <DashboardLayoutClientInner>{children}</DashboardLayoutClientInner>
-    </SidebarProvider>
+    <DashboardQueryProvider>
+      <SidebarProvider>
+        <DashboardLayoutClientInner>{children}</DashboardLayoutClientInner>
+      </SidebarProvider>
+    </DashboardQueryProvider>
   );
 };
 

@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useUser } from "@/context/UserContext";
-import type { Portfolio } from "@/types/portfolio";
 import { fetchPortfolioEngagementSummary } from "@/app/(public)/(site)/explore/[slug]/portfolio-engagement.api";
 import type { PortfolioEngagementSummary } from "@/app/(public)/(site)/explore/[slug]/portfolio-engagement.types";
 import { isDeployedPortfolio } from "../utils/deployedPortfolio";
+import { usePortfolioListQuery } from "./usePortfolioListQuery";
 
 export type PortfolioEngagementRow = {
     portfolioId: string;
@@ -44,68 +44,64 @@ const EMPTY_TOTALS: EngagementTotals = {
 
 export const usePortfolioEngagementMetrics = (): PortfolioEngagementMetrics => {
     const { user } = useUser();
-    const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
+    const {
+        data: portfolios = [],
+        isLoading: isPortfolioListLoading,
+    } = usePortfolioListQuery(user?.id);
     const [summariesBySlug, setSummariesBySlug] = useState<Record<string, PortfolioEngagementSummary>>({});
-    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [isEngagementLoading, setIsEngagementLoading] = useState<boolean>(false);
+
+    const deployedSlugs = useMemo(
+        () =>
+            portfolios
+                .filter(isDeployedPortfolio)
+                .map((p) => p.slug?.trim())
+                .filter((slug): slug is string => Boolean(slug)),
+        [portfolios],
+    );
+    const deployedSlugKey = deployedSlugs.join("|");
 
     useEffect(() => {
         let cancelled = false;
-        const userId = user?.id;
-        if (!userId) {
-            setPortfolios([]);
-            setIsLoading(false);
+
+        if (deployedSlugs.length === 0) {
+            setSummariesBySlug({});
+            setIsEngagementLoading(false);
             return;
         }
 
-        setIsLoading(true);
-
-        const loadAll = async () => {
+        const loadSummaries = async () => {
+            setIsEngagementLoading(true);
             try {
-                const response = await fetch(`/api/portfolio/list?userId=${userId}`);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const data = await response.json();
-                const rows: Portfolio[] = Array.isArray(data?.portfolios) ? data.portfolios : [];
-                if (cancelled) return;
-                setPortfolios(rows);
-
-                const deployedWithSlug = rows
-                    .filter(isDeployedPortfolio)
-                    .map((p) => p.slug?.trim())
-                    .filter((slug): slug is string => Boolean(slug));
-
-                if (deployedWithSlug.length === 0) {
-                    setSummariesBySlug({});
-                    return;
-                }
-
                 const results = await Promise.allSettled(
-                    deployedWithSlug.map((slug) => fetchPortfolioEngagementSummary(slug)),
+                    deployedSlugs.map((slug) => fetchPortfolioEngagementSummary(slug)),
                 );
 
                 if (cancelled) return;
                 const next: Record<string, PortfolioEngagementSummary> = {};
                 results.forEach((result, index) => {
                     if (result.status === "fulfilled") {
-                        next[deployedWithSlug[index]] = result.value;
+                        next[deployedSlugs[index]] = result.value;
                     }
                 });
                 setSummariesBySlug(next);
             } catch {
                 if (!cancelled) {
-                    setPortfolios([]);
                     setSummariesBySlug({});
                 }
             } finally {
-                if (!cancelled) setIsLoading(false);
+                if (!cancelled) setIsEngagementLoading(false);
             }
         };
 
-        loadAll();
+        loadSummaries();
 
         return () => {
             cancelled = true;
         };
-    }, [user?.id]);
+    }, [deployedSlugKey, deployedSlugs]);
+
+    const isLoading = isPortfolioListLoading || isEngagementLoading;
 
     return useMemo(() => {
         const rows: PortfolioEngagementRow[] = portfolios
