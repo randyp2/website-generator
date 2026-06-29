@@ -63,6 +63,12 @@
 		</dependency>
         <!-- Lombok Dependency -->
 
+        <!-- TOML parsing for repo manifests (Cargo.toml, pyproject.toml); version managed by Spring Boot's Jackson BOM -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-toml</artifactId>
+        </dependency>
+
         <!-- ai dependency -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
