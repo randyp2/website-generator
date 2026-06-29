@@ -1,15 +1,15 @@
 "use client"
 
-import * as React from "react"
+import { useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { BellOff, Loader2 } from "lucide-react"
 
 import { NotificationItem } from "@/components/notifications/NotificationItem"
 import {
-  fetchNotifications,
-  markAllNotificationsRead,
-  markNotificationRead,
-} from "@/components/notifications/notifications.api"
+  useMarkAllNotificationsReadMutation,
+  useMarkNotificationReadMutation,
+  useNotificationsInfiniteQuery,
+} from "@/components/notifications/notifications.query"
 import type { NotificationDTO } from "@/components/notifications/notifications.types"
 
 import { groupNotificationsByRecency } from "./notifications.page.utils"
@@ -18,61 +18,28 @@ const PAGE_SIZE = 20
 
 export const NotificationsPageClient = () => {
   const router = useRouter()
-  const [notifications, setNotifications] = React.useState<NotificationDTO[]>([])
-  const [page, setPage] = React.useState(0)
-  const [hasMore, setHasMore] = React.useState(false)
-  const [isLoading, setIsLoading] = React.useState(true)
-  const [isLoadingMore, setIsLoadingMore] = React.useState(false)
-  const [error, setError] = React.useState<string | null>(null)
+  const notificationsQuery = useNotificationsInfiniteQuery(PAGE_SIZE)
+  const markReadMutation = useMarkNotificationReadMutation()
+  const markAllReadMutation = useMarkAllNotificationsReadMutation()
 
-  const loadPage = React.useCallback(
-    async (pageToLoad: number, { append }: { append: boolean }) => {
-      if (append) setIsLoadingMore(true)
-      else setIsLoading(true)
-      setError(null)
-
-      try {
-        const { notifications: pageItems } = await fetchNotifications({
-          page: pageToLoad,
-          size: PAGE_SIZE,
-        })
-        setNotifications((current) =>
-          append ? [...current, ...pageItems] : pageItems,
-        )
-        setPage(pageToLoad)
-        setHasMore(pageItems.length === PAGE_SIZE)
-      } catch (loadError) {
-        console.error("Failed to load notifications:", loadError)
-        setError("Could not load your notifications.")
-      } finally {
-        setIsLoading(false)
-        setIsLoadingMore(false)
-      }
-    },
-    [],
+  const notifications = useMemo(
+    () =>
+      notificationsQuery.data?.pages.flatMap((page) => page.notifications) ??
+      [],
+    [notificationsQuery.data],
   )
+  const error = notificationsQuery.error
+    ? notificationsQuery.error instanceof Error
+      ? notificationsQuery.error.message
+      : "Could not load your notifications."
+    : null
 
-  React.useEffect(() => {
-    void loadPage(0, { append: false })
-  }, [loadPage])
-
-  const handleSelect = React.useCallback(
+  const handleSelect = useCallback(
     async (notification: NotificationDTO) => {
       if (!notification.read) {
-        setNotifications((current) =>
-          current.map((candidate) =>
-            candidate.id === notification.id
-              ? {
-                  ...candidate,
-                  read: true,
-                  readAt: candidate.readAt ?? new Date().toISOString(),
-                }
-              : candidate,
-          ),
-        )
-        void markNotificationRead(notification.id).catch((markError) =>
-          console.error("Failed to mark notification as read:", markError),
-        )
+        void markReadMutation.mutateAsync(notification.id).catch((markError) => {
+          console.error("Failed to mark notification as read:", markError)
+        })
       }
 
       if (notification.portfolioSlug) {
@@ -84,31 +51,21 @@ export const NotificationsPageClient = () => {
         router.push(`/${encodeURIComponent(notification.actorUsername)}`)
       }
     },
-    [router],
+    [markReadMutation, router],
   )
 
-  const handleMarkAllRead = React.useCallback(async () => {
-    const previous = notifications
-    const now = new Date().toISOString()
-    setNotifications((current) =>
-      current.map((notification) => ({
-        ...notification,
-        read: true,
-        readAt: notification.readAt ?? now,
-      })),
-    )
-
+  const handleMarkAllRead = useCallback(async () => {
     try {
-      await markAllNotificationsRead()
+      await markAllReadMutation.mutateAsync()
     } catch (markError) {
       console.error("Failed to mark notifications as read:", markError)
-      setNotifications(previous)
     }
-  }, [notifications])
+  }, [markAllReadMutation])
 
   const hasUnread = notifications.some((notification) => !notification.read)
   const groups = groupNotificationsByRecency(notifications)
-  const isEmpty = !isLoading && !error && notifications.length === 0
+  const isEmpty =
+    !notificationsQuery.isPending && !error && notifications.length === 0
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
@@ -126,22 +83,23 @@ export const NotificationsPageClient = () => {
           <button
             type="button"
             onClick={handleMarkAllRead}
+            disabled={markAllReadMutation.isPending}
             className="shrink-0 text-sm font-medium text-primary transition-colors hover:cursor-pointer hover:text-primary/80"
           >
-            Mark all read
+            {markAllReadMutation.isPending ? "Marking..." : "Mark all read"}
           </button>
         )}
       </header>
 
       {/* States */}
-      {isLoading ? (
+      {notificationsQuery.isPending ? (
         <NotificationsSkeleton />
       ) : error ? (
         <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-card px-6 py-16 text-center">
           <p className="text-sm font-medium text-foreground">{error}</p>
           <button
             type="button"
-            onClick={() => loadPage(0, { append: false })}
+            onClick={() => void notificationsQuery.refetch()}
             className="text-sm font-medium text-primary transition-colors hover:cursor-pointer hover:text-primary/80"
           >
             Try again
@@ -175,16 +133,18 @@ export const NotificationsPageClient = () => {
             </section>
           ))}
 
-          {hasMore && (
+          {notificationsQuery.hasNextPage && (
             <div className="flex justify-center pt-2">
               <button
                 type="button"
-                onClick={() => loadPage(page + 1, { append: true })}
-                disabled={isLoadingMore}
+                onClick={() => void notificationsQuery.fetchNextPage()}
+                disabled={notificationsQuery.isFetchingNextPage}
                 className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:cursor-pointer hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isLoadingMore && <Loader2 className="size-4 animate-spin" />}
-                {isLoadingMore ? "Loading…" : "Load more"}
+                {notificationsQuery.isFetchingNextPage && (
+                  <Loader2 className="size-4 animate-spin" />
+                )}
+                {notificationsQuery.isFetchingNextPage ? "Loading…" : "Load more"}
               </button>
             </div>
           )}

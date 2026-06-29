@@ -1,6 +1,6 @@
 "use client"
 
-import * as React from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 
 import {
@@ -12,125 +12,67 @@ import {
 import { NotificationBell } from "./NotificationBell"
 import { NotificationPanel } from "./NotificationPanel"
 import {
-  fetchNotifications,
-  fetchUnreadNotificationCount,
-  markAllNotificationsRead,
-  markNotificationRead,
-} from "./notifications.api"
+  useMarkAllNotificationsReadMutation,
+  useMarkNotificationReadMutation,
+  useNotificationPreviewQuery,
+  useUnreadNotificationCountQuery,
+} from "./notifications.query"
 import type { NotificationDTO } from "./notifications.types"
+
+const NOTIFICATION_PREVIEW_SIZE = 20
 
 /**
  * Composes the bell trigger with the notifications panel.
  */
 export const NotificationsMenu = () => {
   const router = useRouter()
-  const [open, setOpen] = React.useState(false)
-  const [notifications, setNotifications] = React.useState<NotificationDTO[]>([])
-  const [unreadCount, setUnreadCount] = React.useState(0)
-  const [isLoading, setIsLoading] = React.useState(false)
-  const [error, setError] = React.useState<string | null>(null)
+  const [open, setOpen] = useState(false)
+  const {
+    data: unreadCount = 0,
+  } = useUnreadNotificationCountQuery()
+  const previewQuery = useNotificationPreviewQuery({
+    enabled: open,
+    size: NOTIFICATION_PREVIEW_SIZE,
+  })
+  const markReadMutation = useMarkNotificationReadMutation()
+  const markAllReadMutation = useMarkAllNotificationsReadMutation()
 
-  const loadUnreadCount = React.useCallback(async () => {
-    try {
-      const response = await fetchUnreadNotificationCount()
-      setUnreadCount(response.unreadCount)
-    } catch (error) {
-      console.error("Failed to load unread notifications:", error)
-    }
-  }, [])
-
-  const loadNotifications = React.useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      const [notificationsResponse, unreadCountResponse] = await Promise.all([
-        fetchNotifications({ page: 0, size: 20 }),
-        fetchUnreadNotificationCount(),
-      ])
-
-      const loadedNotifications = notificationsResponse.notifications
-      const loadedUnreadCount = unreadCountResponse.unreadCount
-      const hasUnread =
-        loadedUnreadCount > 0 ||
-        loadedNotifications.some((notification) => !notification.read)
-
-      if (!hasUnread) {
-        setNotifications(loadedNotifications)
-        setUnreadCount(loadedUnreadCount)
-        return
-      }
-
-      const now = new Date().toISOString()
-      setNotifications(
-        loadedNotifications.map((notification) => ({
-          ...notification,
-          read: true,
-          readAt: notification.readAt ?? now,
-        })),
-      )
-      setUnreadCount(0)
-
-      void markAllNotificationsRead().catch((error) => {
-        console.error("Failed to mark notifications as read:", error)
-        setNotifications(loadedNotifications)
-        setUnreadCount(loadedUnreadCount)
-      })
-    } catch (error) {
-      console.error("Failed to load notifications:", error)
-      setError("Could not load notifications.")
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
-  React.useEffect(() => {
-    void loadUnreadCount()
-  }, [loadUnreadCount])
-
-  React.useEffect(() => {
-    if (open) {
-      void loadNotifications()
-    }
-  }, [loadNotifications, open])
-
-  const markNotificationLocallyRead = React.useCallback(
-    (notificationId: string) => {
-      setNotifications((current) =>
-        current.map((notification) =>
-          notification.id === notificationId
-            ? {
-                ...notification,
-                read: true,
-                readAt: notification.readAt ?? new Date().toISOString(),
-              }
-            : notification,
-        ),
-      )
-      setUnreadCount((current) => Math.max(0, current - 1))
-    },
-    [],
+  const notifications = useMemo(
+    () => previewQuery.data?.notifications ?? [],
+    [previewQuery.data],
   )
+  const hasUnread =
+    unreadCount > 0 || notifications.some((notification) => !notification.read)
+  const error = previewQuery.error
+    ? previewQuery.error instanceof Error
+      ? previewQuery.error.message
+      : "Could not load notifications."
+    : null
 
-  const handleSelect = React.useCallback(
+  useEffect(() => {
+    if (!open || !previewQuery.isSuccess || !hasUnread) return
+    if (markAllReadMutation.isPending) return
+
+    markAllReadMutation.mutate(undefined, {
+      onError: (error) => {
+        console.error("Failed to mark notifications as read:", error)
+      },
+    })
+  }, [
+    hasUnread,
+    markAllReadMutation,
+    notifications,
+    open,
+    previewQuery.isSuccess,
+  ])
+
+  const handleSelect = useCallback(
     async (notification: NotificationDTO) => {
       if (!notification.read) {
-        markNotificationLocallyRead(notification.id)
         try {
-          const updatedNotification = await markNotificationRead(notification.id)
-          setNotifications((current) =>
-            current.map((candidate) =>
-              candidate.id === updatedNotification.id
-                ? {
-                    ...candidate,
-                    ...updatedNotification,
-                  }
-                : candidate,
-            ),
-          )
+          await markReadMutation.mutateAsync(notification.id)
         } catch (error) {
           console.error("Failed to mark notification as read:", error)
-          void loadUnreadCount()
         }
       }
 
@@ -144,7 +86,7 @@ export const NotificationsMenu = () => {
         router.push(`/${encodeURIComponent(notification.actorUsername)}`)
       }
     },
-    [loadUnreadCount, markNotificationLocallyRead, router],
+    [markReadMutation, router],
   )
 
   return (
@@ -164,8 +106,8 @@ export const NotificationsMenu = () => {
             setOpen(false)
             router.push("/notifications")
           }}
-          onRetry={loadNotifications}
-          isLoading={isLoading}
+          onRetry={() => void previewQuery.refetch()}
+          isLoading={previewQuery.isPending}
           error={error}
         />
       </PopoverContent>
