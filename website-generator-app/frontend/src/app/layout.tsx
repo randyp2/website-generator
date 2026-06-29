@@ -4,6 +4,7 @@ import "./globals.css";
 import { AppThemeProvider } from "@/components/theme/AppThemeProvider";
 import { Toaster } from "@/components/ui/toaster";
 import { getPublicSiteUrl } from "@/lib/public-env";
+import AppQueryProvider from "@/components/query/AppQueryProvider";
 
 
 
@@ -103,10 +104,12 @@ export default function RootLayout({
       <body
         className={`${interSans.variable} ${sourceSerif.variable} ${jetBrainsMono.variable} font-sans overflow-x-clip relative flex flex-col min-h-screen bg-background text-foreground`}
       >
-        <AppThemeProvider>
-          {children}
-          <Toaster />
-        </AppThemeProvider>
+        <AppQueryProvider>
+          <AppThemeProvider>
+            {children}
+            <Toaster />
+          </AppThemeProvider>
+        </AppQueryProvider>
       </body>
     </html>
   );

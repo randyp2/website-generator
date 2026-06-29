@@ -3,7 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 
-const createDashboardQueryClient = (): QueryClient =>
+const createAppQueryClient = (): QueryClient =>
     new QueryClient({
         defaultOptions: {
             queries: {
@@ -14,12 +14,14 @@ const createDashboardQueryClient = (): QueryClient =>
         },
     });
 
-const DashboardQueryProvider = ({ children }: { children: ReactNode }) => {
-    const [queryClient] = useState(createDashboardQueryClient);
+const AppQueryProvider = ({ children }: { children: ReactNode }) => {
+    const [queryClient] = useState(createAppQueryClient);
 
     return (
-        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        <QueryClientProvider client={queryClient}>
+            {children}
+        </QueryClientProvider>
     );
 };
 
-export default DashboardQueryProvider;
+export default AppQueryProvider;
