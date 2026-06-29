@@ -1,8 +1,6 @@
 package com.webgen.webgen_backend.verification.service.provider.github;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubContentResponse;
-import com.webgen.webgen_backend.verification.service.provider.github.model.GithubPathEntry;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubRepoResponse;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubTreeResponse;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubUserResponse;
@@ -27,7 +25,6 @@ import java.util.Base64;
 import java.util.List;
 
 import static com.webgen.webgen_backend.verification.service.sync.VerificationMatchTextHelper.isBlank;
-import static com.webgen.webgen_backend.verification.service.sync.VerificationMatchTextHelper.readText;
 
 @Slf4j
 @Component
@@ -128,72 +125,6 @@ public class GithubApiClient {
         }
 
         return results;
-    }
-
-    public List<GithubPathEntry> fetchDirectoryEntries(
-            String accessToken,
-            String owner,
-            String repo,
-            String defaultBranch,
-            String directoryPath) {
-        String url;
-        if (isBlank(directoryPath)) {
-            url = UriComponentsBuilder
-                    .fromUriString("https://api.github.com/repos/{owner}/{repo}/contents")
-                    .queryParam("ref", isBlank(defaultBranch) ? "main" : defaultBranch)
-                    .buildAndExpand(owner, repo)
-                    .toUriString();
-        } else {
-            url = UriComponentsBuilder
-                    .fromUriString("https://api.github.com/repos/{owner}/{repo}/contents/{path}")
-                    .queryParam("ref", isBlank(defaultBranch) ? "main" : defaultBranch)
-                    .buildAndExpand(owner, repo, directoryPath)
-                    .toUriString();
-        }
-
-        try {
-            ResponseEntity<JsonNode> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    new HttpEntity<>(buildGithubApiHeaders(accessToken)),
-                    JsonNode.class);
-
-            JsonNode body = response.getBody();
-            if (body == null || !body.isArray()) {
-                return List.of();
-            }
-
-            List<GithubPathEntry> entries = new ArrayList<>();
-            for (JsonNode entry : body) {
-                if (!entry.isObject()) {
-                    continue;
-                }
-
-                String type = readText(entry, "type");
-                String name = readText(entry, "name");
-                String path = readText(entry, "path");
-                if (isBlank(type) || isBlank(name) || isBlank(path)) {
-                    continue;
-                }
-
-                entries.add(new GithubPathEntry(path, name, type));
-            }
-            return entries;
-        } catch (RestClientResponseException exception) {
-            if (exception.getStatusCode() == HttpStatus.NOT_FOUND) {
-                return List.of();
-            }
-            if (exception.getStatusCode() == HttpStatus.UNAUTHORIZED
-                    || exception.getStatusCode() == HttpStatus.FORBIDDEN) {
-                throw new ResponseStatusException(
-                        HttpStatus.UNAUTHORIZED,
-                        "GitHub backend directory listing unauthorized. Reconnect is required.",
-                        exception);
-            }
-            return List.of();
-        } catch (Exception exception) {
-            return List.of();
-        }
     }
 
     /**

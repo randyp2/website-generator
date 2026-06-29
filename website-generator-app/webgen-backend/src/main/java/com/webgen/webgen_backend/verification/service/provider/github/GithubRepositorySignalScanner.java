@@ -2,7 +2,6 @@ package com.webgen.webgen_backend.verification.service.provider.github;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.webgen.webgen_backend.verification.service.provider.github.model.GithubPathEntry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -13,6 +12,8 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.webgen.webgen_backend.verification.service.sync.VerificationMatchTextHelper.addMatchingTerm;
 import static com.webgen.webgen_backend.verification.service.sync.VerificationMatchTextHelper.isBlank;
@@ -22,6 +23,8 @@ import static com.webgen.webgen_backend.verification.service.sync.VerificationMa
 @Component
 @RequiredArgsConstructor
 public class GithubRepositorySignalScanner {
+
+    private static final String PACKAGE_JSON_FILE_NAME = "package.json";
 
     private static final List<String> PACKAGE_DEPENDENCY_SECTIONS = List.of(
             "dependencies",
@@ -36,195 +39,92 @@ public class GithubRepositorySignalScanner {
             "settings.gradle",
             "settings.gradle.kts");
 
-    private static final int BACKEND_DISCOVERY_MAX_ROOT_DIRS = 40;
-    private static final int BACKEND_DISCOVERY_MAX_SUBDIRS_PER_ROOT = 40;
+    // Manifest file names we know how to parse, matched anywhere in the repo tree.
+    private static final Set<String> SCANNABLE_MANIFEST_FILE_NAMES = Stream.concat(
+            Stream.of(PACKAGE_JSON_FILE_NAME),
+            BACKEND_BUILD_FILE_NAMES.stream()
+    ).collect(Collectors.toUnmodifiableSet());
+
+    // Upper bound on manifests fetched per repo, so a large monorepo with many
+    // manifests cannot trigger an unbounded number of content fetches.
+    private static final int MAX_MANIFESTS_PER_REPO = 10;
 
     private final GithubApiClient githubApiClient;
     private final ObjectMapper objectMapper;
 
-    public Set<String> fetchPackageDependencies(
-            String accessToken,
-            String fullName,
-            String defaultBranch) {
+    /**
+     * Scans a repository for dependency/build signals. Locates every known
+     * manifest anywhere in the repo with a single Git Trees call, then fetches and
+     * parses only those manifests, merging their signals into one deterministic set.
+     */
+    public Set<String> scanRepository(String accessToken, String fullName, String defaultBranch) {
         String[] repoParts = splitRepoFullName(fullName);
         if (repoParts == null) {
             return Set.of();
         }
+        String owner = repoParts[0];
+        String repo = repoParts[1];
 
-        try {
-            String packageJsonText = githubApiClient.fetchTextFile(
-                    accessToken,
-                    repoParts[0],
-                    repoParts[1],
-                    defaultBranch,
-                    "package.json");
-            if (isBlank(packageJsonText)) {
-                return Set.of();
-            }
-            JsonNode packageJson = objectMapper.readTree(packageJsonText);
-            return extractDependenciesFromPackageJson(packageJson);
-        } catch (RestClientResponseException exception) {
-            if (exception.getStatusCode() == HttpStatus.NOT_FOUND) {
-                return Set.of();
-            }
-            if (exception.getStatusCode() == HttpStatus.UNAUTHORIZED
-                    || exception.getStatusCode() == HttpStatus.FORBIDDEN) {
-                throw new ResponseStatusException(
-                        HttpStatus.UNAUTHORIZED,
-                        "GitHub package fetch unauthorized. Reconnect is required.",
-                        exception);
-            }
-            return Set.of();
-        } catch (Exception exception) {
-            return Set.of();
-        }
-    }
+        List<String> manifestPaths = githubApiClient
+                .fetchRepositoryTree(accessToken, owner, repo, defaultBranch)
+                .stream()
+                .filter(path -> SCANNABLE_MANIFEST_FILE_NAMES.contains(fileName(path)))
+                .limit(MAX_MANIFESTS_PER_REPO)
+                .toList();
 
-    public Set<String> fetchBackendSignals(
-            String accessToken,
-            String fullName,
-            String defaultBranch) {
-        String[] repoParts = splitRepoFullName(fullName);
-        if (repoParts == null) {
+        if (manifestPaths.isEmpty()) {
             return Set.of();
         }
 
         Set<String> signals = new LinkedHashSet<>();
-        Set<String> foundPaths = new LinkedHashSet<>();
-        List<String> candidatePaths = discoverBackendBuildFilePaths(
-                accessToken,
-                repoParts[0],
-                repoParts[1],
-                defaultBranch);
-        int attemptedPaths = 0;
-        int notFoundCount = 0;
-        for (String path : candidatePaths) {
-            attemptedPaths++;
-            try {
-                String fileContent = githubApiClient.fetchTextFile(
-                        accessToken,
-                        repoParts[0],
-                        repoParts[1],
-                        defaultBranch,
-                        path);
-                if (isBlank(fileContent)) {
-                    continue;
-                }
-
-                String normalized = normalizeForMatch(fileContent);
-                if (isBlank(normalized)) {
-                    continue;
-                }
-
-                foundPaths.add(path);
-                addMatchingTerm(signals, "java");
-
-                if (normalized.contains("spring boot")
-                        || normalized.contains("spring-boot")
-                        || normalized.contains("org.springframework.boot")) {
-                    addMatchingTerm(signals, "spring");
-                    addMatchingTerm(signals, "spring boot");
-                    addMatchingTerm(signals, "springboot");
-                }
-            } catch (RestClientResponseException exception) {
-                if (exception.getStatusCode() == HttpStatus.NOT_FOUND) {
-                    notFoundCount++;
-                    continue;
-                }
-                if (exception.getStatusCode() == HttpStatus.UNAUTHORIZED
-                        || exception.getStatusCode() == HttpStatus.FORBIDDEN) {
-                    throw new ResponseStatusException(
-                            HttpStatus.UNAUTHORIZED,
-                            "GitHub backend signal fetch unauthorized. Reconnect is required.",
-                            exception);
-                }
-            } catch (Exception ignored) {
-                // Backend signal extraction is best-effort and should not fail sync.
+        for (String path : manifestPaths) {
+            String content = fetchManifestContent(accessToken, owner, repo, defaultBranch, path);
+            if (isBlank(content)) {
+                continue;
+            }
+            if (PACKAGE_JSON_FILE_NAME.equals(fileName(path))) {
+                signals.addAll(parsePackageJsonDependencies(content));
+            } else {
+                signals.addAll(parseBackendBuildSignals(content));
             }
         }
 
         log.info(
-                "connection.sync.backend_probe fullName={} attemptedPaths={} candidates={} notFound={} foundPaths={} signals={}",
+                "connection.sync.repo_scan fullName={} manifests={} signals={}",
                 fullName,
-                attemptedPaths,
-                candidatePaths,
-                notFoundCount,
-                foundPaths,
+                manifestPaths,
                 signals);
-
-        if (!signals.isEmpty()) {
-            log.info(
-                    "connection.sync.backend_signals_extracted fullName={} signals={}",
-                    fullName,
-                    signals);
-        }
 
         return signals;
     }
 
-    private List<String> discoverBackendBuildFilePaths(
+    private String fetchManifestContent(
             String accessToken,
             String owner,
             String repo,
-            String defaultBranch) {
-        LinkedHashSet<String> discovered = new LinkedHashSet<>();
-
-        List<GithubPathEntry> rootEntries = githubApiClient.fetchDirectoryEntries(
-                accessToken,
-                owner,
-                repo,
-                defaultBranch,
-                null);
-        addBuildFilePaths(discovered, rootEntries);
-
-        List<GithubPathEntry> rootDirectories = rootEntries.stream()
-                .filter(entry -> "dir".equals(entry.type()))
-                .limit(BACKEND_DISCOVERY_MAX_ROOT_DIRS)
-                .toList();
-
-        for (GithubPathEntry rootDirectory : rootDirectories) {
-            List<GithubPathEntry> levelOneEntries = githubApiClient.fetchDirectoryEntries(
-                    accessToken,
-                    owner,
-                    repo,
-                    defaultBranch,
-                    rootDirectory.path());
-            addBuildFilePaths(discovered, levelOneEntries);
-
-            List<GithubPathEntry> levelOneDirectories = levelOneEntries.stream()
-                    .filter(entry -> "dir".equals(entry.type()))
-                    .limit(BACKEND_DISCOVERY_MAX_SUBDIRS_PER_ROOT)
-                    .toList();
-
-            for (GithubPathEntry levelOneDirectory : levelOneDirectories) {
-                List<GithubPathEntry> levelTwoEntries = githubApiClient.fetchDirectoryEntries(
-                        accessToken,
-                        owner,
-                        repo,
-                        defaultBranch,
-                        levelOneDirectory.path());
-                addBuildFilePaths(discovered, levelTwoEntries);
+            String defaultBranch,
+            String path) {
+        try {
+            return githubApiClient.fetchTextFile(accessToken, owner, repo, defaultBranch, path);
+        } catch (RestClientResponseException exception) {
+            if (exception.getStatusCode() == HttpStatus.UNAUTHORIZED
+                    || exception.getStatusCode() == HttpStatus.FORBIDDEN) {
+                throw new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "GitHub manifest fetch unauthorized. Reconnect is required.",
+                        exception);
             }
+            return null;
+        } catch (Exception exception) {
+            return null;
         }
-
-        return discovered.stream().sorted().toList();
     }
 
-    private void addBuildFilePaths(Set<String> out, List<GithubPathEntry> entries) {
-        if (entries == null || entries.isEmpty()) {
-            return;
-        }
-
-        for (GithubPathEntry entry : entries) {
-            if (entry == null || !"file".equals(entry.type())) {
-                continue;
-            }
-            if (!BACKEND_BUILD_FILE_NAMES.contains(entry.name())) {
-                continue;
-            }
-            if (!isBlank(entry.path())) {
-                out.add(entry.path());
-            }
+    private Set<String> parsePackageJsonDependencies(String content) {
+        try {
+            return extractDependenciesFromPackageJson(objectMapper.readTree(content));
+        } catch (Exception exception) {
+            return Set.of();
         }
     }
 
@@ -239,11 +139,36 @@ public class GithubRepositorySignalScanner {
             if (node == null || !node.isObject()) {
                 continue;
             }
-
             node.fieldNames().forEachRemaining(dep -> addMatchingTerm(dependencies, dep));
         }
-
         return dependencies;
+    }
+
+    private Set<String> parseBackendBuildSignals(String content) {
+        String normalized = normalizeForMatch(content);
+        if (isBlank(normalized)) {
+            return Set.of();
+        }
+
+        Set<String> signals = new LinkedHashSet<>();
+        // Presence of a JVM build file is itself a strong backend indicator.
+        addMatchingTerm(signals, "java");
+        if (normalized.contains("spring boot")
+                || normalized.contains("spring-boot")
+                || normalized.contains("org.springframework.boot")) {
+            addMatchingTerm(signals, "spring");
+            addMatchingTerm(signals, "spring boot");
+            addMatchingTerm(signals, "springboot");
+        }
+        return signals;
+    }
+
+    private String fileName(String path) {
+        if (isBlank(path)) {
+            return "";
+        }
+        int lastSlash = path.lastIndexOf('/');
+        return lastSlash < 0 ? path : path.substring(lastSlash + 1);
     }
 
     private String[] splitRepoFullName(String fullName) {

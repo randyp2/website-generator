@@ -42,7 +42,6 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -349,16 +348,10 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
         for (GithubRepoResponse repo : repositories) {
             Set<String> dependencies = Set.of();
             if (dependencyScans < MAX_REPOS_WITH_PACKAGE_SCAN) {
-                Set<String> collectedSignals = new LinkedHashSet<>();
-                collectedSignals.addAll(githubRepositorySignalScanner.fetchPackageDependencies(
+                dependencies = githubRepositorySignalScanner.scanRepository(
                         accessToken,
                         repo.fullName(),
-                        repo.defaultBranch()));
-                collectedSignals.addAll(githubRepositorySignalScanner.fetchBackendSignals(
-                        accessToken,
-                        repo.fullName(),
-                        repo.defaultBranch()));
-                dependencies = collectedSignals;
+                        repo.defaultBranch());
                 dependencyScans++;
             }
 
