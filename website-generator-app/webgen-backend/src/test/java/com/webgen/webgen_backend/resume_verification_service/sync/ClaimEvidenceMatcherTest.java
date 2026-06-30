@@ -34,6 +34,31 @@ class ClaimEvidenceMatcherTest {
         assertThat(result.linkType()).isEqualTo("dependency_match");
         assertThat(result.confidence()).isEqualByComparingTo("0.95");
         assertThat(result.metadata().get("signal").asText()).isEqualTo("dependency");
+        // No dependencySources on this evidence, so no file is attributed.
+        assertThat(result.metadata().has("source_file")).isFalse();
+    }
+
+    @Test
+    void dependencyMatchRecordsSourceFileWhenAvailable() {
+        ClaimTermSet termSet = matcher.buildTermSet("PostgreSQL", "PostgreSQL", List.of("postgres"));
+
+        ObjectNode metadata = objectMapper.createObjectNode();
+        metadata.put("repo_name", "infra");
+        metadata.put("full_name", "owner/infra");
+        metadata.putArray("topics");
+        metadata.putArray("dependencies").add("postgres");
+        metadata.putObject("dependencySources").put("postgres", "docker-compose.yml");
+
+        Evidence evidence = Evidence.builder()
+                .evidenceType("repository")
+                .metadata(metadata)
+                .build();
+
+        ClaimEvidenceMatchResult result = matcher.evaluate(termSet, evidence);
+
+        assertThat(result.linkType()).isEqualTo("dependency_match");
+        assertThat(result.metadata().get("matched_term").asText()).isEqualTo("postgres");
+        assertThat(result.metadata().get("source_file").asText()).isEqualTo("docker-compose.yml");
     }
 
     @Test

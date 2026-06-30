@@ -72,6 +72,7 @@ public class ClaimEvidenceMatcher {
         JsonNode metadata = evidence.getMetadata();
         List<String> topics = readNormalizedArray(metadata, "topics");
         List<String> dependencies = readNormalizedArray(metadata, "dependencies");
+        JsonNode dependencySources = metadata == null ? null : metadata.get("dependencySources");
         String repoName = normalizeForMatch(readText(metadata, "repo_name"));
         String fullName = normalizeForMatch(readText(metadata, "full_name"));
         String description = normalizeForMatch(evidence.getDescription());
@@ -80,13 +81,15 @@ public class ClaimEvidenceMatcher {
         ClaimEvidenceMatchResult best = ClaimEvidenceMatchResult.noMatch();
 
         for (String term : termSet.terms()) {
-            if (containsTermInCollection(dependencies, term)) {
+            String matchedDependency = firstMatchingDependency(dependencies, term);
+            if (matchedDependency != null) {
                 return buildMatch(
                         "dependency_match",
                         BigDecimal.valueOf(0.95),
                         "Dependency signal matched: " + term,
                         term,
-                        "dependency");
+                        "dependency",
+                        readSourceFile(dependencySources, matchedDependency));
             }
 
             if (containsTermInCollection(topics, term)) {
@@ -97,7 +100,8 @@ public class ClaimEvidenceMatcher {
                                 BigDecimal.valueOf(0.85),
                                 "Topic signal matched: " + term,
                                 term,
-                                "topic"));
+                                "topic",
+                                null));
             }
 
             if (containsTerm(repoName, term) || containsTerm(fullName, term)) {
@@ -108,7 +112,8 @@ public class ClaimEvidenceMatcher {
                                 BigDecimal.valueOf(0.78),
                                 "Repository name matched: " + term,
                                 term,
-                                "name"));
+                                "name",
+                                null));
             }
 
             if (containsTerm(description, term)) {
@@ -119,7 +124,8 @@ public class ClaimEvidenceMatcher {
                                 BigDecimal.valueOf(0.70),
                                 "Repository description matched: " + term,
                                 term,
-                                "description"));
+                                "description",
+                                null));
             }
         }
 
@@ -133,7 +139,8 @@ public class ClaimEvidenceMatcher {
                             BigDecimal.valueOf(0.55),
                             "Language matched with supporting repository signal",
                             primaryLanguage,
-                            "language"));
+                            "language",
+                            null));
         }
 
         return best;
@@ -156,11 +163,34 @@ public class ClaimEvidenceMatcher {
             BigDecimal confidence,
             String reason,
             String matchedTerm,
-            String signal) {
+            String signal,
+            String sourceFile) {
         ObjectNode metadata = objectMapper.createObjectNode();
         metadata.put("matched_term", matchedTerm);
         metadata.put("signal", signal);
+        if (!isBlank(sourceFile)) {
+            metadata.put("source_file", sourceFile);
+        }
 
         return new ClaimEvidenceMatchResult(true, linkType, confidence, reason, metadata);
+    }
+
+    // Returns the dependency value the term matched (so its source file can be
+    // resolved), or null when no dependency matches.
+    private String firstMatchingDependency(List<String> dependencies, String term) {
+        for (String dependency : dependencies) {
+            if (containsTerm(dependency, term)) {
+                return dependency;
+            }
+        }
+        return null;
+    }
+
+    private String readSourceFile(JsonNode dependencySources, String dependency) {
+        if (dependencySources == null || !dependencySources.isObject()) {
+            return null;
+        }
+        JsonNode source = dependencySources.get(dependency);
+        return source != null && source.isTextual() ? source.asText() : null;
     }
 }
