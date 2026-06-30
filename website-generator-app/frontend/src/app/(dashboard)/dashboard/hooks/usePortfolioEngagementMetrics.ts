@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useUser } from "@/context/UserContext";
 import { fetchPortfolioEngagementSummary } from "@/app/(public)/(site)/explore/[slug]/portfolio-engagement.api";
 import type { PortfolioEngagementSummary } from "@/app/(public)/(site)/explore/[slug]/portfolio-engagement.types";
+import type { Portfolio } from "@/types/portfolio";
 import { isDeployedPortfolio } from "../utils/deployedPortfolio";
 import { usePortfolioListQuery } from "./usePortfolioListQuery";
 
@@ -42,12 +43,15 @@ const EMPTY_TOTALS: EngagementTotals = {
     total: 0,
 };
 
+const EMPTY_PORTFOLIOS: Portfolio[] = [];
+
 export const usePortfolioEngagementMetrics = (): PortfolioEngagementMetrics => {
     const { user } = useUser();
     const {
-        data: portfolios = [],
+        data: portfolioData,
         isLoading: isPortfolioListLoading,
     } = usePortfolioListQuery(user?.id);
+    const portfolios = portfolioData ?? EMPTY_PORTFOLIOS;
     const [summariesBySlug, setSummariesBySlug] = useState<Record<string, PortfolioEngagementSummary>>({});
     const [isEngagementLoading, setIsEngagementLoading] = useState<boolean>(false);
 
