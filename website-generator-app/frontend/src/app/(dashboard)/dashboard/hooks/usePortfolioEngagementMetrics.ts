@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useQueries } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { useUser } from "@/context/UserContext";
+import { exploreQueryKeys } from "@/app/(public)/(site)/explore/explore.query";
 import { fetchPortfolioEngagementSummary } from "@/app/(public)/(site)/explore/[slug]/portfolio-engagement.api";
 import type { PortfolioEngagementSummary } from "@/app/(public)/(site)/explore/[slug]/portfolio-engagement.types";
 import type { Portfolio } from "@/types/portfolio";
@@ -52,64 +54,51 @@ export const usePortfolioEngagementMetrics = (): PortfolioEngagementMetrics => {
         isLoading: isPortfolioListLoading,
     } = usePortfolioListQuery(user?.id);
     const portfolios = portfolioData ?? EMPTY_PORTFOLIOS;
-    const [summariesBySlug, setSummariesBySlug] = useState<Record<string, PortfolioEngagementSummary>>({});
-    const [isEngagementLoading, setIsEngagementLoading] = useState<boolean>(false);
+
+    const deployedPortfolios = useMemo(
+        () => portfolios.filter(isDeployedPortfolio),
+        [portfolios],
+    );
 
     const deployedSlugs = useMemo(
         () =>
-            portfolios
-                .filter(isDeployedPortfolio)
-                .map((p) => p.slug?.trim())
-                .filter((slug): slug is string => Boolean(slug)),
-        [portfolios],
+            Array.from(
+                new Set(
+                    deployedPortfolios
+                        .map((p) => p.slug?.trim())
+                        .filter((slug): slug is string => Boolean(slug)),
+                ),
+            ),
+        [deployedPortfolios],
     );
-    const deployedSlugKey = deployedSlugs.join("|");
 
-    useEffect(() => {
-        let cancelled = false;
+    const engagementQueries = useQueries({
+        queries: deployedSlugs.map((slug) => ({
+            queryKey: exploreQueryKeys.engagement(slug),
+            queryFn: () => fetchPortfolioEngagementSummary(slug),
+        })),
+    });
 
-        if (deployedSlugs.length === 0) {
-            setSummariesBySlug({});
-            setIsEngagementLoading(false);
-            return;
-        }
-
-        const loadSummaries = async () => {
-            setIsEngagementLoading(true);
-            try {
-                const results = await Promise.allSettled(
-                    deployedSlugs.map((slug) => fetchPortfolioEngagementSummary(slug)),
-                );
-
-                if (cancelled) return;
-                const next: Record<string, PortfolioEngagementSummary> = {};
-                results.forEach((result, index) => {
-                    if (result.status === "fulfilled") {
-                        next[deployedSlugs[index]] = result.value;
+    const summariesBySlug = useMemo(
+        () =>
+            engagementQueries.reduce<Record<string, PortfolioEngagementSummary>>(
+                (summaries, query, index) => {
+                    if (query.data) {
+                        summaries[deployedSlugs[index]] = query.data;
                     }
-                });
-                setSummariesBySlug(next);
-            } catch {
-                if (!cancelled) {
-                    setSummariesBySlug({});
-                }
-            } finally {
-                if (!cancelled) setIsEngagementLoading(false);
-            }
-        };
+                    return summaries;
+                },
+                {},
+            ),
+        [deployedSlugs, engagementQueries],
+    );
 
-        loadSummaries();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [deployedSlugKey, deployedSlugs]);
+    const isEngagementLoading = engagementQueries.some((query) => query.isPending);
 
     const isLoading = isPortfolioListLoading || isEngagementLoading;
 
     return useMemo(() => {
-        const rows: PortfolioEngagementRow[] = portfolios
-            .filter(isDeployedPortfolio)
+        const rows: PortfolioEngagementRow[] = deployedPortfolios
             .map((portfolio) => {
                 const slug = portfolio.slug?.trim() ?? "";
                 const summary = slug ? summariesBySlug[slug] : undefined;
@@ -148,5 +137,5 @@ export const usePortfolioEngagementMetrics = (): PortfolioEngagementMetrics => {
             deployedPortfolioCount: rows.length,
             totalPortfolioCount: portfolios.length,
         };
-    }, [portfolios, summariesBySlug, isLoading]);
+    }, [deployedPortfolios, portfolios.length, summariesBySlug, isLoading]);
 };
