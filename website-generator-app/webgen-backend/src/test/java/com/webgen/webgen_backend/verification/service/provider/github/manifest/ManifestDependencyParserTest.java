@@ -15,7 +15,9 @@ class ManifestDependencyParserTest {
             new PackageJsonParser(new ObjectMapper()),
             new RequirementsTxtParser(),
             new GoModParser(),
-            new JvmBuildFileParser()));
+            new JvmBuildFileParser(),
+            new CargoTomlParser(),
+            new PyprojectTomlParser()));
 
     @Test
     void canParseReflectsRegisteredFileNames() {
@@ -23,8 +25,10 @@ class ManifestDependencyParserTest {
         assertThat(registry.canParse("requirements.txt")).isTrue();
         assertThat(registry.canParse("go.mod")).isTrue();
         assertThat(registry.canParse("pom.xml")).isTrue();
+        assertThat(registry.canParse("Cargo.toml")).isTrue();
+        assertThat(registry.canParse("pyproject.toml")).isTrue();
         assertThat(registry.canParse("README.md")).isFalse();
-        assertThat(registry.canParse("Cargo.toml")).isFalse();
+        assertThat(registry.canParse("Dockerfile")).isFalse();
     }
 
     @Test

@@ -29,12 +29,7 @@ public class RequirementsTxtParser implements ManifestParser {
             if (inlineComment >= 0) {
                 line = line.substring(0, inlineComment).trim();
             }
-            // The package name ends at the first version specifier, extra,
-            // environment marker, or whitespace.
-            String name = line.split("[\\s\\[(<>=!~;]", 2)[0].trim();
-            if (!name.isEmpty()) {
-                addMatchingTerm(dependencies, name);
-            }
+            addMatchingTerm(dependencies, RequirementSpecs.packageName(line));
         }
         return dependencies;
     }
