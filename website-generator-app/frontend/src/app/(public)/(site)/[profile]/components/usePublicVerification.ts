@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import type { ClaimDTO } from "@/types/claim";
 import type { ConnectionData, ConnectionProvider, ConnectionStatus, ConnectionSyncStatus } from "@/app/(dashboard)/dashboard/components/verification/verification.types";
@@ -40,6 +40,33 @@ interface UsePublicConnectionsReturn {
     error: string | null;
     refetch: () => void;
 }
+
+interface UsePublicVerificationIdentityOptions {
+    profileId: string | null;
+    username: string | null;
+}
+
+export const publicVerificationQueryKeys = {
+    all: ["public-verification"] as const,
+    profile: (username: string) =>
+        [...publicVerificationQueryKeys.all, "profile", username] as const,
+    summary: (username: string) =>
+        [...publicVerificationQueryKeys.profile(username), "summary"] as const,
+    claims: (username: string) =>
+        [...publicVerificationQueryKeys.profile(username), "claims"] as const,
+    evidence: (username: string) =>
+        [...publicVerificationQueryKeys.profile(username), "evidence"] as const,
+    connections: (username: string) =>
+        [...publicVerificationQueryKeys.profile(username), "connections"] as const,
+    summaryByProfileId: (profileId: string, username: string | null) =>
+        [
+            ...publicVerificationQueryKeys.all,
+            "profile-id",
+            profileId,
+            "summary",
+            { username },
+        ] as const,
+};
 
 const PROVIDER_ORDER: ConnectionProvider[] = [
     "linkedin",
@@ -241,197 +268,238 @@ const toEvidenceDTO = (item: PublicEvidenceListResponseDTO["items"][number]): Ev
     };
 };
 
+const readPublicVerificationJson = async <T>(
+    response: Response,
+    fallbackMessage: string,
+): Promise<T> => {
+    if (response.ok) {
+        return (await response.json()) as T;
+    }
+
+    let message = fallbackMessage;
+    try {
+        const payload = (await response.json()) as {
+            error?: unknown;
+            message?: unknown;
+        };
+        if (typeof payload.error === "string") {
+            message = payload.error;
+        } else if (typeof payload.message === "string") {
+            message = payload.message;
+        }
+    } catch {
+        const text = await response.text().catch(() => "");
+        if (text) message = text;
+    }
+
+    throw new Error(message);
+};
+
+const getQueryErrorMessage = (
+    error: unknown,
+    fallbackMessage: string,
+): string | null => {
+    if (!error) return null;
+    return error instanceof Error ? error.message : fallbackMessage;
+};
+
+const fetchPublicVerificationSummary = async (
+    username: string,
+): Promise<VerificationSummaryDTO> => {
+    const response = await fetch(
+        `/api/public/profile/${encodeURIComponent(username)}/verification/summary`,
+        { cache: "no-store" },
+    );
+
+    return readPublicVerificationJson<PublicVerificationSummaryDTO>(
+        response,
+        "Failed to fetch verification summary",
+    );
+};
+
+const fetchPublicVerificationSummaryByIdentity = async ({
+    profileId,
+    username,
+}: UsePublicVerificationIdentityOptions): Promise<VerificationSummaryDTO> => {
+    if (profileId) {
+        const response = await fetch(
+            `/api/public/profile/by-id/${encodeURIComponent(profileId)}/verification/summary`,
+            { cache: "no-store" },
+        );
+
+        if (response.ok) {
+            return (await response.json()) as PublicVerificationSummaryDTO;
+        }
+
+        if (response.status !== 404 || !username) {
+            return readPublicVerificationJson<PublicVerificationSummaryDTO>(
+                response,
+                "Failed to fetch verification summary",
+            );
+        }
+    }
+
+    if (username) {
+        return fetchPublicVerificationSummary(username);
+    }
+
+    throw new Error("Verification summary owner is missing");
+};
+
+const fetchPublicClaims = async (username: string): Promise<ClaimDTO[]> => {
+    const response = await fetch(
+        `/api/public/profile/${encodeURIComponent(username)}/verification/claims`,
+        { cache: "no-store" },
+    );
+
+    const data = await readPublicVerificationJson<PublicClaimDTO[]>(
+        response,
+        "Failed to fetch claims",
+    );
+
+    return data.map(toClaimDTO);
+};
+
+const fetchPublicEvidence = async (username: string): Promise<EvidenceDTO[]> => {
+    const response = await fetch(
+        `/api/public/profile/${encodeURIComponent(username)}/verification/evidence`,
+        { cache: "no-store" },
+    );
+
+    const data =
+        await readPublicVerificationJson<PublicEvidenceListResponseDTO>(
+            response,
+            "Failed to fetch evidence",
+        );
+    const items = Array.isArray(data.items) ? data.items : [];
+
+    return items.map(toEvidenceDTO);
+};
+
+const fetchPublicConnections = async (
+    username: string,
+): Promise<ConnectionData[]> => {
+    const response = await fetch(
+        `/api/public/profile/${encodeURIComponent(username)}/verification/connections`,
+        { cache: "no-store" },
+    );
+
+    const data = await readPublicVerificationJson<PublicConnectedAccountDTO[]>(
+        response,
+        "Failed to fetch connections",
+    );
+
+    return mergeDefaultsWithConnected(data);
+};
+
+const defaultConnections = (): ConnectionData[] =>
+    PROVIDER_ORDER.map((provider) => buildDefaultConnection(provider));
+
 export const usePublicVerificationSummary = (
     username: string,
 ): UsePublicVerificationSummaryReturn => {
-    const [summary, setSummary] = useState<VerificationSummaryDTO | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const query = useQuery({
+        queryKey: publicVerificationQueryKeys.summary(username),
+        queryFn: () => fetchPublicVerificationSummary(username),
+        enabled: username.length > 0,
+    });
 
-    const fetchSummary = useCallback(async () => {
-        if (!username) {
-            setSummary(null);
-            setIsLoading(false);
-            return;
-        }
+    return {
+        summary: query.data ?? null,
+        isLoading: query.isPending,
+        error: getQueryErrorMessage(
+            query.error,
+            "Failed to fetch verification summary",
+        ),
+        refetch: () => {
+            void query.refetch();
+        },
+    };
+};
 
-        setIsLoading(true);
-        setError(null);
+export const usePublicVerificationSummaryByIdentity = ({
+    profileId,
+    username,
+}: UsePublicVerificationIdentityOptions): UsePublicVerificationSummaryReturn => {
+    const queryKey = profileId
+        ? publicVerificationQueryKeys.summaryByProfileId(profileId, username)
+        : publicVerificationQueryKeys.summary(username ?? "");
+    const query = useQuery({
+        queryKey,
+        queryFn: () =>
+            fetchPublicVerificationSummaryByIdentity({ profileId, username }),
+        enabled: Boolean(profileId || username),
+    });
 
-        try {
-            const response = await fetch(
-                `/api/public/profile/${encodeURIComponent(username)}/verification/summary`,
-                { cache: "no-store" },
-            );
-
-            if (!response.ok) {
-                throw new Error("Failed to fetch verification summary");
-            }
-
-            const data = (await response.json()) as PublicVerificationSummaryDTO;
-            setSummary(data);
-        } catch (err) {
-            console.error("Error fetching public verification summary:", err);
-            setError(
-                err instanceof Error
-                    ? err.message
-                    : "Failed to fetch verification summary",
-            );
-            setSummary(null);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [username]);
-
-    useEffect(() => {
-        fetchSummary();
-    }, [fetchSummary]);
-
-    return { summary, isLoading, error, refetch: fetchSummary };
+    return {
+        summary: query.data ?? null,
+        isLoading: query.isPending,
+        error: getQueryErrorMessage(
+            query.error,
+            "Failed to fetch verification summary",
+        ),
+        refetch: () => {
+            void query.refetch();
+        },
+    };
 };
 
 export const usePublicClaims = (
     username: string,
 ): UsePublicClaimsReturn => {
-    const [claims, setClaims] = useState<ClaimDTO[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const query = useQuery({
+        queryKey: publicVerificationQueryKeys.claims(username),
+        queryFn: () => fetchPublicClaims(username),
+        enabled: username.length > 0,
+    });
 
-    const fetchClaims = useCallback(async () => {
-        if (!username) {
-            setClaims([]);
-            setIsLoading(false);
-            return;
-        }
-
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const response = await fetch(
-                `/api/public/profile/${encodeURIComponent(username)}/verification/claims`,
-                { cache: "no-store" },
-            );
-
-            if (!response.ok) {
-                throw new Error("Failed to fetch claims");
-            }
-
-            const data = (await response.json()) as PublicClaimDTO[];
-            setClaims(data.map(toClaimDTO));
-        } catch (err) {
-            console.error("Error fetching public verification claims:", err);
-            setError(err instanceof Error ? err.message : "Failed to fetch claims");
-            setClaims([]);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [username]);
-
-    useEffect(() => {
-        fetchClaims();
-    }, [fetchClaims]);
-
-    return { claims, isLoading, error, refetch: fetchClaims };
+    return {
+        claims: query.data ?? [],
+        isLoading: query.isPending,
+        error: getQueryErrorMessage(query.error, "Failed to fetch claims"),
+        refetch: () => {
+            void query.refetch();
+        },
+    };
 };
 
 export const usePublicEvidence = (
     username: string,
 ): UsePublicEvidenceReturn => {
-    const [evidence, setEvidence] = useState<EvidenceDTO[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const query = useQuery({
+        queryKey: publicVerificationQueryKeys.evidence(username),
+        queryFn: () => fetchPublicEvidence(username),
+        enabled: username.length > 0,
+    });
 
-    const fetchEvidence = useCallback(async () => {
-        if (!username) {
-            setEvidence([]);
-            setIsLoading(false);
-            return;
-        }
-
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const response = await fetch(
-                `/api/public/profile/${encodeURIComponent(username)}/verification/evidence`,
-                { cache: "no-store" },
-            );
-
-            if (!response.ok) {
-                throw new Error("Failed to fetch evidence");
-            }
-
-            const data = (await response.json()) as PublicEvidenceListResponseDTO;
-            const items = Array.isArray(data.items) ? data.items : [];
-            setEvidence(items.map(toEvidenceDTO));
-        } catch (err) {
-            console.error("Error fetching public verification evidence:", err);
-            setError(
-                err instanceof Error
-                    ? err.message
-                    : "Failed to fetch evidence",
-            );
-            setEvidence([]);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [username]);
-
-    useEffect(() => {
-        fetchEvidence();
-    }, [fetchEvidence]);
-
-    return { evidence, isLoading, error, refetch: fetchEvidence };
+    return {
+        evidence: query.data ?? [],
+        isLoading: query.isPending,
+        error: getQueryErrorMessage(query.error, "Failed to fetch evidence"),
+        refetch: () => {
+            void query.refetch();
+        },
+    };
 };
 
 export const usePublicConnections = (
     username: string,
 ): UsePublicConnectionsReturn => {
-    const [connections, setConnections] = useState<ConnectionData[]>(
-        PROVIDER_ORDER.map((provider) => buildDefaultConnection(provider)),
-    );
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const query = useQuery({
+        queryKey: publicVerificationQueryKeys.connections(username),
+        queryFn: () => fetchPublicConnections(username),
+        enabled: username.length > 0,
+    });
 
-    const fetchConnections = useCallback(async () => {
-        if (!username) {
-            setConnections(PROVIDER_ORDER.map((provider) => buildDefaultConnection(provider)));
-            setIsLoading(false);
-            return;
-        }
-
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const response = await fetch(
-                `/api/public/profile/${encodeURIComponent(username)}/verification/connections`,
-                { cache: "no-store" },
-            );
-
-            if (!response.ok) {
-                throw new Error("Failed to fetch connections");
-            }
-
-            const data = (await response.json()) as PublicConnectedAccountDTO[];
-            setConnections(mergeDefaultsWithConnected(data));
-        } catch (err) {
-            console.error("Error fetching public verification connections:", err);
-            setError(
-                err instanceof Error
-                    ? err.message
-                    : "Failed to fetch connections",
-            );
-            setConnections(PROVIDER_ORDER.map((provider) => buildDefaultConnection(provider)));
-        } finally {
-            setIsLoading(false);
-        }
-    }, [username]);
-
-    useEffect(() => {
-        fetchConnections();
-    }, [fetchConnections]);
-
-    return { connections, isLoading, error, refetch: fetchConnections };
+    return {
+        connections: query.data ?? defaultConnections(),
+        isLoading: query.isPending,
+        error: getQueryErrorMessage(
+            query.error,
+            "Failed to fetch connections",
+        ),
+        refetch: () => {
+            void query.refetch();
+        },
+    };
 };

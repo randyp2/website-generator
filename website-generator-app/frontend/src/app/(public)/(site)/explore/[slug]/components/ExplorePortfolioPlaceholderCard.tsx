@@ -1,9 +1,10 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { usePublicVerificationSummaryByIdentity } from "@/app/(public)/(site)/[profile]/components/usePublicVerification";
 import {
   deriveOverviewFromSummary,
   getTierBarColor,
@@ -15,8 +16,6 @@ import {
 } from "@/app/(dashboard)/dashboard/components/verification/verification.utils";
 import VerificationScoreRing from "@/app/(dashboard)/dashboard/components/verification/VerificationScoreRing";
 import type { SkillVerification } from "@/app/(dashboard)/dashboard/components/verification/verification.types";
-import type { PublicVerificationSummaryDTO } from "@/types/public-verification";
-import type { VerificationSummaryDTO } from "@/types/verification-summary";
 
 interface ExplorePortfolioPlaceholderCardProps {
   profileId: string | null;
@@ -36,73 +35,12 @@ const formatStatusLabel = (status: string): string =>
     .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
     .join(" ");
 
-const useExploreVerificationSummary = (
-  profileId: string | null,
-  username: string | null,
-) => {
-  const [summary, setSummary] = useState<VerificationSummaryDTO | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchSummary = useCallback(async () => {
-    if (!profileId && !username) {
-      setSummary(null);
-      setError(null);
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = profileId
-        ? await fetch(
-            `/api/public/profile/by-id/${encodeURIComponent(profileId)}/verification/summary`,
-            { cache: "no-store" },
-          )
-        : null;
-      const fallbackResponse =
-        response?.status === 404 && username
-          ? await fetch(
-              `/api/public/profile/${encodeURIComponent(username)}/verification/summary`,
-              { cache: "no-store" },
-            )
-          : null;
-      const summaryResponse = fallbackResponse ?? response;
-
-      if (!summaryResponse?.ok) {
-        throw new Error("Failed to fetch verification summary");
-      }
-
-      const data = (await summaryResponse.json()) as PublicVerificationSummaryDTO;
-      setSummary(data);
-    } catch (requestError) {
-      console.error("Error fetching explore verification summary:", requestError);
-      setSummary(null);
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Failed to fetch verification summary",
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }, [profileId, username]);
-
-  useEffect(() => {
-    void fetchSummary();
-  }, [fetchSummary]);
-
-  return { summary, isLoading, error, refetch: fetchSummary };
-};
-
 export const ExplorePortfolioPlaceholderCard = ({
   profileId,
   username,
 }: ExplorePortfolioPlaceholderCardProps) => {
   const { summary, isLoading, error, refetch } =
-    useExploreVerificationSummary(profileId, username);
+    usePublicVerificationSummaryByIdentity({ profileId, username });
   const [hoveredSkill, setHoveredSkill] = useState<SkillVerification | null>(null);
   const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
   const canUseDom = typeof window !== "undefined" && typeof document !== "undefined";
