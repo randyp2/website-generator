@@ -1,14 +1,10 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { useEffect, useRef, useState } from "react"
 
+import { usePortfolioCardMetricsMap } from "@/app/(public)/(site)/explore/explore.query"
 import { ExploreCard } from "@/app/(public)/(site)/explore/components/ExploreCard"
-import { fetchExplorePortfolioMetrics } from "@/app/(public)/(site)/explore/components/explore.metrics"
-import type {
-  PortfolioCard,
-  PortfolioCardMetrics,
-} from "@/app/(public)/(site)/explore/components/explore.types"
+import type { PortfolioCard } from "@/app/(public)/(site)/explore/components/explore.types"
 
 interface ProfilePortfoliosGridProps {
   portfolios: PortfolioCard[]
@@ -19,49 +15,7 @@ const ProfilePortfoliosGrid = ({
   portfolios,
   loading,
 }: ProfilePortfoliosGridProps) => {
-  const [metricsBySlug, setMetricsBySlug] = useState<Record<string, PortfolioCardMetrics>>({})
-  const requestedMetricSlugsRef = useRef<Set<string>>(new Set())
-
-  useEffect(() => {
-    const missingPortfolios = portfolios.filter(
-      (portfolio) => !requestedMetricSlugsRef.current.has(portfolio.slug),
-    )
-    if (missingPortfolios.length === 0) return
-
-    let isMounted = true
-    missingPortfolios.forEach((portfolio) => {
-      requestedMetricSlugsRef.current.add(portfolio.slug)
-    })
-
-    const loadMetrics = async () => {
-      const results = await Promise.allSettled(
-        missingPortfolios.map(async (portfolio) => ({
-          slug: portfolio.slug,
-          metrics: await fetchExplorePortfolioMetrics(portfolio.slug),
-        })),
-      )
-
-      if (!isMounted) return
-
-      setMetricsBySlug((current) => {
-        const next = { ...current }
-        results.forEach((result, index) => {
-          if (result.status === "fulfilled") {
-            next[result.value.slug] = result.value.metrics
-          } else {
-            requestedMetricSlugsRef.current.delete(missingPortfolios[index].slug)
-          }
-        })
-        return next
-      })
-    }
-
-    void loadMetrics()
-
-    return () => {
-      isMounted = false
-    }
-  }, [portfolios])
+  const metricsBySlug = usePortfolioCardMetricsMap(portfolios)
 
   if (loading) {
     return (

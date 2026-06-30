@@ -21,6 +21,7 @@ const DEFAULT_PREVIEW_IMAGE =
 interface ExploreCardProps {
   portfolio: PortfolioCard
   metrics?: PortfolioCardMetrics | null
+  isLikePending?: boolean
   onToggleLike?: (slug: string) => void
 }
 
@@ -28,6 +29,7 @@ const formatMetric = (value: number | null): string =>
   value === null ? "..." : value.toLocaleString()
 
 export const ExploreCard = ({
+  isLikePending = false,
   portfolio,
   metrics = null,
   onToggleLike,
@@ -107,7 +109,7 @@ export const ExploreCard = ({
             <button
               type="button"
               onClick={handleLikeClick}
-              disabled={!metricsLoaded}
+              disabled={!metricsLoaded || isLikePending}
               aria-pressed={hasLiked}
               aria-label={hasLiked ? "Unlike portfolio" : "Like portfolio"}
               className={cn(

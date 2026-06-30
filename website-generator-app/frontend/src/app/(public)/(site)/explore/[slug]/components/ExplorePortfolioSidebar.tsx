@@ -3,6 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Calendar, Eye, Heart, Share2, User } from "lucide-react";
 
+import {
+  createEmptyPortfolioEngagementSummary,
+  usePortfolioEngagementQuery,
+  useRecordPortfolioShareMutation,
+  useRecordPortfolioViewMutation,
+  useTogglePortfolioLikeMutation,
+} from "../../explore.query";
 import type {
   ExplorePortfolioDetail,
   TimeAgoParts,
@@ -11,14 +18,6 @@ import {
   getPortfolioOwnerName,
   getTemplateLabel,
 } from "../explore-portfolio-detail.utils";
-import {
-  fetchPortfolioEngagementSummary,
-  likePortfolio,
-  recordPortfolioShare,
-  recordPortfolioView,
-  unlikePortfolio,
-} from "../portfolio-engagement.api";
-import type { PortfolioEngagementSummary } from "../portfolio-engagement.types";
 import { usePublicAuthGate } from "@/context/PublicAuthGateContext";
 import { cn } from "@/lib/utils";
 
@@ -27,91 +26,64 @@ interface ExplorePortfolioSidebarProps {
   updatedTime: TimeAgoParts;
 }
 
-const emptySummary = (portfolioId: string): PortfolioEngagementSummary => ({
-  portfolioId,
-  likesCount: 0,
-  commentsCount: 0,
-  viewsCount: 0,
-  sharesCount: 0,
-  viewerHasLiked: false,
-});
-
 export const ExplorePortfolioSidebar = ({
   portfolio,
   updatedTime,
 }: ExplorePortfolioSidebarProps) => {
   const { requireAuth } = usePublicAuthGate();
-  const [summary, setSummary] = useState<PortfolioEngagementSummary | null>(null);
-  const [isLiking, setIsLiking] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const engagementQuery = usePortfolioEngagementQuery(portfolio.slug);
+  const toggleLikeMutation = useTogglePortfolioLikeMutation();
+  const {
+    isPending: isRecordingView,
+    mutate: recordPortfolioView,
+  } = useRecordPortfolioViewMutation();
+  const recordShareMutation = useRecordPortfolioShareMutation();
 
   const ownerName = portfolio.ownerUsername ?? getPortfolioOwnerName(portfolio);
   const templateLabel = getTemplateLabel(portfolio.templateId);
   const sectionCount = portfolio.sections.length;
-  const metrics = summary ?? emptySummary(portfolio.portfolioId);
+  const metrics =
+    engagementQuery.data ??
+    createEmptyPortfolioEngagementSummary(portfolio.portfolioId);
   const shareUrl = useMemo(() => {
     if (typeof window === "undefined") return "";
     return window.location.href;
   }, []);
 
   useEffect(() => {
-    let isMounted = true;
+    if (!engagementQuery.isSuccess || isRecordingView) return;
 
-    const loadEngagement = async () => {
-      try {
-        const nextSummary = await fetchPortfolioEngagementSummary(portfolio.slug);
-        if (!isMounted) return;
-        setSummary(nextSummary);
+    const viewStorageKey = `explore:portfolio-viewed:${portfolio.slug}`;
+    if (window.sessionStorage.getItem(viewStorageKey)) return;
 
-        const viewStorageKey = `explore:portfolio-viewed:${portfolio.slug}`;
-        if (window.sessionStorage.getItem(viewStorageKey)) return;
-
-        window.sessionStorage.setItem(viewStorageKey, "1");
-        const viewedSummary = await recordPortfolioView(portfolio.slug);
-        if (isMounted) {
-          setSummary(viewedSummary);
-        }
-      } catch (error) {
-        console.error("Failed to load portfolio engagement:", error);
-      }
-    };
-
-    void loadEngagement();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [portfolio.slug]);
+    window.sessionStorage.setItem(viewStorageKey, "1");
+    recordPortfolioView(portfolio.slug, {
+      onError: (error) => {
+        console.error("Failed to record portfolio view:", error);
+        window.sessionStorage.removeItem(viewStorageKey);
+      },
+    });
+  }, [engagementQuery.isSuccess, isRecordingView, portfolio.slug, recordPortfolioView]);
 
   const handleLike = async () => {
-    if (!requireAuth("engagement") || isLiking) return;
-
-    const previousSummary = metrics;
-    const optimisticSummary: PortfolioEngagementSummary = {
-      ...previousSummary,
-      likesCount: previousSummary.viewerHasLiked
-        ? Math.max(0, previousSummary.likesCount - 1)
-        : previousSummary.likesCount + 1,
-      viewerHasLiked: !previousSummary.viewerHasLiked,
-    };
+    if (!requireAuth("engagement") || toggleLikeMutation.isPending) return;
 
     setActionError(null);
-    setSummary(optimisticSummary);
-    setIsLiking(true);
-
-    try {
-      const nextSummary = previousSummary.viewerHasLiked
-        ? await unlikePortfolio(portfolio.portfolioId)
-        : await likePortfolio(portfolio.portfolioId);
-      setSummary(nextSummary);
-    } catch (error) {
-      console.error("Failed to toggle portfolio like:", error);
-      setSummary(previousSummary);
-      setActionError("Could not update like.");
-    } finally {
-      setIsLiking(false);
-    }
+    toggleLikeMutation.mutate(
+      {
+        slug: portfolio.slug,
+        portfolioId: portfolio.portfolioId,
+        viewerHasLiked: metrics.viewerHasLiked,
+      },
+      {
+        onError: (error) => {
+          console.error("Failed to toggle portfolio like:", error);
+          setActionError("Could not update like.");
+        },
+      },
+    );
   };
 
   const handleShare = async () => {
@@ -132,8 +104,7 @@ export const ExplorePortfolioSidebar = ({
         await navigator.clipboard.writeText(url);
       }
 
-      const nextSummary = await recordPortfolioShare(portfolio.slug);
-      setSummary(nextSummary);
+      await recordShareMutation.mutateAsync(portfolio.slug);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         return;
@@ -185,7 +156,7 @@ export const ExplorePortfolioSidebar = ({
             <button
               type="button"
               onClick={handleLike}
-              disabled={isLiking}
+              disabled={toggleLikeMutation.isPending}
               aria-pressed={metrics.viewerHasLiked}
               className="flex min-w-0 items-center gap-2 rounded-md px-1 py-1 text-left transition-colors hover:cursor-pointer hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
             >

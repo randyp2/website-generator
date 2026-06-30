@@ -2,10 +2,17 @@
 
 import { AnimatePresence, motion } from "framer-motion"
 import { Search, X } from "lucide-react"
-import { startTransition, useCallback, useDeferredValue, useEffect, useRef, useState } from "react"
+import {
+  startTransition,
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 
 import { usePublicAuthGate } from "@/context/PublicAuthGateContext"
-import { likePortfolio, unlikePortfolio } from "@/app/(public)/(site)/explore/[slug]/portfolio-engagement.api"
 import { Input } from "@/components/ui/input"
 import {
   NavigationMenu,
@@ -16,10 +23,13 @@ import {
 } from "@/components/ui/navigation-menu"
 import { cn } from "@/lib/utils"
 
+import {
+  useExplorePortfoliosInfiniteQuery,
+  usePortfolioCardMetricsMap,
+  useTogglePortfolioLikeMutation,
+} from "../explore.query"
 import { ExploreCard } from "./ExploreCard"
 import { ExploreEmptyState } from "./ExploreEmptyState"
-import { fetchExplorePortfolioMetrics } from "./explore.metrics"
-import type { PageResponse, PortfolioCard, PortfolioCardMetrics } from "./explore.types"
 import { matchesPortfolioFilter } from "./explore.utils"
 
 type ShowcaseMajor = "Design" | "Product" | "Research"
@@ -55,135 +65,87 @@ const PAGE_HORIZONTAL_PADDING_CLASSNAME =
   "px-8 sm:px-10 md:px-14 lg:px-20 xl:px-28 2xl:px-36"
 
 export const ExplorePageClient = () => {
-  const [portfolios, setPortfolios] = useState<PortfolioCard[]>([])
-  const [metricsBySlug, setMetricsBySlug] = useState<Record<string, PortfolioCardMetrics>>({})
-  const [isLast, setIsLast] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [activeMajor, setActiveMajor] = useState<ShowcaseMajor | "All">("All")
   const [activeIndustry, setActiveIndustry] = useState<ShowcaseIndustry | "All">("All")
   const [activeExperience, setActiveExperience] = useState<ShowcaseExperience | "All">("All")
+  const [pendingLikeSlugs, setPendingLikeSlugs] = useState<Set<string>>(
+    () => new Set(),
+  )
   const deferredSearchQuery = useDeferredValue(searchQuery)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
-  const requestedMetricSlugsRef = useRef<Set<string>>(new Set())
-  const likeInFlightRef = useRef<Set<string>>(new Set())
-  const pageRef = useRef(0)
+  const pendingLikeSlugsRef = useRef<Set<string>>(new Set())
   const { requireAuth } = usePublicAuthGate()
+  const portfoliosQuery = useExplorePortfoliosInfiniteQuery(PAGE_SIZE)
+  const {
+    data: portfolioPages,
+    fetchNextPage,
+    hasNextPage,
+    isError,
+    isFetchingNextPage,
+    isPending,
+    refetch,
+  } = portfoliosQuery
+  const { mutate: togglePortfolioLike } = useTogglePortfolioLikeMutation()
 
-  const fetchPage = useCallback(async (pageNumber: number) => {
-    setIsLoading(true)
-    try {
-      const res = await fetch(`/api/public/portfolio?page=${pageNumber}&size=${PAGE_SIZE}`)
-      if (!res.ok) return
-      const data: PageResponse = await res.json()
-      setPortfolios((prev) =>
-        pageNumber === 0 ? data.content : [...prev, ...data.content],
-      )
-      setIsLast(data.last)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchPage(0)
-  }, [fetchPage])
-
-  useEffect(() => {
-    const missingPortfolios = portfolios.filter(
-      (portfolio) => !requestedMetricSlugsRef.current.has(portfolio.slug),
-    )
-    if (missingPortfolios.length === 0) return
-
-    missingPortfolios.forEach((portfolio) => {
-      requestedMetricSlugsRef.current.add(portfolio.slug)
-    })
-
-    const loadMetrics = async () => {
-      const results = await Promise.allSettled(
-        missingPortfolios.map(async (portfolio) => ({
-          slug: portfolio.slug,
-          metrics: await fetchExplorePortfolioMetrics(portfolio.slug),
-        })),
-      )
-
-      // Always apply results. Setting state after unmount is a safe no-op in
-      // React 19, whereas an `isMounted` guard here drops valid metrics when
-      // the effect re-runs (e.g. Strict Mode double-invokes the initial fetch
-      // so `portfolios` is set twice) — the slugs stay marked as requested and
-      // never get retried, which is why metrics only appeared after a refresh.
-      setMetricsBySlug((current) => {
-        const next = { ...current }
-        results.forEach((result, index) => {
-          if (result.status === "fulfilled") {
-            next[result.value.slug] = result.value.metrics
-          } else {
-            // Allow a failed slug to be retried on a later render.
-            requestedMetricSlugsRef.current.delete(missingPortfolios[index].slug)
-          }
-        })
-        return next
-      })
-    }
-
-    void loadMetrics()
-  }, [portfolios])
+  const portfolios = useMemo(
+    () => portfolioPages?.pages.flatMap((page) => page.content) ?? [],
+    [portfolioPages],
+  )
+  const metricsBySlug = usePortfolioCardMetricsMap(portfolios)
+  const isLoading = isPending || isFetchingNextPage
+  const hasPortfolioLoadError = isError && portfolios.length === 0
 
   const handleToggleLike = useCallback(
-    async (slug: string) => {
+    (slug: string) => {
       if (!requireAuth("engagement")) return
-      if (likeInFlightRef.current.has(slug)) return
+      if (pendingLikeSlugsRef.current.has(slug)) return
 
       const current = metricsBySlug[slug]
-      // Metrics haven't loaded yet — nothing to toggle against.
       if (!current) return
 
-      const wasLiked = current.viewerHasLiked
-      const optimistic: PortfolioCardMetrics = {
-        ...current,
-        viewerHasLiked: !wasLiked,
-        likes: wasLiked ? Math.max(0, current.likes - 1) : current.likes + 1,
-      }
+      pendingLikeSlugsRef.current.add(slug)
+      setPendingLikeSlugs((currentSlugs) => {
+        const next = new Set(currentSlugs)
+        next.add(slug)
+        return next
+      })
 
-      likeInFlightRef.current.add(slug)
-      setMetricsBySlug((prev) => ({ ...prev, [slug]: optimistic }))
-
-      try {
-        const summary = wasLiked
-          ? await unlikePortfolio(current.portfolioId)
-          : await likePortfolio(current.portfolioId)
-        setMetricsBySlug((prev) => ({
-          ...prev,
-          [slug]: {
-            portfolioId: summary.portfolioId,
-            likes: summary.likesCount,
-            comments: summary.commentsCount,
-            views: summary.viewsCount,
-            viewerHasLiked: summary.viewerHasLiked,
+      togglePortfolioLike(
+        {
+          slug,
+          portfolioId: current.portfolioId,
+          viewerHasLiked: current.viewerHasLiked,
+        },
+        {
+          onError: (error) => {
+            console.error("Failed to toggle like:", error)
           },
-        }))
-      } catch (error) {
-        console.error("Failed to toggle like:", error)
-        // Revert to the pre-click state.
-        setMetricsBySlug((prev) => ({ ...prev, [slug]: current }))
-      } finally {
-        likeInFlightRef.current.delete(slug)
-      }
+          onSettled: () => {
+            pendingLikeSlugsRef.current.delete(slug)
+            setPendingLikeSlugs((currentSlugs) => {
+              const next = new Set(currentSlugs)
+              next.delete(slug)
+              return next
+            })
+          },
+        },
+      )
     },
-    [metricsBySlug, requireAuth],
+    [metricsBySlug, requireAuth, togglePortfolioLike],
   )
 
   useEffect(() => {
     const sentinel = sentinelRef.current
-    if (!sentinel || isLast || isLoading) return
+    if (!sentinel || !hasNextPage || isFetchingNextPage) {
+      return
+    }
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
-          const nextPage = pageRef.current + 1
-          pageRef.current = nextPage
-          fetchPage(nextPage)
+          void fetchNextPage()
         }
       },
       { rootMargin: "200px" },
@@ -191,10 +153,14 @@ export const ExplorePageClient = () => {
 
     observer.observe(sentinel)
     return () => observer.disconnect()
-  }, [fetchPage, isLast, isLoading])
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage])
 
-  const filtered = portfolios.filter((p) =>
-    matchesPortfolioFilter(p, "all", deferredSearchQuery),
+  const filtered = useMemo(
+    () =>
+      portfolios.filter((portfolio) =>
+        matchesPortfolioFilter(portfolio, "all", deferredSearchQuery),
+      ),
+    [deferredSearchQuery, portfolios],
   )
 
   return (
@@ -344,7 +310,22 @@ export const ExplorePageClient = () => {
 
         <div className="absolute inset-x-0 h-px w-full border-b border-dashed border-border" />
 
-        {filtered.length === 0 && !isLoading ? (
+        {hasPortfolioLoadError ? (
+          <div className={cn(PAGE_HORIZONTAL_PADDING_CLASSNAME, "py-12")}>
+            <div className="mx-auto max-w-md rounded-lg border border-border bg-card p-6 text-center">
+              <p className="text-sm font-medium text-foreground">
+                Could not load portfolios.
+              </p>
+              <button
+                type="button"
+                onClick={() => void refetch()}
+                className="mt-4 rounded-md border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
+              >
+                Try again
+              </button>
+            </div>
+          </div>
+        ) : filtered.length === 0 && !isLoading ? (
           <div className={cn(PAGE_HORIZONTAL_PADDING_CLASSNAME, "py-4")}>
             <ExploreEmptyState hasQuery={deferredSearchQuery.length > 0} />
           </div>
@@ -358,6 +339,7 @@ export const ExplorePageClient = () => {
             {filtered.map((portfolio) => (
               <ExploreCard
                 key={portfolio.slug}
+                isLikePending={pendingLikeSlugs.has(portfolio.slug)}
                 metrics={metricsBySlug[portfolio.slug] ?? null}
                 portfolio={portfolio}
                 onToggleLike={handleToggleLike}
@@ -366,7 +348,7 @@ export const ExplorePageClient = () => {
           </div>
         )}
 
-        {!isLast && <div ref={sentinelRef} className="h-1" />}
+        {hasNextPage && <div ref={sentinelRef} className="h-1" />}
 
         {isLoading && (
           <div className="flex justify-center py-8">

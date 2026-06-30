@@ -1,37 +1,30 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import type { FormEvent } from "react";
+import { useMemo, useState } from "react";
 
 import { usePublicAuthGate } from "@/context/PublicAuthGateContext";
 import {
-  createPortfolioComment,
-  deletePortfolioComment,
-  fetchPortfolioComments,
-  likePortfolioComment,
-  unlikePortfolioComment,
-  updatePortfolioComment,
-} from "../portfolio-engagement.api";
+  useCreatePortfolioCommentMutation,
+  useDeletePortfolioCommentMutation,
+  usePortfolioCommentsQuery,
+  useTogglePortfolioCommentLikeMutation,
+  useUpdatePortfolioCommentMutation,
+} from "../../explore.query";
 import type { PortfolioComment } from "../portfolio-engagement.types";
-import {
-  addReplyToComment,
-  getTotalCommentCount,
-  mergeUpdatedComment,
-  removeCommentFromTree,
-  updateCommentTree,
-} from "../portfolio-comments.utils";
+import { getTotalCommentCount } from "../portfolio-comments.utils";
 
 interface UsePortfolioCommentsOptions {
   portfolioId: string;
   slug: string;
 }
 
+const EMPTY_COMMENTS: PortfolioComment[] = [];
+
 export const usePortfolioComments = ({
   portfolioId,
   slug,
 }: UsePortfolioCommentsOptions) => {
-  const [comments, setComments] = useState<PortfolioComment[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [commentBody, setCommentBody] = useState("");
   const [replyBody, setReplyBody] = useState("");
@@ -41,39 +34,15 @@ export const usePortfolioComments = ({
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const authGate = usePublicAuthGate();
+  const commentsQuery = usePortfolioCommentsQuery(slug);
+  const createCommentMutation = useCreatePortfolioCommentMutation();
+  const updateCommentMutation = useUpdatePortfolioCommentMutation();
+  const deleteCommentMutation = useDeletePortfolioCommentMutation();
+  const toggleCommentLikeMutation = useTogglePortfolioCommentLikeMutation();
 
+  const comments = commentsQuery.data?.comments ?? EMPTY_COMMENTS;
   const commentCount = useMemo(() => getTotalCommentCount(comments), [comments]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadComments = async () => {
-      setIsLoading(true);
-      setLoadError(null);
-
-      try {
-        const response = await fetchPortfolioComments(slug);
-        if (isMounted) {
-          setComments(response.comments);
-        }
-      } catch (error) {
-        console.error("Failed to load portfolio comments:", error);
-        if (isMounted) {
-          setLoadError("Could not load comments.");
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    void loadComments();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [slug]);
+  const loadError = commentsQuery.isError ? "Could not load comments." : null;
 
   const resetReplyState = () => {
     setActiveReplyId(null);
@@ -91,8 +60,7 @@ export const usePortfolioComments = ({
     setIsSubmittingComment(true);
 
     try {
-      const createdComment = await createPortfolioComment({ portfolioId, body });
-      setComments((current) => [...current, createdComment]);
+      await createCommentMutation.mutateAsync({ portfolioId, slug, body });
       setCommentBody("");
     } catch (error) {
       console.error("Failed to create comment:", error);
@@ -116,14 +84,12 @@ export const usePortfolioComments = ({
     setPendingActionId(parentCommentId);
 
     try {
-      const createdReply = await createPortfolioComment({
+      await createCommentMutation.mutateAsync({
         portfolioId,
+        slug,
         body,
         parentCommentId,
       });
-      setComments((current) =>
-        addReplyToComment(current, parentCommentId, createdReply),
-      );
       resetReplyState();
     } catch (error) {
       console.error("Failed to create reply:", error);
@@ -136,41 +102,13 @@ export const usePortfolioComments = ({
   const toggleLike = async (comment: PortfolioComment) => {
     if (!authGate.requireAuth("engagement") || pendingActionId) return;
 
-    const previousComments = comments;
-    const nextViewerHasLiked = !comment.viewerHasLiked;
-    const optimisticLikes = nextViewerHasLiked
-      ? comment.likesCount + 1
-      : Math.max(0, comment.likesCount - 1);
-
     setActionError(null);
     setPendingActionId(comment.id);
-    setComments((current) =>
-      updateCommentTree(current, comment.id, (currentComment) => ({
-        ...currentComment,
-        viewerHasLiked: nextViewerHasLiked,
-        likesCount: optimisticLikes,
-      })),
-    );
 
     try {
-      const updatedComment = nextViewerHasLiked
-        ? await likePortfolioComment(comment.id)
-        : await unlikePortfolioComment(comment.id);
-
-      setComments((current) =>
-        updateCommentTree(current, comment.id, (currentComment) =>
-          nextViewerHasLiked
-            ? mergeUpdatedComment(currentComment, updatedComment)
-            : {
-                ...currentComment,
-                viewerHasLiked: false,
-                likesCount: optimisticLikes,
-              },
-        ),
-      );
+      await toggleCommentLikeMutation.mutateAsync({ comment, slug });
     } catch (error) {
       console.error("Failed to toggle comment like:", error);
-      setComments(previousComments);
       setActionError("Could not update like.");
     } finally {
       setPendingActionId(null);
@@ -209,12 +147,7 @@ export const usePortfolioComments = ({
     setPendingActionId(commentId);
 
     try {
-      const updatedComment = await updatePortfolioComment({ commentId, body });
-      setComments((current) =>
-        updateCommentTree(current, commentId, (currentComment) =>
-          mergeUpdatedComment(currentComment, updatedComment),
-        ),
-      );
+      await updateCommentMutation.mutateAsync({ body, commentId, slug });
       cancelEdit();
     } catch (error) {
       console.error("Failed to update comment:", error);
@@ -227,13 +160,11 @@ export const usePortfolioComments = ({
   const deleteComment = async (commentId: string) => {
     if (!authGate.requireAuth("comment") || pendingActionId) return;
 
-    const previousComments = comments;
     setActionError(null);
     setPendingActionId(commentId);
-    setComments((current) => removeCommentFromTree(current, commentId));
 
     try {
-      await deletePortfolioComment(commentId);
+      await deleteCommentMutation.mutateAsync({ commentId, slug });
       if (editingId === commentId) {
         cancelEdit();
       }
@@ -242,7 +173,6 @@ export const usePortfolioComments = ({
       }
     } catch (error) {
       console.error("Failed to delete comment:", error);
-      setComments(previousComments);
       setActionError("Could not delete comment.");
     } finally {
       setPendingActionId(null);
@@ -262,7 +192,7 @@ export const usePortfolioComments = ({
     deleteComment,
     editingBody,
     editingId,
-    isLoading,
+    isLoading: commentsQuery.isPending,
     isSubmittingComment,
     loadError,
     pendingActionId,
