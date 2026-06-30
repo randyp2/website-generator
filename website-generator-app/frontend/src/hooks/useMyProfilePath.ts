@@ -1,10 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useMemo } from "react";
 
-type ProfileMeResponse = {
-    username?: string | null;
-};
+import { useProfileMeQuery } from "./useProfileMeQuery";
 
 interface UseMyProfilePathReturn {
     profilePath: string | null;
@@ -26,46 +24,19 @@ const toProfilePath = (username: unknown): string | null => {
 };
 
 const useMyProfilePath = (enabled = true): UseMyProfilePathReturn => {
-    const [profilePath, setProfilePath] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState<boolean>(enabled);
+    const profileQuery = useProfileMeQuery({ enabled });
 
-    const fetchProfilePath = useCallback(async (): Promise<void> => {
-        if (!enabled) {
-            setProfilePath(null);
-            setIsLoading(false);
-            return;
-        }
-
-        setIsLoading(true);
-
-        try {
-            const response = await fetch("/api/profile/me", {
-                method: "GET",
-                cache: "no-store",
-            });
-
-            if (!response.ok) {
-                setProfilePath(null);
-                return;
-            }
-
-            const payload = (await response.json()) as ProfileMeResponse;
-            setProfilePath(toProfilePath(payload.username));
-        } catch {
-            setProfilePath(null);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [enabled]);
-
-    useEffect(() => {
-        void fetchProfilePath();
-    }, [fetchProfilePath]);
+    const profilePath = useMemo(
+        () => (enabled ? toProfilePath(profileQuery.data?.username) : null),
+        [enabled, profileQuery.data?.username],
+    );
 
     return {
         profilePath,
-        isLoading,
-        refetch: fetchProfilePath,
+        isLoading: enabled && profileQuery.isPending,
+        refetch: async () => {
+            await profileQuery.refetch();
+        },
     };
 };
 

@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { Coins } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
     Popover,
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover";
-import { fetchHeaderBillingSummary } from "./header-billing.api";
+import { useProfileMeQuery } from "@/hooks/useProfileMeQuery";
 import type { HeaderBillingSummary } from "./header-billing.types";
 
 const toPlanLabel = (planKey: string | null): string => {
@@ -29,28 +29,23 @@ const toPlanLabel = (planKey: string | null): string => {
 };
 
 const HeaderCreditsChip = () => {
-    const [billingSummary, setBillingSummary] = useState<HeaderBillingSummary | null>(null);
+    const { data: profile } = useProfileMeQuery();
+    const billingSummary = useMemo<HeaderBillingSummary | null>(() => {
+        const balance = profile?.billing?.creditBalance;
+        const activePlanKey = profile?.billing?.activePlanKey;
 
-    useEffect(() => {
-        let cancelled = false;
+        if (!profile?.billing) {
+            return null;
+        }
 
-        void (async () => {
-            try {
-                const summary = await fetchHeaderBillingSummary();
-                if (!cancelled) {
-                    setBillingSummary(summary);
-                }
-            } catch {
-                if (!cancelled) {
-                    setBillingSummary(null);
-                }
-            }
-        })();
-
-        return () => {
-            cancelled = true;
+        return {
+            creditBalance: typeof balance === "number" ? balance : 0,
+            activePlanKey:
+                typeof activePlanKey === "string" && activePlanKey.trim()
+                    ? activePlanKey.trim()
+                    : null,
         };
-    }, []);
+    }, [profile?.billing]);
 
     const creditLabel = useMemo(() => {
         const balance = billingSummary?.creditBalance ?? null;

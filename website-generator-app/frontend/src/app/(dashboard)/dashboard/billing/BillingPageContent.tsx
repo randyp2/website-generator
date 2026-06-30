@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { usePublicAuthGate } from "@/context/PublicAuthGateContext";
+import { useProfileMeQuery } from "@/hooks/useProfileMeQuery";
 import { useToast } from "@/hooks/useToast";
 import { consumePersistedAuthIntent } from "@/lib/public-auth-intent-storage";
 import type {
@@ -31,16 +32,9 @@ const VERTICAL_LINES_MASK_STYLE: React.CSSProperties = {
     WebkitMaskRepeat: "no-repeat",
 };
 
-interface ProfileMeBillingResponse {
-    billing?: {
-        activePriceKey?: PriceKey | null;
-    } | null;
-}
-
 const BillingPageContent: React.FC = () => {
     const [mode, setMode] = useState<BillingMode>("subscription");
     const [isCheckingOut, setIsCheckingOut] = useState<boolean>(false);
-    const [activePriceKey, setActivePriceKey] = useState<PriceKey | null>(null);
     const { addToast } = useToast();
     const {
         authIntent,
@@ -50,6 +44,15 @@ const BillingPageContent: React.FC = () => {
         openAuthModal,
         requireAuth,
     } = usePublicAuthGate();
+    const { data: profile } = useProfileMeQuery({
+        enabled: isAuthReady && isAuthenticated,
+    });
+    const activePriceKey =
+        isAuthReady &&
+        isAuthenticated &&
+        typeof profile?.billing?.activePriceKey === "string"
+            ? (profile.billing.activePriceKey as PriceKey)
+            : null;
 
     const runCheckout = useCallback(
         async (priceKey: PriceKey): Promise<void> => {
@@ -145,32 +148,6 @@ const BillingPageContent: React.FC = () => {
         clearAuthIntent();
         void runCheckout(pendingIntent.priceKey);
     }, [authIntent, clearAuthIntent, isAuthenticated, runCheckout]);
-
-    useEffect(() => {
-        if (!isAuthReady || !isAuthenticated) {
-            setActivePriceKey(null);
-            return;
-        }
-
-        let cancelled = false;
-        void (async () => {
-            try {
-                const response = await fetch("/api/profile/me", {
-                    method: "GET",
-                });
-                if (!response.ok) return;
-                const data = (await response.json()) as ProfileMeBillingResponse;
-                if (cancelled) return;
-                setActivePriceKey(data.billing?.activePriceKey ?? null);
-            } catch {
-                // Silent failure: pricing buttons just stay enabled.
-            }
-        })();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [isAuthReady, isAuthenticated]);
 
     return (
         <div className="relative px-4 pb-20 pt-0 md:px-6 md:pb-24 md:pt-0 lg:px-8 [&_button]:cursor-pointer">

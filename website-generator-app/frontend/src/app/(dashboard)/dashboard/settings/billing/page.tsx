@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
     AlertTriangle,
     BarChart3,
@@ -19,6 +19,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/useToast";
+import { useProfileMeQuery } from "@/hooks/useProfileMeQuery";
 import { SETTINGS_BILLING_MOCK } from "../mock-settings-data";
 
 const BILLING_SHORTCUTS = [
@@ -73,10 +74,6 @@ interface ProfileBillingSnapshot {
     cancelAtPeriodEnd?: boolean | null;
 }
 
-interface ProfileMeBillingResponse {
-    billing?: ProfileBillingSnapshot | null;
-}
-
 interface CreatePortalSessionResponse {
     portalUrl?: string;
 }
@@ -121,11 +118,15 @@ const toPlanName = (planKey?: string | null): string | null => {
 
 const BillingSettingsPage = () => {
     const { plan } = SETTINGS_BILLING_MOCK;
-    const [creditBalance, setCreditBalance] = useState<number>(0);
-    const [billingSnapshot, setBillingSnapshot] =
-        useState<ProfileBillingSnapshot | null>(null);
     const [isOpeningPortal, setIsOpeningPortal] = useState<boolean>(false);
     const { addToast } = useToast();
+    const { data: profile } = useProfileMeQuery();
+    const billingSnapshot =
+        (profile?.billing as ProfileBillingSnapshot | null | undefined) ?? null;
+    const creditBalance =
+        typeof billingSnapshot?.creditBalance === "number"
+            ? billingSnapshot.creditBalance
+            : 0;
     const creditBalanceLabel = creditBalance.toLocaleString();
     const activePlanName = toPlanName(billingSnapshot?.activePlanKey) ?? plan.name;
     const subscriptionStatusLabel =
@@ -150,44 +151,6 @@ const BillingSettingsPage = () => {
         billingSnapshot?.activePlanKey === "website_generator_pro"
             ? `${plan.monthlyCredits.toLocaleString()} plan credits are granted on paid subscription invoices.`
             : "Purchase a plan or credit pack to add credits.";
-
-    useEffect(() => {
-        let cancelled = false;
-
-        void (async () => {
-            try {
-                const response = await fetch("/api/profile/me", {
-                    method: "GET",
-                    cache: "no-store",
-                });
-                if (!response.ok) {
-                    if (!cancelled) {
-                        setCreditBalance(0);
-                    }
-                    return;
-                }
-
-                const data = (await response.json()) as ProfileMeBillingResponse;
-                const nextBalance = data.billing?.creditBalance;
-
-                if (!cancelled) {
-                    setBillingSnapshot(data.billing ?? null);
-                    setCreditBalance(
-                        typeof nextBalance === "number" ? nextBalance : 0,
-                    );
-                }
-            } catch {
-                if (!cancelled) {
-                    setBillingSnapshot(null);
-                    setCreditBalance(0);
-                }
-            }
-        })();
-
-        return () => {
-            cancelled = true;
-        };
-    }, []);
 
     const openBillingPortal = async (): Promise<void> => {
         setIsOpeningPortal(true);
