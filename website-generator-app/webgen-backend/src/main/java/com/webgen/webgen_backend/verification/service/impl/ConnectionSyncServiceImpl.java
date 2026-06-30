@@ -357,7 +357,7 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
 
             EvidenceCandidate candidate = githubEvidenceCandidateMapper.fromRepository(
                     repo,
-                    dependencySources.keySet(),
+                    dependencySources,
                     capturedAt);
             if (candidate != null) {
                 candidates.add(candidate);

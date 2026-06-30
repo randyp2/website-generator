@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Locale;
-import java.util.Set;
+import java.util.Map;
 
 import static com.webgen.webgen_backend.verification.service.sync.VerificationMatchTextHelper.isBlank;
 
@@ -55,7 +55,7 @@ public class GithubEvidenceCandidateMapper {
 
     public EvidenceCandidate fromRepository(
             GithubRepoResponse repo,
-            Set<String> dependencies,
+            Map<String, String> dependencySources,
             OffsetDateTime capturedAt) {
         if (repo == null || isBlank(repo.fullName())) {
             return null;
@@ -80,8 +80,15 @@ public class GithubEvidenceCandidateMapper {
             repo.topics().forEach(topicsArray::add);
         }
 
+        // dependencies: sorted token list consumed by claim matching.
         ArrayNode dependenciesArray = metadata.putArray("dependencies");
-        dependencies.stream().sorted().forEach(dependenciesArray::add);
+        dependencySources.keySet().stream().sorted().forEach(dependenciesArray::add);
+
+        // dependencySources: token -> manifest file it was found in, for match provenance.
+        ObjectNode dependencySourcesNode = metadata.putObject("dependencySources");
+        dependencySources.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> dependencySourcesNode.put(entry.getKey(), entry.getValue()));
 
         return new EvidenceCandidate(
                 "repo:" + repo.fullName().toLowerCase(Locale.ROOT),
