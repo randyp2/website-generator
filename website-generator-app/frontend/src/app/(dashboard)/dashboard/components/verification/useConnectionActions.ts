@@ -2,16 +2,12 @@
 
 import { useCallback, useState } from "react";
 
-import { runConnectionActionRequest } from "./verification.api";
+import { useConnectionActionMutation } from "./verification.query";
 import type {
     ConnectionActionInFlight,
     ConnectionActionType,
     ConnectionProvider,
 } from "./verification.types";
-
-interface UseConnectionActionsParams {
-    refetchConnections: () => void | Promise<void>;
-}
 
 interface UseConnectionActionsReturn {
     connectionActionInFlight: ConnectionActionInFlight | null;
@@ -27,30 +23,32 @@ const DEFAULT_ACTION_ERROR_MESSAGE: Record<ConnectionActionType, string> = {
 const CONNECT_REDIRECT_MISSING_ERROR =
     "Failed to connect provider: authorization URL is missing";
 
-const useConnectionActions = ({
-    refetchConnections,
-}: UseConnectionActionsParams): UseConnectionActionsReturn => {
+const useConnectionActions = (): UseConnectionActionsReturn => {
     const [connectionActionInFlight, setConnectionActionInFlight] =
         useState<ConnectionActionInFlight | null>(null);
     const [connectionActionError, setConnectionActionError] = useState<
         string | null
     >(null);
+    const {
+        isPending: isConnectionActionPending,
+        mutateAsync: runConnectionAction,
+    } = useConnectionActionMutation();
 
     const runAction = useCallback(
         async (
             provider: ConnectionProvider,
             action: ConnectionActionType,
         ): Promise<void> => {
-            if (connectionActionInFlight) return;
+            if (connectionActionInFlight || isConnectionActionPending) return;
 
             setConnectionActionInFlight({ provider, action });
             setConnectionActionError(null);
 
             try {
-                const result = await runConnectionActionRequest(
+                const result = await runConnectionAction({
                     provider,
                     action,
-                );
+                });
 
                 if (action === "connect") {
                     if (!result.authorizationUrl) {
@@ -61,8 +59,6 @@ const useConnectionActions = ({
                     window.location.assign(result.authorizationUrl);
                     return;
                 }
-
-                await refetchConnections();
             } catch (error) {
                 setConnectionActionError(
                     error instanceof Error
@@ -73,7 +69,7 @@ const useConnectionActions = ({
                 setConnectionActionInFlight(null);
             }
         },
-        [connectionActionInFlight, refetchConnections],
+        [connectionActionInFlight, isConnectionActionPending, runConnectionAction],
     );
 
     const connectProvider = useCallback(

@@ -1,8 +1,8 @@
 "use client"
 
-import { useCallback, useState } from "react"
+import { useCallback } from "react"
 
-import { deleteClaimRequest } from "./verification.api"
+import { useDeleteClaimMutation } from "./verification.query"
 
 interface UseClaimDeletionParams {
   onSuccess: () => void
@@ -18,32 +18,30 @@ interface UseClaimDeletionReturn {
 const useClaimDeletion = ({
   onSuccess,
 }: UseClaimDeletionParams): UseClaimDeletionReturn => {
-  const [isDeletingClaim, setIsDeletingClaim] = useState(false)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const {
+    error,
+    isPending,
+    mutateAsync: deleteClaim,
+    reset,
+  } = useDeleteClaimMutation()
 
   const clearDeleteError = useCallback((): void => {
-    setDeleteError(null)
-  }, [])
+    reset()
+  }, [reset])
 
   const handleDeleteClaim = useCallback(async (claimId: string): Promise<void> => {
-    setIsDeletingClaim(true)
-    setDeleteError(null)
-
     try {
-      await deleteClaimRequest(claimId)
+      reset()
+      await deleteClaim(claimId)
       onSuccess()
-    } catch (error) {
-      setDeleteError(
-        error instanceof Error ? error.message : "Failed to delete claim",
-      )
-    } finally {
-      setIsDeletingClaim(false)
+    } catch {
+      // The mutation stores the error for UI display.
     }
-  }, [onSuccess])
+  }, [deleteClaim, onSuccess, reset])
 
   return {
-    isDeletingClaim,
-    deleteError,
+    isDeletingClaim: isPending,
+    deleteError: error instanceof Error ? error.message : null,
     clearDeleteError,
     handleDeleteClaim,
   }

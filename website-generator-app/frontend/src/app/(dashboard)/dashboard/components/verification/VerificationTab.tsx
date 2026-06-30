@@ -34,7 +34,10 @@ import useConnectionActions from "./useConnectionActions";
 import useClaimDeletion from "./useClaimDeletion";
 import useClaims from "./useClaims";
 import useEvidence from "./useEvidence";
-import { runConnectionSyncRequest } from "./verification.api";
+import {
+    useInvalidateVerificationQueries,
+    useRunConnectionSyncMutation,
+} from "./verification.query";
 
 const confidenceToQuality = (
     confidence: number | null | undefined,
@@ -57,17 +60,20 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
     const [activeFilter, setActiveFilter] = useState<FilterOption>("all");
     const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
-    const [isRerunningChecks, setIsRerunningChecks] = useState(false);
     const [rerunChecksError, setRerunChecksError] = useState<string | null>(
         null,
     );
+    const refreshVerificationData = useInvalidateVerificationQueries();
+    const {
+        isPending: isRerunningChecks,
+        mutateAsync: runConnectionSync,
+    } = useRunConnectionSyncMutation();
 
-    const { summary, isInitialLoading, error, refetch } = useVerificationSummary();
+    const { summary, isInitialLoading, error } = useVerificationSummary();
     const {
         claims,
         isLoading: isClaimsLoading,
         error: claimsError,
-        refetch: refetchClaims,
     } = useClaims();
     const {
         evidence: rawEvidence,
@@ -77,20 +83,17 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
     const {
         connections,
         error: connectionsError,
-        refetch: refetchConnections,
     } = useConnections();
     const {
         connectionActionInFlight,
         connectionActionError,
         connectProvider,
         disconnectProvider,
-    } = useConnectionActions({ refetchConnections });
+    } = useConnectionActions();
     const handleClaimDeletionSuccess = useCallback(() => {
         setDrawerOpen(false);
         setSelectedSkillId(null);
-        refetch();
-        refetchClaims();
-    }, [refetch, refetchClaims]);
+    }, []);
     const {
         isDeletingClaim,
         deleteError,
@@ -109,17 +112,13 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
     useEffect(() => {
         if (activeTab === "skill-verification") {
             if (hasEnteredSkillVerificationRef.current) {
-                refetch();
-                refetchClaims();
-                refetchConnections();
+                void refreshVerificationData();
             }
             hasEnteredSkillVerificationRef.current = true;
         }
     }, [
         activeTab,
-        refetch,
-        refetchClaims,
-        refetchConnections,
+        refreshVerificationData,
     ]);
 
     const claimById = useMemo(
@@ -293,7 +292,6 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
     const handleRerunChecks = useCallback(async () => {
         if (isRerunningChecks) return;
 
-        setIsRerunningChecks(true);
         setRerunChecksError(null);
 
         try {
@@ -301,40 +299,25 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
                 throw new Error("Connect GitHub before re-running checks");
             }
 
-            await runConnectionSyncRequest("github");
-
-            // Currently refetch data
-            await Promise.all([
-                refetch(),
-                refetchConnections(),
-                refetchClaims(),
-            ]);
+            await runConnectionSync("github");
         } catch (error) {
             setRerunChecksError(
                 error instanceof Error
                     ? error.message
                     : "Failed to re-run checks",
             );
-        } finally {
-            setIsRerunningChecks(false);
         }
     }, [
         githubConnection,
         isRerunningChecks,
-        refetch,
-        refetchClaims,
-        refetchConnections,
+        runConnectionSync,
     ]);
 
     // Refresh verification data right after claim ingestion succeeds so the
     // first entry into skill-verification reflects new baseline scores.
     const handlePostConfirmRefresh = useCallback(async () => {
-        await Promise.all([
-            refetch(),
-            refetchClaims(),
-            refetchConnections(),
-        ]);
-    }, [refetch, refetchClaims, refetchConnections]);
+        await refreshVerificationData();
+    }, [refreshVerificationData]);
 
     if (error) {
         return (
@@ -361,8 +344,8 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
             isExternalLoading={isInitialLoading}
             onPostConfirmRefresh={handlePostConfirmRefresh}
             evidence={evidenceItems}
-                isEvidenceLoading={isEvidenceLoading}
-                evidenceError={evidenceError}
+            isEvidenceLoading={isEvidenceLoading}
+            evidenceError={evidenceError}
         >
             <VerificationOverview
                 data={overview}

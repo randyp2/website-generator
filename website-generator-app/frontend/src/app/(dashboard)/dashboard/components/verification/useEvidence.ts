@@ -1,8 +1,9 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback } from "react"
 
-import type { EvidenceDTO, EvidenceListResponseDTO } from "@/types/evidence"
+import type { EvidenceDTO } from "@/types/evidence"
+import { useVerificationEvidenceQuery } from "./verification.query"
 
 interface UseEvidenceReturn {
   evidence: EvidenceDTO[]
@@ -11,44 +12,27 @@ interface UseEvidenceReturn {
   refetch: () => void
 }
 
+const getErrorMessage = (error: unknown, fallback: string): string =>
+  error instanceof Error ? error.message : fallback
+
 const useEvidence = (): UseEvidenceReturn => {
-  const [evidence, setEvidence] = useState<EvidenceDTO[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const {
+    data,
+    error,
+    isError,
+    isFetching,
+    refetch: refetchEvidence,
+  } = useVerificationEvidenceQuery()
+  const refetch = useCallback(() => {
+    void refetchEvidence()
+  }, [refetchEvidence])
 
-  const fetchEvidence = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      const res = await fetch("/api/profile/resume-verification/evidence", {
-        cache: "no-store",
-      })
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch evidence")
-      }
-
-      const data: EvidenceListResponseDTO = await res.json()
-      setEvidence(Array.isArray(data.items) ? data.items : [])
-    } catch (err) {
-      console.error("Error fetching evidence:", err)
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to fetch evidence",
-      )
-      setEvidence([])
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchEvidence()
-  }, [fetchEvidence])
-
-  return { evidence, isLoading, error, refetch: fetchEvidence }
+  return {
+    evidence: data ?? [],
+    isLoading: isFetching,
+    error: isError ? getErrorMessage(error, "Failed to fetch evidence") : null,
+    refetch,
+  }
 }
 
 export default useEvidence

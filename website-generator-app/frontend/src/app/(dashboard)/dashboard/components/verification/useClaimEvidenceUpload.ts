@@ -1,10 +1,13 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+
 import {
     buildClaimEvidenceUploadDescriptorFromFile,
     validateClaimEvidenceUploadDescriptor,
 } from "@/lib/verification/claimEvidenceUploadPolicy";
+import { invalidateClaimVerificationQueries } from "./verification.query";
 
 interface PresignResponse {
     uploadId: string;
@@ -15,12 +18,6 @@ interface PresignResponse {
 interface FinalizeResponse {
     upload?: unknown;
     jobId?: string;
-}
-
-interface VerificationJobStatusResponse {
-    jobId: string;
-    status: "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED";
-    error?: string;
 }
 
 export interface UploadResult {
@@ -47,67 +44,10 @@ const readErrorMessage = async (
     }
 };
 
-const VERIFICATION_POLL_INTERVAL_MS = 1500;
-const VERIFICATION_POLL_TIMEOUT_MS = 120_000;
-
-const delay = async (ms: number): Promise<void> =>
-    new Promise((resolve) => {
-        window.setTimeout(resolve, ms);
-    });
-
 export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
+    const queryClient = useQueryClient();
     const [isTransferring, setIsTransferring] = useState(false);
     const [deletingUploadId, setDeletingUploadId] = useState<string | null>(null);
-
-    const pollVerificationJobStatus = useCallback(
-        async (jobId: string): Promise<void> => {
-            const startedAt = Date.now();
-
-            while (Date.now() - startedAt < VERIFICATION_POLL_TIMEOUT_MS) {
-                const statusRes = await fetch(
-                    `/api/profile/resume-verification/jobs/status/${jobId}`,
-                    {
-                        method: "GET",
-                        cache: "no-store",
-                    },
-                );
-
-                if (statusRes.status === 404) {
-                    await delay(VERIFICATION_POLL_INTERVAL_MS);
-                    continue;
-                }
-
-                if (!statusRes.ok) {
-                    throw new Error(
-                        await readErrorMessage(
-                            statusRes,
-                            "Failed to check verification status",
-                        ),
-                    );
-                }
-
-                const statusPayload =
-                    (await statusRes.json()) as VerificationJobStatusResponse;
-
-                if (statusPayload.status === "COMPLETED") {
-                    return;
-                }
-
-                if (statusPayload.status === "FAILED") {
-                    throw new Error(
-                        statusPayload.error?.trim() || "Asset verification failed",
-                    );
-                }
-
-                await delay(VERIFICATION_POLL_INTERVAL_MS);
-            }
-
-            throw new Error(
-                "Verification is taking longer than expected. Please refresh and check again.",
-            );
-        },
-        [],
-    );
 
     const upload = useCallback(async (claimId: string, file: File): Promise<UploadResult> => {
         const descriptor = buildClaimEvidenceUploadDescriptorFromFile(file);
@@ -175,18 +115,14 @@ export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
                 finalizePayload.jobId.trim()
                     ? finalizePayload.jobId.trim()
                     : null;
+
+            void invalidateClaimVerificationQueries(queryClient, claimId);
         } finally {
             setIsTransferring(false);
         }
 
-        // Fire-and-forget: AI verification runs in the background after the
-        // file transfer lock is released so the user can take other actions.
-        if (verificationJobId) {
-            void pollVerificationJobStatus(verificationJobId);
-        }
-
         return { uploadId: capturedUploadId, jobId: verificationJobId };
-    }, [pollVerificationJobStatus]);
+    }, [queryClient]);
 
     const deleteUpload = useCallback(
         async (claimId: string, uploadId: string): Promise<void> => {
@@ -208,11 +144,13 @@ export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
                         await readErrorMessage(deleteRes, "Failed to delete upload"),
                     );
                 }
+
+                void invalidateClaimVerificationQueries(queryClient, claimId);
             } finally {
                 setDeletingUploadId(null);
             }
         },
-        [],
+        [queryClient],
     );
 
     return { isTransferring, deletingUploadId, upload, deleteUpload };
