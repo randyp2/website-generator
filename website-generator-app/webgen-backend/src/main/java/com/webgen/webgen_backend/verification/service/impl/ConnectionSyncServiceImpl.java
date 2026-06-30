@@ -346,9 +346,9 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
 
         int dependencyScans = 0;
         for (GithubRepoResponse repo : repositories) {
-            Set<String> dependencies = Set.of();
+            Map<String, String> dependencySources = Map.of();
             if (dependencyScans < MAX_REPOS_WITH_PACKAGE_SCAN) {
-                dependencies = githubRepositorySignalScanner.scanRepository(
+                dependencySources = githubRepositorySignalScanner.scanRepository(
                         accessToken,
                         repo.fullName(),
                         repo.defaultBranch());
@@ -357,7 +357,7 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
 
             EvidenceCandidate candidate = githubEvidenceCandidateMapper.fromRepository(
                     repo,
-                    dependencies,
+                    dependencySources.keySet(),
                     capturedAt);
             if (candidate != null) {
                 candidates.add(candidate);
@@ -371,7 +371,7 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
                                 + " capturedAt="
                                 + candidate.capturedAt()
                                 + " dependencyCount="
-                                + dependencies.size());
+                                + dependencySources.size());
             }
 
         }

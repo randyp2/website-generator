@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -35,10 +34,13 @@ class GithubRepositorySignalScannerTest {
         StubGithubApiClient client = new StubGithubApiClient(new ArrayList<>(files.keySet()), files);
         GithubRepositorySignalScanner scanner = new GithubRepositorySignalScanner(client, parser);
 
-        Set<String> signals = scanner.scanRepository("token", "octo/app", "main");
+        Map<String, String> signalsBySource = scanner.scanRepository("token", "octo/app", "main");
 
-        // Manifests are found at any depth, and each routes to the right parser.
-        assertThat(signals).contains("react", "fastapi", "gin");
+        // Manifests are found at any depth, each routes to the right parser, and
+        // every token records the manifest file it was found in.
+        assertThat(signalsBySource).containsEntry("react", "frontend/package.json");
+        assertThat(signalsBySource).containsEntry("fastapi", "services/api/requirements.txt");
+        assertThat(signalsBySource).containsEntry("gin", "go.mod");
         // Files without a parser are never fetched.
         assertThat(client.fetchedPaths).doesNotContain("README.md");
     }

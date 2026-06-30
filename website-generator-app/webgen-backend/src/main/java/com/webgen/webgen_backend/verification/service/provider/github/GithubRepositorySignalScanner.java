@@ -8,9 +8,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 import static com.webgen.webgen_backend.verification.service.sync.VerificationMatchTextHelper.isBlank;
 
@@ -29,12 +29,13 @@ public class GithubRepositorySignalScanner {
     /**
      * Scans a repository for dependency/build signals. Locates every parseable
      * manifest anywhere in the repo with a single Git Trees call, then fetches and
-     * parses only those manifests, merging their signals into one deterministic set.
+     * parses only those manifests, returning each discovered signal token mapped to
+     * the manifest file it was first found in.
      */
-    public Set<String> scanRepository(String accessToken, String fullName, String defaultBranch) {
+    public Map<String, String> scanRepository(String accessToken, String fullName, String defaultBranch) {
         String[] repoParts = splitRepoFullName(fullName);
         if (repoParts == null) {
-            return Set.of();
+            return Map.of();
         }
         String owner = repoParts[0];
         String repo = repoParts[1];
@@ -47,22 +48,25 @@ public class GithubRepositorySignalScanner {
                 .toList();
 
         if (manifestPaths.isEmpty()) {
-            return Set.of();
+            return Map.of();
         }
 
-        Set<String> signals = new LinkedHashSet<>();
+        // token -> manifest path it was first seen in
+        Map<String, String> sourcesByToken = new LinkedHashMap<>();
         for (String path : manifestPaths) {
             String content = fetchManifestContent(accessToken, owner, repo, defaultBranch, path);
-            signals.addAll(manifestDependencyParser.parse(fileName(path), content));
+            for (String token : manifestDependencyParser.parse(fileName(path), content)) {
+                sourcesByToken.putIfAbsent(token, path);
+            }
         }
 
         log.info(
                 "connection.sync.repo_scan fullName={} manifests={} signals={}",
                 fullName,
                 manifestPaths,
-                signals);
+                sourcesByToken.keySet());
 
-        return signals;
+        return sourcesByToken;
     }
 
     private String fetchManifestContent(
