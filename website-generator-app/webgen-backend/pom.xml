@@ -69,6 +69,12 @@
             <artifactId>jackson-dataformat-toml</artifactId>
         </dependency>
 
+        <!-- YAML parsing for repo manifests (docker-compose.yml); version managed by Spring Boot's Jackson BOM -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-yaml</artifactId>
+        </dependency>
+
         <!-- ai dependency -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
