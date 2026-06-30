@@ -118,13 +118,16 @@ export const setProfileMeQueryData = (
 
 export const useProfileMeQuery = ({
     enabled = true,
+    initialData,
 }: {
     enabled?: boolean;
+    initialData?: ProfileMeResponse;
 } = {}) =>
     useQuery({
         queryKey: profileMeQueryKey,
         queryFn: fetchProfileMe,
         enabled,
+        initialData,
     });
 
 export const useUpdateProfileMeMutation = () => {
