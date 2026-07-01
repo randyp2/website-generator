@@ -287,7 +287,7 @@ export const ExplorePageClient = () => {
                         startTransition(() => setSearchQuery(""))
                         setIsSearchOpen(false)
                       }}
-                      className="absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-all duration-200 hover:cursor-pointer hover:rotate-90 hover:bg-muted hover:text-foreground"
+                      className="public-icon-button public-icon-button-sm absolute right-3 top-1/2 -translate-y-1/2 hover:rotate-90"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -297,7 +297,7 @@ export const ExplorePageClient = () => {
                     key="search-trigger"
                     type="button"
                     aria-label="Search portfolios"
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:cursor-pointer hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                    className="public-icon-button"
                     onClick={() => setIsSearchOpen(true)}
                   >
                     <Search className="h-4 w-4" />
@@ -319,7 +319,7 @@ export const ExplorePageClient = () => {
               <button
                 type="button"
                 onClick={() => void refetch()}
-                className="mt-4 rounded-md border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
+                className="public-action-button public-action-button-outline mt-4"
               >
                 Try again
               </button>

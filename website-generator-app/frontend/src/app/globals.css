@@ -114,6 +114,119 @@
 }
 
 @layer components {
+  .public-action-button {
+    display: inline-flex;
+    min-height: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: var(--radius);
+    padding-inline: 1rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    transition:
+      background-color 0.2s ease,
+      border-color 0.2s ease,
+      color 0.2s ease,
+      opacity 0.2s ease;
+  }
+
+  .public-action-button:hover {
+    cursor: pointer;
+  }
+
+  .public-action-button:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  .public-action-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .public-action-button-primary {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  .public-action-button-primary:hover {
+    opacity: 0.9;
+  }
+
+  .public-action-button-outline {
+    border: 1px solid var(--border);
+    color: var(--foreground);
+  }
+
+  .public-action-button-outline:hover {
+    background: var(--accent);
+  }
+
+  .public-action-button-muted {
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--foreground);
+  }
+
+  .public-action-button-muted:hover {
+    background: var(--muted);
+  }
+
+  .public-action-button-danger {
+    border: 1px solid color-mix(in oklab, var(--destructive) 42%, transparent);
+    color: var(--destructive);
+  }
+
+  .public-action-button-danger:hover {
+    background: color-mix(in oklab, var(--destructive) 10%, transparent);
+  }
+
+  .public-action-button-danger-soft {
+    background: color-mix(in oklab, var(--destructive) 10%, transparent);
+    color: var(--destructive);
+  }
+
+  .public-action-button-danger-soft:hover {
+    background: color-mix(in oklab, var(--destructive) 16%, transparent);
+  }
+
+  .public-action-button-full {
+    width: 100%;
+  }
+
+  .public-icon-button {
+    display: inline-flex;
+    width: 2.5rem;
+    height: 2.5rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius);
+    color: var(--muted-foreground);
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .public-icon-button:hover {
+    cursor: pointer;
+    background: var(--muted);
+    color: var(--foreground);
+  }
+
+  .public-icon-button:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  .public-icon-button-sm {
+    width: 2rem;
+    height: 2rem;
+  }
+
   .gradient-button {
     position: relative;
     appearance: none;

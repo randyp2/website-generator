@@ -211,7 +211,7 @@ const ProfileSocialListDialog = ({
                             <button
                                 type="button"
                                 onClick={socialListState.refresh}
-                                className="mt-4 rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:cursor-pointer hover:bg-muted"
+                                className="public-action-button public-action-button-muted mt-4"
                             >
                                 Try again
                             </button>
@@ -241,7 +241,7 @@ const ProfileSocialListDialog = ({
                             type="button"
                             onClick={socialListState.loadMore}
                             disabled={socialListState.isLoadingMore}
-                            className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:cursor-pointer hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                            className="public-action-button public-action-button-muted public-action-button-full"
                         >
                             {socialListState.isLoadingMore && (
                                 <Loader2 className="size-4 animate-spin" />

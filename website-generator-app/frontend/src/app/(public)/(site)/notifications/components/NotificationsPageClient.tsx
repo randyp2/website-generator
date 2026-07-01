@@ -84,7 +84,7 @@ export const NotificationsPageClient = () => {
             type="button"
             onClick={handleMarkAllRead}
             disabled={markAllReadMutation.isPending}
-            className="shrink-0 text-sm font-medium text-primary transition-colors hover:cursor-pointer hover:text-primary/80"
+            className="public-action-button public-action-button-outline shrink-0"
           >
             {markAllReadMutation.isPending ? "Marking..." : "Mark all read"}
           </button>
@@ -100,7 +100,7 @@ export const NotificationsPageClient = () => {
           <button
             type="button"
             onClick={() => void notificationsQuery.refetch()}
-            className="text-sm font-medium text-primary transition-colors hover:cursor-pointer hover:text-primary/80"
+            className="public-action-button public-action-button-outline"
           >
             Try again
           </button>
@@ -139,7 +139,7 @@ export const NotificationsPageClient = () => {
                 type="button"
                 onClick={() => void notificationsQuery.fetchNextPage()}
                 disabled={notificationsQuery.isFetchingNextPage}
-                className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:cursor-pointer hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                className="public-action-button public-action-button-muted"
               >
                 {notificationsQuery.isFetchingNextPage && (
                   <Loader2 className="size-4 animate-spin" />

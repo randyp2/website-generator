@@ -214,13 +214,13 @@ export default function HowItWorksPage() {
               <div className="flex flex-wrap gap-3">
                 <Link
                   href="/"
-                  className="inline-flex items-center gap-2 border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                  className="public-action-button public-action-button-outline"
                 >
                   Go to home
                 </Link>
                 <Link
                   href="/dashboard"
-                  className="inline-flex items-center gap-2 bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+                  className="public-action-button public-action-button-primary"
                 >
                   Open dashboard
                   <ArrowRight className="size-4" />

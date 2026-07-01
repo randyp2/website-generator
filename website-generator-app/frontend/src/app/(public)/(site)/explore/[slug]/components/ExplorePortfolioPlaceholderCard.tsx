@@ -131,7 +131,7 @@ export const ExplorePortfolioPlaceholderCard = ({
                 <button
                   type="button"
                   onClick={refetch}
-                  className="text-xs font-medium text-primary underline underline-offset-4"
+                  className="public-action-button public-action-button-outline"
                 >
                   Retry
                 </button>

@@ -72,7 +72,7 @@ const ExplorePortfolioDetailPage = async ({ params }: Props) => {
                       href={getPortfolioFullHref(portfolio)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-border px-4 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+                      className="public-action-button public-action-button-outline"
                     >
                       <SquareArrowOutUpRight className="size-4" />
                       Open Full Portfolio

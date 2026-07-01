@@ -65,7 +65,7 @@ export const PortfolioCommentComposer = ({
           <button
             type="button"
             onClick={onCancel}
-            className="inline-flex h-9 items-center justify-center rounded-md border border-border px-3 text-sm font-medium text-muted-foreground transition-colors hover:cursor-pointer hover:bg-accent hover:text-foreground"
+            className="public-action-button public-action-button-outline text-muted-foreground hover:text-foreground"
           >
             {cancelLabel}
           </button>

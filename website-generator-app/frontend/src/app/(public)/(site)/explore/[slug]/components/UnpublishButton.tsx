@@ -49,14 +49,14 @@ export const UnpublishButton = ({ portfolioId, userId }: UnpublishButtonProps) =
         <button
           onClick={handleUnpublish}
           disabled={isUnpublishing}
-          className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-red-500/10 px-3 text-sm font-medium text-red-500 transition-colors hover:bg-red-500/20 disabled:opacity-50"
+          className="public-action-button public-action-button-danger-soft"
         >
           {isUnpublishing ? "Unpublishing..." : "Confirm"}
         </button>
         <button
           onClick={() => setShowConfirm(false)}
           disabled={isUnpublishing}
-          className="inline-flex h-9 items-center justify-center rounded-md border border-border px-3 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+          className="public-action-button public-action-button-outline"
         >
           Cancel
         </button>
@@ -67,7 +67,7 @@ export const UnpublishButton = ({ portfolioId, userId }: UnpublishButtonProps) =
   return (
     <button
       onClick={() => setShowConfirm(true)}
-      className="inline-flex h-11 shrink-0 items-center justify-center gap-2 self-start rounded-md border border-red-500/30 px-4 text-sm font-medium text-red-500 transition-colors hover:cursor-pointer hover:bg-red-500/10 lg:self-auto"
+      className="public-action-button public-action-button-danger shrink-0 self-start lg:self-auto"
     >
       <EyeOff className="size-4" />
       Unpublish
