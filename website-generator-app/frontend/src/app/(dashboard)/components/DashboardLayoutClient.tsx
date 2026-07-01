@@ -8,6 +8,7 @@ import { SidebarProvider, useSidebar } from "@/context/SidebarContext";
 import { usePathname } from "next/navigation";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import HeaderCreditsChip from "./HeaderCreditsChip";
+import { NotificationsMenu } from "@/components/notifications/NotificationsMenu";
 
 interface DashboardLayoutClientProps {
   children: React.ReactNode;
@@ -140,7 +141,10 @@ const DashboardLayoutClientInner: React.FC<DashboardLayoutClientProps> = ({
                 </nav>
               </div>
 
-              <HeaderCreditsChip />
+              <div className="ml-3 flex shrink-0 items-center gap-2">
+                <NotificationsMenu />
+                <HeaderCreditsChip />
+              </div>
             </div>
           </header>
           <div className="flex-1 overflow-y-auto overscroll-none py-1 md:py-1.5">

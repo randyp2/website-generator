@@ -4,7 +4,6 @@ import * as React from "react"
 import type { User } from "@supabase/supabase-js"
 import { motion } from "framer-motion"
 import {
-  Inbox,
   LayoutDashboard,
   LogIn,
   Sparkles,
@@ -228,15 +227,6 @@ const NavbarClient: React.FC = () => {
         {user ? (
           <>
             <div className="hidden items-center gap-2 md:flex">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="size-9 rounded-md border border-border/70 bg-background/80 hover:cursor-pointer hover:bg-accent/60"
-                aria-label="Inbox"
-              >
-                <Inbox className="size-4" />
-              </Button>
               <NotificationsMenu />
             </div>
             <motion.div {...actionButtonMotion}>

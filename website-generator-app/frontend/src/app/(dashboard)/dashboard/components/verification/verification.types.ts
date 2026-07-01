@@ -184,6 +184,7 @@ export interface SkillDetailDrawerProps {
   showClaimControls?: boolean
   onDeleteClaim: (claimId: string) => Promise<void>
   onClose: () => void
+  onOpenEvidence?: (evidenceId: string) => void
 }
 
 export type AssetJobPhase = "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED"

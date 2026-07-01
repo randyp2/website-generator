@@ -72,6 +72,7 @@ const SkillDetailDrawer = ({
     showClaimControls = true,
     onDeleteClaim,
     onClose,
+    onOpenEvidence,
 }: SkillDetailDrawerProps) => {
     type DrawerView =
         | { type: "skill" }
@@ -307,9 +308,12 @@ const SkillDetailDrawer = ({
                             {evidence.map((item) => {
                                 const Icon = EVIDENCE_TYPE_ICONS[item.type];
                                 return (
-                                    <div
+                                    <button
                                         key={item.id}
-                                        className="flex items-start gap-2.5 p-2.5 rounded-md border border-border bg-muted"
+                                        type="button"
+                                        onClick={() => onOpenEvidence?.(item.evidenceId)}
+                                        disabled={!onOpenEvidence}
+                                        className="w-full flex items-start gap-2.5 p-2.5 rounded-md border border-border bg-muted text-left transition-colors enabled:hover:border-primary/50 enabled:hover:bg-muted/70 enabled:cursor-pointer"
                                     >
                                         <Icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                                         <div className="flex-1 min-w-0">
@@ -334,7 +338,7 @@ const SkillDetailDrawer = ({
                                                 </span>
                                             </div>
                                         </div>
-                                    </div>
+                                    </button>
                                 );
                             })}
                             {evidence.length === 0 && (

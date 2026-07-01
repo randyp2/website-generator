@@ -103,7 +103,7 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
         onSuccess: handleClaimDeletionSuccess,
     });
 
-    const { activeTab } = useVerificationSubTab();
+    const { activeTab, openEvidenceDetail } = useVerificationSubTab();
 
     // Skip refetches on first entry — all hooks already fetch on mount.
     // Only refetch when the user navigates back to this tab after leaving it.
@@ -410,6 +410,7 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
                 deleteError={deleteError}
                 onDeleteClaim={handleDeleteClaim}
                 onClose={handleDrawerClose}
+                onOpenEvidence={openEvidenceDetail}
             />
         </ResumeVerificationGuard>
     );

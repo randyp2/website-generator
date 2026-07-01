@@ -66,7 +66,7 @@ const HeaderCreditsChip = () => {
                 <button
                     type="button"
                     aria-label="Open billing summary"
-                    className="ml-3 inline-flex shrink-0 items-center gap-2.5 rounded-full border border-border bg-muted/45 px-3.5 py-1.5 transition-colors hover:cursor-pointer hover:border-primary/30 hover:bg-muted/70"
+                    className="inline-flex shrink-0 items-center gap-2.5 rounded-full border border-border bg-muted/45 px-3.5 py-1.5 transition-colors hover:cursor-pointer hover:border-primary/30 hover:bg-muted/70"
                 >
                     <Coins className="h-5 w-5 text-amber-500" />
                     <span className="text-sm font-semibold text-foreground">
