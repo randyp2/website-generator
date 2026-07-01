@@ -20,4 +20,5 @@ public class ClaimLinkedEvidenceDTO {
     private String linkType;
     private BigDecimal linkConfidence;
     private String reason;
+    private String sourceFile;
 }

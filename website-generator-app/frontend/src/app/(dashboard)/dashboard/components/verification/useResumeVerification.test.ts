@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from "@testing-library/react"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { createElement, type ReactNode } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import useResumeVerification from "./useResumeVerification"
@@ -28,6 +30,33 @@ const makeErrorResponse = (status = 500) => ({
   text: async () => "Server error",
 })
 
+const createQueryWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+        refetchOnWindowFocus: false,
+      },
+      mutations: {
+        retry: false,
+      },
+    },
+  })
+
+  function TestQueryProvider({ children }: { children: ReactNode }) {
+    return createElement(QueryClientProvider, { client: queryClient }, children)
+  }
+
+  return TestQueryProvider
+}
+
+const renderResumeVerificationHook = (
+  setActiveTab: Parameters<typeof useResumeVerification>[0] = vi.fn(),
+) =>
+  renderHook(() => useResumeVerification(setActiveTab), {
+    wrapper: createQueryWrapper(),
+  })
+
 describe("useResumeVerification", () => {
   let fetchMock: ReturnType<typeof vi.fn>
 
@@ -45,7 +74,7 @@ describe("useResumeVerification", () => {
   it("starts with isLoadingExisting: true and no resume", () => {
     fetchMock.mockResolvedValueOnce(makeOkResponse(null))
 
-    const { result } = renderHook(() => useResumeVerification(vi.fn()))
+    const { result } = renderResumeVerificationHook()
 
     expect(result.current.isLoadingExisting).toBe(true)
     expect(result.current.resume).toBeNull()
@@ -62,7 +91,7 @@ describe("useResumeVerification", () => {
       }),
     )
 
-    const { result } = renderHook(() => useResumeVerification(vi.fn()))
+    const { result } = renderResumeVerificationHook()
 
     await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
 
@@ -75,7 +104,7 @@ describe("useResumeVerification", () => {
   it("sets isLoadingExisting to false even when hydration returns no data", async () => {
     fetchMock.mockResolvedValueOnce({ ok: true, json: async () => null })
 
-    const { result } = renderHook(() => useResumeVerification(vi.fn()))
+    const { result } = renderResumeVerificationHook()
 
     await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
 
@@ -86,7 +115,7 @@ describe("useResumeVerification", () => {
   it("sets isLoadingExisting to false when hydration fetch fails", async () => {
     fetchMock.mockResolvedValueOnce(makeErrorResponse(404))
 
-    const { result } = renderHook(() => useResumeVerification(vi.fn()))
+    const { result } = renderResumeVerificationHook()
 
     await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
 
@@ -96,7 +125,7 @@ describe("useResumeVerification", () => {
   it("sets isLoadingExisting to false when fetch throws", async () => {
     fetchMock.mockRejectedValueOnce(new Error("Network error"))
 
-    const { result } = renderHook(() => useResumeVerification(vi.fn()))
+    const { result } = renderResumeVerificationHook()
 
     await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
 
@@ -109,7 +138,7 @@ describe("useResumeVerification", () => {
     fetchMock.mockResolvedValueOnce(makeErrorResponse(204))
 
     const setActiveTab = vi.fn()
-    const { result } = renderHook(() => useResumeVerification(setActiveTab))
+    const { result } = renderResumeVerificationHook(setActiveTab)
     await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
 
     const file = makeResumeFile()
@@ -128,7 +157,7 @@ describe("useResumeVerification", () => {
 
     const revokeObjectURL = vi.spyOn(URL, "revokeObjectURL")
     const setActiveTab = vi.fn()
-    const { result } = renderHook(() => useResumeVerification(setActiveTab))
+    const { result } = renderResumeVerificationHook(setActiveTab)
     await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
 
     const first = makeResumeFile("first.pdf", "blob:first-url")
@@ -147,7 +176,7 @@ describe("useResumeVerification", () => {
     fetchMock.mockResolvedValueOnce(makeErrorResponse(204))
 
     const setActiveTab = vi.fn()
-    const { result } = renderHook(() => useResumeVerification(setActiveTab))
+    const { result } = renderResumeVerificationHook(setActiveTab)
     await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
 
     act(() => { result.current.handleResumeUploaded(makeResumeFile()) })
@@ -172,15 +201,17 @@ describe("useResumeVerification", () => {
     fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({}) })
 
     const setActiveTab = vi.fn()
-    const { result } = renderHook(() => useResumeVerification(setActiveTab))
+    const { result } = renderResumeVerificationHook(setActiveTab)
     await waitFor(() => expect(result.current.hasPersisted).toBe(true))
 
     await act(async () => { await result.current.handleResumeRemoved() })
 
-    const deleteCall = fetchMock.mock.calls.find(
-      ([url, opts]: [string, RequestInit]) =>
-        url === "/api/profile/resume-verification" && opts?.method === "DELETE",
-    )
+    const deleteCall = fetchMock.mock.calls.find((call) => {
+      const [url, opts] = call as [string, RequestInit | undefined]
+      return (
+        url === "/api/profile/resume-verification" && opts?.method === "DELETE"
+      )
+    })
     expect(deleteCall).toBeDefined()
     expect(result.current.hasPersisted).toBe(false)
   })
@@ -191,7 +222,7 @@ describe("useResumeVerification", () => {
     fetchMock.mockResolvedValueOnce(makeErrorResponse(204))
 
     const setActiveTab = vi.fn()
-    const { result } = renderHook(() => useResumeVerification(setActiveTab))
+    const { result } = renderResumeVerificationHook(setActiveTab)
     await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
 
     fetchMock.mockClear()
@@ -207,7 +238,7 @@ describe("useResumeVerification", () => {
     )
 
     const setActiveTab = vi.fn()
-    const { result } = renderHook(() => useResumeVerification(setActiveTab))
+    const { result } = renderResumeVerificationHook(setActiveTab)
     await waitFor(() => expect(result.current.hasPersisted).toBe(true))
 
     setActiveTab.mockClear()
@@ -223,7 +254,7 @@ describe("useResumeVerification", () => {
     // Hydration returns no resume
     fetchMock.mockResolvedValueOnce(makeErrorResponse(204))
     const setActiveTab = vi.fn()
-    const { result } = renderHook(() => useResumeVerification(setActiveTab))
+    const { result } = renderResumeVerificationHook(setActiveTab)
     await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
 
     act(() => { result.current.handleResumeUploaded(makeResumeFile()) })
@@ -246,7 +277,7 @@ describe("useResumeVerification", () => {
 
   it("handleContinueToSkillVerification sets uploadError on failure", async () => {
     fetchMock.mockResolvedValueOnce(makeErrorResponse(204))
-    const { result } = renderHook(() => useResumeVerification(vi.fn()))
+    const { result } = renderResumeVerificationHook()
     await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
 
     act(() => { result.current.handleResumeUploaded(makeResumeFile()) })
@@ -263,7 +294,7 @@ describe("useResumeVerification", () => {
 
   it("handleConfirmSkills is a no-op when resumeVerificationId is null", async () => {
     fetchMock.mockResolvedValueOnce(makeErrorResponse(204))
-    const { result } = renderHook(() => useResumeVerification(vi.fn()))
+    const { result } = renderResumeVerificationHook()
     await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
 
     fetchMock.mockClear()
@@ -278,7 +309,7 @@ describe("useResumeVerification", () => {
     )
 
     const setActiveTab = vi.fn()
-    const { result } = renderHook(() => useResumeVerification(setActiveTab))
+    const { result } = renderResumeVerificationHook(setActiveTab)
     await waitFor(() => expect(result.current.resumeVerificationId).toBe("rv-1"))
 
     // PATCH review
@@ -300,7 +331,7 @@ describe("useResumeVerification", () => {
       makeOkResponse({ id: "rv-1", originalFileName: "r.pdf", fileSizeBytes: 1024 }),
     )
 
-    const { result } = renderHook(() => useResumeVerification(vi.fn()))
+    const { result } = renderResumeVerificationHook()
     await waitFor(() => expect(result.current.resumeVerificationId).toBe("rv-1"))
 
     // PATCH review
@@ -320,7 +351,7 @@ describe("useResumeVerification", () => {
 
   it("saveReview is a no-op when resumeVerificationId is null", async () => {
     fetchMock.mockResolvedValueOnce(makeErrorResponse(204))
-    const { result } = renderHook(() => useResumeVerification(vi.fn()))
+    const { result } = renderResumeVerificationHook()
     await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
 
     fetchMock.mockClear()
@@ -334,17 +365,19 @@ describe("useResumeVerification", () => {
       makeOkResponse({ id: "rv-1", originalFileName: "r.pdf", fileSizeBytes: 1024 }),
     )
 
-    const { result } = renderHook(() => useResumeVerification(vi.fn()))
+    const { result } = renderResumeVerificationHook()
     await waitFor(() => expect(result.current.resumeVerificationId).toBe("rv-1"))
 
     fetchMock.mockResolvedValueOnce(makeOkResponse({}))
 
     await act(async () => { await result.current.saveReview(["React", "TypeScript"], []) })
 
-    const reviewCall = fetchMock.mock.calls.find(
-      ([url, opts]: [string, RequestInit]) =>
-        url === "/api/profile/resume-verification/review" && opts?.method === "PATCH",
-    )
+    const reviewCall = fetchMock.mock.calls.find((call) => {
+      const [url, opts] = call as [string, RequestInit | undefined]
+      return (
+        url === "/api/profile/resume-verification/review" && opts?.method === "PATCH"
+      )
+    })
     expect(reviewCall).toBeDefined()
   })
 })
