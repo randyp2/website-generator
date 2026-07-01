@@ -17,9 +17,9 @@ import {
     FiUser,
     FiMoreHorizontal,
     FiShield,
-    FiUsers,
     FiArrowUpRight,
 } from "react-icons/fi";
+import { FaUsers } from "react-icons/fa";
 import { MdOutlineCreate } from "react-icons/md";
 import { IconType } from "react-icons";
 import { useTheme } from "next-themes";
@@ -109,7 +109,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
         {
             id: "explore",
             label: "Explore",
-            icon: FiUsers,
+            icon: FaUsers,
             path: "/explore",
             external: true,
             dividerBefore: true,
