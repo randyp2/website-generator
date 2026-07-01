@@ -52,8 +52,9 @@ const createQueryWrapper = () => {
 
 const renderResumeVerificationHook = (
   setActiveTab: Parameters<typeof useResumeVerification>[0] = vi.fn(),
+  options?: Parameters<typeof useResumeVerification>[1],
 ) =>
-  renderHook(() => useResumeVerification(setActiveTab), {
+  renderHook(() => useResumeVerification(setActiveTab, options), {
     wrapper: createQueryWrapper(),
   })
 
@@ -170,6 +171,24 @@ describe("useResumeVerification", () => {
     expect(result.current.resume?.name).toBe("second.pdf")
   })
 
+  it("revokes the current blob URL on unmount", async () => {
+    fetchMock.mockResolvedValueOnce(makeOkResponse(null))
+
+    const revokeObjectURL = vi.spyOn(URL, "revokeObjectURL")
+    const { result, unmount } = renderResumeVerificationHook()
+    await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
+
+    act(() => {
+      result.current.handleResumeUploaded(
+        makeResumeFile("cleanup.pdf", "blob:cleanup-url"),
+      )
+    })
+
+    unmount()
+
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:cleanup-url")
+  })
+
   // ─── handleResumeRemoved ──────────────────────────────────────────────────
 
   it("handleResumeRemoved resets state and navigates without calling DELETE when not persisted", async () => {
@@ -214,6 +233,28 @@ describe("useResumeVerification", () => {
     })
     expect(deleteCall).toBeDefined()
     expect(result.current.hasPersisted).toBe(false)
+  })
+
+  it("handleResumeRemoved still resets state when DELETE throws", async () => {
+    fetchMock.mockResolvedValueOnce(
+      makeOkResponse({ id: "rv-1", originalFileName: "r.pdf", fileSizeBytes: 1024 }),
+    )
+
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {})
+    const setActiveTab = vi.fn()
+    const { result } = renderResumeVerificationHook(setActiveTab)
+    await waitFor(() => expect(result.current.hasPersisted).toBe(true))
+
+    fetchMock.mockRejectedValueOnce(new Error("Delete failed"))
+
+    await act(async () => { await result.current.handleResumeRemoved() })
+
+    expect(consoleError).toHaveBeenCalledWith(
+      "Failed to delete resume verification:",
+      expect.any(Error),
+    )
+    expect(result.current.hasPersisted).toBe(false)
+    expect(setActiveTab).toHaveBeenLastCalledWith("resume-review")
   })
 
   // ─── handleContinueToSkillVerification ────────────────────────────────────
@@ -275,6 +316,58 @@ describe("useResumeVerification", () => {
     expect(setActiveTab).toHaveBeenCalledWith("skill-review")
   })
 
+  it("handleContinueToSkillVerification persists parsed data and updatedAt", async () => {
+    fetchMock.mockResolvedValueOnce(makeOkResponse(null))
+    const { result } = renderResumeVerificationHook()
+    await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
+
+    act(() => { result.current.handleResumeUploaded(makeResumeFile()) })
+
+    fetchMock.mockResolvedValueOnce(makeOkResponse({ id: "rv-new" }))
+    fetchMock.mockResolvedValueOnce(
+      makeOkResponse({
+        success: true,
+        data: {
+          skills: ["React"],
+          experiences: [],
+          normalizedText: "Resume text",
+        },
+      }),
+    )
+    fetchMock.mockResolvedValueOnce(makeOkResponse({ updatedAt: "parsed-at" }))
+
+    await act(async () => { await result.current.handleContinueToSkillVerification() })
+
+    await waitFor(() => {
+      expect(result.current.parsedData).toMatchObject({ skills: ["React"] })
+      expect(result.current.resumeUpdatedAt).toBe("parsed-at")
+    })
+  })
+
+  it("handleContinueToSkillVerification stores parsingError when parsing fails", async () => {
+    fetchMock.mockResolvedValueOnce(makeOkResponse(null))
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {})
+    const { result } = renderResumeVerificationHook()
+    await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
+
+    act(() => { result.current.handleResumeUploaded(makeResumeFile()) })
+
+    fetchMock.mockResolvedValueOnce(makeOkResponse({ id: "rv-new" }))
+    fetchMock.mockResolvedValueOnce(makeErrorResponse(500))
+
+    await act(async () => { await result.current.handleContinueToSkillVerification() })
+
+    await waitFor(() => {
+      expect(result.current.parsingError).toBe(
+        "Failed to parse resume. You can add skills manually.",
+      )
+    })
+    expect(consoleError).toHaveBeenCalledWith(
+      "Resume verification parsing failed:",
+      expect.any(Error),
+    )
+  })
+
   it("handleContinueToSkillVerification sets uploadError on failure", async () => {
     fetchMock.mockResolvedValueOnce(makeErrorResponse(204))
     const { result } = renderResumeVerificationHook()
@@ -324,6 +417,40 @@ describe("useResumeVerification", () => {
     expect(setActiveTab).toHaveBeenLastCalledWith("skill-verification")
     expect(result.current.isIngesting).toBe(false)
     expect(result.current.ingestError).toBeNull()
+  })
+
+  it("handleConfirmSkills keeps navigating when post-confirm refresh fails", async () => {
+    fetchMock.mockResolvedValueOnce(
+      makeOkResponse({
+        id: "rv-1",
+        originalFileName: "r.pdf",
+        fileSizeBytes: 1024,
+        parsedJson: { skills: ["React"], experiences: [] },
+      }),
+    )
+
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {})
+    const setActiveTab = vi.fn()
+    const onConfirmIngested = vi.fn().mockRejectedValue(new Error("Refresh failed"))
+    const { result } = renderResumeVerificationHook(setActiveTab, {
+      onConfirmIngested,
+    })
+    await waitFor(() => expect(result.current.resumeVerificationId).toBe("rv-1"))
+
+    fetchMock.mockResolvedValueOnce(makeOkResponse({ updatedAt: "reviewed-at" }))
+    fetchMock.mockResolvedValueOnce(makeOkResponse({ ingested: 1 }))
+
+    await act(async () => {
+      await result.current.handleConfirmSkills(["React"], [])
+    })
+
+    expect(onConfirmIngested).toHaveBeenCalled()
+    expect(consoleError).toHaveBeenCalledWith(
+      "Post-confirm verification refresh failed:",
+      expect.any(Error),
+    )
+    expect(result.current.resumeUpdatedAt).toBe("reviewed-at")
+    expect(setActiveTab).toHaveBeenLastCalledWith("skill-verification")
   })
 
   it("handleConfirmSkills sets ingestError on failure", async () => {
@@ -379,5 +506,39 @@ describe("useResumeVerification", () => {
       )
     })
     expect(reviewCall).toBeDefined()
+  })
+
+  it("saveReview updates resumeUpdatedAt from the review response", async () => {
+    fetchMock.mockResolvedValueOnce(
+      makeOkResponse({ id: "rv-1", originalFileName: "r.pdf", fileSizeBytes: 1024 }),
+    )
+
+    const { result } = renderResumeVerificationHook()
+    await waitFor(() => expect(result.current.resumeVerificationId).toBe("rv-1"))
+
+    fetchMock.mockResolvedValueOnce(makeOkResponse({ updatedAt: "autosaved-at" }))
+
+    await act(async () => { await result.current.saveReview(["React"], []) })
+
+    expect(result.current.resumeUpdatedAt).toBe("autosaved-at")
+  })
+
+  it("saveReview logs autosave errors without throwing", async () => {
+    fetchMock.mockResolvedValueOnce(
+      makeOkResponse({ id: "rv-1", originalFileName: "r.pdf", fileSizeBytes: 1024 }),
+    )
+
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {})
+    const { result } = renderResumeVerificationHook()
+    await waitFor(() => expect(result.current.resumeVerificationId).toBe("rv-1"))
+
+    fetchMock.mockRejectedValueOnce(new Error("Autosave failed"))
+
+    await act(async () => { await result.current.saveReview(["React"], []) })
+
+    expect(consoleError).toHaveBeenCalledWith(
+      "Failed to autosave review:",
+      expect.any(Error),
+    )
   })
 })
