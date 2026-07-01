@@ -125,6 +125,7 @@ export interface EvidenceItem {
   linkType: string | null
   linkConfidence: number | null
   linkReason: string | null
+  sourceFile?: string | null
   metadata: Record<string, unknown> | null
   url: string | null
 }

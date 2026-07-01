@@ -231,6 +231,7 @@ const toClaimDTO = (claim: PublicClaimDTO): ClaimDTO => ({
             linkType: item.linkType,
             linkConfidence: item.linkConfidence ?? 0,
             reason: item.reason,
+            sourceFile: item.sourceFile,
         })),
     },
     createdAt: claim.createdAt,
@@ -264,6 +265,7 @@ const toEvidenceDTO = (item: PublicEvidenceListResponseDTO["items"][number]): Ev
             linkType: link.linkType,
             linkConfidence: link.linkConfidence ?? 0,
             reason: link.reason,
+            sourceFile: link.sourceFile,
         })),
     };
 };

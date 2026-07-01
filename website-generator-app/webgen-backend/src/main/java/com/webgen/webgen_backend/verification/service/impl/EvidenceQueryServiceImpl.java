@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.verification.service.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.webgen.webgen_backend.verification.dto.evidence.EvidenceDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.EvidenceLinkDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.EvidenceListResponseDTO;
@@ -119,6 +120,16 @@ public class EvidenceQueryServiceImpl implements EvidenceQueryService {
                 .linkType(link.getLinkType())
                 .linkConfidence(link.getLinkConfidence())
                 .reason(link.getReason())
+                .sourceFile(readSourceFile(link.getMetadata()))
                 .build();
+    }
+
+    /** Reads the manifest file a dependency signal was found in, when recorded. */
+    private String readSourceFile(JsonNode metadata) {
+        if (metadata == null) {
+            return null;
+        }
+        JsonNode sourceFile = metadata.get("source_file");
+        return sourceFile != null && sourceFile.isTextual() ? sourceFile.asText() : null;
     }
 }

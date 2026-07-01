@@ -162,6 +162,7 @@ const PublicVerificationTab = ({ username }: PublicVerificationTabProps) => {
             linkType: item.linkType,
             linkConfidence: item.linkConfidence,
             linkReason: item.reason,
+            sourceFile: item.sourceFile,
             metadata: null,
             url: item.sourceUrl,
         }));
@@ -229,6 +230,7 @@ const PublicVerificationTab = ({ username }: PublicVerificationTabProps) => {
                     linkType: link.linkType,
                     linkConfidence: link.linkConfidence,
                     linkReason: link.reason,
+                    sourceFile: link.sourceFile,
                     metadata: evidence.metadata,
                     url: evidence.sourceUrl,
                 };

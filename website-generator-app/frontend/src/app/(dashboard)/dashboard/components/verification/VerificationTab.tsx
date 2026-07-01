@@ -197,6 +197,7 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
             linkType: item.linkType,
             linkConfidence: item.linkConfidence,
             linkReason: item.reason,
+            sourceFile: item.sourceFile,
             metadata: null,
             url: item.sourceUrl,
         }));
@@ -260,6 +261,7 @@ const VerificationTab = ({ userId }: VerificationTabProps) => {
                 linkType: primaryLink.linkType,
                 linkConfidence: primaryLink.linkConfidence,
                 linkReason: primaryLink.reason,
+                sourceFile: primaryLink.sourceFile,
                 metadata: evidence.metadata,
                 url: evidence.sourceUrl,
             }];

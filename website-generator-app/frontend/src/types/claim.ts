@@ -9,6 +9,7 @@ export interface ClaimLinkedEvidenceDTO {
   linkType: string
   linkConfidence: number
   reason: string | null
+  sourceFile: string | null
 }
 
 export interface ClaimEvidenceSummaryDTO {

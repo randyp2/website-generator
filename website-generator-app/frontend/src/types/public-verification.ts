@@ -52,6 +52,7 @@ export interface PublicClaimLinkedEvidenceDTO {
   linkType: string
   linkConfidence: number | null
   reason: string | null
+  sourceFile: string | null
 }
 
 export interface PublicClaimEvidenceSummaryDTO {
@@ -90,6 +91,7 @@ export interface PublicEvidenceLinkDTO {
   linkType: string
   linkConfidence: number | null
   reason: string | null
+  sourceFile: string | null
 }
 
 export interface PublicEvidenceDTO {

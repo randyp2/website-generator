@@ -3,6 +3,7 @@ export interface EvidenceLinkDTO {
   linkType: string
   linkConfidence: number
   reason: string | null
+  sourceFile: string | null
 }
 
 export interface EvidenceDTO {

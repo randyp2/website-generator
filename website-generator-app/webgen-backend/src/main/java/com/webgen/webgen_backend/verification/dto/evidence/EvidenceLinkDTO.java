@@ -13,4 +13,5 @@ public class EvidenceLinkDTO {
     private String linkType;
     private BigDecimal linkConfidence;
     private String reason;
+    private String sourceFile;
 }
