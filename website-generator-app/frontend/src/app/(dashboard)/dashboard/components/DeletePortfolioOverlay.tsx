@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { FiAlertTriangle, FiTrash2 } from "react-icons/fi";
+import { Button } from "@/components/ui/button";
 
 type DeletePortfolioOverlayProps = {
   isOpen: boolean;
@@ -101,19 +102,23 @@ const DeletePortfolioDialogContent: React.FC<
         </div>
 
         <div className="mt-6 flex items-center gap-3">
-          <button
+          <Button
+            type="button"
             onClick={onCancel}
-            className="flex-1 cursor-pointer rounded-lg border border-border bg-muted px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/80"
+            variant="outline"
+            className="flex-1"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
             onClick={onConfirm}
             disabled={isDeleting || !isConfirmed}
-            className="flex-1 cursor-pointer rounded-lg bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:cursor-not-allowed disabled:opacity-60"
+            variant="destructive"
+            className="flex-1"
           >
             {isDeleting ? "Deleting..." : "Delete"}
-          </button>
+          </Button>
         </div>
       </motion.div>
     </div>

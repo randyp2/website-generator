@@ -22,6 +22,7 @@ import {
     DropdownMenuRadioItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { buildPortfolioUrl } from "@/lib/public-env";
 import {
@@ -297,19 +298,26 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
                         </dl>
 
                         <div className="mt-auto flex flex-wrap gap-2 pt-4">
-                            <a
+                            <Button
+                                asChild
+                                size="sm"
+                                className="flex-1 gap-1.5"
+                            >
+                              <a
                                 href={browserUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90"
-                            >
+                              >
                                 <ExternalLink className="h-3.5 w-3.5" />
                                 Visit Site
-                            </a>
-                            <button
+                              </a>
+                            </Button>
+                            <Button
                                 type="button"
                                 onClick={() => handleCopyUrl(browserUrl)}
-                                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-background/60 px-3 py-2 text-xs font-semibold text-foreground transition hover:border-primary/50 hover:bg-background"
+                                size="sm"
+                                variant="outline"
+                                className="flex-1 gap-1.5"
                             >
                                 {copied ? (
                                     <>
@@ -322,7 +330,7 @@ export const DeployedPortfolioPreview: React.FC<DeployedPortfolioPreviewProps> =
                                         Copy URL
                                     </>
                                 )}
-                            </button>
+                            </Button>
                         </div>
                     </article>
                 ) : (

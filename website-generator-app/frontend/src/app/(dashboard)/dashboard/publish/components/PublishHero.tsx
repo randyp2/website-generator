@@ -18,6 +18,7 @@ import {
 } from "react-icons/fi"
 
 import { BrowserPreviewFrame } from "@/components/ui/browser-preview-frame"
+import { Button } from "@/components/ui/button"
 import { buildPortfolioPath, buildPortfolioUrl } from "@/lib/public-env"
 import { cn } from "@/lib/utils"
 import type { Portfolio } from "@/types/portfolio"
@@ -106,14 +107,14 @@ export const PublishHero = ({
             Pick a draft and walk through the publish flow to put your work on the
             public Explore feed.
           </p>
-          <button
+          <Button
             type="button"
             onClick={onOpenWizard}
-            className="mt-2 inline-flex items-center gap-2 rounded-xl border border-primary bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            className="mt-2 gap-2"
           >
             <FiZap className="h-4 w-4" />
             Start the publish flow
-          </button>
+          </Button>
         </div>
       </section>
     )
@@ -316,22 +317,23 @@ export const PublishHero = ({
           {/* CTA action row */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-1 flex-wrap items-center gap-2.5">
-              <button
+              <Button
                 type="button"
                 onClick={openInEditMode}
-                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:cursor-pointer hover:border-primary/50 hover:bg-muted sm:flex-none"
+                variant="outline"
+                className="flex-1 gap-1.5 sm:flex-none"
               >
                 <FiEdit3 className="h-4 w-4" />
                 Edit description
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={onOpenWizard}
-                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-primary bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:cursor-pointer hover:bg-primary/90 sm:flex-none"
+                className="flex-1 gap-1.5 sm:flex-none"
               >
                 <FiUploadCloud className="h-4 w-4" />
                 Publish a new portfolio
-              </button>
+              </Button>
             </div>
 
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">

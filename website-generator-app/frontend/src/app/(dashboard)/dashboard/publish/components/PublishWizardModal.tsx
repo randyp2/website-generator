@@ -4,8 +4,8 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiArrowLeft, FiArrowRight, FiGlobe, FiX } from "react-icons/fi";
 
+import { Button } from "@/components/ui/button";
 import { buildPortfolioUrl } from "@/lib/public-env";
-import { cn } from "@/lib/utils";
 import type { Portfolio } from "@/types/portfolio";
 
 import { StepIndicator, type WizardStepDef } from "./wizard/StepIndicator";
@@ -306,14 +306,15 @@ export const PublishWizardModal = ({
                                 {selectedLabel ? ` · ${selectedLabel}` : ""}
                             </p>
                         </div>
-                        <button
+                        <Button
                             type="button"
                             onClick={onClose}
-                            className="cursor-pointer rounded-lg border border-border bg-background p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                            variant="outline"
+                            size="icon"
                             aria-label="Close"
                         >
                             <FiX className="h-4 w-4" />
-                        </button>
+                        </Button>
                     </div>
 
                     {/* Step indicator */}
@@ -397,52 +398,41 @@ export const PublishWizardModal = ({
 
                     {/* Footer */}
                     <div className="flex items-center justify-between gap-3 border-t border-border bg-background/40 px-8 py-5">
-                        <button
+                        <Button
                             type="button"
                             onClick={goBack}
                             disabled={currentStep === 0 || isPublishLocked}
-                            className={cn(
-                                "inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted",
-                                (currentStep === 0 || isPublishLocked) &&
-                                    "cursor-not-allowed opacity-40 hover:bg-background",
-                            )}
+                            variant="outline"
+                            className="gap-2"
                         >
                             <FiArrowLeft className="h-4 w-4" />
                             Back
-                        </button>
+                        </Button>
 
                         {!isLastStep ? (
-                            <button
+                            <Button
                                 type="button"
                                 onClick={goNext}
                                 disabled={!canAdvance}
-                                className={cn(
-                                    "inline-flex cursor-pointer items-center gap-2 rounded-lg border border-primary bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90",
-                                    !canAdvance &&
-                                        "cursor-not-allowed opacity-40 hover:bg-primary",
-                                )}
+                                className="gap-2"
                             >
                                 Next
                                 <FiArrowRight className="h-4 w-4" />
-                            </button>
+                            </Button>
                         ) : (
-                            <button
+                            <Button
                                 type="button"
                                 onClick={handlePublish}
                                 disabled={isPublishLocked}
-                                className={cn(
-                                    "inline-flex cursor-pointer items-center gap-2 rounded-lg border border-primary bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90",
-                                    isPublishLocked &&
-                                        "cursor-not-allowed opacity-60 hover:bg-primary",
-                                )}
+                                className="gap-2"
                             >
                                 <FiGlobe className="h-4 w-4" />
                                 {publishState === "success"
                                       ? "Published"
                                       : publishState === "loading"
-                                        ? "Publishing..."
+                                      ? "Publishing..."
                                       : "Publish"}
-                            </button>
+                            </Button>
                         )}
                     </div>
                 </motion.div>

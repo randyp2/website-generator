@@ -22,6 +22,7 @@ import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
 import { buildPortfolioUrl } from "@/lib/public-env";
 import type { Portfolio as PortfolioRecord } from "@/types/portfolio";
+import { Button } from "@/components/ui/button";
 import { DeletePortfolioOverlay } from "../components/DeletePortfolioOverlay";
 import { usePortfolioEngagementMetrics } from "../hooks/usePortfolioEngagementMetrics";
 import {
@@ -276,15 +277,14 @@ const PortfolioManager: React.FC = () => {
           </p>
         </div>
 
-        <motion.button
-          whileHover={{ y: -1 }}
-          whileTap={{ scale: 0.98 }}
+        <Button
+          type="button"
           onClick={() => router.push("/dashboard/create")}
-          className="hover:cursor-pointer hidden md:inline-flex h-10 items-center gap-1.5 rounded-md border border-primary bg-primary px-3.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          className="hidden gap-1.5 md:inline-flex"
         >
           <FiPlus className="h-4 w-4 text-primary-foreground" />
           New Portfolio
-        </motion.button>
+        </Button>
       </motion.div>
 
       {/* Portfolio Grid */}
@@ -587,20 +587,23 @@ const PortfolioManager: React.FC = () => {
 
                 {/* Action Buttons */}
                 <div className="flex gap-3 pt-4">
-                  <button
+                  <Button
+                    type="button"
                     onClick={handleCloseEdit}
                     disabled={isSaving}
-                    className="flex-1 px-4 py-3 border border-white/20 text-white/80 rounded-xl font-semibold hover:bg-white/5 transition-colors disabled:opacity-50"
+                    variant="outline"
+                    className="flex-1"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    type="button"
                     onClick={handleUpdatePortfolio}
                     disabled={isSaving || !editFormData.title.trim()}
-                    className="flex-1 px-4 py-3 bg-white/10 backdrop-blur-xl border border-white/20 hover:bg-white/15 hover:border-white/30 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1"
                   >
                     {isSaving ? "Saving..." : "Save Changes"}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </motion.div>
