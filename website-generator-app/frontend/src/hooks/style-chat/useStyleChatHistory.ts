@@ -14,7 +14,10 @@ import type {
     PersistedStyleChatMessage,
 } from "@/types/style-chat";
 
-import { toInitialStyleMessages } from "./style-chat-utils";
+import {
+    normalizeInitialStyleChatHistory,
+    toInitialStyleMessages,
+} from "./style-chat-utils";
 
 type MutableRef<T> = {
     current: T;
@@ -23,7 +26,7 @@ type MutableRef<T> = {
 interface UseStyleChatHistoryParams {
     activePortfolioId: string | null;
     createdDraftIdRef: MutableRef<string | null>;
-    initialStyleChatHistoryPromise?: Promise<InitialStyleChatHistoryState>;
+    initialStyleChatHistory?: InitialStyleChatHistoryState | null;
     lastSyncedHistoryRef: MutableRef<string>;
     onHistoryReset: () => void;
 }
@@ -44,7 +47,7 @@ interface UseStyleChatHistoryResult {
 export const useStyleChatHistory = ({
     activePortfolioId,
     createdDraftIdRef,
-    initialStyleChatHistoryPromise,
+    initialStyleChatHistory,
     lastSyncedHistoryRef,
     onHistoryReset,
 }: UseStyleChatHistoryParams): UseStyleChatHistoryResult => {
@@ -103,22 +106,11 @@ export const useStyleChatHistory = ({
             setHasLoadedHistory(false);
             lastSyncedHistoryRef.current = "";
 
-            // The server started this load during render; the page shell
-            // streams while it resolves here in the background.
-            if (initialStyleChatHistoryPromise) {
-                const initial = await initialStyleChatHistoryPromise.catch(
-                    (): InitialStyleChatHistoryState => ({
-                        history: null,
-                        isResolved: false,
-                    }),
-                );
-
-                if (cancelled) return;
-
-                if (initial.isResolved) {
-                    applyLoadedHistory(initial.history);
-                    return;
-                }
+            const initial =
+                normalizeInitialStyleChatHistory(initialStyleChatHistory);
+            if (initial.isResolved) {
+                applyLoadedHistory(initial.history);
+                return;
             }
 
             try {
@@ -152,7 +144,7 @@ export const useStyleChatHistory = ({
     }, [
         activePortfolioId,
         createdDraftIdRef,
-        initialStyleChatHistoryPromise,
+        initialStyleChatHistory,
         lastSyncedHistoryRef,
         onHistoryReset,
     ]);

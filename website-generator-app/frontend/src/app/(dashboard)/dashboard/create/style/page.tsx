@@ -26,15 +26,14 @@ const StyleDiscussionPage = async ({
     const resolvedSearchParams = (await searchParams) ?? {};
     const templateId = readSingleSearchParam(resolvedSearchParams.templateId);
     const portfolioId = readSingleSearchParam(resolvedSearchParams.portfolioId);
-    // Start the history load without awaiting so the page shell streams
-    // immediately; the client resolves the promise in the background.
-    const initialHistoryPromise = loadInitialStyleChatHistory(portfolioId);
+    const initialStyleChatHistory =
+        await loadInitialStyleChatHistory(portfolioId);
 
     return (
         <StyleDiscussionClient
             templateId={templateId}
             portfolioId={portfolioId}
-            initialStyleChatHistoryPromise={initialHistoryPromise}
+            initialStyleChatHistory={initialStyleChatHistory}
         />
     );
 };

@@ -26,9 +26,8 @@ const readStyleChatHistory = (
 };
 
 /**
- * Loads style chat history on the server. Callers pass the unawaited promise
- * to the client so the page shell streams while this resolves in the
- * background; `isResolved: false` tells the client to fetch instead.
+ * Loads style chat history on the server. `isResolved: false` tells the
+ * client to fetch instead.
  */
 export const loadInitialStyleChatHistory = async (
     portfolioId: string | null,

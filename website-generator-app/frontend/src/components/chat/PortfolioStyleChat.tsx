@@ -1,10 +1,9 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useUser } from "@/context/UserContext";
 import type { Message } from "@/types/preview";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
     ArrowRight,
     Check,
@@ -14,7 +13,10 @@ import {
     Send,
     Sparkles,
 } from "lucide-react";
-import type { ColorPresetRecommendation, StylePreferences } from "@/types/style";
+import type {
+    ColorPresetRecommendation,
+    StylePreferences,
+} from "@/types/style";
 import { Button } from "@/components/ui/button";
 import { GenerationStatus } from "@/components/ui/GenerationStatus";
 import { Textarea } from "@/components/ui/textarea";
@@ -79,16 +81,24 @@ interface AiMessageContentProps {
     onLayoutSelect?: (layout: string) => void;
 }
 
-const AiMessageContent = ({ message, onSuggestionClick, onLayoutSelect }: AiMessageContentProps) => (
+const AiMessageContent = ({
+    message,
+    onSuggestionClick,
+    onLayoutSelect,
+}: AiMessageContentProps) => (
     <div className="space-y-3">
         <ReactMarkdown
             components={{
                 p: ({ children }) => <p className="my-1">{children}</p>,
                 strong: ({ children }) => (
-                    <strong className="font-semibold text-white">{children}</strong>
+                    <strong className="font-semibold text-white">
+                        {children}
+                    </strong>
                 ),
                 ul: ({ children }) => (
-                    <ul className="my-1.5 list-disc space-y-0.5 pl-4">{children}</ul>
+                    <ul className="my-1.5 list-disc space-y-0.5 pl-4">
+                        {children}
+                    </ul>
                 ),
                 li: ({ children }) => (
                     <li className="text-white/80">{children}</li>
@@ -105,11 +115,14 @@ const AiMessageContent = ({ message, onSuggestionClick, onLayoutSelect }: AiMess
             </div>
         )}
 
-        {message.suggestions && message.suggestions.length > 0 && (
-            message.previewType === "layout_style" ? (
+        {message.suggestions &&
+            message.suggestions.length > 0 &&
+            (message.previewType === "layout_style" ? (
                 <LayoutPreviewGrid
                     suggestions={message.suggestions}
-                    onSelect={(layoutName) => (onLayoutSelect ?? onSuggestionClick)?.(layoutName)}
+                    onSelect={(layoutName) =>
+                        (onLayoutSelect ?? onSuggestionClick)?.(layoutName)
+                    }
                 />
             ) : (
                 <div className="flex flex-wrap gap-2">
@@ -121,8 +134,7 @@ const AiMessageContent = ({ message, onSuggestionClick, onLayoutSelect }: AiMess
                         />
                     ))}
                 </div>
-            )
-        )}
+            ))}
     </div>
 );
 
@@ -143,11 +155,17 @@ interface StyleSummaryCardProps {
     stylePreferences?: Partial<StylePreferences>;
 }
 
-const StyleSummaryCard = ({ content, stylePreferences }: StyleSummaryCardProps) => {
+const StyleSummaryCard = ({
+    content,
+    stylePreferences,
+}: StyleSummaryCardProps) => {
     const entries = stylePreferences
         ? Object.entries(stylePreferences).filter(
               ([key, value]) =>
-                  value && key in STYLE_PREF_LABELS && typeof value === "string" && value.trim(),
+                  value &&
+                  key in STYLE_PREF_LABELS &&
+                  typeof value === "string" &&
+                  value.trim(),
           )
         : [];
 
@@ -155,14 +173,18 @@ const StyleSummaryCard = ({ content, stylePreferences }: StyleSummaryCardProps) 
         <div className="space-y-4">
             <div className="flex items-center gap-2 text-emerald-400">
                 <Check className="h-4 w-4" />
-                <span className="text-sm font-medium">Style profile complete</span>
+                <span className="text-sm font-medium">
+                    Style profile complete
+                </span>
             </div>
 
             <ReactMarkdown
                 components={{
                     p: ({ children }) => <p className="my-1">{children}</p>,
                     strong: ({ children }) => (
-                        <strong className="font-semibold text-white">{children}</strong>
+                        <strong className="font-semibold text-white">
+                            {children}
+                        </strong>
                     ),
                 }}
             >
@@ -176,7 +198,9 @@ const StyleSummaryCard = ({ content, stylePreferences }: StyleSummaryCardProps) 
                             <span className="text-xs text-white/40">
                                 {STYLE_PREF_LABELS[key]}
                             </span>
-                            <p className="truncate text-sm text-white/80">{value}</p>
+                            <p className="truncate text-sm text-white/80">
+                                {value}
+                            </p>
                         </div>
                     ))}
                 </div>
@@ -185,7 +209,12 @@ const StyleSummaryCard = ({ content, stylePreferences }: StyleSummaryCardProps) 
     );
 };
 
-const composerFrameClass = "w-full max-w-[980px]";
+const composerFrameClass = "w-full max-w-3xl";
+
+const composerActions = [
+    { icon: Plus, label: "Add references" },
+    { icon: MessageSquareText, label: "General idea" },
+] as const;
 
 export function PortfolioStyleChat({
     messages,
@@ -206,12 +235,9 @@ export function PortfolioStyleChat({
     onLayoutSubmit,
     className,
 }: PortfolioStyleChatProps) {
-    const { user } = useUser();
-    const firstName = useMemo(() => {
-        const first = user.username.trim().split(/\s+/)[0];
-        return first ? first.toLowerCase() : "there";
-    }, [user.username]);
     const [prompt, setPrompt] = useState("");
+    const [isActionsOpen, setIsActionsOpen] = useState(false);
+    const composerRef = useRef<HTMLDivElement>(null);
     const endRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const hasUserStarted = messages.some((message) => message.role === "user");
@@ -224,7 +250,9 @@ export function PortfolioStyleChat({
 
     useEffect(() => {
         if (!hasStarted) return;
-        endRef.current?.scrollIntoView({ behavior: "smooth" });
+        // "nearest" only scrolls when the marker is out of view, so short
+        // conversations never scroll past the composer.
+        endRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }, [hasStarted, messages, isSending]);
 
     useEffect(() => {
@@ -232,6 +260,21 @@ export function PortfolioStyleChat({
         textareaRef.current.style.height = "auto";
         textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }, [prompt]);
+
+    // Close the composer actions menu when clicking outside the composer.
+    useEffect(() => {
+        if (!isActionsOpen) return;
+
+        const handlePointerDown = (event: PointerEvent) => {
+            if (!composerRef.current?.contains(event.target as Node)) {
+                setIsActionsOpen(false);
+            }
+        };
+
+        document.addEventListener("pointerdown", handlePointerDown);
+        return () =>
+            document.removeEventListener("pointerdown", handlePointerDown);
+    }, [isActionsOpen]);
 
     const handleSend = () => {
         const value = prompt.trim();
@@ -255,25 +298,63 @@ export function PortfolioStyleChat({
     };
 
     const renderComposer = () => (
-        <div
-            className={cn(
-                "overflow-hidden rounded-xl border border-white/10 bg-[#1c1d22]/92 text-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur-2xl",
-                "px-6 py-2.5 md:px-7 md:py-3",
-            )}
-        >
-            <div className="flex items-start gap-3">
+        <div ref={composerRef} className="relative">
+            <AnimatePresence>
+                {isActionsOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                        transition={{ duration: 0.16, ease: "easeOut" }}
+                        className="absolute left-2 top-full z-30 mt-1.5 w-52 rounded-2xl bg-[#1c1d22]/95 p-1.5 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl"
+                    >
+                        {composerActions.map(({ icon: Icon, label }) => (
+                            <button
+                                key={label}
+                                type="button"
+                                onClick={() => setIsActionsOpen(false)}
+                                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-white/80 transition hover:bg-white/[0.08] hover:text-white"
+                            >
+                                <Icon className="h-4 w-4" />
+                                {label}
+                            </button>
+                        ))}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            <div className="flex items-center gap-2 rounded-full bg-[#1c1d22]/92 px-2 py-2 text-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur-2xl md:px-2.5 md:py-2.5">
+                <button
+                    type="button"
+                    onClick={() => setIsActionsOpen((open) => !open)}
+                    aria-label={
+                        isActionsOpen ? "Close options" : "More options"
+                    }
+                    aria-expanded={isActionsOpen}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white/70 transition hover:text-white"
+                >
+                    <Plus
+                        className={cn(
+                            "h-5 w-5 transition-transform duration-200",
+                            isActionsOpen && "rotate-45",
+                        )}
+                    />
+                </button>
+
                 <Textarea
                     ref={textareaRef}
+                    rows={1}
                     value={prompt}
                     onChange={(event) => setPrompt(event.target.value)}
                     onKeyDown={handleKeyDown}
                     disabled={isInputDisabled || isInitializing}
                     placeholder="Describe the general idea for your portfolio..."
                     className={cn(
-                        "resize-none border-0 bg-transparent px-0 text-white placeholder:text-white/55 shadow-none focus-visible:ring-0",
-                        "min-h-[32px] max-h-20 py-1.5 text-base leading-6 md:text-lg",
+                        "resize-none border-0 bg-transparent px-2 text-white placeholder:text-white/55 shadow-none focus-visible:ring-0",
+                        "max-h-20 min-h-10 py-2 text-base leading-6 md:text-lg",
                     )}
                 />
+
                 <Button
                     type="button"
                     onClick={handleSend}
@@ -283,38 +364,11 @@ export function PortfolioStyleChat({
                         isInitializing ||
                         !prompt.trim()
                     }
-                    className={cn(
-                        "-mt-0.5 shrink-0 rounded-xl bg-transparent text-white transition hover:bg-white/5 disabled:bg-transparent disabled:text-white/30",
-                        "h-12 w-12",
-                    )}
+                    className="h-12 w-12 shrink-0 rounded-full bg-transparent text-white transition hover:bg-white/5 disabled:bg-transparent disabled:text-white/30"
                     aria-label="Send message"
                 >
-                    <Send strokeWidth={2.4} className="h-7 w-7" />
+                    <Send strokeWidth={2.2} className="h-10 w-10" />
                 </Button>
-            </div>
-
-            <div className="mt-0.5 flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-2 text-white/70">
-                <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-2 rounded-full bg-white/[0.06] px-3 py-1.5">
-                        <Plus className="h-3.5 w-3.5" />
-                        <span className="text-xs">Add references</span>
-                    </div>
-                    <div className="flex items-center gap-2 rounded-full bg-white/[0.06] px-3 py-1.5">
-                        <MessageSquareText className="h-3.5 w-3.5" />
-                        <span className="text-xs">General idea</span>
-                    </div>
-                </div>
-                {onContinue && (
-                    <button
-                        type="button"
-                        onClick={onContinue}
-                        disabled={isContinueDisabled}
-                        className="group inline-flex cursor-pointer items-center gap-2 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm ring-1 ring-black/5 transition-colors duration-150 hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1c1d22] disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                        <span>{continueLabel}</span>
-                        <ArrowRight className="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
-                    </button>
-                )}
             </div>
         </div>
     );
@@ -326,46 +380,57 @@ export function PortfolioStyleChat({
                 className,
             )}
         >
+            {/* Pinned to the top right of the scrollport; -mb cancels its
+                flow height so the landing hero stays vertically centered. */}
+            {onContinue && (
+                <div className="pointer-events-none sticky top-2 z-30 -mb-10 flex justify-end px-4 md:px-8">
+                    <button
+                        type="button"
+                        onClick={onContinue}
+                        disabled={isContinueDisabled}
+                        className="group pointer-events-auto inline-flex h-10 cursor-pointer items-center gap-2 rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground shadow-sm ring-1 ring-black/5 transition-colors duration-150 hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <span>{continueLabel}</span>
+                        <ArrowRight className="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
+                    </button>
+                </div>
+            )}
+
             <AnimatePresence initial={false} mode="popLayout">
                 {!hasStarted ? (
-                    <motion.div
+                    <div
                         key="style-landing"
-                        initial={{ opacity: 0, y: 18 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -18 }}
-                        transition={{ duration: 0.28, ease: "easeOut" }}
                         className="flex flex-1 items-center px-6 py-8 md:px-10"
                     >
                         <div className="mx-auto flex w-full max-w-[1120px] flex-col items-center">
-                            <div className="mb-5 w-full max-w-4xl text-left">
-                                <div className="mb-4 flex items-center gap-3 text-white/90">
-                                    <Sparkles className="h-9 w-9 text-white/80 drop-shadow-[0_0_10px_rgba(255,255,255,0.12)] md:h-11 md:w-11" />
-                                    <span className="text-4xl font-medium tracking-tight md:text-6xl">
-                                        Hey <span className="text-primary">{firstName}</span>,
-                                    </span>
-                                </div>
-                                <p className="max-w-2xl text-base leading-7 text-white/68 md:text-lg">
-                                    Let&apos;s make your portfolio impossible to ignore.
-                                </p>
+                            <div className="mb-10 w-full max-w-4xl text-center md:mb-12">
+                                <h1 className="text-4xl font-light tracking-normal text-white/88 md:text-5xl">
+                                    What are we building?
+                                </h1>
                             </div>
 
-                            <motion.div
-                                layoutId="style-chat-composer"
-                                transition={{
-                                    type: "spring",
-                                    stiffness: 220,
-                                    damping: 26,
-                                }}
-                                className={composerFrameClass}
+                            <div
+                                className={cn(
+                                    "style-chat-composer-stage relative",
+                                    composerFrameClass,
+                                )}
                             >
-                                {renderComposer()}
-                            </motion.div>
+                                <div
+                                    className="style-chat-composer-burst"
+                                    aria-hidden="true"
+                                />
+                                <div className="relative z-10">
+                                    {renderComposer()}
+                                </div>
+                            </div>
 
                             {showColorPicker && onColorSubmit && (
                                 <div className="mt-8">
                                     <ColorPickerPanel
                                         onSubmit={onColorSubmit}
-                                        recommendedPresets={recommendedColorPresets}
+                                        recommendedPresets={
+                                            recommendedColorPresets
+                                        }
                                     />
                                 </div>
                             )}
@@ -384,7 +449,7 @@ export function PortfolioStyleChat({
                                 </div>
                             )}
                         </div>
-                    </motion.div>
+                    </div>
                 ) : (
                     <motion.div
                         key="style-chat-active"
@@ -394,14 +459,12 @@ export function PortfolioStyleChat({
                         transition={{ duration: 0.28, ease: "easeOut" }}
                         className="flex flex-1 flex-col"
                     >
-                        <div className="flex-1 px-4 pb-6 pt-6 md:px-10 md:pt-10">
-                            <div className="mx-auto flex w-full max-w-4xl flex-col space-y-5">
-                                {isInitializing ? (
-                                    <div className="flex flex-1 items-center justify-center py-16">
-                                        <Loader2 className="h-6 w-6 animate-spin text-white/40" />
-                                    </div>
-                                ) : (
-                                    messages.map((message) => (
+                        {isInitializing ? (
+                            <Loader2 className="m-auto h-6 w-6 animate-spin text-white/40" />
+                        ) : (
+                            <div className="flex-1 px-4 pb-6 pt-6 md:px-10 md:pt-10">
+                                <div className="mx-auto flex w-full max-w-4xl flex-col space-y-5">
+                                    {messages.map((message) => (
                                         <div
                                             key={message.id}
                                             className={cn(
@@ -415,9 +478,10 @@ export function PortfolioStyleChat({
                                                 className={cn(
                                                     "py-3 text-[15px] leading-relaxed",
                                                     message.role === "user"
-                                                        ? "max-w-[88%] rounded-2xl bg-linear-to-r from-blue-600 to-blue-500 px-4 text-white md:max-w-[80%]"
+                                                        ? "max-w-[88%] rounded-full bg-zinc-200 px-6 py-3.5 text-zinc-900 md:max-w-[80%] dark:bg-zinc-800 dark:text-zinc-100"
                                                         : "text-white/90",
-                                                    message.role === "ai" && message.previewType
+                                                    message.role === "ai" &&
+                                                        message.previewType
                                                         ? "max-w-full"
                                                         : message.role === "ai"
                                                           ? "max-w-[88%] md:max-w-[80%]"
@@ -427,14 +491,22 @@ export function PortfolioStyleChat({
                                                 {message.role === "ai" ? (
                                                     message.isStyleComplete ? (
                                                         <StyleSummaryCard
-                                                            content={message.content}
-                                                            stylePreferences={message.stylePreferences}
+                                                            content={
+                                                                message.content
+                                                            }
+                                                            stylePreferences={
+                                                                message.stylePreferences
+                                                            }
                                                         />
                                                     ) : (
                                                         <AiMessageContent
                                                             message={message}
-                                                            onSuggestionClick={handleSuggestionSend}
-                                                            onLayoutSelect={onLayoutSubmit}
+                                                            onSuggestionClick={
+                                                                handleSuggestionSend
+                                                            }
+                                                            onLayoutSelect={
+                                                                onLayoutSubmit
+                                                            }
                                                         />
                                                     )
                                                 ) : (
@@ -442,43 +514,56 @@ export function PortfolioStyleChat({
                                                 )}
                                             </div>
                                             <span className="mt-1 text-xs text-white/40">
-                                                {formatTimestamp(message.timestamp)}
+                                                {formatTimestamp(
+                                                    message.timestamp,
+                                                )}
                                             </span>
                                         </div>
-                                    ))
-                                )}
+                                    ))}
 
-                                {showColorPicker && onColorSubmit && (
-                                    <ColorPickerPanel
-                                        onSubmit={onColorSubmit}
-                                        recommendedPresets={recommendedColorPresets}
+                                    {showColorPicker && onColorSubmit && (
+                                        <ColorPickerPanel
+                                            onSubmit={onColorSubmit}
+                                            recommendedPresets={
+                                                recommendedColorPresets
+                                            }
+                                        />
+                                    )}
+
+                                    {showTypographyPicker &&
+                                        onTypographySubmit && (
+                                            <TypographyPickerPanel
+                                                onSubmit={onTypographySubmit}
+                                                recommendedHeadingFont={
+                                                    recommendedHeadingFont
+                                                }
+                                                recommendedBodyFont={
+                                                    recommendedBodyFont
+                                                }
+                                            />
+                                        )}
+
+                                    {isSending && (
+                                        <GenerationStatus statusText="Thinking..." />
+                                    )}
+                                    <div
+                                        ref={endRef}
+                                        className="scroll-mb-28"
                                     />
-                                )}
-
-                                {showTypographyPicker && onTypographySubmit && (
-                                    <TypographyPickerPanel
-                                        onSubmit={onTypographySubmit}
-                                        recommendedHeadingFont={
-                                            recommendedHeadingFont
-                                        }
-                                        recommendedBodyFont={
-                                            recommendedBodyFont
-                                        }
-                                    />
-                                )}
-
-                                {isSending && (
-                                    <GenerationStatus statusText="Thinking..." />
-                                )}
-                                <div ref={endRef} />
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* Sticky within the dashboard scroller: stays pinned
                             to the viewport bottom while messages scroll past
                             in the single outer scrollbar. */}
                         <div className="pointer-events-none sticky bottom-0 z-20 px-4 pb-4 md:px-8 md:pb-6">
-                            <div className={cn("mx-auto flex flex-col gap-3", composerFrameClass)}>
+                            <div
+                                className={cn(
+                                    "mx-auto flex flex-col gap-3",
+                                    composerFrameClass,
+                                )}
+                            >
                                 <motion.div
                                     layoutId="style-chat-composer"
                                     transition={{

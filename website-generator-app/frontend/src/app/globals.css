@@ -227,6 +227,93 @@
     height: 2rem;
   }
 
+  .style-chat-composer-stage {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .style-chat-composer-burst {
+    position: absolute;
+    inset-inline: -36%;
+    top: 50%;
+    z-index: 0;
+    height: 30rem;
+    pointer-events: none;
+    background:
+      radial-gradient(
+        ellipse at center,
+        color-mix(in oklab, var(--primary) 72%, white 8%) 0%,
+        color-mix(in oklab, var(--primary) 56%, var(--destructive) 20%) 22%,
+        color-mix(in oklab, var(--chart-2) 42%, transparent) 42%,
+        color-mix(in oklab, var(--chart-4) 24%, transparent) 58%,
+        transparent 78%
+      );
+    filter: blur(36px);
+    opacity: 0.54;
+    transform: translateY(-50%) scaleX(0.78) scaleY(0.86);
+    transform-origin: center;
+    /* Sequenced intro: the bar and heading paint instantly, the gradient
+       stays hidden for a beat (backwards fill holds opacity 0), then grows
+       outward once and rests at the base transform/opacity above. */
+    animation: style-chat-composer-ignite 2.2s cubic-bezier(0.16, 1, 0.3, 1)
+      0.45s both;
+  }
+
+  .style-chat-composer-burst::after {
+    position: absolute;
+    inset-inline: 14%;
+    top: 50%;
+    height: 0.1875rem;
+    content: "";
+    background:
+      linear-gradient(
+        90deg,
+        transparent,
+        color-mix(in oklab, var(--chart-4) 16%, transparent),
+        color-mix(in oklab, var(--primary) 70%, white 12%),
+        color-mix(in oklab, var(--destructive) 32%, var(--primary) 46%),
+        color-mix(in oklab, var(--chart-2) 18%, transparent),
+        transparent
+      );
+    filter: blur(1px);
+    opacity: 0.8;
+    transform: translateY(-50%) scaleX(0.72);
+    transform-origin: center;
+    animation: style-chat-composer-line-ignite 2.2s
+      cubic-bezier(0.16, 1, 0.3, 1) 0.45s both;
+  }
+
+  @keyframes style-chat-composer-ignite {
+    from {
+      opacity: 0;
+      transform: translateY(-50%) scaleX(0.04) scaleY(0.14);
+    }
+
+    to {
+      opacity: 0.54;
+      transform: translateY(-50%) scaleX(0.78) scaleY(0.86);
+    }
+  }
+
+  @keyframes style-chat-composer-line-ignite {
+    from {
+      opacity: 0;
+      transform: translateY(-50%) scaleX(0.03);
+    }
+
+    to {
+      opacity: 0.8;
+      transform: translateY(-50%) scaleX(0.72);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .style-chat-composer-burst,
+    .style-chat-composer-burst::after {
+      animation: none;
+    }
+  }
+
   .gradient-button {
     position: relative;
     appearance: none;

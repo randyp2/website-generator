@@ -6,7 +6,10 @@ import type {
     StyleChatResponse,
     StylePreferences,
 } from "@/types/style";
-import type { PersistedStyleChatMessage } from "@/types/style-chat";
+import type {
+    InitialStyleChatHistoryState,
+    PersistedStyleChatMessage,
+} from "@/types/style-chat";
 
 const INSUFFICIENT_CREDITS_CODE = "INSUFFICIENT_CREDITS";
 
@@ -41,6 +44,38 @@ export const toInitialStyleMessages = (
     }
 
     return [createIntroStyleMessage()];
+};
+
+export const normalizeInitialStyleChatHistory = (
+    value: unknown,
+): InitialStyleChatHistoryState => {
+    const unresolved = { history: null, isResolved: false };
+
+    if (!value || typeof value !== "object") {
+        return unresolved;
+    }
+
+    const payload = value as Record<string, unknown>;
+    if (payload.isResolved !== true) {
+        return unresolved;
+    }
+
+    if (!("history" in payload)) {
+        return unresolved;
+    }
+
+    if (payload.history === null) {
+        return { history: null, isResolved: true };
+    }
+
+    if (!isStyleChatHistory(payload.history)) {
+        return unresolved;
+    }
+
+    return {
+        history: payload.history,
+        isResolved: true,
+    };
 };
 
 export const toAssistantStyleMessage = (data: StyleChatResponse): Message => ({

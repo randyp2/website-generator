@@ -16,13 +16,13 @@ import { useStyleChatRequest } from "./style-chat/useStyleChatRequest";
 export function useStyleChat(params: {
     portfolioId: string | null;
     templateId: string | null;
-    initialStyleChatHistoryPromise?: Promise<InitialStyleChatHistoryState>;
+    initialStyleChatHistory?: InitialStyleChatHistoryState | null;
     onPortfolioCreated?: (portfolioId: string) => void;
 }) {
     const {
         portfolioId: routePortfolioId,
         templateId,
-        initialStyleChatHistoryPromise,
+        initialStyleChatHistory,
         onPortfolioCreated,
     } = params;
     const isSendingStyle = usePortfolioStore((state) => state.isSendingStyle);
@@ -62,7 +62,7 @@ export function useStyleChat(params: {
     } = useStyleChatHistory({
         activePortfolioId,
         createdDraftIdRef,
-        initialStyleChatHistoryPromise,
+        initialStyleChatHistory,
         lastSyncedHistoryRef,
         onHistoryReset: resetRecommendationPanels,
     });

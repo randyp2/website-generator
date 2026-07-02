@@ -11,13 +11,13 @@ import { isPristineManualResumeTemplate } from "@/utils/resume/manualResumeTempl
 interface StyleDiscussionClientProps {
     templateId: string | null;
     portfolioId: string | null;
-    initialStyleChatHistoryPromise: Promise<InitialStyleChatHistoryState>;
+    initialStyleChatHistory: InitialStyleChatHistoryState;
 }
 
 const StyleDiscussionClient = ({
     templateId,
     portfolioId: routePortfolioId,
-    initialStyleChatHistoryPromise,
+    initialStyleChatHistory,
 }: StyleDiscussionClientProps) => {
     const router = useRouter();
 
@@ -51,7 +51,7 @@ const StyleDiscussionClient = ({
     } = useStyleChat({
         portfolioId: routePortfolioId,
         templateId,
-        initialStyleChatHistoryPromise,
+        initialStyleChatHistory,
         onPortfolioCreated: handlePortfolioCreated,
     });
 
