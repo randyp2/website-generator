@@ -118,7 +118,7 @@ const StyleDiscussionClient = ({
                 recommendedHeadingFont={recommendedHeadingFont}
                 recommendedBodyFont={recommendedBodyFont}
                 onLayoutSubmit={handleLayoutSubmit}
-                className="h-[calc(100vh-7rem)] w-full max-w-[82.5rem] md:h-[calc(100vh-8rem)]"
+                className="min-h-[calc(100vh-7rem)] w-full max-w-[82.5rem] md:min-h-[calc(100vh-8rem)]"
             />
 
             {isInsufficientCreditsModalOpen && (

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import type { ColorPresetRecommendation, StylePreferences } from "@/types/style";
 import { Button } from "@/components/ui/button";
+import { GenerationStatus } from "@/components/ui/GenerationStatus";
 import { Textarea } from "@/components/ui/textarea";
 import ReactMarkdown from "react-markdown";
 import { ColorPickerPanel } from "./ColorPickerPanel";
@@ -321,7 +322,7 @@ export function PortfolioStyleChat({
     return (
         <section
             className={cn(
-                "relative mx-auto flex h-[calc(100vh-10rem)] w-full max-w-6xl flex-col",
+                "relative mx-auto flex min-h-[calc(100vh-10rem)] w-full max-w-6xl flex-col",
                 className,
             )}
         >
@@ -391,9 +392,9 @@ export function PortfolioStyleChat({
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -18 }}
                         transition={{ duration: 0.28, ease: "easeOut" }}
-                        className="relative flex min-h-0 flex-1 flex-col"
+                        className="flex flex-1 flex-col"
                     >
-                        <div className="flex-1 overflow-y-auto px-4 pb-36 pt-6 md:px-10 md:pb-40 md:pt-10 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-white/20">
+                        <div className="flex-1 px-4 pb-6 pt-6 md:px-10 md:pt-10">
                             <div className="mx-auto flex w-full max-w-4xl flex-col space-y-5">
                                 {isInitializing ? (
                                     <div className="flex flex-1 items-center justify-center py-16">
@@ -467,15 +468,16 @@ export function PortfolioStyleChat({
                                 )}
 
                                 {isSending && (
-                                    <div className="text-xs text-white/50">
-                                        Generating response...
-                                    </div>
+                                    <GenerationStatus statusText="Thinking..." />
                                 )}
                                 <div ref={endRef} />
                             </div>
                         </div>
 
-                        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-4 md:px-8">
+                        {/* Sticky within the dashboard scroller: stays pinned
+                            to the viewport bottom while messages scroll past
+                            in the single outer scrollbar. */}
+                        <div className="pointer-events-none sticky bottom-0 z-20 px-4 pb-4 md:px-8 md:pb-6">
                             <div className={cn("mx-auto flex flex-col gap-3", composerFrameClass)}>
                                 <motion.div
                                     layoutId="style-chat-composer"
