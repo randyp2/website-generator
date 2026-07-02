@@ -1,10 +1,10 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { createClient } from "@/utils/supabase/client";
+import { useUser } from "@/context/UserContext";
 import type { Message } from "@/types/preview";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
     ArrowRight,
     Check,
@@ -200,8 +200,12 @@ export function PortfolioStyleChat({
     onLayoutSubmit,
     className,
 }: PortfolioStyleChatProps) {
+    const { user } = useUser();
+    const firstName = useMemo(() => {
+        const first = user.username.trim().split(/\s+/)[0];
+        return first ? first.toLowerCase() : "there";
+    }, [user.username]);
     const [prompt, setPrompt] = useState("");
-    const [firstName, setFirstName] = useState("there");
     const [composerDockStyle, setComposerDockStyle] = useState<{
         left: number;
         width: number;
@@ -223,37 +227,6 @@ export function PortfolioStyleChat({
         textareaRef.current.style.height = "auto";
         textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }, [prompt]);
-
-    useEffect(() => {
-        let isMounted = true;
-
-        const loadUser = async () => {
-            const supabase = createClient();
-            const {
-                data: { user },
-            } = await supabase.auth.getUser();
-
-            if (!isMounted || !user) return;
-
-            const rawName =
-                user.user_metadata?.full_name ??
-                user.user_metadata?.name ??
-                (user.email ? user.email.split("@")[0] : null);
-
-            if (!rawName) return;
-
-            const normalizedFirstName = String(rawName).trim().split(/\s+/)[0];
-            if (normalizedFirstName) {
-                setFirstName(normalizedFirstName.toLowerCase());
-            }
-        };
-
-        void loadUser();
-
-        return () => {
-            isMounted = false;
-        };
-    }, []);
 
     useEffect(() => {
         const updateComposerDockStyle = () => {
