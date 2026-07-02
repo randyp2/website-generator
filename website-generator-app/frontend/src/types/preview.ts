@@ -64,6 +64,11 @@ export interface Message {
     previewType?: string | null;
     isStyleComplete?: boolean;
     stylePreferences?: Partial<import("./style").StylePreferences>;
+    showColorPicker?: boolean;
+    recommendedColorPresets?: import("./style").ColorPresetRecommendation[];
+    showTypographyPicker?: boolean;
+    recommendedHeadingFont?: string;
+    recommendedBodyFont?: string;
 }
 
 export type DeviceMode = "desktop" | "tablet" | "mobile";

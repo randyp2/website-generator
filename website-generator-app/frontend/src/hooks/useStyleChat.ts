@@ -1,9 +1,9 @@
-import { useCallback, useRef, useState } from "react";
+import { useMemo, useRef } from "react";
 
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
-import type { ColorPresetRecommendation } from "@/types/style";
 import type { InitialStyleChatHistoryState } from "@/types/style-chat";
 
+import { deriveStyleChatPanelState } from "./style-chat/style-chat-utils";
 import { useStyleChatActions } from "./style-chat/useStyleChatActions";
 import { useStyleChatDraft } from "./style-chat/useStyleChatDraft";
 import { useStyleChatHistory } from "./style-chat/useStyleChatHistory";
@@ -26,23 +26,7 @@ export function useStyleChat(params: {
         onPortfolioCreated,
     } = params;
     const isSendingStyle = usePortfolioStore((state) => state.isSendingStyle);
-    const [showColorPicker, setShowColorPicker] = useState(false);
-    const [recommendedColorPresets, setRecommendedColorPresets] = useState<
-        ColorPresetRecommendation[]
-    >([]);
-    const [showTypographyPicker, setShowTypographyPicker] = useState(false);
-    const [recommendedHeadingFont, setRecommendedHeadingFont] = useState<
-        string | undefined
-    >();
-    const [recommendedBodyFont, setRecommendedBodyFont] = useState<
-        string | undefined
-    >();
     const lastSyncedHistoryRef = useRef<string>("");
-
-    const resetRecommendationPanels = useCallback(() => {
-        setShowColorPicker(false);
-        setRecommendedColorPresets([]);
-    }, []);
 
     const { activePortfolioId, createdDraftIdRef, ensurePortfolioDraft } =
         useStyleChatDraft({
@@ -64,8 +48,12 @@ export function useStyleChat(params: {
         createdDraftIdRef,
         initialStyleChatHistory,
         lastSyncedHistoryRef,
-        onHistoryReset: resetRecommendationPanels,
     });
+
+    const panelState = useMemo(
+        () => deriveStyleChatPanelState(styleMessages),
+        [styleMessages],
+    );
 
     const { flushStyleHistorySync } = useStyleChatPersistence({
         activePortfolioId,
@@ -91,11 +79,6 @@ export function useStyleChat(params: {
         ensurePortfolioDraft,
         isReadyForInteraction,
         requestStyleChat,
-        setRecommendedBodyFont,
-        setRecommendedColorPresets,
-        setRecommendedHeadingFont,
-        setShowColorPicker,
-        setShowTypographyPicker,
         setStyleMessages,
         styleMessages,
     });
@@ -106,11 +89,11 @@ export function useStyleChat(params: {
         isLoadingHistory,
         isReadyForInteraction,
         isSending: isSendingStyle,
-        showColorPicker,
-        recommendedColorPresets,
-        showTypographyPicker,
-        recommendedHeadingFont,
-        recommendedBodyFont,
+        showColorPicker: panelState.showColorPicker,
+        recommendedColorPresets: panelState.recommendedColorPresets,
+        showTypographyPicker: panelState.showTypographyPicker,
+        recommendedHeadingFont: panelState.recommendedHeadingFont,
+        recommendedBodyFont: panelState.recommendedBodyFont,
         isInsufficientCreditsModalOpen,
         closeInsufficientCreditsModal,
         handleSend,

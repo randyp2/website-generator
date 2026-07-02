@@ -28,7 +28,6 @@ interface UseStyleChatHistoryParams {
     createdDraftIdRef: MutableRef<string | null>;
     initialStyleChatHistory?: InitialStyleChatHistoryState | null;
     lastSyncedHistoryRef: MutableRef<string>;
-    onHistoryReset: () => void;
 }
 
 interface UseStyleChatHistoryResult {
@@ -49,7 +48,6 @@ export const useStyleChatHistory = ({
     createdDraftIdRef,
     initialStyleChatHistory,
     lastSyncedHistoryRef,
-    onHistoryReset,
 }: UseStyleChatHistoryParams): UseStyleChatHistoryResult => {
     const setPersistedStyleMessages = usePortfolioStore(
         (state) => state.setStyleMessages,
@@ -87,7 +85,6 @@ export const useStyleChatHistory = ({
                 lastSyncedHistoryRef.current = "";
             }
 
-            onHistoryReset();
             setStyleMessages(toInitialStyleMessages(history));
             setHasLoadedHistory(true);
         };
@@ -146,7 +143,6 @@ export const useStyleChatHistory = ({
         createdDraftIdRef,
         initialStyleChatHistory,
         lastSyncedHistoryRef,
-        onHistoryReset,
     ]);
 
     useEffect(() => {

@@ -1,20 +1,12 @@
-import {
-    useCallback,
-    type Dispatch,
-    type SetStateAction,
-} from "react";
+import { useCallback, type Dispatch, type SetStateAction } from "react";
 
 import { useToast } from "@/hooks/useToast";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
 import type { Message } from "@/types/preview";
-import type {
-    ColorPresetRecommendation,
-    StyleChatResponse,
-} from "@/types/style";
+import type { StyleChatResponse } from "@/types/style";
 
 import {
     mergeStylePreferences,
-    normalizeRecommendedPresets,
     toAssistantStyleMessage,
 } from "./style-chat-utils";
 
@@ -27,13 +19,6 @@ interface UseStyleChatActionsParams {
         fallbackMessage: string,
         failureTitle: string,
     ) => Promise<StyleChatResponse | null>;
-    setRecommendedBodyFont: Dispatch<SetStateAction<string | undefined>>;
-    setRecommendedColorPresets: Dispatch<
-        SetStateAction<ColorPresetRecommendation[]>
-    >;
-    setRecommendedHeadingFont: Dispatch<SetStateAction<string | undefined>>;
-    setShowColorPicker: Dispatch<SetStateAction<boolean>>;
-    setShowTypographyPicker: Dispatch<SetStateAction<boolean>>;
     setStyleMessages: Dispatch<SetStateAction<Message[]>>;
     styleMessages: Message[];
 }
@@ -46,11 +31,6 @@ export const useStyleChatActions = ({
     ensurePortfolioDraft,
     isReadyForInteraction,
     requestStyleChat,
-    setRecommendedBodyFont,
-    setRecommendedColorPresets,
-    setRecommendedHeadingFont,
-    setShowColorPicker,
-    setShowTypographyPicker,
     setStyleMessages,
     styleMessages,
 }: UseStyleChatActionsParams) => {
@@ -123,18 +103,6 @@ export const useStyleChatActions = ({
                 });
 
                 appendAssistantMessage(data);
-                setShowColorPicker(Boolean(data.showColorPicker));
-                setRecommendedColorPresets(
-                    data.showColorPicker
-                        ? normalizeRecommendedPresets(data.recommendedColorPresets)
-                        : [],
-                );
-
-                if (data.showTypographyPicker) {
-                    setShowTypographyPicker(true);
-                    setRecommendedHeadingFont(data.recommendedHeadingFont ?? undefined);
-                    setRecommendedBodyFont(data.recommendedBodyFont ?? undefined);
-                }
 
                 if (data.stylePreferences) {
                     console.log(
@@ -165,11 +133,6 @@ export const useStyleChatActions = ({
             mergeIncomingStylePreferences,
             requestStyleChat,
             setIsSendingStyle,
-            setRecommendedBodyFont,
-            setRecommendedColorPresets,
-            setRecommendedHeadingFont,
-            setShowColorPicker,
-            setShowTypographyPicker,
             setStyleMessages,
             setStylePreferences,
             styleMessages,
@@ -195,9 +158,6 @@ export const useStyleChatActions = ({
                 },
             ]);
 
-            setShowColorPicker(false);
-            setRecommendedColorPresets([]);
-
             if (!activePortfolioId) return;
 
             setIsSendingStyle(true);
@@ -217,12 +177,6 @@ export const useStyleChatActions = ({
                 if (!data) return;
 
                 appendAssistantMessage(data);
-
-                if (data.showTypographyPicker) {
-                    setShowTypographyPicker(true);
-                    setRecommendedHeadingFont(data.recommendedHeadingFont ?? undefined);
-                    setRecommendedBodyFont(data.recommendedBodyFont ?? undefined);
-                }
 
                 if (data.stylePreferences) {
                     console.log(
@@ -253,11 +207,6 @@ export const useStyleChatActions = ({
             mergeIncomingStylePreferences,
             requestStyleChat,
             setIsSendingStyle,
-            setRecommendedBodyFont,
-            setRecommendedColorPresets,
-            setRecommendedHeadingFont,
-            setShowColorPicker,
-            setShowTypographyPicker,
             setStyleMessages,
             stylePreferences,
         ],
@@ -278,8 +227,6 @@ export const useStyleChatActions = ({
                     timestamp: new Date(),
                 },
             ]);
-
-            setShowTypographyPicker(false);
 
             if (!activePortfolioId) return;
 
@@ -322,7 +269,6 @@ export const useStyleChatActions = ({
             mergeIncomingStylePreferences,
             requestStyleChat,
             setIsSendingStyle,
-            setShowTypographyPicker,
             setStyleMessages,
         ],
     );

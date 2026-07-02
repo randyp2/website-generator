@@ -22,6 +22,14 @@ export type StyleChatRequestFailure = {
     status: number;
 };
 
+export interface StyleChatPanelState {
+    recommendedBodyFont: string | undefined;
+    recommendedColorPresets: ColorPresetRecommendation[];
+    recommendedHeadingFont: string | undefined;
+    showColorPicker: boolean;
+    showTypographyPicker: boolean;
+}
+
 type StyleChatErrorPayload = {
     code?: string;
     error?: string;
@@ -89,6 +97,21 @@ export const toAssistantStyleMessage = (data: StyleChatResponse): Message => ({
     ...(data.isComplete && { isStyleComplete: true }),
     ...(data.isComplete &&
         data.stylePreferences && { stylePreferences: data.stylePreferences }),
+    ...(data.showColorPicker && {
+        showColorPicker: true,
+        recommendedColorPresets: normalizeRecommendedPresets(
+            data.recommendedColorPresets,
+        ),
+    }),
+    ...(data.showTypographyPicker && {
+        showTypographyPicker: true,
+        ...(data.recommendedHeadingFont && {
+            recommendedHeadingFont: data.recommendedHeadingFont,
+        }),
+        ...(data.recommendedBodyFont && {
+            recommendedBodyFont: data.recommendedBodyFont,
+        }),
+    }),
 });
 
 export const parseStyleChatFailure = async (
@@ -201,4 +224,33 @@ export const normalizeRecommendedPresets = (
     }
 
     return normalized;
+};
+
+export const deriveStyleChatPanelState = (
+    messages: Message[],
+): StyleChatPanelState => {
+    const lastMessage = messages.at(-1);
+    if (!lastMessage || lastMessage.role !== "ai") {
+        return {
+            recommendedBodyFont: undefined,
+            recommendedColorPresets: [],
+            recommendedHeadingFont: undefined,
+            showColorPicker: false,
+            showTypographyPicker: false,
+        };
+    }
+
+    return {
+        recommendedBodyFont: lastMessage.showTypographyPicker
+            ? lastMessage.recommendedBodyFont
+            : undefined,
+        recommendedColorPresets: lastMessage.showColorPicker
+            ? normalizeRecommendedPresets(lastMessage.recommendedColorPresets)
+            : [],
+        recommendedHeadingFont: lastMessage.showTypographyPicker
+            ? lastMessage.recommendedHeadingFont
+            : undefined,
+        showColorPicker: Boolean(lastMessage.showColorPicker),
+        showTypographyPicker: Boolean(lastMessage.showTypographyPicker),
+    };
 };

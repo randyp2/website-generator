@@ -64,6 +64,21 @@ describe("style-chat-history helpers", () => {
                     designTip: "Increase contrast",
                     previewType: "minimal",
                     isStyleComplete: true,
+                    showColorPicker: true,
+                    recommendedColorPresets: [
+                        {
+                            name: "Amber Editorial",
+                            description: "Warm premium neutrals.",
+                            colors: {
+                                primary: "#eca449",
+                                secondary: "#4b2d17",
+                                accent: "#f6c76f",
+                                background: "#101010",
+                                text: "#fff8ea",
+                                muted: "#2d241a",
+                            },
+                        },
+                    ],
                     stylePreferences: {
                         tone: "professional",
                         colorScheme: "neutral",
@@ -76,6 +91,10 @@ describe("style-chat-history helpers", () => {
             expect(result[0].timestamp).toBe("2026-04-03T20:15:30.000Z");
             expect(result[0].suggestions).toEqual(["Use more spacing"]);
             expect(result[0].isStyleComplete).toBe(true);
+            expect(result[0].showColorPicker).toBe(true);
+            expect(result[0].recommendedColorPresets?.[0]?.name).toBe(
+                "Amber Editorial",
+            );
             expect(result[0].stylePreferences).toMatchObject({
                 tone: "professional",
                 colorScheme: "neutral",
@@ -128,6 +147,9 @@ describe("style-chat-history helpers", () => {
                     designTip: "Increase section spacing",
                     previewType: "minimal",
                     isStyleComplete: true,
+                    showTypographyPicker: true,
+                    recommendedHeadingFont: "Inter",
+                    recommendedBodyFont: "Source Serif 4",
                     stylePreferences: {
                         tone: "professional",
                         colorScheme: "neutral",
@@ -141,6 +163,9 @@ describe("style-chat-history helpers", () => {
             expect(result[0].designTip).toBe("Increase section spacing");
             expect(result[0].previewType).toBe("minimal");
             expect(result[0].isStyleComplete).toBe(true);
+            expect(result[0].showTypographyPicker).toBe(true);
+            expect(result[0].recommendedHeadingFont).toBe("Inter");
+            expect(result[0].recommendedBodyFont).toBe("Source Serif 4");
             expect(result[0].stylePreferences).toMatchObject({
                 tone: "professional",
                 colorScheme: "neutral",

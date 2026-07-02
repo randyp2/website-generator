@@ -1,3 +1,5 @@
+import type { ColorPresetRecommendation } from "./style";
+
 export type StyleChatRole = "user" | "ai";
 
 /**
@@ -19,5 +21,9 @@ export interface PersistedStyleChatMessage {
     previewType?: string | null;
     isStyleComplete?: boolean;
     stylePreferences?: Record<string, string | null>;
+    showColorPicker?: boolean;
+    recommendedColorPresets?: ColorPresetRecommendation[];
+    showTypographyPicker?: boolean;
+    recommendedHeadingFont?: string;
+    recommendedBodyFont?: string;
 }
-
