@@ -23,6 +23,8 @@ import { LayoutPreviewGrid } from "./layout-preview/LayoutPreviewGrid";
 
 interface PortfolioStyleChatProps {
     messages: Message[];
+    isInitializing?: boolean;
+    isInputDisabled?: boolean;
     isSending?: boolean;
     onSendMessage: (prompt: string) => void;
     onContinue?: () => void;
@@ -185,6 +187,8 @@ const composerFrameClass = "w-full max-w-[980px]";
 
 export function PortfolioStyleChat({
     messages,
+    isInitializing = false,
+    isInputDisabled = false,
     isSending = false,
     onSendMessage,
     onContinue,
@@ -215,7 +219,11 @@ export function PortfolioStyleChat({
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const hasUserStarted = messages.some((message) => message.role === "user");
     const hasStarted =
-        hasUserStarted || isSending || showColorPicker || showTypographyPicker;
+        isInitializing ||
+        hasUserStarted ||
+        isSending ||
+        showColorPicker ||
+        showTypographyPicker;
 
     useEffect(() => {
         if (!hasStarted) return;
@@ -260,14 +268,14 @@ export function PortfolioStyleChat({
 
     const handleSend = () => {
         const value = prompt.trim();
-        if (!value || isSending) return;
+        if (!value || isSending || isInputDisabled || isInitializing) return;
         onSendMessage(value);
         setPrompt("");
     };
 
     const handleSuggestionSend = (suggestion: string) => {
         const value = suggestion.trim();
-        if (!value || isSending) return;
+        if (!value || isSending || isInputDisabled || isInitializing) return;
         onSendMessage(value);
         setPrompt("");
     };
@@ -292,6 +300,7 @@ export function PortfolioStyleChat({
                     value={prompt}
                     onChange={(event) => setPrompt(event.target.value)}
                     onKeyDown={handleKeyDown}
+                    disabled={isInputDisabled || isInitializing}
                     placeholder="Describe the general idea for your portfolio..."
                     className={cn(
                         "resize-none border-0 bg-transparent px-0 text-white placeholder:text-white/55 shadow-none focus-visible:ring-0",
@@ -301,7 +310,12 @@ export function PortfolioStyleChat({
                 <Button
                     type="button"
                     onClick={handleSend}
-                    disabled={isSending || !prompt.trim()}
+                    disabled={
+                        isSending ||
+                        isInputDisabled ||
+                        isInitializing ||
+                        !prompt.trim()
+                    }
                     className={cn(
                         "-mt-0.5 shrink-0 rounded-xl bg-transparent text-white transition hover:bg-white/5 disabled:bg-transparent disabled:text-white/30",
                         "h-12 w-12",
@@ -417,51 +431,57 @@ export function PortfolioStyleChat({
                     >
                         <div className="flex-1 overflow-y-auto px-4 pb-36 pt-6 md:px-10 md:pb-40 md:pt-10 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-white/20">
                             <div className="mx-auto flex w-full max-w-4xl flex-col space-y-5">
-                                {messages.map((message) => (
-                                    <div
-                                        key={message.id}
-                                        className={cn(
-                                            "flex flex-col",
-                                            message.role === "user"
-                                                ? "items-end"
-                                                : "items-start",
-                                        )}
-                                    >
+                                {isInitializing ? (
+                                    <div className="text-sm text-white/50">
+                                        Loading conversation...
+                                    </div>
+                                ) : (
+                                    messages.map((message) => (
                                         <div
+                                            key={message.id}
                                             className={cn(
-                                                "py-3 text-[15px] leading-relaxed",
+                                                "flex flex-col",
                                                 message.role === "user"
-                                                    ? "max-w-[88%] rounded-2xl bg-linear-to-r from-blue-600 to-blue-500 px-4 text-white md:max-w-[80%]"
-                                                    : "text-white/90",
-                                                message.role === "ai" && message.previewType
-                                                    ? "max-w-full"
-                                                    : message.role === "ai"
-                                                      ? "max-w-[88%] md:max-w-[80%]"
-                                                      : "",
+                                                    ? "items-end"
+                                                    : "items-start",
                                             )}
                                         >
-                                            {message.role === "ai" ? (
-                                                message.isStyleComplete ? (
-                                                    <StyleSummaryCard
-                                                        content={message.content}
-                                                        stylePreferences={message.stylePreferences}
-                                                    />
+                                            <div
+                                                className={cn(
+                                                    "py-3 text-[15px] leading-relaxed",
+                                                    message.role === "user"
+                                                        ? "max-w-[88%] rounded-2xl bg-linear-to-r from-blue-600 to-blue-500 px-4 text-white md:max-w-[80%]"
+                                                        : "text-white/90",
+                                                    message.role === "ai" && message.previewType
+                                                        ? "max-w-full"
+                                                        : message.role === "ai"
+                                                          ? "max-w-[88%] md:max-w-[80%]"
+                                                          : "",
+                                                )}
+                                            >
+                                                {message.role === "ai" ? (
+                                                    message.isStyleComplete ? (
+                                                        <StyleSummaryCard
+                                                            content={message.content}
+                                                            stylePreferences={message.stylePreferences}
+                                                        />
+                                                    ) : (
+                                                        <AiMessageContent
+                                                            message={message}
+                                                            onSuggestionClick={handleSuggestionSend}
+                                                            onLayoutSelect={onLayoutSubmit}
+                                                        />
+                                                    )
                                                 ) : (
-                                                    <AiMessageContent
-                                                        message={message}
-                                                        onSuggestionClick={handleSuggestionSend}
-                                                        onLayoutSelect={onLayoutSubmit}
-                                                    />
-                                                )
-                                            ) : (
-                                                message.content
-                                            )}
+                                                    message.content
+                                                )}
+                                            </div>
+                                            <span className="mt-1 text-xs text-white/40">
+                                                {formatTimestamp(message.timestamp)}
+                                            </span>
                                         </div>
-                                        <span className="mt-1 text-xs text-white/40">
-                                            {formatTimestamp(message.timestamp)}
-                                        </span>
-                                    </div>
-                                ))}
+                                    ))
+                                )}
 
                                 {showColorPicker && onColorSubmit && (
                                     <ColorPickerPanel

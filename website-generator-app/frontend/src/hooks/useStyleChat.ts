@@ -15,17 +15,17 @@ import {
     toUiStyleMessages,
 } from "@/lib/style-chat-history";
 
-const introStyleMessage: Message = {
-    id: "style-assistant-intro",
-    role: "ai",
-    content:
-        "Hey! I'm your design consultant. Tell me about your vision — what's the overall theme or goal for your portfolio? For example: 'clean minimalist developer portfolio' or 'bold creative agency showcase'.",
-    timestamp: new Date(),
-};
-
 const DEFAULT_TEMPLATE_ID = "blank";
 const STYLE_CHAT_SYNC_DEBOUNCE_MS = 800;
 const INSUFFICIENT_CREDITS_CODE = "INSUFFICIENT_CREDITS";
+
+const createIntroStyleMessage = (): Message => ({
+    id: "style-assistant-intro",
+    role: "ai",
+    content:
+        "Hey! I'm your design consultant. Tell me about your vision - what's the overall theme or goal for your portfolio? For example: 'clean minimalist developer portfolio' or 'bold creative agency showcase'.",
+    timestamp: new Date(),
+});
 
 type StyleChatErrorPayload = {
     code?: string;
@@ -37,6 +37,16 @@ type StyleChatRequestFailure = {
     code?: string;
     message: string;
     status: number;
+};
+
+const toInitialStyleMessages = (
+    history: PersistedStyleChatMessage[] | null | undefined,
+): Message[] => {
+    if (isStyleChatHistory(history) && history.length > 0) {
+        return toUiStyleMessages(history);
+    }
+
+    return [createIntroStyleMessage()];
 };
 
 const parseStyleChatFailure = async (
@@ -146,27 +156,42 @@ function normalizeRecommendedPresets(value: unknown): ColorPresetRecommendation[
     return normalized;
 }
 
+/**
+ * Manages the style chat lifecycle after initial route data has been loaded.
+ */
 export function useStyleChat(params: {
     portfolioId: string | null;
     templateId: string | null;
+    initialStyleChatHistory?: PersistedStyleChatMessage[] | null;
+    isInitialStyleChatHistoryResolved?: boolean;
     onPortfolioCreated?: (portfolioId: string) => void;
 }) {
-    const { portfolioId: routePortfolioId, templateId, onPortfolioCreated } = params;
+    const {
+        portfolioId: routePortfolioId,
+        templateId,
+        initialStyleChatHistory,
+        isInitialStyleChatHistoryResolved = false,
+        onPortfolioCreated,
+    } = params;
     const { addToast } = useToast();
 
     const {
         setTemplateId,
         setPortfolioId,
-        styleMessages,
         stylePreferences,
-        setStyleMessages,
+        setStyleMessages: setPersistedStyleMessages,
         setStylePreferences,
         isSendingStyle,
         setIsSendingStyle,
     } = usePortfolioStore();
 
     const [isHydrated, setIsHydrated] = useState(false);
-    const [hasLoadedHistory, setHasLoadedHistory] = useState(false);
+    const [styleMessages, setStyleMessages] = useState<Message[]>(() =>
+        toInitialStyleMessages(initialStyleChatHistory),
+    );
+    const [hasLoadedHistory, setHasLoadedHistory] = useState(
+        isInitialStyleChatHistoryResolved || !routePortfolioId,
+    );
     const [showColorPicker, setShowColorPicker] = useState(false);
     const [recommendedColorPresets, setRecommendedColorPresets] = useState<ColorPresetRecommendation[]>([]);
     const [showTypographyPicker, setShowTypographyPicker] = useState(false);
@@ -263,20 +288,32 @@ export function useStyleChat(params: {
         };
     }, []);
 
-    // Effect 2: Load chat history from DB
+    // Effect 2: Seed or load chat history
     useEffect(() => {
         if (!isHydrated) return;
 
         let cancelled = false;
-        setHasLoadedHistory(false);
-        lastSyncedHistoryRef.current = "";
+
+        const applyLoadedHistory = (
+            history: PersistedStyleChatMessage[] | null | undefined,
+        ) => {
+            if (cancelled) return;
+
+            if (isStyleChatHistory(history) && history.length > 0) {
+                lastSyncedHistoryRef.current = JSON.stringify(history);
+            } else {
+                lastSyncedHistoryRef.current = "";
+            }
+
+            setShowColorPicker(false);
+            setRecommendedColorPresets([]);
+            setStyleMessages(toInitialStyleMessages(history));
+            setHasLoadedHistory(true);
+        };
 
         const loadHistory = async () => {
             if (!activePortfolioId) {
-                setShowColorPicker(false);
-                setRecommendedColorPresets([]);
-                setStyleMessages([introStyleMessage]);
-                setHasLoadedHistory(true);
+                applyLoadedHistory(null);
                 return;
             }
 
@@ -284,6 +321,14 @@ export function useStyleChat(params: {
                 setHasLoadedHistory(true);
                 return;
             }
+
+            if (isInitialStyleChatHistoryResolved) {
+                applyLoadedHistory(initialStyleChatHistory);
+                return;
+            }
+
+            setHasLoadedHistory(false);
+            lastSyncedHistoryRef.current = "";
 
             try {
                 const res = await fetch(`/api/portfolio/${activePortfolioId}/get`);
@@ -296,15 +341,11 @@ export function useStyleChat(params: {
                     lastSyncedHistoryRef.current = JSON.stringify(rawHistory);
                     setStyleMessages(toUiStyleMessages(rawHistory));
                 } else {
-                    setShowColorPicker(false);
-                    setRecommendedColorPresets([]);
-                    setStyleMessages([introStyleMessage]);
+                    applyLoadedHistory(null);
                 }
             } catch {
                 if (cancelled) return;
-                setShowColorPicker(false);
-                setRecommendedColorPresets([]);
-                setStyleMessages([introStyleMessage]);
+                applyLoadedHistory(null);
             } finally {
                 if (!cancelled) {
                     setHasLoadedHistory(true);
@@ -317,7 +358,22 @@ export function useStyleChat(params: {
         return () => {
             cancelled = true;
         };
-    }, [activePortfolioId, isHydrated, setStyleMessages]);
+    }, [
+        activePortfolioId,
+        initialStyleChatHistory,
+        isHydrated,
+        isInitialStyleChatHistoryResolved,
+    ]);
+
+    useEffect(() => {
+        if (!isHydrated || !hasLoadedHistory) return;
+        setPersistedStyleMessages(styleMessages);
+    }, [
+        hasLoadedHistory,
+        isHydrated,
+        setPersistedStyleMessages,
+        styleMessages,
+    ]);
 
     // Normalize timestamps for rendering
     const normalizedStyleMessages = useMemo(
@@ -331,6 +387,8 @@ export function useStyleChat(params: {
             })),
         [styleMessages],
     );
+    const isLoadingHistory = !hasLoadedHistory;
+    const isReadyForInteraction = isHydrated && hasLoadedHistory;
 
     // Effect 3: Sync templateId/portfolioId to store
     useEffect(() => {
@@ -459,6 +517,8 @@ export function useStyleChat(params: {
 
     const handleSend = useCallback(
         async (prompt: string) => {
+            if (!isReadyForInteraction) return;
+
             const hasUserMessages = styleMessages.some((m) => m.role === "user");
             if (!hasUserMessages) {
                 const seededNotes = stylePreferences.customNotes?.trim()
@@ -553,6 +613,7 @@ export function useStyleChat(params: {
         },
         [
             ensurePortfolioDraft,
+            isReadyForInteraction,
             styleMessages,
             stylePreferences,
             setStyleMessages,
@@ -565,6 +626,8 @@ export function useStyleChat(params: {
 
     const handleColorSubmit = useCallback(
         async (colors: Record<string, string>) => {
+            if (!isReadyForInteraction) return;
+
             const colorSummary = Object.entries(colors)
                 .map(([key, value]) => `${key}: ${value}`)
                 .join(", ");
@@ -646,6 +709,7 @@ export function useStyleChat(params: {
         },
         [
             activePortfolioId,
+            isReadyForInteraction,
             stylePreferences,
             setStyleMessages,
             setStylePreferences,
@@ -657,6 +721,8 @@ export function useStyleChat(params: {
 
     const handleFontSubmit = useCallback(
         async (fonts: { heading: string; body: string }) => {
+            if (!isReadyForInteraction) return;
+
             const fontSummary = `Heading: ${fonts.heading}, Body: ${fonts.body}`;
 
             setStyleMessages((prev) => [
@@ -721,6 +787,7 @@ export function useStyleChat(params: {
         },
         [
             activePortfolioId,
+            isReadyForInteraction,
             stylePreferences,
             setStyleMessages,
             setStylePreferences,
@@ -732,6 +799,8 @@ export function useStyleChat(params: {
 
     const handleLayoutSubmit = useCallback(
         async (layoutName: string) => {
+            if (!isReadyForInteraction) return;
+
             setStyleMessages((prev) => [
                 ...prev,
                 {
@@ -792,6 +861,7 @@ export function useStyleChat(params: {
         },
         [
             activePortfolioId,
+            isReadyForInteraction,
             stylePreferences,
             setStyleMessages,
             setStylePreferences,
@@ -804,6 +874,8 @@ export function useStyleChat(params: {
     return {
         portfolioId: activePortfolioId,
         normalizedStyleMessages,
+        isLoadingHistory,
+        isReadyForInteraction,
         isSending: isSendingStyle,
         showColorPicker,
         recommendedColorPresets,
