@@ -5,6 +5,14 @@ import { Moon, RefreshCw, Sun } from "lucide-react";
 import { useId, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+    PICKER_BODY_CLASSES,
+    PICKER_CONFIRM_CLASSES,
+    PICKER_HEADING_CLASSES,
+    PICKER_PANEL_CLASSES,
+    TOGGLE_SHELL_CLASSES,
+    toggleButtonClasses,
+} from "./picker-styles";
 import { ColorSwatchField } from "./color-picker/ColorSwatchField";
 import {
     COLOR_LABELS,
@@ -56,17 +64,6 @@ const getAiPaletteForTheme = (
         muted: `${colors.background}b3`,
     };
 };
-
-const TOGGLE_SHELL_CLASSES =
-    "inline-flex rounded-full border border-neutral-900/10 bg-neutral-900/5 p-1 dark:border-white/10 dark:bg-black/20";
-
-const toggleButtonClasses = (isActive: boolean) =>
-    cn(
-        "cursor-pointer rounded-full transition",
-        isActive
-            ? "bg-white text-neutral-900 shadow-sm dark:text-black"
-            : "text-neutral-500 hover:text-neutral-900 dark:text-white/70 dark:hover:text-white",
-    );
 
 /**
  * Palette picker for the style chat. The panel chrome follows the app's
@@ -149,14 +146,14 @@ export const ColorPickerPanel = ({
     };
 
     return (
-        <div className="w-full overflow-hidden rounded-xl bg-white p-4 text-neutral-800 shadow-[0_30px_80px_rgba(0,0,0,0.28)] md:p-6 dark:bg-neutral-800 dark:text-neutral-200">
+        <div className={PICKER_PANEL_CLASSES}>
             <div className="rounded-md p-5">
                 <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                        <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
+                        <h2 className={PICKER_HEADING_CLASSES}>
                             Color Palette Studio
                         </h2>
-                        <p className="text-sm text-neutral-600 dark:text-white/60">
+                        <p className={PICKER_BODY_CLASSES}>
                             Pick a preset or build a custom palette.
                         </p>
                     </div>
@@ -281,7 +278,7 @@ export const ColorPickerPanel = ({
                                 <h3 className="font-semibold text-neutral-900 dark:text-white">
                                     Custom Palette
                                 </h3>
-                                <p className="text-sm text-neutral-600 dark:text-white/60">
+                                <p className={PICKER_BODY_CLASSES}>
                                     Build and fine-tune each color role.
                                 </p>
                             </div>
@@ -325,7 +322,7 @@ export const ColorPickerPanel = ({
                     <Button
                         type="button"
                         onClick={() => onSubmit(currentColors)}
-                        className="h-12 w-full cursor-pointer rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90"
+                        className={PICKER_CONFIRM_CLASSES}
                     >
                         Confirm Colors
                     </Button>
