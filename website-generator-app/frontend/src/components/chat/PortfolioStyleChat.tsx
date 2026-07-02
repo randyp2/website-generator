@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
     ArrowRight,
     Check,
+    Loader2,
     MessageSquareText,
     Plus,
     Send,
@@ -210,11 +211,6 @@ export function PortfolioStyleChat({
         return first ? first.toLowerCase() : "there";
     }, [user.username]);
     const [prompt, setPrompt] = useState("");
-    const [composerDockStyle, setComposerDockStyle] = useState<{
-        left: number;
-        width: number;
-    } | null>(null);
-    const sectionRef = useRef<HTMLElement>(null);
     const endRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const hasUserStarted = messages.some((message) => message.role === "user");
@@ -235,36 +231,6 @@ export function PortfolioStyleChat({
         textareaRef.current.style.height = "auto";
         textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }, [prompt]);
-
-    useEffect(() => {
-        const updateComposerDockStyle = () => {
-            const section = sectionRef.current;
-            if (!section) return;
-
-            const rect = section.getBoundingClientRect();
-            setComposerDockStyle({
-                left: rect.left,
-                width: rect.width,
-            });
-        };
-
-        updateComposerDockStyle();
-
-        const section = sectionRef.current;
-        if (!section) return;
-
-        const resizeObserver = new ResizeObserver(() => {
-            updateComposerDockStyle();
-        });
-
-        resizeObserver.observe(section);
-        window.addEventListener("resize", updateComposerDockStyle);
-
-        return () => {
-            resizeObserver.disconnect();
-            window.removeEventListener("resize", updateComposerDockStyle);
-        };
-    }, []);
 
     const handleSend = () => {
         const value = prompt.trim();
@@ -354,7 +320,6 @@ export function PortfolioStyleChat({
 
     return (
         <section
-            ref={sectionRef}
             className={cn(
                 "relative mx-auto flex h-[calc(100vh-10rem)] w-full max-w-6xl flex-col",
                 className,
@@ -431,8 +396,8 @@ export function PortfolioStyleChat({
                         <div className="flex-1 overflow-y-auto px-4 pb-36 pt-6 md:px-10 md:pb-40 md:pt-10 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-white/20">
                             <div className="mx-auto flex w-full max-w-4xl flex-col space-y-5">
                                 {isInitializing ? (
-                                    <div className="text-sm text-white/50">
-                                        Loading conversation...
+                                    <div className="flex flex-1 items-center justify-center py-16">
+                                        <Loader2 className="h-6 w-6 animate-spin text-white/40" />
                                     </div>
                                 ) : (
                                     messages.map((message) => (
@@ -510,10 +475,7 @@ export function PortfolioStyleChat({
                             </div>
                         </div>
 
-                        <div
-                            className="pointer-events-none fixed bottom-6 z-20 px-4 md:bottom-8 md:px-8"
-                            style={composerDockStyle ?? undefined}
-                        >
+                        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-4 md:px-8">
                             <div className={cn("mx-auto flex flex-col gap-3", composerFrameClass)}>
                                 <motion.div
                                     layoutId="style-chat-composer"
