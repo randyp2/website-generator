@@ -123,6 +123,11 @@ export const TypographyPickerPanel = ({
         "All Types",
     );
     const [activeTab, setActiveTab] = useState<PickerTab>("presets");
+    // The AI pairing can share its fonts with a built-in pairing, so font
+    // equality alone would highlight two cards; remember the clicked card.
+    const [selectedPairingId, setSelectedPairingId] = useState<string | null>(
+        recommendedHeadingFont || recommendedBodyFont ? "ai" : null,
+    );
     // Scopes the shared selection-underline layoutId to this panel instance,
     // since the style chat can mount more than one picker at a time.
     const layoutGroupId = useId();
@@ -161,13 +166,18 @@ export const TypographyPickerPanel = ({
             Number(isRecommendedFont(a.name)),
     );
 
-    const selectPairing = (pairing: FontPairing) => {
+    const selectPairing = (id: string, pairing: FontPairing) => {
+        setSelectedPairingId(id);
         setHeadingFont(pairing.heading);
         setBodyFont(pairing.body);
     };
 
-    const isPairingSelected = (pairing: FontPairing) =>
-        headingFont === pairing.heading && bodyFont === pairing.body;
+    // A card is selected only if it was the one clicked and the fonts still
+    // match (custom tab edits can break the pairing without clearing the id).
+    const isPairingSelected = (id: string, pairing: FontPairing) =>
+        selectedPairingId === id &&
+        headingFont === pairing.heading &&
+        bodyFont === pairing.body;
 
     const renderFontRow = (font: FontEntry) => {
         const isHeadingSelected = headingFont === font.name;
@@ -292,17 +302,27 @@ export const TypographyPickerPanel = ({
                             {aiPairing && (
                                 <FontPairingCard
                                     pairing={aiPairing}
-                                    isSelected={isPairingSelected(aiPairing)}
+                                    isSelected={isPairingSelected(
+                                        "ai",
+                                        aiPairing,
+                                    )}
                                     isRecommended
-                                    onSelect={() => selectPairing(aiPairing)}
+                                    onSelect={() =>
+                                        selectPairing("ai", aiPairing)
+                                    }
                                 />
                             )}
                             {BUILT_IN_PAIRINGS.map((pairing) => (
                                 <FontPairingCard
                                     key={pairing.name}
                                     pairing={pairing}
-                                    isSelected={isPairingSelected(pairing)}
-                                    onSelect={() => selectPairing(pairing)}
+                                    isSelected={isPairingSelected(
+                                        pairing.name,
+                                        pairing,
+                                    )}
+                                    onSelect={() =>
+                                        selectPairing(pairing.name, pairing)
+                                    }
                                 />
                             ))}
                         </PaletteCarousel>

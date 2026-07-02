@@ -28,10 +28,10 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class StyleChatServiceImpl implements StyleChatService {
     private static final Logger log = LoggerFactory.getLogger(StyleChatServiceImpl.class);
-    // @Resource(name = "styleChatModel")
-    // private OpenAiChatModel openAiChatModel;
-    @Resource(name = "geminiStyleChatModel")
-    private GoogleGenAiChatModel geminiChatModel;
+    @Resource(name = "styleChatModel")
+    private OpenAiChatModel chatModel;
+    // @Resource(name = "geminiStyleChatModel")
+    // private GoogleGenAiChatModel geminiChatModel;
     private final StyleChatPromptBuilder styleChatPromptBuilder;
     private final StyleChatResponseParser styleChatResponseParser;
 
@@ -256,7 +256,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         // Call AI for first free-form question (about remaining topics: tone, animations, etc.)
         String layoutMessage = "I selected the " + req.getLayoutSelection() + " layout.";
         Prompt prompt = styleChatPromptBuilder.buildPrompt(layoutMessage, context);
-        ChatResponse response = geminiChatModel.call(prompt);
+        ChatResponse response = chatModel.call(prompt);
         StyleChatResponseParser.StyleChatParseResult parseResult = styleChatResponseParser.parse(
                 response.getResult().getOutput().getText()
         );
@@ -285,7 +285,7 @@ public class StyleChatServiceImpl implements StyleChatService {
 
         // Build prompt and call AI
         Prompt prompt = styleChatPromptBuilder.buildPrompt(req.getUserMessage(), context);
-        ChatResponse response = geminiChatModel.call(prompt);
+        ChatResponse response = chatModel.call(prompt);
         StyleChatResponseParser.StyleChatParseResult parseResult = styleChatResponseParser.parse(
                 response.getResult().getOutput().getText()
         );
@@ -449,7 +449,7 @@ public class StyleChatServiceImpl implements StyleChatService {
     private StyleChatResponseParser.FontRecommendation recommendFonts(String designGoal) {
         try {
             Prompt prompt = styleChatPromptBuilder.buildFontRecommendationPrompt(designGoal);
-            ChatResponse response = geminiChatModel.call(prompt);
+            ChatResponse response = chatModel.call(prompt);
             String rawJson = response.getResult().getOutput().getText();
             StyleChatResponseParser.FontRecommendation rec = styleChatResponseParser.parseFontRecommendation(rawJson);
             if (rec != null) return rec;
@@ -540,7 +540,7 @@ public class StyleChatServiceImpl implements StyleChatService {
     private List<StyleColorPresetDTO> recommendColorPresets(String designGoal) {
         try {
             Prompt prompt = styleChatPromptBuilder.buildColorRecommendationPrompt(designGoal);
-            ChatResponse response = geminiChatModel.call(prompt);
+            ChatResponse response = chatModel.call(prompt);
             String rawJson = response.getResult().getOutput().getText();
             List<StyleColorPresetDTO> parsed = styleChatResponseParser.parseRecommendedColorPresets(rawJson);
             List<StyleColorPresetDTO> normalized = normalizeColorPresets(parsed);
