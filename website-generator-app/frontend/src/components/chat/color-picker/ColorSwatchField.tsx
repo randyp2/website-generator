@@ -1,123 +1,59 @@
 "use client";
 
-import { Check, Copy } from "lucide-react";
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { HexColorPicker } from "react-colorful";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 interface ColorSwatchFieldProps {
     color: string;
     label: string;
-    isSelected?: boolean;
-    onSelect?: () => void;
-    isEditable?: boolean;
-    onColorChange?: (color: string) => void;
+    onColorChange: (color: string) => void;
 }
 
+/**
+ * Inline color role row: swatch, label, hex value. Clicking the swatch opens
+ * a popover color wheel (react-colorful); the hex value can also be typed
+ * directly in the input. Styling follows the app's light/dark theme.
+ */
 export const ColorSwatchField = ({
     color,
     label,
-    isSelected = false,
-    onSelect,
-    isEditable = false,
     onColorChange,
-}: ColorSwatchFieldProps) => {
-    const [copied, setCopied] = useState(false);
-
-    useEffect(() => {
-        if (!copied) return undefined;
-
-        const timeoutId = window.setTimeout(() => {
-            setCopied(false);
-        }, 1500);
-
-        return () => {
-            window.clearTimeout(timeoutId);
-        };
-    }, [copied]);
-
-    const handleCopy = async () => {
-        await navigator.clipboard.writeText(color);
-        setCopied(true);
-    };
-
-    const handleCardSelect = () => {
-        onSelect?.();
-    };
-
-    return (
-        <div
-            role={onSelect ? "button" : undefined}
-            tabIndex={onSelect ? 0 : undefined}
-            onClick={handleCardSelect}
-            onKeyDown={(event) => {
-                if (!onSelect) return;
-                if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    handleCardSelect();
-                }
-            }}
-            className={cn(
-                "flex flex-col gap-2 rounded-2xl border bg-white/[0.03] p-3 transition-all",
-                isSelected
-                    ? "border-blue-400 ring-4 ring-blue-500/15"
-                    : "border-white/10",
-                onSelect ? "cursor-pointer hover:border-white/20" : undefined,
-            )}
-        >
-            <span className="text-xs font-medium uppercase tracking-[0.18em] text-white/45">
-                {label}
-            </span>
-            <div className="flex items-center gap-3">
-                <div
-                    className={cn(
-                        "h-11 w-11 shrink-0 rounded-xl border-2 transition-all",
-                        isSelected
-                            ? "border-blue-400"
-                            : "border-white/15",
-                    )}
+}: ColorSwatchFieldProps) => (
+    <div className="flex items-center gap-3 py-1.5">
+        <Popover>
+            <PopoverTrigger asChild>
+                <button
+                    type="button"
+                    aria-label={`Pick ${label} color`}
+                    className="h-8 w-8 shrink-0 cursor-pointer rounded-lg border border-neutral-300 transition hover:scale-110 focus-visible:border-primary focus-visible:outline-none dark:border-white/20"
                     style={{ backgroundColor: color }}
                 />
-                {isEditable ? (
-                    <input
-                        type="text"
-                        value={color}
-                        onClick={(event) => {
-                            event.stopPropagation();
-                            onSelect?.();
-                        }}
-                        onFocus={() => onSelect?.()}
-                        onKeyDown={(event) => event.stopPropagation()}
-                        onChange={(event) =>
-                            onColorChange?.(event.target.value)
-                        }
-                        className="h-11 min-w-0 flex-1 rounded-xl border border-white/10 bg-black/25 px-3 font-mono text-xs uppercase tracking-[0.16em] text-white outline-none transition focus:border-blue-400"
-                    />
-                ) : (
-                    <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
-                        <span className="truncate font-mono text-xs uppercase tracking-[0.16em] text-white/75">
-                            {color}
-                        </span>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 rounded-lg text-white/70 hover:bg-white/10 hover:text-white"
-                            onClick={(event) => {
-                                event.stopPropagation();
-                                void handleCopy();
-                            }}
-                            aria-label={`Copy ${label} color`}
-                        >
-                            {copied ? (
-                                <Check className="h-4 w-4 text-emerald-400" />
-                            ) : (
-                                <Copy className="h-4 w-4" />
-                            )}
-                        </Button>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-};
+            </PopoverTrigger>
+            <PopoverContent
+                side="bottom"
+                align="start"
+                className="w-auto rounded-2xl p-3"
+            >
+                <HexColorPicker color={color} onChange={onColorChange} />
+            </PopoverContent>
+        </Popover>
+        <span className="flex-1 truncate text-sm font-medium text-neutral-900 dark:text-white">
+            {label}
+        </span>
+        <input
+            type="text"
+            value={color}
+            onChange={(event) => onColorChange(event.target.value)}
+            aria-label={`${label} hex value`}
+            className={cn(
+                "h-8 w-24 rounded-md bg-transparent px-2 text-right font-mono text-xs uppercase tracking-[0.08em] outline-none transition",
+                "text-neutral-600 focus:bg-neutral-200/60 focus:text-neutral-950 dark:text-white/80 dark:focus:bg-white/10 dark:focus:text-white",
+            )}
+        />
+    </div>
+);

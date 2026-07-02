@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Check, Sparkles } from "lucide-react";
 
 interface TypographyPickerPanelProps {
@@ -125,29 +126,31 @@ export function TypographyPickerPanel({
 
     return (
       <article
-        className="relative overflow-hidden rounded-2xl border border-amber-300/30 bg-linear-to-br from-amber-300/12 via-orange-300/10 to-transparent p-5 shadow-[0_0_40px_rgba(251,191,36,0.18)]"
+        className="relative overflow-hidden rounded-2xl border border-amber-500/25 bg-linear-to-br from-amber-300/20 via-orange-300/15 to-transparent p-5 shadow-[0_0_40px_rgba(251,191,36,0.14)] dark:border-amber-300/30 dark:from-amber-300/12 dark:via-orange-300/10 dark:shadow-[0_0_40px_rgba(251,191,36,0.18)]"
         key={label}
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(253,224,71,0.22),transparent_55%)]" />
         <div className="relative space-y-3">
-          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-100/85">
+          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700/85 dark:text-amber-100/85">
             <Sparkles className="h-3.5 w-3.5" />
             AI Top Choice
           </div>
           <div>
-            <p className="text-xs uppercase tracking-[0.16em] text-white/45">
+            <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground dark:text-white/45">
               {label}
             </p>
             <h3
-              className="mt-2 text-2xl font-semibold text-white"
+              className="mt-2 text-2xl font-semibold text-foreground dark:text-white"
               style={{ fontFamily: `'${font.name}', sans-serif` }}
             >
               {font.name}
             </h3>
-            <p className="mt-1 text-sm text-white/65">{font.category}</p>
+            <p className="mt-1 text-sm text-muted-foreground dark:text-white/65">
+              {font.category}
+            </p>
           </div>
           <p
-            className="text-sm text-white/78"
+            className="text-sm text-foreground/80 dark:text-white/78"
             style={{ fontFamily: `'${font.name}', sans-serif` }}
           >
             {helper}
@@ -166,32 +169,33 @@ export function TypographyPickerPanel({
     return (
       <article
         key={font.name}
-        className={`w-full rounded-2xl border px-4 py-4 transition-colors ${
+        className={cn(
+          "w-full rounded-2xl border px-4 py-4 transition-colors",
           isHeadingSelected || isBodySelected
-            ? "border-white/25 bg-white/[0.05]"
-            : "border-white/12 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"
-        }`}
+            ? "border-primary/40 bg-primary/10 dark:border-white/25 dark:bg-white/[0.05]"
+            : "border-border bg-card hover:border-primary/30 hover:bg-muted/60 dark:border-white/12 dark:bg-white/[0.02] dark:hover:border-white/20 dark:hover:bg-white/[0.04]",
+        )}
       >
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h3
-                className="text-xl text-white/92"
+                className="text-xl text-foreground/90 dark:text-white/92"
                 style={{ fontFamily: `'${font.name}', sans-serif` }}
               >
                 {font.name}
               </h3>
-              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-white/55">
+              <span className="rounded-full border border-border bg-muted px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground dark:border-white/10 dark:bg-white/[0.04] dark:text-white/55">
                 {font.category}
               </span>
               {isRecommended && (
-                <span className="rounded-full border border-amber-300/25 bg-amber-300/12 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-amber-100/80">
+                <span className="rounded-full border border-amber-500/25 bg-amber-300/20 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-amber-700 dark:border-amber-300/25 dark:bg-amber-300/12 dark:text-amber-100/80">
                   AI Pick
                 </span>
               )}
             </div>
             <p
-              className="mt-2 truncate text-sm text-white/68"
+              className="mt-2 truncate text-sm text-muted-foreground dark:text-white/68"
               style={{ fontFamily: `'${font.name}', sans-serif` }}
             >
               Sphinx of black quartz, judge my vow.
@@ -203,11 +207,12 @@ export function TypographyPickerPanel({
               type="button"
               variant="outline"
               onClick={() => setHeadingFont(font.name)}
-              className={`h-10 rounded-xl border px-4 text-sm ${
+              className={cn(
+                "h-10 rounded-xl border px-4 text-sm",
                 isHeadingSelected
-                  ? "border-white/30 bg-white text-black hover:bg-white/90"
-                  : "border-white/15 bg-transparent text-white hover:bg-white/[0.06]"
-              }`}
+                  ? "border-foreground/30 bg-foreground text-background hover:bg-foreground/90"
+                  : "border-border bg-transparent text-foreground hover:bg-muted dark:border-white/15 dark:text-white dark:hover:bg-white/[0.06]",
+              )}
             >
               {isHeadingSelected && <Check className="mr-2 h-4 w-4" />}
               Heading
@@ -216,11 +221,12 @@ export function TypographyPickerPanel({
               type="button"
               variant="outline"
               onClick={() => setBodyFont(font.name)}
-              className={`h-10 rounded-xl border px-4 text-sm ${
+              className={cn(
+                "h-10 rounded-xl border px-4 text-sm",
                 isBodySelected
-                  ? "border-white/30 bg-white text-black hover:bg-white/90"
-                  : "border-white/15 bg-transparent text-white hover:bg-white/[0.06]"
-              }`}
+                  ? "border-foreground/30 bg-foreground text-background hover:bg-foreground/90"
+                  : "border-border bg-transparent text-foreground hover:bg-muted dark:border-white/15 dark:text-white dark:hover:bg-white/[0.06]",
+              )}
             >
               {isBodySelected && <Check className="mr-2 h-4 w-4" />}
               Body
@@ -232,16 +238,16 @@ export function TypographyPickerPanel({
   };
 
   return (
-    <div className="mx-auto w-full max-w-5xl rounded-3xl border border-white/15 bg-black/70 p-6 md:p-8">
+    <div className="mx-auto w-full max-w-5xl rounded-3xl border border-border bg-card p-6 text-card-foreground shadow-[0_24px_80px_rgba(0,0,0,0.12)] md:p-8 dark:border-white/15 dark:bg-black/70">
       <div className="space-y-6">
-        <div className="space-y-1 border-b border-white/10 pb-4">
-          <p className="text-xs uppercase tracking-[0.18em] text-white/45">
+        <div className="space-y-1 border-b border-border pb-4 dark:border-white/10">
+          <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground dark:text-white/45">
             Typography Picker
           </p>
-          <h2 className="text-xl font-semibold text-white/90 md:text-2xl">
+          <h2 className="text-xl font-semibold text-foreground md:text-2xl dark:text-white/90">
             Choose Your Font Pairing
           </h2>
-          <p className="text-sm text-white/60">
+          <p className="text-sm text-muted-foreground dark:text-white/60">
             Browse the full font list, filter it down, and assign any option to heading
             or body without expanding the panel.
           </p>
@@ -251,10 +257,10 @@ export function TypographyPickerPanel({
           <section className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs uppercase tracking-[0.16em] text-white/45">
+                <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground dark:text-white/45">
                   Typography Palette
                 </p>
-                <h3 className="text-lg font-semibold text-white/90">
+                <h3 className="text-lg font-semibold text-foreground dark:text-white/90">
                   AI&apos;s Top Choices
                 </h3>
               </div>
@@ -274,19 +280,19 @@ export function TypographyPickerPanel({
           </section>
         )}
 
-        <section className="space-y-4 rounded-2xl border border-white/12 bg-white/[0.03] p-4">
+        <section className="space-y-4 rounded-2xl border border-border bg-muted/35 p-4 dark:border-white/12 dark:bg-white/[0.03]">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.16em] text-white/45">
+              <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground dark:text-white/45">
                 Font Library
               </p>
-              <h3 className="text-lg font-semibold text-white/90">
+              <h3 className="text-lg font-semibold text-foreground dark:text-white/90">
                 Browse Approved Fonts
               </h3>
             </div>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <label className="space-y-2">
-                <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/45">
+                <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground dark:text-white/45">
                   Category
                 </span>
                 <select
@@ -294,17 +300,17 @@ export function TypographyPickerPanel({
                   onChange={(event) =>
                     setCategoryFilter(event.target.value as FilterCategory)
                   }
-                  className="h-11 min-w-[180px] rounded-xl border border-white/15 bg-black/40 px-3 text-sm text-white outline-none transition-colors focus:border-white/30"
+                  className="h-11 min-w-[180px] rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-ring dark:border-white/15 dark:bg-black/40 dark:text-white dark:focus:border-white/30"
                 >
                   {FILTER_CATEGORIES.map((category) => (
-                    <option className="bg-neutral-950" key={category} value={category}>
+                    <option className="bg-background dark:bg-neutral-950" key={category} value={category}>
                       {category}
                     </option>
                   ))}
                 </select>
               </label>
               <label className="space-y-2">
-                <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/45">
+                <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground dark:text-white/45">
                   Font Type
                 </span>
                 <select
@@ -312,10 +318,10 @@ export function TypographyPickerPanel({
                   onChange={(event) =>
                     setTypeFilter(event.target.value as FontCategory | "All Types")
                   }
-                  className="h-11 min-w-[180px] rounded-xl border border-white/15 bg-black/40 px-3 text-sm text-white outline-none transition-colors focus:border-white/30"
+                  className="h-11 min-w-[180px] rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-ring dark:border-white/15 dark:bg-black/40 dark:text-white dark:focus:border-white/30"
                 >
                   {FONT_TYPES.map((type) => (
-                    <option className="bg-neutral-950" key={type} value={type}>
+                    <option className="bg-background dark:bg-neutral-950" key={type} value={type}>
                       {type}
                     </option>
                   ))}
@@ -325,15 +331,15 @@ export function TypographyPickerPanel({
           </div>
 
           <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3 text-xs text-white/45">
+            <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground dark:text-white/45">
               <span>Showing {filteredFonts.length} fonts</span>
               <span>Scroll to browse more</span>
             </div>
-            <div className="max-h-[430px] space-y-3 overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:hover:bg-white/20">
+            <div className="max-h-[430px] space-y-3 overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/25 [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/40 dark:[&::-webkit-scrollbar-thumb]:bg-white/10 dark:[&::-webkit-scrollbar-thumb]:hover:bg-white/20">
               {filteredFonts.length > 0 ? (
                 filteredFonts.map((font) => renderFontRow(font))
               ) : (
-                <div className="rounded-2xl border border-dashed border-white/15 px-4 py-8 text-center text-sm text-white/55">
+                <div className="rounded-2xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground dark:border-white/15 dark:text-white/55">
                   No fonts match the current filters.
                 </div>
               )}
@@ -341,23 +347,23 @@ export function TypographyPickerPanel({
           </div>
         </section>
 
-        <section className="space-y-4 rounded-2xl border border-white/15 bg-white/[0.02] p-5 md:p-6">
-          <div className="flex flex-wrap items-center gap-3 text-xs text-white/50">
-            <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5">
-              Heading: <span className="font-medium text-white/80">{headingFont}</span>
+        <section className="space-y-4 rounded-2xl border border-border bg-background/60 p-5 md:p-6 dark:border-white/15 dark:bg-white/[0.02]">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground dark:text-white/50">
+            <span className="rounded-full border border-border bg-muted px-3 py-1.5 dark:border-white/10 dark:bg-white/[0.03]">
+              Heading: <span className="font-medium text-foreground dark:text-white/80">{headingFont}</span>
             </span>
-            <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5">
-              Body: <span className="font-medium text-white/80">{bodyFont}</span>
+            <span className="rounded-full border border-border bg-muted px-3 py-1.5 dark:border-white/10 dark:bg-white/[0.03]">
+              Body: <span className="font-medium text-foreground dark:text-white/80">{bodyFont}</span>
             </span>
           </div>
           <h2
-            className="text-3xl font-bold tracking-tight text-white/90 md:text-4xl"
+            className="text-3xl font-bold tracking-tight text-foreground md:text-4xl dark:text-white/90"
             style={{ fontFamily: `'${headingFont}', sans-serif` }}
           >
             {SPECIMEN_HEADING}
           </h2>
           <p
-            className="max-w-3xl text-sm leading-relaxed text-white/70 md:text-[15px]"
+            className="max-w-3xl text-sm leading-relaxed text-muted-foreground md:text-[15px] dark:text-white/70"
             style={{ fontFamily: `'${bodyFont}', sans-serif` }}
           >
             {SPECIMEN_BODY}
@@ -367,7 +373,7 @@ export function TypographyPickerPanel({
         <Button
           type="button"
           onClick={() => onSubmit({ heading: headingFont, body: bodyFont })}
-          className="h-12 w-full rounded-2xl border border-white/20 bg-white text-black hover:bg-white/90"
+          className="h-12 w-full rounded-2xl border border-foreground/20 bg-foreground text-background hover:bg-foreground/90"
         >
           Confirm Fonts
         </Button>

@@ -1,33 +1,24 @@
-"use client";
-
-import * as React from "react";
-import Lottie, { type LottieRefCurrentProps } from "lottie-react";
-
 import { cn } from "@/lib/utils";
 
-const FAST_REPEATS = 4;
-const SLOW_REPEATS = 2;
-
-const spiralFastData = {"nm":"spiral2","h":16,"w":16,"meta":{"g":"@lottiefiles/toolkit-js 0.71.7"},"layers":[{"ty":4,"nm":"Vector 5821 copy Outlines","sr":1,"st":0,"op":30,"ip":0,"ln":"18","hasMask":false,"ao":0,"ks":{"a":{"a":0,"k":[12.5,6.5,0]},"s":{"a":0,"k":[100,100,100]},"p":{"a":1,"k":[{"o":{"x":0.167,"y":0.167},"i":{"x":0.833,"y":0.833},"s":[12,8,0],"t":0},{"s":[4,8,0],"t":29}]},"r":{"a":0,"k":0},"sa":{"a":0,"k":0},"o":{"a":0,"k":24}},"shapes":[{"ty":"gr","nm":"Group 1","it":[{"ty":"sh","nm":"Path 1","d":1,"ks":{"a":0,"k":{"c":false,"i":[[0,0],[-0.289,3.296],[2.218,0],[-0.23,-2.627],[-4.452,0],[-0.289,3.296],[2.218,0],[-0.23,-2.627],[-4.452,0],[-0.289,3.296],[2.218,0],[-0.232,-2.627],[-4.443,0]],"o":[[4.452,0],[0.23,-2.627],[-2.218,0],[0.289,3.296],[4.452,0],[0.23,-2.627],[-2.218,0],[0.289,3.296],[4.452,0],[0.23,-2.627],[-2.218,0],[0.292,3.296],[0,0]],"v":[[-12,6],[-4.975,-1.012],[-8,-6],[-11.025,-1.012],[-4,6],[3.025,-1.012],[0,-6],[-3.025,-1.012],[4,6],[11.025,-1.012],[8,-6],[4.98,-1.012],[12,6]]}}},{"ty":"st","nm":"Stroke 1","lc":2,"lj":2,"ml":4,"o":{"a":0,"k":100},"w":{"a":0,"k":1.4},"c":{"a":0,"k":[1,1,1]}},{"ty":"tr","a":{"a":0,"k":[0,0]},"s":{"a":0,"k":[100,100]},"p":{"a":0,"k":[12.5,6.5]},"r":{"a":0,"k":0},"sa":{"a":0,"k":0},"o":{"a":0,"k":100}}]},{"ty":"tm","nm":"Trim Paths 1","e":{"a":1,"k":[{"o":{"x":0.341,"y":0.488},"i":{"x":0.269,"y":0.75},"s":[44],"t":0},{"s":[77],"t":29}]},"o":{"a":0,"k":0},"s":{"a":1,"k":[{"o":{"x":0.32,"y":0.154},"i":{"x":0.826,"y":0.579},"s":[23],"t":0},{"s":[57],"t":29}]},"m":1}],"ind":1}],"v":"5.7.0","fr":60,"op":30,"ip":0,"assets":[]};
-
-const spiralSlowData = {"nm":"spiral1","h":16,"w":16,"meta":{"g":"@lottiefiles/toolkit-js 0.71.7"},"layers":[{"ty":4,"nm":"Vector 5821 copy Outlines","sr":1,"st":0,"op":60,"ip":0,"ln":"18","hasMask":false,"ao":0,"ks":{"a":{"a":0,"k":[12.5,6.5,0]},"s":{"a":0,"k":[100,100,100]},"p":{"a":1,"k":[{"o":{"x":0.167,"y":0.167},"i":{"x":0.833,"y":0.833},"s":[12,8,0],"t":0},{"s":[4,8,0],"t":59}]},"r":{"a":0,"k":0},"sa":{"a":0,"k":0},"o":{"a":0,"k":24}},"shapes":[{"ty":"gr","nm":"Group 1","it":[{"ty":"sh","nm":"Path 1","d":1,"ks":{"a":0,"k":{"c":false,"i":[[0,0],[-0.289,3.296],[2.218,0],[-0.23,-2.627],[-4.452,0],[-0.289,3.296],[2.218,0],[-0.23,-2.627],[-4.452,0],[-0.289,3.296],[2.218,0],[-0.232,-2.627],[-4.443,0]],"o":[[4.452,0],[0.23,-2.627],[-2.218,0],[0.289,3.296],[4.452,0],[0.23,-2.627],[-2.218,0],[0.289,3.296],[4.452,0],[0.23,-2.627],[-2.218,0],[0.292,3.296],[0,0]],"v":[[-12,6],[-4.975,-1.012],[-8,-6],[-11.025,-1.012],[-4,6],[3.025,-1.012],[0,-6],[-3.025,-1.012],[4,6],[11.025,-1.012],[8,-6],[4.98,-1.012],[12,6]]}}},{"ty":"st","nm":"Stroke 1","lc":2,"lj":2,"ml":4,"o":{"a":0,"k":100},"w":{"a":0,"k":1.4},"c":{"a":0,"k":[1,1,1]}},{"ty":"tr","a":{"a":0,"k":[0,0]},"s":{"a":0,"k":[100,100]},"p":{"a":0,"k":[12.5,6.5]},"r":{"a":0,"k":0},"sa":{"a":0,"k":0},"o":{"a":0,"k":100}}]},{"ty":"tm","nm":"Trim Paths 1","e":{"a":1,"k":[{"o":{"x":0.341,"y":0.992},"i":{"x":0.269,"y":0.491},"s":[44],"t":0},{"s":[77],"t":59}]},"o":{"a":0,"k":0},"s":{"a":1,"k":[{"o":{"x":0.32,"y":0.313},"i":{"x":0.826,"y":0.143},"s":[23],"t":0},{"s":[57],"t":59}]},"m":1}],"ind":1}],"v":"5.7.0","fr":60,"op":60,"ip":0,"assets":[]};
-
-function useIsDarkTheme() {
-    const [isDark, setIsDark] = React.useState(false);
-    React.useEffect(() => {
-        const update = () => {
-            setIsDark(document.documentElement.classList.contains("dark"));
-        };
-        update();
-        const observer = new MutationObserver(update);
-        observer.observe(document.documentElement, {
-            attributes: true,
-            attributeFilter: ["class"],
-        });
-        return () => observer.disconnect();
-    }, []);
-    return isDark;
-}
+/**
+ * Spiral path decoded from the original Lottie asset's bezier data, so the
+ * artwork matches the source animation exactly.
+ */
+const SPIRAL_PATH = [
+    "M-12 6",
+    "C-7.548 6 -5.264 2.284 -4.975 -1.012",
+    "C-4.745 -3.639 -5.782 -6 -8 -6",
+    "C-10.218 -6 -11.255 -3.639 -11.025 -1.012",
+    "C-10.736 2.284 -8.452 6 -4 6",
+    "C0.452 6 2.736 2.284 3.025 -1.012",
+    "C3.255 -3.639 2.218 -6 0 -6",
+    "C-2.218 -6 -3.255 -3.639 -3.025 -1.012",
+    "C-2.736 2.284 -0.452 6 4 6",
+    "C8.452 6 10.736 2.284 11.025 -1.012",
+    "C11.255 -3.639 10.218 -6 8 -6",
+    "C5.782 -6 4.748 -3.639 4.98 -1.012",
+    "C5.272 2.284 7.557 6 12 6",
+].join(" ");
 
 export type SpiralLoaderProps = {
     size?: number;
@@ -35,93 +26,31 @@ export type SpiralLoaderProps = {
 };
 
 /**
- * Looping spiral loader that alternates between a fast and slow Lottie pass.
- * The artwork is white; it inverts automatically outside dark mode.
+ * Pure SVG/CSS port of the Lottie spiral loader: a dash window travels along
+ * the coil in four quick pulses followed by two slow ones (see the
+ * `spiral-loader-travel` keyframes in globals.css). Inherits `currentColor`,
+ * so it follows the surrounding text color in both themes.
  */
 export function SpiralLoader({ size = 16, className }: SpiralLoaderProps) {
-    const [isMounted, setIsMounted] = React.useState(false);
-    const [phase, setPhase] = React.useState<"fast" | "slow">("fast");
-    const repeatCountRef = React.useRef(0);
-    const fastRef = React.useRef<LottieRefCurrentProps | null>(null);
-    const slowRef = React.useRef<LottieRefCurrentProps | null>(null);
-    const isDark = useIsDarkTheme();
-
-    React.useEffect(() => {
-        setIsMounted(true);
-    }, []);
-
-    const startFastPhase = React.useCallback(() => {
-        repeatCountRef.current = 0;
-        setPhase("fast");
-        slowRef.current?.stop();
-        fastRef.current?.goToAndPlay(0, true);
-    }, []);
-
-    const startSlowPhase = React.useCallback(() => {
-        repeatCountRef.current = 0;
-        setPhase("slow");
-        fastRef.current?.stop();
-        slowRef.current?.goToAndPlay(0, true);
-    }, []);
-
-    const handleFastComplete = React.useCallback(() => {
-        repeatCountRef.current += 1;
-        if (repeatCountRef.current < FAST_REPEATS) {
-            fastRef.current?.goToAndPlay(0, true);
-        } else {
-            startSlowPhase();
-        }
-    }, [startSlowPhase]);
-
-    const handleSlowComplete = React.useCallback(() => {
-        repeatCountRef.current += 1;
-        if (repeatCountRef.current < SLOW_REPEATS) {
-            slowRef.current?.goToAndPlay(0, true);
-        } else {
-            startFastPhase();
-        }
-    }, [startFastPhase]);
-
-    if (!isMounted) return null;
-    const needsInvert = !isDark;
-
     return (
-        <div
-            className={cn("relative shrink-0", className)}
-            style={{ width: size, height: size }}
+        <svg
+            width={size}
+            height={size}
+            viewBox="-13 -7.5 26 15"
+            fill="none"
+            aria-hidden="true"
+            className={cn("shrink-0 opacity-25", className)}
         >
-            <div
-                className={cn(
-                    "absolute inset-0 transition-opacity duration-75",
-                    needsInvert && "invert",
-                    phase === "fast" ? "opacity-100" : "opacity-0",
-                )}
-            >
-                <Lottie
-                    lottieRef={fastRef}
-                    animationData={spiralFastData}
-                    loop={false}
-                    autoplay={true}
-                    onComplete={handleFastComplete}
-                    style={{ width: "100%", height: "100%" }}
-                />
-            </div>
-            <div
-                className={cn(
-                    "absolute inset-0 transition-opacity duration-75",
-                    needsInvert && "invert",
-                    phase === "slow" ? "opacity-100" : "opacity-0",
-                )}
-            >
-                <Lottie
-                    lottieRef={slowRef}
-                    animationData={spiralSlowData}
-                    loop={false}
-                    autoplay={false}
-                    onComplete={handleSlowComplete}
-                    style={{ width: "100%", height: "100%" }}
-                />
-            </div>
-        </div>
+            <path
+                d={SPIRAL_PATH}
+                pathLength={100}
+                stroke="currentColor"
+                strokeWidth={1.4}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                vectorEffect="non-scaling-stroke"
+                className="spiral-loader-path"
+            />
+        </svg>
     );
 }

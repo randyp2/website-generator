@@ -307,10 +307,90 @@
     }
   }
 
+  /* Shimmering status text: a dark band sweeps across the label. One
+     background period per iteration keeps the loop seamless. */
+  .generation-status-shimmer {
+    background: linear-gradient(
+      110deg,
+      #ffffff,
+      35%,
+      #000000,
+      50%,
+      #ffffff,
+      75%,
+      #ffffff
+    );
+    background-size: 200% 100%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    animation: generation-status-shimmer 3.5s linear infinite;
+  }
+
+  @keyframes generation-status-shimmer {
+    from {
+      background-position: 200% 0;
+    }
+
+    to {
+      background-position: 0% 0;
+    }
+  }
+
+  /* SpiralLoader: a ~22%-long dash window crawls along the coil. Each
+     keyframe segment advances exactly one dash period (100 via pathLength),
+     so the loop is seamless; four 0.5s pulses then two 1s pulses mirror the
+     original Lottie's fast/slow rhythm. */
+  .spiral-loader-path {
+    stroke-dasharray: 22 78;
+    animation: spiral-loader-travel 8s infinite;
+  }
+
+  @keyframes spiral-loader-travel {
+    0% {
+      stroke-dashoffset: 0;
+      animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95);
+    }
+
+    15% {
+      stroke-dashoffset: -100;
+      animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95);
+    }
+
+    30% {
+      stroke-dashoffset: -200;
+      animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95);
+    }
+
+    45% {
+      stroke-dashoffset: -300;
+      animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95);
+    }
+
+    60% {
+      stroke-dashoffset: -400;
+      animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95);
+    }
+
+    80% {
+      stroke-dashoffset: -500;
+      animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95);
+    }
+
+    100% {
+      stroke-dashoffset: -600;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .style-chat-composer-burst,
     .style-chat-composer-burst::after {
       animation: none;
+    }
+
+    .spiral-loader-path {
+      animation: none;
+      stroke-dasharray: none;
     }
   }
 

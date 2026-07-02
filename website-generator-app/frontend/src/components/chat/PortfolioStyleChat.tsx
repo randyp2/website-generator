@@ -69,7 +69,7 @@ const SuggestionChip = ({ label, onClick }: SuggestionChipProps) => (
     <button
         type="button"
         onClick={onClick}
-        className="rounded-full border border-white/15 bg-white/[0.06] px-3 py-1.5 text-sm text-white/80 transition hover:bg-white/[0.12] hover:text-white"
+        className="rounded-full border border-border bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground transition hover:bg-accent hover:text-accent-foreground dark:border-white/15 dark:bg-white/[0.06] dark:text-white/80 dark:hover:bg-white/[0.12] dark:hover:text-white"
     >
         {label}
     </button>
@@ -91,7 +91,7 @@ const AiMessageContent = ({
             components={{
                 p: ({ children }) => <p className="my-1">{children}</p>,
                 strong: ({ children }) => (
-                    <strong className="font-semibold text-white">
+                    <strong className="font-semibold text-foreground dark:text-white">
                         {children}
                     </strong>
                 ),
@@ -101,7 +101,9 @@ const AiMessageContent = ({
                     </ul>
                 ),
                 li: ({ children }) => (
-                    <li className="text-white/80">{children}</li>
+                    <li className="text-muted-foreground dark:text-white/80">
+                        {children}
+                    </li>
                 ),
             }}
         >
@@ -109,8 +111,8 @@ const AiMessageContent = ({
         </ReactMarkdown>
 
         {message.designTip && (
-            <div className="flex items-start gap-2 rounded-lg border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-sm text-blue-200/90">
-                <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-400" />
+            <div className="flex items-start gap-2 rounded-lg border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-sm text-blue-700 dark:text-blue-200/90">
+                <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-600 dark:text-blue-400" />
                 <span>{message.designTip}</span>
             </div>
         )}
@@ -171,7 +173,7 @@ const StyleSummaryCard = ({
 
     return (
         <div className="space-y-4">
-            <div className="flex items-center gap-2 text-emerald-400">
+            <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                 <Check className="h-4 w-4" />
                 <span className="text-sm font-medium">
                     Style profile complete
@@ -182,7 +184,7 @@ const StyleSummaryCard = ({
                 components={{
                     p: ({ children }) => <p className="my-1">{children}</p>,
                     strong: ({ children }) => (
-                        <strong className="font-semibold text-white">
+                        <strong className="font-semibold text-foreground dark:text-white">
                             {children}
                         </strong>
                     ),
@@ -192,13 +194,13 @@ const StyleSummaryCard = ({
             </ReactMarkdown>
 
             {entries.length > 0 && (
-                <div className="grid grid-cols-2 gap-x-6 gap-y-2 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3">
+                <div className="grid grid-cols-2 gap-x-6 gap-y-2 rounded-lg border border-border bg-muted/40 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]">
                     {entries.map(([key, value]) => (
                         <div key={key} className="min-w-0">
-                            <span className="text-xs text-white/40">
+                            <span className="text-xs text-muted-foreground dark:text-white/40">
                                 {STYLE_PREF_LABELS[key]}
                             </span>
-                            <p className="truncate text-sm text-white/80">
+                            <p className="truncate text-sm text-foreground/80 dark:text-white/80">
                                 {value}
                             </p>
                         </div>
@@ -306,14 +308,14 @@ export function PortfolioStyleChat({
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -6, scale: 0.97 }}
                         transition={{ duration: 0.16, ease: "easeOut" }}
-                        className="absolute left-2 top-full z-30 mt-1.5 w-52 rounded-2xl bg-[#1c1d22]/95 p-1.5 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl"
+                        className="absolute left-2 top-full z-30 mt-1.5 w-52 rounded-2xl border border-border bg-popover/95 p-1.5 text-popover-foreground shadow-[0_24px_80px_rgba(0,0,0,0.18)] backdrop-blur-2xl dark:border-white/10 dark:bg-[#1c1d22]/95 dark:text-white dark:shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
                     >
                         {composerActions.map(({ icon: Icon, label }) => (
                             <button
                                 key={label}
                                 type="button"
                                 onClick={() => setIsActionsOpen(false)}
-                                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-white/80 transition hover:bg-white/[0.08] hover:text-white"
+                                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-muted-foreground transition hover:bg-accent hover:text-accent-foreground dark:text-white/80 dark:hover:bg-white/[0.08] dark:hover:text-white"
                             >
                                 <Icon className="h-4 w-4" />
                                 {label}
@@ -323,7 +325,7 @@ export function PortfolioStyleChat({
                 )}
             </AnimatePresence>
 
-            <div className="flex items-center gap-2 rounded-full bg-[#1c1d22]/92 px-2 py-2 text-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur-2xl md:px-2.5 md:py-2.5">
+            <div className="flex items-center gap-2 rounded-full border border-border bg-card/95 px-2 py-2 text-foreground shadow-[0_24px_80px_rgba(0,0,0,0.16)] backdrop-blur-2xl md:px-2.5 md:py-2.5 dark:border-white/10 dark:bg-[#1c1d22]/92 dark:text-white dark:shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
                 <button
                     type="button"
                     onClick={() => setIsActionsOpen((open) => !open)}
@@ -331,7 +333,7 @@ export function PortfolioStyleChat({
                         isActionsOpen ? "Close options" : "More options"
                     }
                     aria-expanded={isActionsOpen}
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white/70 transition hover:text-white"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:text-foreground dark:text-white/70 dark:hover:text-white"
                 >
                     <Plus
                         className={cn(
@@ -350,7 +352,7 @@ export function PortfolioStyleChat({
                     disabled={isInputDisabled || isInitializing}
                     placeholder="Describe the general idea for your portfolio..."
                     className={cn(
-                        "resize-none border-0 bg-transparent px-2 text-white placeholder:text-white/55 shadow-none focus-visible:ring-0",
+                        "resize-none border-0 bg-transparent px-2 text-foreground placeholder:text-muted-foreground shadow-none focus-visible:ring-0 dark:text-white dark:placeholder:text-white/55",
                         "max-h-20 min-h-10 py-2 text-base leading-6 md:text-lg",
                     )}
                 />
@@ -364,7 +366,7 @@ export function PortfolioStyleChat({
                         isInitializing ||
                         !prompt.trim()
                     }
-                    className="h-12 w-12 shrink-0 rounded-full bg-transparent text-white transition hover:bg-white/5 disabled:bg-transparent disabled:text-white/30"
+                    className="h-12 w-12 shrink-0 rounded-full bg-transparent text-foreground transition hover:bg-muted disabled:bg-transparent disabled:text-muted-foreground/40 dark:text-white dark:hover:bg-white/5 dark:disabled:text-white/30"
                     aria-label="Send message"
                 >
                     <Send strokeWidth={2.2} className="h-10 w-10" />
@@ -404,7 +406,7 @@ export function PortfolioStyleChat({
                     >
                         <div className="mx-auto flex w-full max-w-[1120px] flex-col items-center">
                             <div className="mb-10 w-full max-w-4xl text-center md:mb-12">
-                                <h1 className="text-4xl font-light tracking-normal text-white/88 md:text-5xl">
+                                <h1 className="text-4xl font-light tracking-normal text-foreground/90 md:text-5xl dark:text-white/88">
                                     What are we building?
                                 </h1>
                             </div>
@@ -460,7 +462,7 @@ export function PortfolioStyleChat({
                         className="flex flex-1 flex-col"
                     >
                         {isInitializing ? (
-                            <Loader2 className="m-auto h-6 w-6 animate-spin text-white/40" />
+                            <Loader2 className="m-auto h-6 w-6 animate-spin text-muted-foreground dark:text-white/40" />
                         ) : (
                             <div className="flex-1 px-4 pb-6 pt-6 md:px-10 md:pt-10">
                                 <div className="mx-auto flex w-full max-w-4xl flex-col space-y-5">
@@ -478,8 +480,8 @@ export function PortfolioStyleChat({
                                                 className={cn(
                                                     "py-3 text-[15px] leading-relaxed",
                                                     message.role === "user"
-                                                        ? "max-w-[88%] rounded-full bg-zinc-200 px-6 py-3.5 text-zinc-900 md:max-w-[80%] dark:bg-zinc-800 dark:text-zinc-100"
-                                                        : "text-white/90",
+                                                        ? "max-w-[88%] rounded-full bg-muted px-6 py-3.5 text-foreground ring-1 ring-border md:max-w-[80%] dark:bg-zinc-800 dark:text-zinc-100 dark:ring-white/10"
+                                                        : "text-foreground/90 dark:text-white/90",
                                                     message.role === "ai" &&
                                                         message.previewType
                                                         ? "max-w-full"
@@ -513,7 +515,7 @@ export function PortfolioStyleChat({
                                                     message.content
                                                 )}
                                             </div>
-                                            <span className="mt-1 text-xs text-white/40">
+                                            <span className="mt-1 text-xs text-muted-foreground dark:text-white/40">
                                                 {formatTimestamp(
                                                     message.timestamp,
                                                 )}
