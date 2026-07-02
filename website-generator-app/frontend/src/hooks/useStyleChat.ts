@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from "react";
 
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
 import type { ColorPresetRecommendation } from "@/types/style";
-import type { PersistedStyleChatMessage } from "@/types/style-chat";
+import type { InitialStyleChatHistoryState } from "@/types/style-chat";
 
 import { useStyleChatActions } from "./style-chat/useStyleChatActions";
 import { useStyleChatDraft } from "./style-chat/useStyleChatDraft";
@@ -16,15 +16,13 @@ import { useStyleChatRequest } from "./style-chat/useStyleChatRequest";
 export function useStyleChat(params: {
     portfolioId: string | null;
     templateId: string | null;
-    initialStyleChatHistory?: PersistedStyleChatMessage[] | null;
-    isInitialStyleChatHistoryResolved?: boolean;
+    initialStyleChatHistoryPromise?: Promise<InitialStyleChatHistoryState>;
     onPortfolioCreated?: (portfolioId: string) => void;
 }) {
     const {
         portfolioId: routePortfolioId,
         templateId,
-        initialStyleChatHistory,
-        isInitialStyleChatHistoryResolved = false,
+        initialStyleChatHistoryPromise,
         onPortfolioCreated,
     } = params;
     const isSendingStyle = usePortfolioStore((state) => state.isSendingStyle);
@@ -64,8 +62,7 @@ export function useStyleChat(params: {
     } = useStyleChatHistory({
         activePortfolioId,
         createdDraftIdRef,
-        initialStyleChatHistory,
-        isInitialStyleChatHistoryResolved,
+        initialStyleChatHistoryPromise,
         lastSyncedHistoryRef,
         onHistoryReset: resetRecommendationPanels,
     });

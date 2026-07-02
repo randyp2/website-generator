@@ -5,21 +5,19 @@ import { useRouter } from "next/navigation";
 
 import { PortfolioStyleChat } from "@/components/chat/PortfolioStyleChat";
 import { useStyleChat } from "@/hooks/useStyleChat";
-import type { PersistedStyleChatMessage } from "@/types/style-chat";
+import type { InitialStyleChatHistoryState } from "@/types/style-chat";
 import { isPristineManualResumeTemplate } from "@/utils/resume/manualResumeTemplate";
 
 interface StyleDiscussionClientProps {
     templateId: string | null;
     portfolioId: string | null;
-    initialStyleChatHistory: PersistedStyleChatMessage[] | null;
-    isInitialStyleChatHistoryResolved: boolean;
+    initialStyleChatHistoryPromise: Promise<InitialStyleChatHistoryState>;
 }
 
 const StyleDiscussionClient = ({
     templateId,
     portfolioId: routePortfolioId,
-    initialStyleChatHistory,
-    isInitialStyleChatHistoryResolved,
+    initialStyleChatHistoryPromise,
 }: StyleDiscussionClientProps) => {
     const router = useRouter();
 
@@ -53,8 +51,7 @@ const StyleDiscussionClient = ({
     } = useStyleChat({
         portfolioId: routePortfolioId,
         templateId,
-        initialStyleChatHistory,
-        isInitialStyleChatHistoryResolved,
+        initialStyleChatHistoryPromise,
         onPortfolioCreated: handlePortfolioCreated,
     });
 

@@ -2,13 +2,11 @@ import "server-only";
 
 import { getBackendUrl } from "@/lib/server-env";
 import { isStyleChatHistory } from "@/lib/style-chat-history";
-import type { PersistedStyleChatMessage } from "@/types/style-chat";
+import type {
+    InitialStyleChatHistoryState,
+    PersistedStyleChatMessage,
+} from "@/types/style-chat";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
-
-export interface InitialStyleChatHistoryState {
-    history: PersistedStyleChatMessage[] | null;
-    isResolved: boolean;
-}
 
 interface BackendPortfolioPayload {
     portfolio?: {
@@ -28,7 +26,9 @@ const readStyleChatHistory = (
 };
 
 /**
- * Loads route-critical style chat history before the client chat hydrates.
+ * Loads style chat history on the server. Callers pass the unawaited promise
+ * to the client so the page shell streams while this resolves in the
+ * background; `isResolved: false` tells the client to fetch instead.
  */
 export const loadInitialStyleChatHistory = async (
     portfolioId: string | null,

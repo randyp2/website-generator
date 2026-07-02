@@ -9,7 +9,10 @@ import {
 import { isStyleChatHistory, toUiStyleMessages } from "@/lib/style-chat-history";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
 import type { Message } from "@/types/preview";
-import type { PersistedStyleChatMessage } from "@/types/style-chat";
+import type {
+    InitialStyleChatHistoryState,
+    PersistedStyleChatMessage,
+} from "@/types/style-chat";
 
 import { toInitialStyleMessages } from "./style-chat-utils";
 
@@ -20,8 +23,7 @@ type MutableRef<T> = {
 interface UseStyleChatHistoryParams {
     activePortfolioId: string | null;
     createdDraftIdRef: MutableRef<string | null>;
-    initialStyleChatHistory?: PersistedStyleChatMessage[] | null;
-    isInitialStyleChatHistoryResolved: boolean;
+    initialStyleChatHistoryPromise?: Promise<InitialStyleChatHistoryState>;
     lastSyncedHistoryRef: MutableRef<string>;
     onHistoryReset: () => void;
 }
@@ -42,8 +44,7 @@ interface UseStyleChatHistoryResult {
 export const useStyleChatHistory = ({
     activePortfolioId,
     createdDraftIdRef,
-    initialStyleChatHistory,
-    isInitialStyleChatHistoryResolved,
+    initialStyleChatHistoryPromise,
     lastSyncedHistoryRef,
     onHistoryReset,
 }: UseStyleChatHistoryParams): UseStyleChatHistoryResult => {
@@ -52,11 +53,9 @@ export const useStyleChatHistory = ({
     );
     const [isHydrated, setIsHydrated] = useState(false);
     const [styleMessages, setStyleMessages] = useState<Message[]>(() =>
-        toInitialStyleMessages(initialStyleChatHistory),
+        toInitialStyleMessages(null),
     );
-    const [hasLoadedHistory, setHasLoadedHistory] = useState(
-        isInitialStyleChatHistoryResolved || !activePortfolioId,
-    );
+    const [hasLoadedHistory, setHasLoadedHistory] = useState(!activePortfolioId);
 
     useEffect(() => {
         const hasHydrated = usePortfolioStore.persist.hasHydrated();
@@ -72,8 +71,6 @@ export const useStyleChatHistory = ({
     }, []);
 
     useEffect(() => {
-        if (!isHydrated) return;
-
         let cancelled = false;
 
         const applyLoadedHistory = (
@@ -103,13 +100,26 @@ export const useStyleChatHistory = ({
                 return;
             }
 
-            if (isInitialStyleChatHistoryResolved) {
-                applyLoadedHistory(initialStyleChatHistory);
-                return;
-            }
-
             setHasLoadedHistory(false);
             lastSyncedHistoryRef.current = "";
+
+            // The server started this load during render; the page shell
+            // streams while it resolves here in the background.
+            if (initialStyleChatHistoryPromise) {
+                const initial = await initialStyleChatHistoryPromise.catch(
+                    (): InitialStyleChatHistoryState => ({
+                        history: null,
+                        isResolved: false,
+                    }),
+                );
+
+                if (cancelled) return;
+
+                if (initial.isResolved) {
+                    applyLoadedHistory(initial.history);
+                    return;
+                }
+            }
 
             try {
                 const response = await fetch(`/api/portfolio/${activePortfolioId}/get`);
@@ -142,9 +152,7 @@ export const useStyleChatHistory = ({
     }, [
         activePortfolioId,
         createdDraftIdRef,
-        initialStyleChatHistory,
-        isHydrated,
-        isInitialStyleChatHistoryResolved,
+        initialStyleChatHistoryPromise,
         lastSyncedHistoryRef,
         onHistoryReset,
     ]);
