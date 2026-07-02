@@ -342,11 +342,10 @@ export function PortfolioStyleChat({
                         type="button"
                         onClick={onContinue}
                         disabled={isContinueDisabled}
-                        className="group relative inline-flex cursor-pointer items-center gap-2 overflow-hidden rounded-xl border border-white/10 bg-linear-to-r from-primary via-[#fb923c] to-[#ea580c] px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-[0_14px_30px_rgba(245,158,11,0.28)] transition hover:-translate-y-px hover:shadow-[0_18px_36px_rgba(245,158,11,0.34)] disabled:cursor-not-allowed disabled:opacity-50"
+                        className="group inline-flex cursor-pointer items-center gap-2 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm ring-1 ring-black/5 transition-colors duration-150 hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1c1d22] disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                        <span className="pointer-events-none absolute inset-y-0 left-0 w-1/2 -translate-x-[170%] -skew-x-12 bg-linear-to-r from-transparent via-white/35 to-transparent opacity-0 transition duration-700 ease-out group-hover:translate-x-[320%] group-hover:opacity-100" />
-                        <span className="relative">{continueLabel}</span>
-                        <ArrowRight className="relative h-3.5 w-3.5" />
+                        <span>{continueLabel}</span>
+                        <ArrowRight className="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
                     </button>
                 )}
             </div>
