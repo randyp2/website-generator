@@ -1,0 +1,160 @@
+package com.webgen.webgen_backend.portfolio.service.style;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.webgen.webgen_backend.portfolio.dto.style.StyleChatRequestDTO;
+import com.webgen.webgen_backend.portfolio.dto.style.StyleChatResponseDTO;
+import com.webgen.webgen_backend.portfolio.model.style.StyleContext;
+import com.webgen.webgen_backend.portfolio.service.parser.StyleChatResponseParser;
+import com.webgen.webgen_backend.portfolio.service.prompt.StyleChatPromptBuilder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
+import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+/**
+ * Covers the free-form conversation phase (Q4-Q10), specifically the
+ * completion contract: the server question counter is the upper bound, but
+ * the model can also complete early by returning compiledStylePreferences.
+ */
+class StyleChatServiceImplTest {
+
+    private StyleChatServiceImpl service;
+    private OpenAiChatModel chatModel;
+    private UUID portfolioId;
+
+    @BeforeEach
+    void setUp() {
+        ObjectMapper objectMapper = new ObjectMapper();
+        service = new StyleChatServiceImpl(
+                new StyleChatPromptBuilder(objectMapper),
+                new StyleChatResponseParser(objectMapper)
+        );
+        chatModel = mock(OpenAiChatModel.class);
+        ReflectionTestUtils.setField(service, "chatModel", chatModel);
+        portfolioId = UUID.randomUUID();
+    }
+
+    @Test
+    void completesEarlyWhenModelReturnsCompiledPreferencesBeforeLastTurn() {
+        seedConversationContext(9);
+        stubModelResponse("""
+                {
+                  "assistantMessage": "Great! I have everything I need and I am done asking style questions.",
+                  "isAnswerValid": true,
+                  "nextQuestionNumber": 10,
+                  "suggestions": null,
+                  "designTip": null,
+                  "previewType": null,
+                  "compiledStylePreferences": {
+                    "colorScheme": "warm reds",
+                    "layoutDensity": "balanced",
+                    "tone": "playful",
+                    "visualStyle": "illustrations",
+                    "sectionEmphasis": "contact",
+                    "typography": "Syne / DM Sans",
+                    "animationStyle": "dramatic",
+                    "whitespace": "balanced",
+                    "imageryStyle": "illustrations",
+                    "interactiveElements": "hover effects",
+                    "customNotes": "spiderman theme"
+                  }
+                }
+                """);
+
+        StyleChatResponseDTO response = service.chat(conversationRequest("Dramatic"));
+
+        assertTrue(response.isComplete(),
+                "compiled preferences from the model should complete the flow before Q10");
+        assertNotNull(response.getStylePreferences());
+        assertTrue(service.getContext(portfolioId).isStyleDiscoveryComplete());
+    }
+
+    @Test
+    void staysIncompleteWhenModelAnswersWithoutCompiledPreferences() {
+        seedConversationContext(7);
+        stubModelResponse("""
+                {
+                  "assistantMessage": "Nice! Now, how much whitespace do you want?",
+                  "isAnswerValid": true,
+                  "nextQuestionNumber": 8,
+                  "suggestions": ["Generous", "Balanced", "Tight"],
+                  "designTip": null,
+                  "previewType": null,
+                  "compiledStylePreferences": null
+                }
+                """);
+
+        StyleChatResponseDTO response = service.chat(conversationRequest("Subtle"));
+
+        assertFalse(response.isComplete());
+        assertEquals(8, response.getQuestionNumber());
+        assertFalse(service.getContext(portfolioId).isStyleDiscoveryComplete());
+    }
+
+    @Test
+    void completesOnCounterWhenLastQuestionAnswered() {
+        seedConversationContext(10);
+        stubModelResponse("""
+                {
+                  "assistantMessage": "I have everything I need and I am done asking style questions.",
+                  "isAnswerValid": true,
+                  "nextQuestionNumber": 10,
+                  "suggestions": null,
+                  "designTip": null,
+                  "previewType": null,
+                  "compiledStylePreferences": null
+                }
+                """);
+
+        StyleChatResponseDTO response = service.chat(conversationRequest("Dramatic"));
+
+        assertTrue(response.isComplete());
+        assertTrue(service.getContext(portfolioId).isStyleDiscoveryComplete());
+    }
+
+    /** Places the flow mid free-form phase without replaying Q0-Q3. */
+    private void seedConversationContext(int currentQuestionNumber) {
+        StyleContext context = new StyleContext();
+        context.setCurrentQuestionNumber(currentQuestionNumber);
+        context.setTotalQuestions(10);
+        context.setCurrentQuestion("What animation style do you prefer?");
+        context.setDesignGoal("playful spiderman portfolio");
+        context.setConversationHistory(new ArrayList<>());
+
+        @SuppressWarnings("unchecked")
+        Map<UUID, StyleContext> contextStore =
+                (Map<UUID, StyleContext>) ReflectionTestUtils.getField(service, "contextStore");
+        contextStore.put(portfolioId, context);
+    }
+
+    private void stubModelResponse(String json) {
+        ChatResponse chatResponse = new ChatResponse(
+                List.of(new Generation(new AssistantMessage(json)))
+        );
+        when(chatModel.call(any(Prompt.class))).thenReturn(chatResponse);
+    }
+
+    private StyleChatRequestDTO conversationRequest(String userMessage) {
+        StyleChatRequestDTO request = new StyleChatRequestDTO();
+        request.setPortfolioId(portfolioId);
+        request.setUserMessage(userMessage);
+        return request;
+    }
+}

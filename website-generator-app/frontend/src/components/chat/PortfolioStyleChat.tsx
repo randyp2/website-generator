@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import type { Message } from "@/types/preview";
 import type { ColorPresetRecommendation } from "@/types/style";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2, MessageSquareText } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { ColorPickerPanel } from "./ColorPickerPanel";
 import { StyleChatComposer } from "./style-chat/StyleChatComposer";
@@ -54,8 +54,22 @@ export const PortfolioStyleChat = ({
     className,
 }: PortfolioStyleChatProps) => {
     const [prompt, setPrompt] = useState("");
+    // Completion the user opted out of via "Continue Chatting to Revise".
+    // Keyed by message id so a fresh completion re-triggers the CTA swap.
+    const [dismissedCompletionId, setDismissedCompletionId] = useState<
+        string | null
+    >(null);
     const endRef = useRef<HTMLDivElement>(null);
     const hasUserStarted = messages.some((message) => message.role === "user");
+    const lastMessage = messages[messages.length - 1];
+    const completionMessageId =
+        lastMessage?.role === "ai" && lastMessage.isStyleComplete
+            ? lastMessage.id
+            : null;
+    const showCompletionCta =
+        !!onContinue &&
+        completionMessageId !== null &&
+        completionMessageId !== dismissedCompletionId;
     const hasStarted =
         isInitializing ||
         hasUserStarted ||
@@ -122,7 +136,7 @@ export const PortfolioStyleChat = ({
         >
             {/* Pinned to the top right of the scrollport; -mb cancels its
                 flow height so the landing hero stays vertically centered. */}
-            {onContinue && (
+            {onContinue && !showCompletionCta && (
                 <div className="pointer-events-none sticky top-2 z-30 -mb-10 flex justify-end px-4 md:px-8">
                     <button
                         type="button"
@@ -211,17 +225,87 @@ export const PortfolioStyleChat = ({
                                     composerFrameClass,
                                 )}
                             >
-                                <motion.div
-                                    layoutId="style-chat-composer"
-                                    transition={{
-                                        type: "spring",
-                                        stiffness: 220,
-                                        damping: 26,
-                                    }}
-                                    className="pointer-events-auto"
+                                <AnimatePresence
+                                    initial={false}
+                                    mode="popLayout"
                                 >
-                                    {composer}
-                                </motion.div>
+                                    {showCompletionCta ? (
+                                        <motion.div
+                                            key="style-completion-cta"
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                            transition={{
+                                                duration: 0.18,
+                                                ease: "easeOut",
+                                            }}
+                                            className="pointer-events-auto flex flex-col items-center justify-center gap-3 sm:flex-row"
+                                        >
+                                            <motion.button
+                                                layoutId="style-chat-composer"
+                                                transition={{
+                                                    type: "spring",
+                                                    stiffness: 220,
+                                                    damping: 26,
+                                                }}
+                                                type="button"
+                                                onClick={onContinue}
+                                                disabled={isContinueDisabled}
+                                                className="group inline-flex h-12 cursor-pointer items-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-[0_24px_80px_rgba(0,0,0,0.16)] ring-1 ring-black/5 transition-colors duration-150 hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                                            >
+                                                <span>
+                                                    Continue to Upload Resume
+                                                </span>
+                                                <ArrowRight className="h-4 w-4 transition-transform duration-150 group-hover:translate-x-0.5" />
+                                            </motion.button>
+
+                                            <motion.button
+                                                initial={{
+                                                    opacity: 0,
+                                                    scale: 0.92,
+                                                }}
+                                                animate={{
+                                                    opacity: 1,
+                                                    scale: 1,
+                                                }}
+                                                exit={{
+                                                    opacity: 0,
+                                                    scale: 0.92,
+                                                }}
+                                                transition={{
+                                                    duration: 0.18,
+                                                    delay: 0.12,
+                                                    ease: "easeOut",
+                                                }}
+                                                type="button"
+                                                onClick={() =>
+                                                    setDismissedCompletionId(
+                                                        completionMessageId,
+                                                    )
+                                                }
+                                                className="inline-flex h-12 cursor-pointer items-center gap-2 rounded-full border border-border bg-card/95 px-6 text-sm font-medium text-foreground shadow-sm backdrop-blur-2xl transition-colors duration-150 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:border-white/10 dark:bg-[#1c1d22]/92 dark:text-white dark:hover:bg-white/5"
+                                            >
+                                                <MessageSquareText className="h-4 w-4" />
+                                                <span>
+                                                    Continue Chatting to Revise
+                                                </span>
+                                            </motion.button>
+                                        </motion.div>
+                                    ) : (
+                                        <motion.div
+                                            key="style-chat-composer-bar"
+                                            layoutId="style-chat-composer"
+                                            transition={{
+                                                type: "spring",
+                                                stiffness: 220,
+                                                damping: 26,
+                                            }}
+                                            className="pointer-events-auto"
+                                        >
+                                            {composer}
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </div>
                         </div>
                     </motion.div>

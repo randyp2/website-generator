@@ -345,8 +345,12 @@ public class StyleChatServiceImpl implements StyleChatService {
                 : req.getUserMessage());
         context.getConversationHistory().add(qa);
 
-        // Check if Q10 just answered (completion)
-        if (context.getCurrentQuestionNumber() >= TOTAL_QUESTIONS) {
+        // Complete when Q10 was just answered, or earlier when the model
+        // signals it has everything by returning compiled preferences. The
+        // counter stays as the upper bound; compiled preferences are the
+        // model's explicit early-completion signal (see StyleChatPromptBuilder).
+        boolean modelSignaledCompletion = parseResult.compiledPreferences() != null;
+        if (context.getCurrentQuestionNumber() >= TOTAL_QUESTIONS || modelSignaledCompletion) {
             return handleCompletion(context, parsed, parseResult.compiledPreferences());
         }
 
