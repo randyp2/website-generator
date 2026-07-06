@@ -1,5 +1,6 @@
 import { getBackendUrl } from "@/lib/server-env";
 import { ParsedResumeData, ResumeDTO } from "@/types/resume";
+import { normalizeParsedResumeData } from "@/utils/resume/normalizeParsedResumeData";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -28,6 +29,7 @@ export const PATCH = async (
         );
 
     const body = (await req.json()) as UpdateResumeBody | null;
+    const parsedJson = normalizeParsedResumeData(body?.parsedJson);
 
     const backendURL = getBackendUrl();
 
@@ -40,7 +42,7 @@ export const PATCH = async (
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                parsedJson: body?.parsedJson,
+                parsedJson,
                 extractedText: body?.extractedText,
             }),
         },
@@ -86,7 +88,7 @@ export const GET = async (
 
     const resume = await res.json();
     return NextResponse.json({
-        parsedJson: resume?.parsedJson ?? null,
+        parsedJson: normalizeParsedResumeData(resume?.parsedJson),
         extractedText: resume?.extractedText ?? null,
     });
 };

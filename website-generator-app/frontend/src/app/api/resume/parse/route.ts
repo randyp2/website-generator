@@ -1,6 +1,7 @@
 import { enforceRateLimit } from "@/lib/rate-limit/enable-rate-limit";
 import { expensiveRateLimit } from "@/lib/rate-limit/ratelimit";
 import { getBackendUrl } from "@/lib/server-env";
+import { normalizeParsedResumeData } from "@/utils/resume/normalizeParsedResumeData";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -90,7 +91,13 @@ export async function POST(req: Request) {
             );
         }
 
-        const parsedData = await response.json();
+        const parsedData = normalizeParsedResumeData(await response.json());
+        if (!parsedData) {
+            return NextResponse.json(
+                { error: "Invalid parsed resume payload" },
+                { status: 502 },
+            );
+        }
 
         return NextResponse.json({
             success: true,

@@ -153,7 +153,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
                             </div>
                         )}
                         <ul className="space-y-2 text-slate-300">
-                            {exp.bullets.map((bullet, bulletIndex) => (
+                            {(exp.bullets ?? []).map((bullet, bulletIndex) => (
                                 <li
                                     key={`${bullet}-${bulletIndex}`}
                                     className="flex items-start gap-3"

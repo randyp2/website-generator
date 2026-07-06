@@ -8,6 +8,7 @@ import {
 } from "@/types/resume";
 import { StylePreferences } from "@/types/style";
 import type { SectionDTO, GlobalTheme } from "@/types/portfolio";
+import { normalizeParsedResumeData } from "@/utils/resume/normalizeParsedResumeData";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
@@ -190,7 +191,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
 
             // Set parsed resume data
             setParsedResumeData: (data: ParsedResumeData | null) =>
-                set({ parsedResumeData: data }),
+                set({ parsedResumeData: normalizeParsedResumeData(data) }),
 
             setParsedResumeSourceKey: (key: string | null) =>
                 set({ parsedResumeSourceKey: key }),
@@ -328,7 +329,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             addSkill: () => {
                 const current = get().parsedResumeData;
                 if (current) {
-                    const updatedSkills = [...current.skills, ""];
+                    const updatedSkills = [...(current.skills ?? []), ""];
                     set({
                         parsedResumeData: { ...current, skills: updatedSkills },
                     });
@@ -338,7 +339,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             updateSkill: (index: number, skill: string) => {
                 const current = get().parsedResumeData;
                 if (current) {
-                    const updatedSkills = current.skills.map((s, i) =>
+                    const updatedSkills = (current.skills ?? []).map((s, i) =>
                         i === index ? skill : s,
                     );
                     set({
@@ -350,7 +351,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             removeSkill: (index: number) => {
                 const current = get().parsedResumeData;
                 if (current) {
-                    const updatedSkills = current.skills.filter(
+                    const updatedSkills = (current.skills ?? []).filter(
                         (_, i) => i !== index,
                     );
                     set({
@@ -367,7 +368,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                         parsedResumeData: {
                             ...current,
                             experiences: [
-                                ...current.experiences,
+                                ...(current.experiences ?? []),
                                 {
                                     rawBlock: "",
                                     title: "",
@@ -389,7 +390,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                     set({
                         parsedResumeData: {
                             ...current,
-                            experiences: current.experiences.filter(
+                            experiences: (current.experiences ?? []).filter(
                                 (_, experienceIndex) => experienceIndex !== index,
                             ),
                         },
@@ -404,7 +405,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             ) => {
                 const current = get().parsedResumeData;
                 if (current) {
-                    const updatedExperiences = current.experiences.map(
+                    const updatedExperiences = (current.experiences ?? []).map(
                         (exp, i) =>
                             i === index ? { ...exp, [field]: value } : exp,
                     );
@@ -424,12 +425,12 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             ) => {
                 const current = get().parsedResumeData;
                 if (current) {
-                    const updatedExperiences = current.experiences.map(
+                    const updatedExperiences = (current.experiences ?? []).map(
                         (exp, i) =>
                             i === expIndex
                                 ? {
                                       ...exp,
-                                      bullets: exp.bullets.map((b, j) =>
+                                      bullets: (exp.bullets ?? []).map((b, j) =>
                                           j === bulletIndex ? value : b,
                                       ),
                                   }
@@ -447,10 +448,10 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             addExperienceBullet: (expIndex: number) => {
                 const current = get().parsedResumeData;
                 if (current) {
-                    const updatedExperiences = current.experiences.map(
+                    const updatedExperiences = (current.experiences ?? []).map(
                         (exp, i) =>
                             i === expIndex
-                                ? { ...exp, bullets: [...exp.bullets, ""] }
+                                ? { ...exp, bullets: [...(exp.bullets ?? []), ""] }
                                 : exp,
                     );
                     set({
@@ -465,12 +466,12 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             removeExperienceBullet: (expIndex: number, bulletIndex: number) => {
                 const current = get().parsedResumeData;
                 if (current) {
-                    const updatedExperiences = current.experiences.map(
+                    const updatedExperiences = (current.experiences ?? []).map(
                         (exp, i) =>
                             i === expIndex
                                 ? {
                                       ...exp,
-                                      bullets: exp.bullets.filter(
+                                      bullets: (exp.bullets ?? []).filter(
                                           (_, j) => j !== bulletIndex,
                                       ),
                                   }
@@ -493,7 +494,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             ) => {
                 const current = get().parsedResumeData;
                 if (current) {
-                    const updatedEducations = current.educations.map(
+                    const updatedEducations = (current.educations ?? []).map(
                         (edu, i) =>
                             i === index ? { ...edu, [field]: value } : edu,
                     );
@@ -514,7 +515,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             ) => {
                 const current = get().parsedResumeData;
                 if (current) {
-                    const updatedProjects = current.projects.map((proj, i) =>
+                    const updatedProjects = (current.projects ?? []).map((proj, i) =>
                         i === index ? { ...proj, [field]: value } : proj,
                     );
                     set({
@@ -659,6 +660,17 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                     file: null as unknown as File,
                 })),
             }),
+            merge: (persistedState, currentState) => {
+                const persisted = persistedState as Partial<PortfolioCreateState>;
+
+                return {
+                    ...currentState,
+                    ...persisted,
+                    parsedResumeData: normalizeParsedResumeData(
+                        persisted.parsedResumeData ?? currentState.parsedResumeData,
+                    ),
+                };
+            },
         },
     ),
 );
