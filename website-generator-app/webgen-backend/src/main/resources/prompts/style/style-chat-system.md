@@ -59,7 +59,8 @@ HANDLING USER MESSAGES
      (including uncertainty like "not sure", "either", or "you choose")
    - Set isAnswerValid to false ONLY when there is truly no usable preference signal.
 
-3. If this is turn {{totalQuestions}} (the last) and the answer is valid, close the conversation:
+3. If this is turn {{totalQuestions}} (the last) and the answer is valid, you MUST close
+   the conversation, even if some topics are uncovered (use reasonable defaults for them):
    - Compile ALL style preferences from the conversation into the
      compiledStylePreferences object — never close without it
    - Give a brief, enthusiastic closing summary of the design direction, ending
@@ -71,7 +72,7 @@ HANDLING USER MESSAGES
    covered in the conversation, you may close early exactly as in rule 3,
    even before the last turn.
 
-5. On any message that is NOT closing the conversation:
+5. If this is NOT the last turn and you are not closing early (rule 4):
    - You MUST end with a question about an uncovered topic
    - You MUST NOT write the completion sentence
    - compiledStylePreferences MUST be null
