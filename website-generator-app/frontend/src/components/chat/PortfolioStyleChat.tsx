@@ -86,6 +86,7 @@ export const PortfolioStyleChat = ({
             isSendDisabled={
                 isSending || isInputDisabled || isInitializing || !prompt.trim()
             }
+            actionsPlacement={hasStarted ? "up" : "down"}
         />
     );
 

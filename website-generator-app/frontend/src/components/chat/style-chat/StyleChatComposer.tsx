@@ -18,6 +18,11 @@ interface StyleChatComposerProps {
     onSend: () => void;
     isInputDisabled: boolean;
     isSendDisabled: boolean;
+    /**
+     * Where the actions menu opens relative to the bar. Use "up" once the
+     * composer sits at the bottom of the viewport so the menu stays visible.
+     */
+    actionsPlacement?: "up" | "down";
 }
 
 /**
@@ -30,6 +35,7 @@ export const StyleChatComposer = ({
     onSend,
     isInputDisabled,
     isSendDisabled,
+    actionsPlacement = "down",
 }: StyleChatComposerProps) => {
     const [isActionsOpen, setIsActionsOpen] = useState(false);
     const composerRef = useRef<HTMLDivElement>(null);
@@ -68,18 +74,31 @@ export const StyleChatComposer = ({
             <AnimatePresence>
                 {isActionsOpen && (
                     <motion.div
-                        initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                        initial={{
+                            opacity: 0,
+                            y: actionsPlacement === "up" ? 6 : -6,
+                            scale: 0.97,
+                        }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                        exit={{
+                            opacity: 0,
+                            y: actionsPlacement === "up" ? 6 : -6,
+                            scale: 0.97,
+                        }}
                         transition={{ duration: 0.16, ease: "easeOut" }}
-                        className="absolute left-2 top-full z-30 mt-1.5 w-52 rounded-2xl border border-border bg-popover/95 p-1.5 text-popover-foreground shadow-[0_24px_80px_rgba(0,0,0,0.18)] backdrop-blur-2xl dark:border-white/10 dark:bg-[#1c1d22]/95 dark:text-white dark:shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+                        className={cn(
+                            "absolute left-2 z-30 w-52 rounded-2xl border border-border bg-popover/95 p-1.5 text-popover-foreground shadow-[0_24px_80px_rgba(0,0,0,0.18)] backdrop-blur-2xl dark:border-white/10 dark:bg-[#1c1d22]/95 dark:text-white dark:shadow-[0_24px_80px_rgba(0,0,0,0.45)]",
+                            actionsPlacement === "up"
+                                ? "bottom-full mb-1.5"
+                                : "top-full mt-1.5",
+                        )}
                     >
                         {composerActions.map(({ icon: Icon, label }) => (
                             <button
                                 key={label}
                                 type="button"
                                 onClick={() => setIsActionsOpen(false)}
-                                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-muted-foreground transition hover:bg-accent hover:text-accent-foreground dark:text-white/80 dark:hover:bg-white/[0.08] dark:hover:text-white"
+                                className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-muted-foreground transition hover:bg-accent hover:text-accent-foreground dark:text-white/80 dark:hover:bg-white/[0.08] dark:hover:text-white"
                             >
                                 <Icon className="h-4 w-4" />
                                 {label}
@@ -97,7 +116,7 @@ export const StyleChatComposer = ({
                         isActionsOpen ? "Close options" : "More options"
                     }
                     aria-expanded={isActionsOpen}
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:text-foreground dark:text-white/70 dark:hover:text-white"
+                    className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition hover:text-foreground dark:text-white/70 dark:hover:text-white"
                 >
                     <Plus
                         className={cn(
