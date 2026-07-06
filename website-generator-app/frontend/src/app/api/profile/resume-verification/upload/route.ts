@@ -10,7 +10,6 @@ const STORAGE_BUCKET = "private_resumes";
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 const CONTENT_TYPE_BY_EXTENSION: Record<string, string> = {
     pdf: "application/pdf",
-    doc: "application/msword",
     docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 };
 
@@ -35,7 +34,7 @@ export const POST = async (req: Request) => {
 
         if (!fallbackContentType) {
             return NextResponse.json(
-                { error: "Only PDF, DOC, and DOCX files are allowed" },
+                { error: "Only PDF and DOCX files are allowed" },
                 { status: 400 },
             );
         }

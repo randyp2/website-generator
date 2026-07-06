@@ -6,7 +6,7 @@ import { FileText, Upload } from "lucide-react"
 
 import type { ResumeFile } from "./verification.types"
 
-const ACCEPTED_RESUME_EXTENSIONS = [".pdf", ".docx", ".doc"] as const
+const ACCEPTED_RESUME_EXTENSIONS = [".pdf", ".docx"] as const
 
 interface ResumeUploadGateProps {
   onResumeUploaded: (file: ResumeFile) => void

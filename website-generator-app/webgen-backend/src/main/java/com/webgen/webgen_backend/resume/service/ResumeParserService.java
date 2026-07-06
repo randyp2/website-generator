@@ -5,7 +5,7 @@ import com.webgen.webgen_backend.resume.mapper.ParsedResumeMapper;
 import com.webgen.webgen_backend.resume.model.ParsedResume;
 import com.webgen.webgen_backend.resume.service.confidence.ResumeConfidenceEvaluator;
 import com.webgen.webgen_backend.resume.service.llm.LlmResumeParserService;
-import com.webgen.webgen_backend.resume.service.utils.PdfTextExtractor;
+import com.webgen.webgen_backend.resume.service.utils.ResumeTextExtractor;
 import com.webgen.webgen_backend.resume.service.utils.TextCleaner;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,7 +20,7 @@ import java.util.Map;
 public class ResumeParserService  {
 
     // --- Low-level Parsing
-    private final PdfTextExtractor pdfTextExtractor;
+    private final ResumeTextExtractor resumeTextExtractor;
 
     // --- Text cleaner optional;
     private final TextCleaner textCleaner;
@@ -47,7 +47,7 @@ public class ResumeParserService  {
 
     public ParsedResumeDTO parseResume(MultipartFile file, Boolean llmFallbackOverride) {
         // 1. Extract and normalize text
-        String rawText = pdfTextExtractor.extract(file); // Get raw text
+        String rawText = resumeTextExtractor.extract(file); // Get raw text
 
         // Normalize text (remove weird spacing, normalize line breaks)
         String normalizedText = textCleaner.clean(rawText);
