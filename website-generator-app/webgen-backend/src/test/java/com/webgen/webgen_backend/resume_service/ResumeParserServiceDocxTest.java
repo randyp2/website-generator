@@ -11,6 +11,7 @@ import com.webgen.webgen_backend.resume.service.extraction.ExperienceExtractionS
 import com.webgen.webgen_backend.resume.service.extraction.ProjectExtractionService;
 import com.webgen.webgen_backend.resume.service.extraction.SkillExtractionService;
 import com.webgen.webgen_backend.resume.service.extraction.SummaryExtractionService;
+import com.webgen.webgen_backend.resume.service.quality.ResumeParseQualityValidator;
 import com.webgen.webgen_backend.resume.service.utils.DocxTextExtractor;
 import com.webgen.webgen_backend.resume.service.utils.PdfTextExtractor;
 import com.webgen.webgen_backend.resume.service.utils.ResumeTextExtractor;
@@ -40,6 +41,7 @@ class ResumeParserServiceDocxTest {
             ),
             Mappers.getMapper(ParsedResumeMapper.class),
             new ResumeConfidenceEvaluator(),
+            new ResumeParseQualityValidator(),
             null
     );
 

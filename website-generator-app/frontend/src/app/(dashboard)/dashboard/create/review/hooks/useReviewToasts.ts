@@ -25,6 +25,8 @@ const getParsingMethodLabel = (method: string): string => {
             return "Regex Parser";
         case "regex_low_confidence":
             return "Regex Parser (Low Confidence)";
+        case "regex_low_quality":
+            return "Regex Parser (Low Quality)";
         default:
             return method;
     }
