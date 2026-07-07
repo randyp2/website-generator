@@ -17,6 +17,7 @@ import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -38,14 +39,17 @@ class StyleChatServiceImplTest {
 
     private StyleChatServiceImpl service;
     private OpenAiChatModel chatModel;
+    private StyleContextStore contextStore;
     private UUID portfolioId;
 
     @BeforeEach
     void setUp() {
         ObjectMapper objectMapper = new ObjectMapper();
+        contextStore = new InMemoryStyleContextStore();
         service = new StyleChatServiceImpl(
                 new StyleChatPromptBuilder(objectMapper),
-                new StyleChatResponseParser(objectMapper)
+                new StyleChatResponseParser(objectMapper),
+                contextStore
         );
         chatModel = mock(OpenAiChatModel.class);
         ReflectionTestUtils.setField(service, "chatModel", chatModel);
@@ -201,11 +205,22 @@ class StyleChatServiceImplTest {
         context.setCurrentQuestion("What animation style do you prefer?");
         context.setDesignGoal("playful spiderman portfolio");
         context.setConversationHistory(new ArrayList<>());
+        contextStore.save(portfolioId, context);
+    }
 
-        @SuppressWarnings("unchecked")
-        Map<UUID, StyleContext> contextStore =
-                (Map<UUID, StyleContext>) ReflectionTestUtils.getField(service, "contextStore");
-        contextStore.put(portfolioId, context);
+    /** Live-object store so tests can seed and inspect contexts directly. */
+    private static final class InMemoryStyleContextStore implements StyleContextStore {
+        private final Map<UUID, StyleContext> contexts = new HashMap<>();
+
+        @Override
+        public StyleContext find(UUID portfolioId) {
+            return contexts.get(portfolioId);
+        }
+
+        @Override
+        public void save(UUID portfolioId, StyleContext context) {
+            contexts.put(portfolioId, context);
+        }
     }
 
     private void stubModelResponse(String json) {

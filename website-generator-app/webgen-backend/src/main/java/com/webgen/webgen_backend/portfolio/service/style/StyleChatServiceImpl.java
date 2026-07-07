@@ -21,7 +21,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 @Service
@@ -54,19 +53,18 @@ public class StyleChatServiceImpl implements StyleChatService {
     private static final String DEFAULT_HEADING_FONT = "Space Grotesk";
     private static final String DEFAULT_BODY_FONT = "Inter";
 
-    // In memory context store (swap for DB/Redis later)
-    private final Map<UUID, StyleContext> contextStore = new ConcurrentHashMap<>();
+    private final StyleContextStore contextStore;
 
     @Override
     public StyleChatResponseDTO chat(StyleChatRequestDTO req) {
         if (req == null || req.getPortfolioId() == null)
             throw new IllegalArgumentException("portfolioId is required!");
 
-        // Load or create context
-        StyleContext context = contextStore.computeIfAbsent(
-                req.getPortfolioId(),
-                id -> newContext()
-        );
+        // Load or create context; every handler persists it before returning.
+        StyleContext context = contextStore.find(req.getPortfolioId());
+        if (context == null) {
+            context = newContext();
+        }
 
         // After completion the chat becomes a revision loop: user messages can
         // adjust the compiled preferences. Without a message (e.g. a state
@@ -107,7 +105,7 @@ public class StyleChatServiceImpl implements StyleChatService {
 
     @Override
     public StyleContext getContext(UUID portfolioId) {
-        return contextStore.get(portfolioId);
+        return contextStore.find(portfolioId);
     }
 
     private StyleChatResponseDTO handleThemeGoal(StyleChatRequestDTO req, StyleContext context) {
@@ -123,7 +121,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         context.getConversationHistory().add(q0);
 
         context.setLastUserMessage(req.getUserMessage());
-        contextStore.put(req.getPortfolioId(), context);
+        contextStore.save(req.getPortfolioId(), context);
 
         // Ask AI for top custom palette recommendations based on the user's goal.
         List<StyleColorPresetDTO> recommendedColorPresets = recommendColorPresets(req.getUserMessage());
@@ -175,7 +173,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         context.setTypographyPickerShown(true);
         context.setCurrentQuestion("Typography selection");
         context.setLastUserMessage(null);
-        contextStore.put(req.getPortfolioId(), context);
+        contextStore.save(req.getPortfolioId(), context);
 
         // Build response — show typography picker directly
         StyleChatResponseDTO dto = new StyleChatResponseDTO();
@@ -213,7 +211,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         // Advance to Q3 (layout) — deterministic, no LLM call
         context.setCurrentQuestionNumber(3);
         context.setCurrentQuestion("Layout style selection");
-        contextStore.put(req.getPortfolioId(), context);
+        contextStore.save(req.getPortfolioId(), context);
 
         // Build response — show layout picker directly
         StyleChatResponseDTO dto = new StyleChatResponseDTO();
@@ -256,7 +254,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         // Advance to Q4 — now start the free-form AI conversation
         context.setCurrentQuestionNumber(4);
         context.setLastUserMessage(req.getLayoutSelection());
-        contextStore.put(req.getPortfolioId(), context);
+        contextStore.save(req.getPortfolioId(), context);
 
         // Call AI for first free-form question (about remaining topics: tone, animations, etc.)
         String layoutMessage = "I selected the " + req.getLayoutSelection() + " layout.";
@@ -269,7 +267,7 @@ public class StyleChatServiceImpl implements StyleChatService {
 
         // Update context with AI's question
         context.setCurrentQuestion(parsed.getAssistantMessage());
-        contextStore.put(req.getPortfolioId(), context);
+        contextStore.save(req.getPortfolioId(), context);
 
         // Build response
         parsed.setQuestionNumber(4);
@@ -324,7 +322,7 @@ public class StyleChatServiceImpl implements StyleChatService {
                         parsed.getAssistantMessage()
                 );
             } else {
-                contextStore.put(req.getPortfolioId(), context);
+                contextStore.save(req.getPortfolioId(), context);
 
                 // Do NOT advance - return redirect message at same question number
                 parsed.setQuestionNumber(context.getCurrentQuestionNumber());
@@ -356,7 +354,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         // model's explicit early-completion signal (see StyleChatPromptBuilder).
         boolean modelSignaledCompletion = parseResult.compiledPreferences() != null;
         if (context.getCurrentQuestionNumber() >= TOTAL_QUESTIONS || modelSignaledCompletion) {
-            return handleCompletion(context, parsed, parseResult.compiledPreferences());
+            return handleCompletion(req.getPortfolioId(), context, parsed, parseResult.compiledPreferences());
         }
 
         // Advance to next question server-side
@@ -364,7 +362,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         context.setCurrentQuestionNumber(nextQuestion);
         context.setCurrentQuestion(parsed.getAssistantMessage());
 
-        contextStore.put(req.getPortfolioId(), context);
+        contextStore.save(req.getPortfolioId(), context);
 
         parsed.setQuestionNumber(nextQuestion);
         parsed.setTotalQuestions(TOTAL_QUESTIONS);
@@ -378,6 +376,7 @@ public class StyleChatServiceImpl implements StyleChatService {
     }
 
     private StyleChatResponseDTO handleCompletion(
+            UUID portfolioId,
             StyleContext context,
             StyleChatResponseDTO parsed,
             CompiledStylePreferences parsedCompiledPreferences
@@ -408,6 +407,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         }
 
         context.setCompiledStylePreferences(compiled);
+        contextStore.save(portfolioId, context);
 
         // Convert compiled preferences to Map<String, String>
         Map<String, String> stylePrefsMap = compiledToMap(compiled);
@@ -452,7 +452,7 @@ public class StyleChatServiceImpl implements StyleChatService {
                     CompiledStylePreferences.mergeNonBlank(base, parsed.updatedPreferences())
             );
         }
-        contextStore.put(req.getPortfolioId(), context);
+        contextStore.save(req.getPortfolioId(), context);
 
         StyleChatResponseDTO dto = new StyleChatResponseDTO();
         dto.setAssistantMessage(parsed.assistantMessage());
