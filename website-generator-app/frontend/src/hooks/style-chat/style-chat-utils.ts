@@ -97,6 +97,10 @@ export const toAssistantStyleMessage = (data: StyleChatResponse): Message => ({
     ...(data.isComplete && { isStyleComplete: true }),
     ...(data.isComplete &&
         data.stylePreferences && { stylePreferences: data.stylePreferences }),
+    ...(data.isComplete &&
+        data.updatedStyleFields?.length && {
+            updatedStyleFields: data.updatedStyleFields,
+        }),
     ...(data.showColorPicker && {
         showColorPicker: true,
         recommendedColorPresets: normalizeRecommendedPresets(

@@ -55,6 +55,7 @@ export const StyleChatMessage = ({
                     <StyleSummaryCard
                         content={message.content}
                         stylePreferences={message.stylePreferences}
+                        updatedFields={message.updatedStyleFields}
                     />
                 ) : (
                     <AiMessageContent

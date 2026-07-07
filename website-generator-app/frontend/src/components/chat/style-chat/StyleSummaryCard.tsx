@@ -19,11 +19,14 @@ const STYLE_PREF_LABELS: Record<string, string> = {
 interface StyleSummaryCardProps {
     content: string;
     stylePreferences?: Partial<StylePreferences>;
+    /** Preference keys changed by a revision; highlights those entries. */
+    updatedFields?: string[];
 }
 
 export const StyleSummaryCard = ({
     content,
     stylePreferences,
+    updatedFields,
 }: StyleSummaryCardProps) => {
     const entries = stylePreferences
         ? Object.entries(stylePreferences).filter(
@@ -34,13 +37,17 @@ export const StyleSummaryCard = ({
                   value.trim(),
           )
         : [];
+    const updated = new Set(updatedFields);
+    const isRevision = updated.size > 0;
 
     return (
         <div className="space-y-4">
             <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                 <Check className="h-4 w-4" />
                 <span className="text-sm font-medium">
-                    Style profile complete
+                    {isRevision
+                        ? "Style profile updated"
+                        : "Style profile complete"}
                 </span>
             </div>
 
@@ -59,16 +66,31 @@ export const StyleSummaryCard = ({
 
             {entries.length > 0 && (
                 <div className="grid grid-cols-2 gap-x-6 gap-y-2 rounded-lg border border-border bg-muted/40 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]">
-                    {entries.map(([key, value]) => (
-                        <div key={key} className="min-w-0">
-                            <span className="text-xs text-muted-foreground dark:text-white/40">
-                                {STYLE_PREF_LABELS[key]}
-                            </span>
-                            <p className="truncate text-sm text-foreground/80 dark:text-white/80">
-                                {value}
-                            </p>
-                        </div>
-                    ))}
+                    {entries.map(([key, value]) => {
+                        const isUpdated = updated.has(key);
+                        return (
+                            <div key={key} className="min-w-0">
+                                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground dark:text-white/40">
+                                    {STYLE_PREF_LABELS[key]}
+                                    {isUpdated && (
+                                        <span
+                                            className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400"
+                                            aria-label="Updated"
+                                        />
+                                    )}
+                                </span>
+                                <p
+                                    className={
+                                        isUpdated
+                                            ? "truncate text-sm font-medium text-foreground dark:text-white"
+                                            : "truncate text-sm text-foreground/80 dark:text-white/80"
+                                    }
+                                >
+                                    {value}
+                                </p>
+                            </div>
+                        );
+                    })}
                 </div>
             )}
         </div>

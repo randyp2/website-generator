@@ -444,13 +444,15 @@ public class StyleChatServiceImpl implements StyleChatService {
         );
 
         boolean preferencesUpdated = parsed.updatedPreferences() != null;
+        List<String> updatedFields = List.of();
         if (preferencesUpdated) {
             CompiledStylePreferences base = context.getCompiledStylePreferences() != null
                     ? context.getCompiledStylePreferences()
                     : new CompiledStylePreferences();
-            context.setCompiledStylePreferences(
-                    CompiledStylePreferences.mergeNonBlank(base, parsed.updatedPreferences())
-            );
+            CompiledStylePreferences.MergeResult result =
+                    CompiledStylePreferences.mergeNonBlank(base, parsed.updatedPreferences());
+            context.setCompiledStylePreferences(result.merged());
+            updatedFields = result.changedFields();
         }
         contextStore.save(req.getPortfolioId(), context);
 
@@ -462,6 +464,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         dto.setSuggestions(parsed.suggestions());
         if (preferencesUpdated) {
             dto.setStylePreferences(compiledToMap(context.getCompiledStylePreferences()));
+            dto.setUpdatedStyleFields(updatedFields);
         }
 
         debugContext(preferencesUpdated ? "REVISION APPLIED" : "REVISION DISCUSSION", context);

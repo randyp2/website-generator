@@ -21,6 +21,7 @@ export interface PersistedStyleChatMessage {
     previewType?: string | null;
     isStyleComplete?: boolean;
     stylePreferences?: Record<string, string | null>;
+    updatedStyleFields?: string[];
     showColorPicker?: boolean;
     recommendedColorPresets?: ColorPresetRecommendation[];
     showTypographyPicker?: boolean;

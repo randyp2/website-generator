@@ -49,4 +49,5 @@ export interface StyleChatResponse {
   suggestions?: string[];
   designTip?: string;
   previewType?: string | null;
+  updatedStyleFields?: string[];
 }

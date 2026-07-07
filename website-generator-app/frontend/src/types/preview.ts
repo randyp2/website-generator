@@ -64,6 +64,7 @@ export interface Message {
     previewType?: string | null;
     isStyleComplete?: boolean;
     stylePreferences?: Partial<import("./style").StylePreferences>;
+    updatedStyleFields?: string[];
     showColorPicker?: boolean;
     recommendedColorPresets?: import("./style").ColorPresetRecommendation[];
     showTypographyPicker?: boolean;

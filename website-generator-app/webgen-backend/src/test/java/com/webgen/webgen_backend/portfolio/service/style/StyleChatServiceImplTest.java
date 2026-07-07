@@ -165,6 +165,8 @@ class StyleChatServiceImplTest {
                 response.getStylePreferences().get("tone"));
         assertEquals("playful", response.getStylePreferences().get("visualStyle"),
                 "blank fields in the model echo must keep existing values");
+        assertEquals(List.of("tone"), response.getUpdatedStyleFields(),
+                "only genuinely changed fields should be reported as updated");
     }
 
     @Test

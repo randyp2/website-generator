@@ -49,6 +49,9 @@ export const toPersistedStyleChatHistory = (
         ...(message.stylePreferences && {
             stylePreferences: message.stylePreferences,
         }),
+        ...(message.updatedStyleFields?.length && {
+            updatedStyleFields: message.updatedStyleFields,
+        }),
         ...(message.showColorPicker && {
             showColorPicker: message.showColorPicker,
         }),
@@ -86,6 +89,9 @@ export const toUiStyleMessages = (
         }),
         ...(message.stylePreferences && {
             stylePreferences: message.stylePreferences,
+        }),
+        ...(message.updatedStyleFields?.length && {
+            updatedStyleFields: message.updatedStyleFields,
         }),
         ...(message.showColorPicker && {
             showColorPicker: message.showColorPicker,
