@@ -3,6 +3,7 @@ package com.webgen.webgen_backend.portfolio.service.style;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.portfolio.dto.style.StyleChatRequestDTO;
 import com.webgen.webgen_backend.portfolio.dto.style.StyleChatResponseDTO;
+import com.webgen.webgen_backend.portfolio.model.style.CompiledStylePreferences;
 import com.webgen.webgen_backend.portfolio.model.style.StyleContext;
 import com.webgen.webgen_backend.portfolio.service.parser.StyleChatResponseParser;
 import com.webgen.webgen_backend.portfolio.service.prompt.StyleChatPromptBuilder;
@@ -127,6 +128,69 @@ class StyleChatServiceImplTest {
 
         assertTrue(response.isComplete());
         assertTrue(service.getContext(portfolioId).isStyleDiscoveryComplete());
+    }
+
+    @Test
+    void revisionMergesChangedPreferencesAndReturnsComplete() {
+        seedCompletedContext();
+        stubModelResponse("""
+                {
+                  "assistantMessage": "Done! Your tone is now **bold** to match the Spiderman energy.",
+                  "updatedStylePreferences": {
+                    "tone": "bold, high-energy superhero feel",
+                    "colorScheme": "",
+                    "layoutDensity": "",
+                    "visualStyle": "",
+                    "sectionEmphasis": "",
+                    "typography": "",
+                    "animationStyle": "",
+                    "whitespace": "",
+                    "imageryStyle": "",
+                    "interactiveElements": "",
+                    "customNotes": ""
+                  },
+                  "suggestions": null
+                }
+                """);
+
+        StyleChatResponseDTO response = service.chat(conversationRequest("Make the tone bolder"));
+
+        assertTrue(response.isComplete(),
+                "an applied revision should re-render as a completed summary");
+        assertEquals("bold, high-energy superhero feel",
+                response.getStylePreferences().get("tone"));
+        assertEquals("playful", response.getStylePreferences().get("visualStyle"),
+                "blank fields in the model echo must keep existing values");
+    }
+
+    @Test
+    void revisionDiscussionLeavesPreferencesUntouched() {
+        seedCompletedContext();
+        stubModelResponse("""
+                {
+                  "assistantMessage": "Serif fonts like **Playfair Display** add elegance. Want me to switch?",
+                  "updatedStylePreferences": null,
+                  "suggestions": ["Switch to serif", "Keep current fonts"]
+                }
+                """);
+
+        StyleChatResponseDTO response = service.chat(conversationRequest("What about serif fonts?"));
+
+        assertFalse(response.isComplete(),
+                "pure discussion must not re-trigger the completion UI");
+        assertEquals("playful",
+                service.getContext(portfolioId).getCompiledStylePreferences().getVisualStyle());
+    }
+
+    /** Places the flow in the post-completion revision phase. */
+    private void seedCompletedContext() {
+        seedConversationContext(10);
+        StyleContext context = service.getContext(portfolioId);
+        context.setStyleDiscoveryComplete(true);
+        CompiledStylePreferences prefs = new CompiledStylePreferences();
+        prefs.setTone("minimal");
+        prefs.setVisualStyle("playful");
+        context.setCompiledStylePreferences(prefs);
     }
 
     /** Places the flow mid free-form phase without replaying Q0-Q3. */

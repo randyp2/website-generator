@@ -68,8 +68,13 @@ public class StyleChatServiceImpl implements StyleChatService {
                 id -> newContext()
         );
 
-        // If already complete, return cached result
+        // After completion the chat becomes a revision loop: user messages can
+        // adjust the compiled preferences. Without a message (e.g. a state
+        // re-sync) the cached completion is returned unchanged.
         if (context.isStyleDiscoveryComplete()) {
+            if (req.getUserMessage() != null && !req.getUserMessage().isBlank()) {
+                return handleRevision(req, context);
+            }
             return buildCompleteResponse(context);
         }
 
@@ -419,6 +424,50 @@ public class StyleChatServiceImpl implements StyleChatService {
         logResponseDto("completion-return", parsed);
 
         return parsed;
+    }
+
+    /**
+     * Revision turn after style discovery completed. When the model applies a
+     * change it returns the full preferences object; non-blank fields are
+     * merged into the context so a partial echo can never erase existing data.
+     * The response is complete only when preferences actually changed, so the
+     * frontend re-renders the summary card exactly on applied revisions and
+     * keeps plain back-and-forth as regular chat messages.
+     */
+    private StyleChatResponseDTO handleRevision(StyleChatRequestDTO req, StyleContext context) {
+        context.setLastUserMessage(req.getUserMessage());
+
+        Prompt prompt = styleChatPromptBuilder.buildRevisionPrompt(req.getUserMessage(), context);
+        ChatResponse response = chatModel.call(prompt);
+        StyleChatResponseParser.StyleRevisionParseResult parsed = styleChatResponseParser.parseRevision(
+                response.getResult().getOutput().getText()
+        );
+
+        boolean preferencesUpdated = parsed.updatedPreferences() != null;
+        if (preferencesUpdated) {
+            CompiledStylePreferences base = context.getCompiledStylePreferences() != null
+                    ? context.getCompiledStylePreferences()
+                    : new CompiledStylePreferences();
+            context.setCompiledStylePreferences(
+                    CompiledStylePreferences.mergeNonBlank(base, parsed.updatedPreferences())
+            );
+        }
+        contextStore.put(req.getPortfolioId(), context);
+
+        StyleChatResponseDTO dto = new StyleChatResponseDTO();
+        dto.setAssistantMessage(parsed.assistantMessage());
+        dto.setQuestionNumber(TOTAL_QUESTIONS);
+        dto.setTotalQuestions(TOTAL_QUESTIONS);
+        dto.setComplete(preferencesUpdated);
+        dto.setSuggestions(parsed.suggestions());
+        if (preferencesUpdated) {
+            dto.setStylePreferences(compiledToMap(context.getCompiledStylePreferences()));
+        }
+
+        debugContext(preferencesUpdated ? "REVISION APPLIED" : "REVISION DISCUSSION", context);
+        logResponseDto("revision-return", dto);
+
+        return dto;
     }
 
     private StyleChatResponseDTO buildCompleteResponse(StyleContext context) {

@@ -72,6 +72,26 @@ public class StyleChatPromptBuilder {
         return new Prompt(List.of(system, user));
     }
 
+    /**
+     * Post-completion revision turn: the model sees the compiled preferences as
+     * the source of truth and either applies a requested change (returning the
+     * full updated object) or answers without changing anything.
+     */
+    public Prompt buildRevisionPrompt(String userMessage, StyleContext context) {
+        SystemMessage system = new SystemMessage(PromptResourceLoader.render(
+                PROMPT_DIR + "style-revision-system.md",
+                Map.of(
+                        "designGoal", safe(context.getDesignGoal()),
+                        "currentPreferences", safeJson(context.getCompiledStylePreferences())
+                )));
+
+        UserMessage user = new UserMessage(PromptResourceLoader.render(
+                PROMPT_DIR + "style-revision-user.md",
+                Map.of("userMessage", safe(userMessage))));
+
+        return new Prompt(List.of(system, user));
+    }
+
     private String buildDecidedChoicesSummary(StyleContext context) {
         StringBuilder sb = new StringBuilder();
         sb.append("- Colors: ").append(
