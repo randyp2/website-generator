@@ -1,11 +1,9 @@
 package com.webgen.webgen_backend.resume.service.llm;
 
 import com.webgen.webgen_backend.resume.model.ParsedResume;
-import jakarta.annotation.Resource;
-import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -18,17 +16,25 @@ import java.util.List;
  * Includes retry logic with validation.
  */
 @Service
-@RequiredArgsConstructor
 public class LlmResumeParserService {
 
-    @Resource(name = "resumeParserModel")
-    private final OpenAiChatModel resumeParserModel;
+    private final ChatModel resumeParserModel;
 
     private final ResumeParserPromptBuilder promptBuilder;
     private final ResumeParserResponseParser responseParser;
 
     @Value("${resume.parser.max-retries:3}")
     private int maxRetries;
+
+    public LlmResumeParserService(
+            @Qualifier("resumeParserModel") ChatModel resumeParserModel,
+            ResumeParserPromptBuilder promptBuilder,
+            ResumeParserResponseParser responseParser
+    ) {
+        this.resumeParserModel = resumeParserModel;
+        this.promptBuilder = promptBuilder;
+        this.responseParser = responseParser;
+    }
 
     /**
      * Parse resume using LLM with retry logic.
