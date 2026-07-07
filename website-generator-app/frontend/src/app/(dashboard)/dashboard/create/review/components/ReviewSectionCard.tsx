@@ -20,7 +20,7 @@ export const ReviewSectionCard: React.FC<ReviewSectionCardProps> = ({
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay }}
         className={cn(
-            "rounded-[28px] border border-white/10 bg-black/85 p-8 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_18px_50px_rgba(255,255,255,0.06)] backdrop-blur-xl",
+            "rounded-[28px] border border-border dark:border-white/10 bg-muted/60 dark:bg-black/85 p-8 shadow-[0_12px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_18px_50px_rgba(255,255,255,0.06)] backdrop-blur-xl",
             className,
         )}
     >

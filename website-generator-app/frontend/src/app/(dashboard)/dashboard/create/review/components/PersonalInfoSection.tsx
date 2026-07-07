@@ -62,10 +62,10 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
                         width={112}
                         height={112}
                         unoptimized
-                        className="h-28 w-28 shrink-0 rounded-full border-4 border-white/10 object-cover shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_12px_32px_rgba(255,255,255,0.05)]"
+                        className="h-28 w-28 shrink-0 rounded-full border-4 border-border dark:border-white/10 object-cover shadow-[0_8px_24px_rgba(0,0,0,0.08)] dark:shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_12px_32px_rgba(255,255,255,0.05)]"
                     />
                 ) : (
-                    <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-4 border-white/10 bg-black/80 text-3xl font-bold text-slate-100 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_12px_32px_rgba(255,255,255,0.05)]">
+                    <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-4 border-border dark:border-white/10 bg-muted dark:bg-black/80 text-3xl font-bold text-foreground shadow-[0_8px_24px_rgba(0,0,0,0.08)] dark:shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_12px_32px_rgba(255,255,255,0.05)]">
                         {initials || "YN"}
                     </div>
                 )}
@@ -82,7 +82,7 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
                             placeholder="Your Name"
                         />
                     ) : (
-                        <h2 className="mb-2 text-3xl font-bold text-white">
+                        <h2 className="mb-2 text-3xl font-bold text-foreground">
                             {parsedResumeData.fullName || "Your Name"}
                         </h2>
                     )}
@@ -91,7 +91,7 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
                         Professional Title
                     </p>
 
-                    <div className="flex flex-wrap gap-x-5 gap-y-3 justify-center md:justify-start text-sm text-slate-300">
+                    <div className="flex flex-wrap gap-x-5 gap-y-3 justify-center md:justify-start text-sm text-foreground/80">
                         <ContactPill
                             icon={Mail}
                             label="Email"
@@ -130,7 +130,7 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
                                 key={link.platform}
                                 className="flex items-center gap-2"
                             >
-                                <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/70 text-slate-200 shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+                                <div className="flex h-9 w-9 items-center justify-center rounded-full border border-border dark:border-white/10 bg-muted dark:bg-black/70 text-foreground/90 shadow-sm dark:shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
                                     <link.icon className="h-4 w-4 text-primary" />
                                 </div>
                                 {isEditing ? (
@@ -149,11 +149,11 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
                                                 ),
                                             )
                                         }
-                                        className="min-w-40 border-b border-white/10 bg-transparent pb-1 text-sm text-white placeholder:text-slate-500 focus:border-primary/50 focus:outline-none"
+                                        className="min-w-40 border-b border-border dark:border-white/10 bg-transparent pb-1 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none"
                                         aria-label={link.platform}
                                     />
                                 ) : (
-                                    <span className="text-sm text-slate-300">
+                                    <span className="text-sm text-foreground/80">
                                         {link.value}
                                     </span>
                                 )}
@@ -164,7 +164,7 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
             </div>
 
             {(parsedResumeData.summary || isEditing) && (
-                <div className="relative mt-8 border-t border-white/10 pt-8">
+                <div className="relative mt-8 border-t border-border dark:border-white/10 pt-8">
                     <SectionTitle title="Professional Summary" />
                     {isEditing ? (
                         <textarea
@@ -175,7 +175,7 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
                             placeholder="Professional summary..."
                         />
                     ) : (
-                        <p className="text-slate-300 leading-8 text-[15px]">
+                        <p className="text-foreground/80 leading-8 text-[15px]">
                             {parsedResumeData.summary || "No summary provided"}
                         </p>
                     )}
@@ -206,16 +206,16 @@ const ContactPill: React.FC<ContactPillProps> = ({
     placeholder,
     value,
 }) => (
-    <div className="flex items-center gap-2 text-slate-300">
+    <div className="flex items-center gap-2 text-foreground/80">
         {React.createElement(icon, {
-            className: "h-4 w-4 shrink-0 text-slate-400",
+            className: "h-4 w-4 shrink-0 text-muted-foreground",
         })}
         {isEditing ? (
             <input
                 type={inputType}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
-                className="min-w-36 border-b border-white/10 bg-transparent pb-1 text-sm text-white placeholder:text-slate-500 focus:border-primary/50 focus:outline-none"
+                className="min-w-36 border-b border-border dark:border-white/10 bg-transparent pb-1 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none"
                 placeholder={placeholder}
                 aria-label={label}
             />
@@ -228,12 +228,12 @@ const ContactPill: React.FC<ContactPillProps> = ({
 const SectionTitle: React.FC<{ title: string }> = ({ title }) => (
     <div className="mb-4 flex items-center gap-3">
         <div className="h-8 w-1 rounded-full bg-primary" />
-        <h3 className="text-xl font-bold text-white">{title}</h3>
+        <h3 className="text-xl font-bold text-foreground">{title}</h3>
     </div>
 );
 
 const fieldClassName = (className?: string) =>
     cn(
-        "w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white placeholder:text-slate-500 focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/10",
+        "w-full rounded-2xl border border-border dark:border-white/10 bg-muted/50 dark:bg-white/[0.04] px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/10",
         className,
     );

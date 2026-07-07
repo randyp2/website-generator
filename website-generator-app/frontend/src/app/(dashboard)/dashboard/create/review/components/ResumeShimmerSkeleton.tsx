@@ -39,10 +39,10 @@ export const ResumeShimmerSkeleton: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="bg-gradient-to-br from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-white/10"
+                className="bg-gradient-to-br from-zinc-200/90 via-zinc-100/90 to-zinc-200/90 dark:from-slate-900/95 dark:via-slate-800/95 dark:to-slate-900/95 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-border dark:border-white/10"
             >
                 {/* Name skeleton */}
-                <div className="text-center border-b border-white/10 pb-6 mb-6">
+                <div className="text-center border-b border-border dark:border-white/10 pb-6 mb-6">
                     <ShimmerBar className="h-10 w-64 mx-auto" />
                 </div>
 
@@ -51,7 +51,7 @@ export const ResumeShimmerSkeleton: React.FC = () => {
                     {[1, 2, 3].map((i) => (
                         <div
                             key={i}
-                            className="flex flex-col items-center p-4 bg-white/5 rounded-xl border border-white/10"
+                            className="flex flex-col items-center p-4 bg-black/5 dark:bg-white/5 rounded-xl border border-border dark:border-white/10"
                         >
                             <ShimmerBar className="h-4 w-16 mb-2" />
                             <ShimmerBar className="h-5 w-32" />
@@ -60,7 +60,7 @@ export const ResumeShimmerSkeleton: React.FC = () => {
                 </div>
 
                 {/* Summary skeleton */}
-                <div className="mt-6 pt-6 border-t border-white/10">
+                <div className="mt-6 pt-6 border-t border-border dark:border-white/10">
                     <ShimmerBar className="h-4 w-20 mb-3" />
                     <div className="space-y-2">
                         <ShimmerBar className="h-4 w-full" />
@@ -75,7 +75,7 @@ export const ResumeShimmerSkeleton: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="bg-gradient-to-br from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-white/10"
+                className="bg-gradient-to-br from-zinc-200/90 via-zinc-100/90 to-zinc-200/90 dark:from-slate-900/95 dark:via-slate-800/95 dark:to-slate-900/95 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-border dark:border-white/10"
             >
                 <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-sky-100/20 rounded-lg">
@@ -100,7 +100,7 @@ export const ResumeShimmerSkeleton: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="bg-gradient-to-br from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-white/10"
+                className="bg-gradient-to-br from-zinc-200/90 via-zinc-100/90 to-zinc-200/90 dark:from-slate-900/95 dark:via-slate-800/95 dark:to-slate-900/95 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-border dark:border-white/10"
             >
                 <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-sky-100/20 rounded-lg">
@@ -142,7 +142,7 @@ export const ResumeShimmerSkeleton: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="bg-gradient-to-br from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-white/10"
+                className="bg-gradient-to-br from-zinc-200/90 via-zinc-100/90 to-zinc-200/90 dark:from-slate-900/95 dark:via-slate-800/95 dark:to-slate-900/95 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-border dark:border-white/10"
             >
                 <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-sky-100/20 rounded-lg">

@@ -24,7 +24,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
         <div className="mb-6 flex items-center gap-3">
             <div className="h-8 w-1 rounded-full bg-primary" />
             <GraduationCap className="h-6 w-6 text-primary" />
-            <h3 className="text-xl font-bold text-white">Education</h3>
+            <h3 className="text-xl font-bold text-foreground">Education</h3>
         </div>
 
         <div className="space-y-6">
@@ -34,7 +34,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                     className="relative"
                 >
                     {eduIndex > 0 ? (
-                        <div className="mb-6 h-px w-full bg-white/10" />
+                        <div className="mb-6 h-px w-full bg-border dark:bg-white/10" />
                     ) : null}
 
                     {isEditing ? (
@@ -49,7 +49,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                                         e.target.value,
                                     )
                                 }
-                                className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-xl font-bold text-white focus:border-primary/50 focus:outline-none"
+                                className="w-full rounded-2xl border border-border dark:border-white/10 bg-muted/50 dark:bg-white/[0.04] px-4 py-3 text-xl font-bold text-foreground focus:border-primary/50 focus:outline-none"
                                 placeholder="Institution"
                             />
                             <input
@@ -58,7 +58,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                                 onChange={(e) =>
                                     updateEducation(eduIndex, "degree", e.target.value)
                                 }
-                                className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-lg font-semibold text-primary/90 focus:border-primary/50 focus:outline-none"
+                                className="w-full rounded-2xl border border-border dark:border-white/10 bg-muted/50 dark:bg-white/[0.04] px-4 py-3 text-lg font-semibold text-primary/90 focus:border-primary/50 focus:outline-none"
                                 placeholder="Degree"
                             />
                             <div className="flex gap-3">
@@ -68,7 +68,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                                     onChange={(e) =>
                                         updateEducation(eduIndex, "endDate", e.target.value)
                                     }
-                                    className="flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-slate-300 focus:border-primary/50 focus:outline-none"
+                                    className="flex-1 rounded-2xl border border-border dark:border-white/10 bg-muted/50 dark:bg-white/[0.04] px-4 py-3 text-sm text-foreground/80 focus:border-primary/50 focus:outline-none"
                                     placeholder="Graduation Date"
                                 />
                                 <input
@@ -77,7 +77,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                                     onChange={(e) =>
                                         updateEducation(eduIndex, "gpa", e.target.value)
                                     }
-                                    className="flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-slate-300 focus:border-primary/50 focus:outline-none"
+                                    className="flex-1 rounded-2xl border border-border dark:border-white/10 bg-muted/50 dark:bg-white/[0.04] px-4 py-3 text-sm text-foreground/80 focus:border-primary/50 focus:outline-none"
                                     placeholder="GPA (Optional)"
                                 />
                             </div>
@@ -85,17 +85,17 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                     ) : (
                         <div className="space-y-2">
                             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                <h4 className="text-lg font-bold text-white">
+                                <h4 className="text-lg font-bold text-foreground">
                                     {edu.degree}
                                 </h4>
                                 <span className="text-sm font-medium text-primary">
                                     {edu.endDate}
                                 </span>
                             </div>
-                            <p className="text-lg font-medium text-slate-300">
+                            <p className="text-lg font-medium text-foreground/80">
                                 {edu.institution}
                             </p>
-                            <p className="text-sm text-slate-400">
+                            <p className="text-sm text-muted-foreground">
                                 {edu.gpa ? `GPA: ${edu.gpa}` : ""}
                             </p>
                         </div>

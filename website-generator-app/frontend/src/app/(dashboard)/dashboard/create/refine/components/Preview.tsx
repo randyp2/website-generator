@@ -347,15 +347,23 @@ export const Preview: React.FC<PreviewProps> = ({
                     {/* The Draggable Gutter */}
                     <Separator
                         onPointerDownCapture={() => setIsDragging(true)}
-                        className="w-2 bg-slate-800 hover:bg-white transition-colors cursor-col-resize"
-                    />
+                        className="group relative w-1.5 cursor-col-resize bg-transparent"
+                    >
+                        <span
+                            className={`pointer-events-none absolute left-1/2 top-1/2 h-12 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full transition-colors ${
+                                isDragging
+                                    ? "bg-white/80"
+                                    : "bg-white/0 group-hover:bg-white/55"
+                            }`}
+                        />
+                    </Separator>
 
                     {/* Sandpack Panel */}
                     <Panel>
                         <div className="h-full overflow-hidden relative">
                             {isDragging && (
                                 <div
-                                    className="absolute inset-0 z-50 cursor-col-resize bg-black/40"
+                                    className="absolute inset-0 z-50 cursor-col-resize bg-transparent"
                                     style={{ pointerEvents: "auto" }}
                                 />
                             )}
