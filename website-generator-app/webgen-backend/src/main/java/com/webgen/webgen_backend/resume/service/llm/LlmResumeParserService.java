@@ -6,6 +6,8 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -17,6 +19,8 @@ import java.util.List;
  */
 @Service
 public class LlmResumeParserService {
+
+    private static final Logger log = LoggerFactory.getLogger(LlmResumeParserService.class);
 
     private final ChatModel resumeParserModel;
 
@@ -53,6 +57,13 @@ public class LlmResumeParserService {
             attempt++;
 
             try {
+                log.debug(
+                        "Resume LLM parse attempt started. attempt={}, maxRetries={}, normalizedChars={}",
+                        attempt,
+                        maxRetries,
+                        normalizedText == null ? 0 : normalizedText.length()
+                );
+
                 // Build prompt (initial or retry)
                 Prompt prompt;
                 if (validationErrors.isEmpty()) {
@@ -61,11 +72,16 @@ public class LlmResumeParserService {
                     prompt = promptBuilder.buildRetryPrompt(normalizedText, rawJson, validationErrors);
                 }
 
-                // Call OpenAI
+                // Call configured chat model
                 ChatResponse response = resumeParserModel.call(prompt);
 
                 // Extract response text
                 rawJson = response.getResult().getOutput().getText();
+                log.debug(
+                        "Resume LLM parse attempt returned response. attempt={}, responseChars={}",
+                        attempt,
+                        rawJson == null ? 0 : rawJson.length()
+                );
 
                 // Parse JSON response
                 parsedResume = responseParser.parseResponse(rawJson);
@@ -77,11 +93,19 @@ public class LlmResumeParserService {
                 parsedResume.setRawText(rawText);
                 parsedResume.setNormalizedText(normalizedText);
 
+                log.debug("Resume LLM parse attempt succeeded. attempt={}", attempt);
+
                 return parsedResume;
 
             } catch (Exception e) {
                 validationErrors.clear();
                 validationErrors.add(e.getMessage());
+                log.debug(
+                        "Resume LLM parse attempt failed validation. attempt={}, maxRetries={}, error={}",
+                        attempt,
+                        maxRetries,
+                        e.getMessage()
+                );
 
                 // If this is the last attempt, throw exception
                 if (attempt >= maxRetries) {
