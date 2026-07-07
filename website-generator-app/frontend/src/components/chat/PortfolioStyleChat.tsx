@@ -242,24 +242,6 @@ export const PortfolioStyleChat = ({
                                             className="pointer-events-auto flex flex-col items-center justify-center gap-3 sm:flex-row"
                                         >
                                             <motion.button
-                                                layoutId="style-chat-composer"
-                                                transition={{
-                                                    type: "spring",
-                                                    stiffness: 220,
-                                                    damping: 26,
-                                                }}
-                                                type="button"
-                                                onClick={onContinue}
-                                                disabled={isContinueDisabled}
-                                                className="group inline-flex h-12 cursor-pointer items-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-[0_24px_80px_rgba(0,0,0,0.16)] ring-1 ring-black/5 transition-colors duration-150 hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
-                                            >
-                                                <span>
-                                                    Continue to Upload Resume
-                                                </span>
-                                                <ArrowRight className="h-4 w-4 transition-transform duration-150 group-hover:translate-x-0.5" />
-                                            </motion.button>
-
-                                            <motion.button
                                                 initial={{
                                                     opacity: 0,
                                                     scale: 0.92,
@@ -273,9 +255,27 @@ export const PortfolioStyleChat = ({
                                                     scale: 0.92,
                                                 }}
                                                 transition={{
-                                                    duration: 0.18,
-                                                    delay: 0.12,
+                                                    duration: 0.28,
+                                                    delay: 0.3,
                                                     ease: "easeOut",
+                                                }}
+                                                type="button"
+                                                onClick={onContinue}
+                                                disabled={isContinueDisabled}
+                                                className="group inline-flex h-12 cursor-pointer items-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-[0_24px_80px_rgba(0,0,0,0.16)] ring-1 ring-black/5 transition-colors duration-150 hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                                            >
+                                                <span>
+                                                    Continue to Upload Resume
+                                                </span>
+                                                <ArrowRight className="h-4 w-4 transition-transform duration-150 group-hover:translate-x-0.5" />
+                                            </motion.button>
+
+                                            <motion.button
+                                                layoutId="style-chat-composer"
+                                                transition={{
+                                                    type: "spring",
+                                                    stiffness: 120,
+                                                    damping: 22,
                                                 }}
                                                 type="button"
                                                 onClick={() =>
