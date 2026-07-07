@@ -29,7 +29,7 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={addSkill}
-                    className="flex items-center gap-1 text-xs font-semibold text-blue-300 hover:text-blue-200"
+                    className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary/80"
                 >
                     <Plus className="w-3 h-3" />
                     Add Skill
@@ -46,7 +46,7 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({
                     className="flex items-center gap-2"
                 >
                     {isEditing ? (
-                        <div className="flex items-center gap-2 rounded-full border border-blue-400/15 bg-blue-500/[0.06] px-4 py-2">
+                        <div className="flex items-center gap-2 rounded-full border border-primary/15 bg-primary/[0.06] px-4 py-2">
                             <input
                                 type="text"
                                 value={skill}
@@ -66,7 +66,7 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({
                     ) : (
                         <Badge
                             variant="secondary"
-                            className="border border-blue-400/15 bg-blue-500/[0.08] px-3 py-1.5 text-sm text-blue-100 hover:bg-blue-500/[0.14]"
+                            className="border border-primary/15 bg-primary/[0.08] px-3 py-1.5 text-sm text-primary hover:bg-primary/[0.14]"
                         >
                             {skill}
                         </Badge>
@@ -82,8 +82,8 @@ const SectionHeading: React.FC<{
     title: string;
 }> = ({ icon, title }) => (
     <div className="flex items-center gap-3">
-        <div className="h-8 w-1 rounded-full bg-blue-500" />
-        {React.createElement(icon, { className: "h-6 w-6 text-blue-300" })}
+        <div className="h-8 w-1 rounded-full bg-primary" />
+        {React.createElement(icon, { className: "h-6 w-6 text-primary" })}
         <h3 className="text-xl font-bold text-white">{title}</h3>
     </div>
 );

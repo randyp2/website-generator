@@ -38,8 +38,8 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
     <ReviewSectionCard className="mb-6" delay={0.3}>
         <div className="mb-6 flex items-center justify-between">
             <div className="flex items-center gap-3">
-                <div className="h-8 w-1 rounded-full bg-blue-500" />
-                <Briefcase className="h-6 w-6 text-blue-300" />
+                <div className="h-8 w-1 rounded-full bg-primary" />
+                <Briefcase className="h-6 w-6 text-primary" />
                 <h3 className="text-xl font-bold text-white">Work Experience</h3>
             </div>
             {isEditing && (
@@ -47,7 +47,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={addExperience}
-                    className="flex items-center gap-1 text-xs font-semibold text-blue-300 hover:text-blue-200"
+                    className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary/80"
                 >
                     <Plus className="w-3 h-3" />
                     Add Work Experience
@@ -84,7 +84,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
                                 onChange={(e) =>
                                     updateExperience(expIndex, "title", e.target.value)
                                 }
-                                className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-xl font-bold text-white focus:border-blue-400/50 focus:outline-none"
+                                className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-xl font-bold text-white focus:border-primary/50 focus:outline-none"
                                 placeholder="Job Title"
                             />
                             <input
@@ -93,7 +93,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
                                 onChange={(e) =>
                                     updateExperience(expIndex, "company", e.target.value)
                                 }
-                                className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-lg font-semibold text-blue-200 focus:border-blue-400/50 focus:outline-none"
+                                className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-lg font-semibold text-primary/90 focus:border-primary/50 focus:outline-none"
                                 placeholder="Company Name"
                             />
                             <div className="flex gap-3">
@@ -107,7 +107,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
                                             e.target.value,
                                         )
                                     }
-                                    className="flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-slate-300 focus:border-blue-400/50 focus:outline-none"
+                                    className="flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-slate-300 focus:border-primary/50 focus:outline-none"
                                     placeholder="Start Date"
                                 />
                                 <input
@@ -116,7 +116,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
                                     onChange={(e) =>
                                         updateExperience(expIndex, "endDate", e.target.value)
                                     }
-                                    className="flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-slate-300 focus:border-blue-400/50 focus:outline-none"
+                                    className="flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-slate-300 focus:border-primary/50 focus:outline-none"
                                     placeholder="End Date"
                                 />
                             </div>
@@ -125,7 +125,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
                         <div className="space-y-2">
                             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                 <h4 className="text-lg font-bold text-white">{exp.title}</h4>
-                                <span className="text-sm font-medium text-blue-300">
+                                <span className="text-sm font-medium text-primary">
                                     {exp.startDate} - {exp.endDate}
                                 </span>
                             </div>
@@ -145,7 +145,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                     onClick={() => addExperienceBullet(expIndex)}
-                                    className="flex items-center gap-1 text-xs font-semibold text-blue-300 hover:text-blue-200"
+                                    className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary/80"
                                 >
                                     <Plus className="w-3 h-3" />
                                     Add
@@ -171,7 +171,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
                                                         e.target.value,
                                                     )
                                                 }
-                                                className="flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-slate-200 focus:border-blue-400/50 focus:outline-none"
+                                                className="flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-slate-200 focus:border-primary/50 focus:outline-none"
                                             />
                                             <motion.button
                                                 whileHover={{ scale: 1.1 }}

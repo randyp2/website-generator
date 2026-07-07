@@ -76,7 +76,7 @@ class StyleChatServiceImplTest {
                     "typography": "Syne / DM Sans",
                     "animationStyle": "dramatic",
                     "whitespace": "balanced",
-                    "imageryStyle": "illustrations",
+                    "visualRichness": "expressive",
                     "interactiveElements": "hover effects",
                     "customNotes": "spiderman theme"
                   }
@@ -149,7 +149,7 @@ class StyleChatServiceImplTest {
                     "typography": "",
                     "animationStyle": "",
                     "whitespace": "",
-                    "imageryStyle": "",
+                    "visualRichness": "",
                     "interactiveElements": "",
                     "customNotes": ""
                   },

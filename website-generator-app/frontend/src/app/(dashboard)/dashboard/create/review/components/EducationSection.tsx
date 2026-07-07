@@ -22,8 +22,8 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
 }) => (
     <ReviewSectionCard className="mb-6" delay={0.4}>
         <div className="mb-6 flex items-center gap-3">
-            <div className="h-8 w-1 rounded-full bg-blue-500" />
-            <GraduationCap className="h-6 w-6 text-blue-300" />
+            <div className="h-8 w-1 rounded-full bg-primary" />
+            <GraduationCap className="h-6 w-6 text-primary" />
             <h3 className="text-xl font-bold text-white">Education</h3>
         </div>
 
@@ -49,7 +49,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                                         e.target.value,
                                     )
                                 }
-                                className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-xl font-bold text-white focus:border-blue-400/50 focus:outline-none"
+                                className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-xl font-bold text-white focus:border-primary/50 focus:outline-none"
                                 placeholder="Institution"
                             />
                             <input
@@ -58,7 +58,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                                 onChange={(e) =>
                                     updateEducation(eduIndex, "degree", e.target.value)
                                 }
-                                className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-lg font-semibold text-blue-200 focus:border-blue-400/50 focus:outline-none"
+                                className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-lg font-semibold text-primary/90 focus:border-primary/50 focus:outline-none"
                                 placeholder="Degree"
                             />
                             <div className="flex gap-3">
@@ -68,7 +68,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                                     onChange={(e) =>
                                         updateEducation(eduIndex, "endDate", e.target.value)
                                     }
-                                    className="flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-slate-300 focus:border-blue-400/50 focus:outline-none"
+                                    className="flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-slate-300 focus:border-primary/50 focus:outline-none"
                                     placeholder="Graduation Date"
                                 />
                                 <input
@@ -77,7 +77,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                                     onChange={(e) =>
                                         updateEducation(eduIndex, "gpa", e.target.value)
                                     }
-                                    className="flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-slate-300 focus:border-blue-400/50 focus:outline-none"
+                                    className="flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-slate-300 focus:border-primary/50 focus:outline-none"
                                     placeholder="GPA (Optional)"
                                 />
                             </div>
@@ -88,7 +88,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                                 <h4 className="text-lg font-bold text-white">
                                     {edu.degree}
                                 </h4>
-                                <span className="text-sm font-medium text-blue-300">
+                                <span className="text-sm font-medium text-primary">
                                     {edu.endDate}
                                 </span>
                             </div>

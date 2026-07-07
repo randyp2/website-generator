@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import {
     Github,
     Globe,
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 import type { ParsedResumeData } from "@/types/resume";
 import { cn } from "@/lib/utils";
+import { useProfileMeQuery } from "@/hooks/useProfileMeQuery";
 import { ReviewSectionCard } from "./ReviewSectionCard";
 
 interface PersonalInfoSectionProps {
@@ -40,6 +42,9 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
         { platform: "Website", value: "yourwebsite.com", icon: Globe },
     ]);
 
+    const { data: profile } = useProfileMeQuery();
+    const avatarUrl = profile?.avatarUrl?.trim() || null;
+
     const initials = (parsedResumeData.fullName || "YN")
         .split(" ")
         .filter(Boolean)
@@ -50,9 +55,20 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
     return (
         <ReviewSectionCard className="mb-6 overflow-hidden" delay={0.1}>
             <div className="relative flex flex-col md:flex-row items-center md:items-start gap-6">
-                <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-4 border-white/10 bg-black/80 text-3xl font-bold text-slate-100 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_12px_32px_rgba(255,255,255,0.05)]">
-                    {initials || "YN"}
-                </div>
+                {avatarUrl ? (
+                    <Image
+                        src={avatarUrl}
+                        alt={parsedResumeData.fullName || "Profile picture"}
+                        width={112}
+                        height={112}
+                        unoptimized
+                        className="h-28 w-28 shrink-0 rounded-full border-4 border-white/10 object-cover shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_12px_32px_rgba(255,255,255,0.05)]"
+                    />
+                ) : (
+                    <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-4 border-white/10 bg-black/80 text-3xl font-bold text-slate-100 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_12px_32px_rgba(255,255,255,0.05)]">
+                        {initials || "YN"}
+                    </div>
+                )}
 
                 <div className="flex-1 text-center md:text-left">
                     {isEditing ? (
@@ -71,7 +87,7 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
                         </h2>
                     )}
 
-                    <p className="mb-4 text-sm font-medium text-blue-300/80">
+                    <p className="mb-4 text-sm font-medium text-primary/80">
                         Professional Title
                     </p>
 
@@ -115,7 +131,7 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
                                 className="flex items-center gap-2"
                             >
                                 <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/70 text-slate-200 shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
-                                    <link.icon className="h-4 w-4 text-blue-300" />
+                                    <link.icon className="h-4 w-4 text-primary" />
                                 </div>
                                 {isEditing ? (
                                     <input
@@ -133,7 +149,7 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
                                                 ),
                                             )
                                         }
-                                        className="min-w-40 border-b border-white/10 bg-transparent pb-1 text-sm text-white placeholder:text-slate-500 focus:border-blue-400/50 focus:outline-none"
+                                        className="min-w-40 border-b border-white/10 bg-transparent pb-1 text-sm text-white placeholder:text-slate-500 focus:border-primary/50 focus:outline-none"
                                         aria-label={link.platform}
                                     />
                                 ) : (
@@ -199,7 +215,7 @@ const ContactPill: React.FC<ContactPillProps> = ({
                 type={inputType}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
-                className="min-w-36 border-b border-white/10 bg-transparent pb-1 text-sm text-white placeholder:text-slate-500 focus:border-blue-400/50 focus:outline-none"
+                className="min-w-36 border-b border-white/10 bg-transparent pb-1 text-sm text-white placeholder:text-slate-500 focus:border-primary/50 focus:outline-none"
                 placeholder={placeholder}
                 aria-label={label}
             />
@@ -211,13 +227,13 @@ const ContactPill: React.FC<ContactPillProps> = ({
 
 const SectionTitle: React.FC<{ title: string }> = ({ title }) => (
     <div className="mb-4 flex items-center gap-3">
-        <div className="h-8 w-1 rounded-full bg-blue-500" />
+        <div className="h-8 w-1 rounded-full bg-primary" />
         <h3 className="text-xl font-bold text-white">{title}</h3>
     </div>
 );
 
 const fieldClassName = (className?: string) =>
     cn(
-        "w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white placeholder:text-slate-500 focus:border-blue-400/50 focus:outline-none focus:ring-2 focus:ring-blue-400/10",
+        "w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white placeholder:text-slate-500 focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/10",
         className,
     );

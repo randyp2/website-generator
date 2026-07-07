@@ -7,7 +7,7 @@ export interface StylePreferences {
   typography: string | null;
   animationStyle: string | null;
   whitespace: string | null;
-  imageryStyle: string | null;
+  visualRichness: string | null;
   interactiveElements: string | null;
   customNotes: string;
 }

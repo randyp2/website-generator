@@ -156,7 +156,7 @@ export const mergeStylePreferences = (
     typography: incoming.typography ?? current.typography,
     animationStyle: incoming.animationStyle ?? current.animationStyle,
     whitespace: incoming.whitespace ?? current.whitespace,
-    imageryStyle: incoming.imageryStyle ?? current.imageryStyle,
+    visualRichness: incoming.visualRichness ?? current.visualRichness,
     interactiveElements:
         incoming.interactiveElements ?? current.interactiveElements,
     customNotes: incoming.customNotes?.trim() || current.customNotes,

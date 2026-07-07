@@ -11,7 +11,7 @@ const STYLE_PREF_LABELS: Record<string, string> = {
     typography: "Typography",
     animationStyle: "Animations",
     whitespace: "Whitespace",
-    imageryStyle: "Imagery",
+    visualRichness: "Styling",
     interactiveElements: "Interactions",
     sectionEmphasis: "Emphasis",
 };

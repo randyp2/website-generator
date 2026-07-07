@@ -163,7 +163,7 @@ public class StyleChatResponseParser {
         prefs.setTypography(node.path("typography").asText(""));
         prefs.setAnimationStyle(node.path("animationStyle").asText(""));
         prefs.setWhitespace(node.path("whitespace").asText(""));
-        prefs.setImageryStyle(node.path("imageryStyle").asText(""));
+        prefs.setVisualRichness(node.path("visualRichness").asText(""));
         prefs.setInteractiveElements(node.path("interactiveElements").asText(""));
         prefs.setCustomNotes(node.path("customNotes").asText(""));
         return prefs;

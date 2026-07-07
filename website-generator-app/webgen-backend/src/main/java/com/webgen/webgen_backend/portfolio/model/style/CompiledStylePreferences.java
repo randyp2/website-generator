@@ -15,7 +15,7 @@ public class CompiledStylePreferences {
     private String typography;
     private String animationStyle;
     private String whitespace;
-    private String imageryStyle;
+    private String visualRichness;
     private String interactiveElements;
     private String customNotes;
 
@@ -44,7 +44,7 @@ public class CompiledStylePreferences {
         merged.setTypography(pick("typography", base.typography, updates.typography, changed));
         merged.setAnimationStyle(pick("animationStyle", base.animationStyle, updates.animationStyle, changed));
         merged.setWhitespace(pick("whitespace", base.whitespace, updates.whitespace, changed));
-        merged.setImageryStyle(pick("imageryStyle", base.imageryStyle, updates.imageryStyle, changed));
+        merged.setVisualRichness(pick("visualRichness", base.visualRichness, updates.visualRichness, changed));
         merged.setInteractiveElements(pick("interactiveElements", base.interactiveElements, updates.interactiveElements, changed));
         merged.setCustomNotes(pick("customNotes", base.customNotes, updates.customNotes, changed));
         return new MergeResult(merged, changed);

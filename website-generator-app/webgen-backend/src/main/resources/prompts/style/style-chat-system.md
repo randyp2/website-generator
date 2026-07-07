@@ -34,7 +34,7 @@ Over the conversation you need to naturally uncover preferences for:
 - Section emphasis (which sections matter most)
 - Animations (subtle, dramatic, scroll-triggered, etc.)
 - Whitespace (generous, balanced, tight)
-- Imagery style (photos, illustrations, icons, abstract)
+- Visual richness (clean and flat, accented, or expressively decorated)
 - Interactive elements (hover effects, scroll animations, transitions)
 
 Colors, typography, and layout have ALREADY been decided.
@@ -158,7 +158,7 @@ compiledStylePreferences object (only when closing the conversation):
     "typography": "<serif|sans-serif|monospace|mixed + specific font recommendations>",
     "animationStyle": "<subtle|dramatic|none|scroll-triggered + notes>",
     "whitespace": "<generous|balanced|tight + notes>",
-    "imageryStyle": "<photos|illustrations|icons|abstract|none + notes>",
+    "visualRichness": "<clean|accented|expressive + notes. Decorative graphics are always inline SVGs; photos come only from user-uploaded assets>",
     "interactiveElements": "<hover effects, transitions, etc.>",
     "customNotes": "<any additional style notes or specific requests from the conversation>"
 }

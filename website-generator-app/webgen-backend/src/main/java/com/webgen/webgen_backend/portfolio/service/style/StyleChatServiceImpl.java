@@ -547,7 +547,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         map.put("typography", context.getFontSelections() == null ? "" : formatFontSelections(context.getFontSelections()));
         map.put("animationStyle", "");
         map.put("whitespace", "");
-        map.put("imageryStyle", "");
+        map.put("visualRichness", "");
         map.put("interactiveElements", "");
         map.put("customNotes", buildProgressNotes(context));
         return map;
@@ -583,7 +583,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         map.put("typography", safe(prefs.getTypography()));
         map.put("animationStyle", safe(prefs.getAnimationStyle()));
         map.put("whitespace", safe(prefs.getWhitespace()));
-        map.put("imageryStyle", safe(prefs.getImageryStyle()));
+        map.put("visualRichness", safe(prefs.getVisualRichness()));
         map.put("interactiveElements", safe(prefs.getInteractiveElements()));
         map.put("customNotes", safe(prefs.getCustomNotes()));
         return map;

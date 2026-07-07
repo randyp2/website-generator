@@ -46,7 +46,7 @@ updatedStylePreferences object (all fields required when present):
     "typography": "<serif|sans-serif|monospace|mixed + specific font recommendations>",
     "animationStyle": "<subtle|dramatic|none|scroll-triggered + notes>",
     "whitespace": "<generous|balanced|tight + notes>",
-    "imageryStyle": "<photos|illustrations|icons|abstract|none + notes>",
+    "visualRichness": "<clean|accented|expressive + notes. Decorative graphics are always inline SVGs; photos come only from user-uploaded assets>",
     "interactiveElements": "<hover effects, transitions, etc.>",
     "customNotes": "<any additional style notes or specific requests>"
 }
