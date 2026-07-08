@@ -31,8 +31,8 @@ export const PortfolioListView: React.FC<PortfolioListViewProps> = ({
                     className={cn(
                         "flex cursor-pointer items-center justify-between px-5 py-5 transition-all hover:bg-muted/50 md:px-6",
                         index % 2 === 0
-                            ? "bg-transparent"
-                            : "bg-black/[0.04] dark:bg-white/[0.04]",
+                            ? "bg-transparent hover:!bg-zinc-100 dark:hover:!bg-white/[0.06]"
+                            : "bg-black/[0.04] hover:!bg-zinc-200/80 dark:bg-white/[0.04] dark:hover:!bg-white/[0.08]",
                     )}
                 >
                     <div className="flex flex-1 items-center gap-2 truncate font-medium text-foreground">

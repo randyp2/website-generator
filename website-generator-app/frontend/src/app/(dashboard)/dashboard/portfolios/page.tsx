@@ -8,11 +8,9 @@ import {
   FiPlus,
   FiEye,
   FiEdit2,
-  FiCopy,
   FiDownload,
   FiMoreVertical,
   FiTrash2,
-  FiGlobe,
   FiHeart,
   FiMail,
   FiMessageCircle,
@@ -20,6 +18,7 @@ import {
 } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
+import { useToast } from "@/hooks/useToast";
 import { buildPortfolioUrl } from "@/lib/public-env";
 import type { Portfolio as PortfolioRecord } from "@/types/portfolio";
 import { Button } from "@/components/ui/button";
@@ -30,6 +29,7 @@ import {
   usePortfolioListQuery,
   usePortfolioUpdateMutation,
 } from "../hooks/usePortfolioListQuery";
+import { resolveResumePath } from "../utils/portfolioUtils";
 
 interface Portfolio {
   id: string;
@@ -38,6 +38,8 @@ interface Portfolio {
   status: string;
   lastEdited: string;
   url: string | null;
+  editPath: string;
+  explorePath: string | null;
 }
 
 type PortfolioListItem = PortfolioRecord & {
@@ -77,20 +79,24 @@ const getPortfolioCardImage = (portfolio: PortfolioListItem): string =>
   portfolio.screenshotUrl?.trim() ||
   DEFAULT_PORTFOLIO_CARD_IMAGE;
 
+const resolveExplorePath = (portfolio: PortfolioListItem): string | null => {
+  const slug = portfolio.slug?.trim();
+  return slug ? `/explore/${encodeURIComponent(slug)}` : null;
+};
+
 const PortfolioManager: React.FC = () => {
   const router = useRouter();
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
-
-  // NEW: State for edit modal - tracks which portfolio is being edited
-  const [editingPortfolio, setEditingPortfolio] = useState<Portfolio | null>(null);
-  const [editFormData, setEditFormData] = useState({ title: "", url: "" });
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
 
   // State for delete confirmation modal
   const [deleteTarget, setDeleteTarget] = useState<Portfolio | null>(null);
 
   // Extract user from context
   const { user } = useUser();
+  const { addToast } = useToast();
   const { id: userId } = user;
   const usernameOrEmail = user?.username?.trim() || user?.email?.trim() || null;
   const {
@@ -99,7 +105,6 @@ const PortfolioManager: React.FC = () => {
   } = usePortfolioListQuery(userId);
   const updatePortfolioMutation = usePortfolioUpdateMutation(userId);
   const deletePortfolioMutation = usePortfolioDeleteMutation(userId);
-  const isSaving = updatePortfolioMutation.isPending;
   const isDeleting = deletePortfolioMutation.isPending;
 
   const { rows: engagementRows } = usePortfolioEngagementMetrics();
@@ -131,59 +136,87 @@ const PortfolioManager: React.FC = () => {
             ? new Date(lastEditedSource).toLocaleDateString()
             : "Unknown",
           url: resolvePortfolioUrl(item, usernameOrEmail),
+          editPath: resolveResumePath(item),
+          explorePath: resolveExplorePath(item),
         };
       }),
     [portfolioRows, usernameOrEmail],
   );
 
-  // Handler to open edit modal - triggered when user clicks Edit icon
   const handleEditClick = (portfolio: Portfolio) => {
-    setEditingPortfolio(portfolio);
-    setEditFormData({
-      title: portfolio.title,
-      url: portfolio.url || "",
-    });
-    setActiveMenu(null); // Close any open menus
+    setActiveMenu(null);
+    router.push(portfolio.editPath);
   };
 
-  // Handler to close edit modal
-  const handleCloseEdit = () => {
-    setEditingPortfolio(null);
-    setEditFormData({ title: "", url: "" });
+  const handleCardClick = (portfolio: Portfolio) => {
+    if (!portfolio.explorePath) return;
+    router.push(portfolio.explorePath);
   };
 
-  // Handler to update portfolio - includes API call placeholder
-  const handleUpdatePortfolio = async () => {
-    if (!editingPortfolio) return;
+  const startRename = (portfolio: Portfolio) => {
+    setActiveMenu(null);
+    setRenamingId(portfolio.id);
+    setRenameValue(portfolio.title);
+  };
+
+  const cancelRename = () => {
+    setRenamingId(null);
+    setRenameValue("");
+  };
+
+  const handleRenameSubmit = async (portfolio: Portfolio) => {
+    const nextTitle = renameValue.trim();
+    setRenamingId(null);
+    setRenameValue("");
+
+    if (!nextTitle || nextTitle === portfolio.title) return;
 
     try {
       await updatePortfolioMutation.mutateAsync({
-        portfolioId: editingPortfolio.id,
-        patch: {
-          title: editFormData.title,
-        },
+        portfolioId: portfolio.id,
+        patch: { title: nextTitle },
       });
-
-      // Close modal and show success
-      handleCloseEdit();
-      alert("Portfolio updated successfully!");
     } catch (error) {
-      console.error("Error updating portfolio:", error);
-      alert("Failed to update portfolio. Please try again.");
+      console.error("Rename failed:", error);
+      addToast({
+        type: "error",
+        title: "Failed to rename portfolio",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Something went wrong. Please try again.",
+      });
     }
   };
 
-    // Handler to delete portfolio
-    const handleDelete = async (portfolioId: string) => {
-        try {
-            await deletePortfolioMutation.mutateAsync(portfolioId);
-            setDeleteTarget(null);
+  // Handler to delete portfolio
+  const handleDelete = async (portfolioId: string) => {
+    const target =
+      portfolios.find((portfolio) => portfolio.id === portfolioId) ?? deleteTarget;
 
-        } catch (error) {
-            console.error("Deletion failed: ", error);
-            alert("Failed to delete portfolio.");
-        }
+    setDeleteTarget(null);
+
+    try {
+      await deletePortfolioMutation.mutateAsync(portfolioId);
+      addToast({
+        type: "success",
+        title: "Portfolio deleted",
+        description: target?.title
+          ? `"${target.title}" and its metrics were permanently removed.`
+          : "The portfolio was permanently removed.",
+      });
+    } catch (error) {
+      console.error("Deletion failed:", error);
+      addToast({
+        type: "error",
+        title: "Failed to delete portfolio",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Something went wrong. Please try again.",
+      });
     }
+  };
 
   const statusConfig: Record<
     string,
@@ -306,7 +339,8 @@ const PortfolioManager: React.FC = () => {
               transition={{ delay: index * 0.1 }}
               onHoverStart={() => setHoveredId(portfolio.id)}
               onHoverEnd={() => setHoveredId(null)}
-              className={`group relative hover:cursor-pointer ${
+              onClick={() => handleCardClick(portfolio)}
+              className={`group relative cursor-pointer ${
                 activeMenu === portfolio.id ? "z-50" : "z-0"
               }`}
             >
@@ -388,9 +422,43 @@ const PortfolioManager: React.FC = () => {
                 {/* Card Content */}
                 <div className="p-5">
                   {/* Title */}
-                  <h3 className="mb-2 truncate text-lg font-semibold text-foreground">
-                    {portfolio.title}
-                  </h3>
+                  <div className="mb-2 min-h-7">
+                    {renamingId === portfolio.id ? (
+                      <input
+                        type="text"
+                        value={renameValue}
+                        autoFocus
+                        aria-label="Rename portfolio"
+                        onFocus={(event) => event.currentTarget.select()}
+                        onClick={(event) => event.stopPropagation()}
+                        onChange={(event) => setRenameValue(event.target.value)}
+                        onBlur={(event) => {
+                          if (event.currentTarget.dataset.cancelRename === "true") {
+                            cancelRename();
+                            return;
+                          }
+
+                          void handleRenameSubmit(portfolio);
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            event.currentTarget.blur();
+                          }
+                          if (event.key === "Escape") {
+                            event.preventDefault();
+                            event.currentTarget.dataset.cancelRename = "true";
+                            event.currentTarget.blur();
+                          }
+                        }}
+                        className="h-7 w-full rounded-md border border-border bg-background px-2 text-lg font-semibold text-foreground outline-none transition-colors focus:border-primary"
+                      />
+                    ) : (
+                      <h3 className="truncate text-lg font-semibold text-foreground">
+                        {portfolio.title}
+                      </h3>
+                    )}
+                  </div>
 
                   {/* Status + Last Edited */}
                   <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -410,10 +478,9 @@ const PortfolioManager: React.FC = () => {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="mb-4 flex items-center gap-2 text-sm text-muted-foreground transition hover:text-primary"
+                      className="mb-4 block max-w-full truncate break-all text-sm font-medium text-blue-600 underline underline-offset-2 transition hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
                     >
-                      <FiGlobe className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{portfolio.url}</span>
+                      {portfolio.url}
                     </a>
                   ) : (
                     <div className="mb-4 h-px" />
@@ -445,12 +512,13 @@ const PortfolioManager: React.FC = () => {
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() =>
+                        onClick={(event) => {
+                          event.stopPropagation();
                           setActiveMenu(
                             activeMenu === portfolio.id ? null : portfolio.id
-                          )
-                        }
-                        className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                          );
+                        }}
+                        className="rounded-lg p-2 transition-colors hover:cursor-pointer"
                       >
                         <FiMoreVertical className="w-4 h-4 text-white/70" />
                       </motion.button>
@@ -468,19 +536,16 @@ const PortfolioManager: React.FC = () => {
                               {
                                 icon: FiDownload,
                                 label: "Export",
-                                color: "sky",
                                 onClick: () => { console.log("Export")}
                               },
                               {
-                                icon: FiCopy,
-                                label: "Duplicate",
-                                color: "cyan",
-                                onClick: () => { console.log("Duplicate")}
+                                icon: FiEdit2,
+                                label: "Rename",
+                                onClick: () => startRename(portfolio),
                               },
                               {
                                 icon: FiTrash2,
                                 label: "Delete",
-                                color: "red",
                                 onClick: () => {
                                   setDeleteTarget(portfolio);
                                   setActiveMenu(null);
@@ -489,11 +554,14 @@ const PortfolioManager: React.FC = () => {
                             ].map((action) => (
                               <button
                                 key={action.label}
-                                className={`w-full px-4 py-2 flex items-center gap-3 ${action.label === "Delete" ? "hover:bg-red-500/10" : "hover:bg-white/5"} transition-colors text-left group`}
-                                onClick={action.onClick}
+                                className={`group flex w-full items-center gap-3 px-4 py-2 text-left transition-colors hover:cursor-pointer ${action.label === "Delete" ? "hover:bg-red-500/10" : "hover:bg-white/5"}`}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  action.onClick();
+                                }}
                               >
                                 <action.icon
-                                  className={`w-4 h-4 ${action.label === "Delete" ? "text-red-400" : action.label === "Export" ? "text-sky-400" : "text-cyan-400"}`}
+                                  className={`h-4 w-4 ${action.label === "Delete" ? "text-red-400" : action.label === "Export" ? "text-sky-400" : "text-cyan-400"}`}
                                 />
                                 <span className={`text-sm font-medium text-white ${action.label === "Delete" ? "group-hover:text-red-400" : ""}`}>
                                   {action.label}
@@ -521,95 +589,6 @@ const PortfolioManager: React.FC = () => {
       >
         <FiPlus className="w-7 h-7" />
       </motion.button>
-
-      {/* NEW: Edit Portfolio Modal Overlay */}
-      <AnimatePresence>
-        {editingPortfolio && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={handleCloseEdit}
-          >
-            {/* Modal content - prevents close when clicking inside */}
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-[#1a1d21] border border-white/10 rounded-2xl shadow-2xl max-w-md w-full p-6"
-            >
-              {/* Modal Header */}
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-white">Edit Portfolio</h2>
-                <button
-                  onClick={handleCloseEdit}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                >
-                  <span className="text-2xl text-white/70">&times;</span>
-                </button>
-              </div>
-
-              {/* Edit Form */}
-              <div className="space-y-4">
-                {/* Title Input */}
-                <div>
-                  <label className="block text-sm font-semibold text-white/80 mb-2">
-                    Portfolio Title
-                  </label>
-                  <input
-                    type="text"
-                    value={editFormData.title}
-                    onChange={(e) =>
-                      setEditFormData({ ...editFormData, title: e.target.value })
-                    }
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:ring-2 focus:ring-white/30 focus:border-white/30 outline-none transition-all text-white placeholder-white/50"
-                    placeholder="Enter portfolio title"
-                  />
-                </div>
-
-                {/* URL Input */}
-                <div>
-                  <label className="block text-sm font-semibold text-white/80 mb-2">
-                    Portfolio URL (optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={editFormData.url}
-                    onChange={(e) =>
-                      setEditFormData({ ...editFormData, url: e.target.value })
-                    }
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:ring-2 focus:ring-white/30 focus:border-white/30 outline-none transition-all text-white placeholder-white/50"
-                    placeholder="yourname.portfolio.ai"
-                  />
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-3 pt-4">
-                  <Button
-                    type="button"
-                    onClick={handleCloseEdit}
-                    disabled={isSaving}
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={handleUpdatePortfolio}
-                    disabled={isSaving || !editFormData.title.trim()}
-                    className="flex-1"
-                  >
-                    {isSaving ? "Saving..." : "Save Changes"}
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <DeletePortfolioOverlay
         isOpen={Boolean(deleteTarget)}

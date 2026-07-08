@@ -81,7 +81,7 @@ const DashboardLayoutClientInner: React.FC<DashboardLayoutClientProps> = ({
 
       {/* Main Content Area - adjusts margin based on sidebar state */}
       <main
-        className={`${collapsed ? "md:ml-[72px]" : "md:ml-[248px]"} h-full overflow-hidden bg-sidebar py-2 md:py-3 transition-[margin] duration-300 ease-in-out`}
+        className={`${collapsed ? "md:ml-[72px]" : "md:ml-[248px]"} h-full overflow-hidden bg-sidebar pt-2 md:pt-3 transition-[margin] duration-300 ease-in-out`}
       >
         <div className="flex h-full flex-col overflow-hidden rounded-2xl bg-background">
           <header className="z-30 border-b border-border bg-background">
@@ -152,7 +152,7 @@ const DashboardLayoutClientInner: React.FC<DashboardLayoutClientProps> = ({
             className={
               isViewportLockedPage
                 ? "min-h-0 flex-1 overflow-hidden"
-                : "flex-1 overflow-y-auto overscroll-none py-1 md:py-1.5"
+                : "flex-1 overflow-y-auto overscroll-none pt-1 md:pt-1.5"
             }
           >
             <DashboardMotionWrapper>{children}</DashboardMotionWrapper>

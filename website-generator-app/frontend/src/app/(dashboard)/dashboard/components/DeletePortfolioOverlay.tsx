@@ -113,7 +113,7 @@ const DeletePortfolioDialogContent: React.FC<
               type="button"
               onClick={onCancel}
               variant="outline"
-              className="flex-1"
+              className="flex-1 hover:cursor-pointer"
             >
               Cancel
             </Button>
@@ -121,7 +121,7 @@ const DeletePortfolioDialogContent: React.FC<
               type="submit"
               disabled={isDeleting || !isConfirmed}
               variant="destructive"
-              className="flex-1"
+              className="flex-1 hover:cursor-pointer"
             >
               {isDeleting ? "Deleting..." : "Delete"}
             </Button>

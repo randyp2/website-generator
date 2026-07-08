@@ -49,7 +49,7 @@ export const PortfolioToolbar: React.FC<PortfolioToolbarProps> = ({
                 <Button
                     type="button"
                     onClick={() => setShowSortMenu(!showSortMenu)}
-                    className="gap-2 shadow-lg shadow-primary/30"
+                    className="gap-2 shadow-lg shadow-primary/30 hover:cursor-pointer"
                 >
                     <FiGrid className="h-4 w-4" />
                     <span>Display</span>
@@ -97,7 +97,7 @@ export const PortfolioToolbar: React.FC<PortfolioToolbarProps> = ({
                                 <select
                                     value={sortBy}
                                     onChange={(e) => setSortBy(e.target.value as SortBy)}
-                                    className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors focus:border-primary focus:outline-none"
+                                    className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors hover:cursor-pointer focus:border-primary focus:outline-none"
                                 >
                                     <option value="date">Date Modified</option>
                                     <option value="name">Name</option>
