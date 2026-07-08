@@ -2,6 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 const shimmerAnimation = {
     backgroundPosition: ["-200% 0", "200% 0"],
@@ -18,11 +19,32 @@ const ShimmerBar: React.FC<{
     style?: React.CSSProperties;
 }> = ({ className, style }) => (
     <motion.div
-        className={`bg-[linear-gradient(110deg,rgba(255,255,255,0.05),35%,rgba(255,255,255,0.15),50%,rgba(255,255,255,0.05))] bg-[length:200%_100%] rounded ${className}`}
+        className={cn(
+            "rounded-full bg-[linear-gradient(110deg,rgba(24,24,27,0.06),35%,rgba(24,24,27,0.14),50%,rgba(24,24,27,0.06))] bg-[length:200%_100%] dark:bg-[linear-gradient(110deg,rgba(255,255,255,0.04),35%,rgba(255,255,255,0.13),50%,rgba(255,255,255,0.04))]",
+            className,
+        )}
         style={style}
         animate={shimmerAnimation}
         transition={shimmerTransition}
     />
+);
+
+const SkeletonCard: React.FC<{
+    children: React.ReactNode;
+    delay: number;
+    className?: string;
+}> = ({ children, delay, className }) => (
+    <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay }}
+        className={cn(
+            "rounded-[28px] border border-border bg-muted/60 p-8 shadow-[0_12px_32px_rgba(0,0,0,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-black/85 dark:shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_18px_50px_rgba(255,255,255,0.06)]",
+            className,
+        )}
+    >
+        {children}
+    </motion.div>
 );
 
 /**
@@ -35,50 +57,40 @@ export const ResumeShimmerSkeleton: React.FC = () => {
     return (
         <div className="space-y-6">
             {/* Personal Information Section Skeleton */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="bg-gradient-to-br from-zinc-200/90 via-zinc-100/90 to-zinc-200/90 dark:from-slate-900/95 dark:via-slate-800/95 dark:to-slate-900/95 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-border dark:border-white/10"
-            >
+            <SkeletonCard delay={0.1}>
                 {/* Name skeleton */}
-                <div className="text-center border-b border-border dark:border-white/10 pb-6 mb-6">
-                    <ShimmerBar className="h-10 w-64 mx-auto" />
+                <div className="mb-6 border-b border-border pb-6 text-center dark:border-white/10">
+                    <ShimmerBar className="mx-auto h-10 w-64" />
                 </div>
 
                 {/* Contact info grid skeleton */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     {[1, 2, 3].map((i) => (
                         <div
                             key={i}
-                            className="flex flex-col items-center p-4 bg-black/5 dark:bg-white/5 rounded-xl border border-border dark:border-white/10"
+                            className="flex flex-col items-center rounded-2xl border border-border bg-muted/50 p-4 dark:border-white/10 dark:bg-white/[0.04]"
                         >
-                            <ShimmerBar className="h-4 w-16 mb-2" />
+                            <ShimmerBar className="mb-2 h-4 w-16" />
                             <ShimmerBar className="h-5 w-32" />
                         </div>
                     ))}
                 </div>
 
                 {/* Summary skeleton */}
-                <div className="mt-6 pt-6 border-t border-border dark:border-white/10">
-                    <ShimmerBar className="h-4 w-20 mb-3" />
+                <div className="mt-6 border-t border-border pt-6 dark:border-white/10">
+                    <ShimmerBar className="mb-3 h-4 w-20" />
                     <div className="space-y-2">
                         <ShimmerBar className="h-4 w-full" />
                         <ShimmerBar className="h-4 w-full" />
                         <ShimmerBar className="h-4 w-3/4" />
                     </div>
                 </div>
-            </motion.div>
+            </SkeletonCard>
 
             {/* Skills Section Skeleton */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="bg-gradient-to-br from-zinc-200/90 via-zinc-100/90 to-zinc-200/90 dark:from-slate-900/95 dark:via-slate-800/95 dark:to-slate-900/95 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-border dark:border-white/10"
-            >
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 bg-sky-100/20 rounded-lg">
+            <SkeletonCard delay={0.2}>
+                <div className="mb-6 flex items-center gap-3">
+                    <div className="rounded-xl border border-border bg-muted/50 p-2 dark:border-white/10 dark:bg-white/[0.04]">
                         <ShimmerBar className="h-5 w-5" />
                     </div>
                     <ShimmerBar className="h-7 w-20" />
@@ -93,17 +105,12 @@ export const ResumeShimmerSkeleton: React.FC = () => {
                         />
                     ))}
                 </div>
-            </motion.div>
+            </SkeletonCard>
 
             {/* Experience Section Skeleton */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="bg-gradient-to-br from-zinc-200/90 via-zinc-100/90 to-zinc-200/90 dark:from-slate-900/95 dark:via-slate-800/95 dark:to-slate-900/95 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-border dark:border-white/10"
-            >
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 bg-sky-100/20 rounded-lg">
+            <SkeletonCard delay={0.3}>
+                <div className="mb-6 flex items-center gap-3">
+                    <div className="rounded-xl border border-border bg-muted/50 p-2 dark:border-white/10 dark:bg-white/[0.04]">
                         <ShimmerBar className="h-5 w-5" />
                     </div>
                     <ShimmerBar className="h-7 w-36" />
@@ -113,11 +120,11 @@ export const ResumeShimmerSkeleton: React.FC = () => {
                     {[1, 2].map((expIndex) => (
                         <div
                             key={expIndex}
-                            className="border-l-4 border-sky-500/30 pl-6 pb-6 last:pb-0"
+                            className="border-l border-border pb-6 pl-6 last:pb-0 dark:border-white/10"
                         >
-                            <ShimmerBar className="h-6 w-48 mb-2" />
-                            <ShimmerBar className="h-5 w-36 mb-1" />
-                            <ShimmerBar className="h-4 w-32 mb-4" />
+                            <ShimmerBar className="mb-2 h-6 w-48" />
+                            <ShimmerBar className="mb-1 h-5 w-36" />
+                            <ShimmerBar className="mb-4 h-4 w-32" />
 
                             <div className="space-y-2 mt-4">
                                 {[1, 2, 3].map((bulletIndex) => (
@@ -125,7 +132,7 @@ export const ResumeShimmerSkeleton: React.FC = () => {
                                         key={bulletIndex}
                                         className="flex items-start gap-3"
                                     >
-                                        <span className="text-sky-400/30 mt-1.5">
+                                        <span className="mt-1.5 text-muted-foreground/30">
                                             &bull;
                                         </span>
                                         <ShimmerBar className="h-4 flex-1" />
@@ -135,30 +142,25 @@ export const ResumeShimmerSkeleton: React.FC = () => {
                         </div>
                     ))}
                 </div>
-            </motion.div>
+            </SkeletonCard>
 
             {/* Education Section Skeleton */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="bg-gradient-to-br from-zinc-200/90 via-zinc-100/90 to-zinc-200/90 dark:from-slate-900/95 dark:via-slate-800/95 dark:to-slate-900/95 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-border dark:border-white/10"
-            >
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 bg-sky-100/20 rounded-lg">
+            <SkeletonCard delay={0.4}>
+                <div className="mb-6 flex items-center gap-3">
+                    <div className="rounded-xl border border-border bg-muted/50 p-2 dark:border-white/10 dark:bg-white/[0.04]">
                         <ShimmerBar className="h-5 w-5" />
                     </div>
                     <ShimmerBar className="h-7 w-24" />
                 </div>
 
                 <div className="space-y-6">
-                    <div className="border-l-4 border-purple-500/30 pl-6">
-                        <ShimmerBar className="h-6 w-56 mb-2" />
-                        <ShimmerBar className="h-5 w-40 mb-1" />
+                    <div className="border-l border-border pl-6 dark:border-white/10">
+                        <ShimmerBar className="mb-2 h-6 w-56" />
+                        <ShimmerBar className="mb-1 h-5 w-40" />
                         <ShimmerBar className="h-4 w-32" />
                     </div>
                 </div>
-            </motion.div>
+            </SkeletonCard>
         </div>
     );
 };
