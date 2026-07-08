@@ -31,7 +31,7 @@ const SANDPACK_OPTIONS = {
     showNavigator: false,
     showLineNumbers: true,
     showTabs: true,
-    editorHeight: "calc(100vh)",
+    editorHeight: "calc(100dvh - 4.25rem)",
     editorWidthPercentage: 0,
     resizablePanels: false,
 } as const;
@@ -146,7 +146,7 @@ export const Preview: React.FC<PreviewProps> = ({
                     {/* The Draggable Gutter */}
                     <Separator
                         onPointerDownCapture={() => setIsDragging(true)}
-                        className="relative w-3 cursor-col-resize bg-transparent outline-none [&:focus-visible>span]:opacity-90 [&:hover>span]:opacity-90"
+                        className="relative w-2 cursor-col-resize bg-transparent outline-none [&:focus-visible>span]:opacity-90 [&:hover>span]:opacity-90"
                     >
                         <span
                             aria-hidden="true"

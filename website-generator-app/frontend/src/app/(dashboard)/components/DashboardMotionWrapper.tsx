@@ -15,7 +15,9 @@ export default function DashboardMotionWrapper({ children }: { children: React.R
   const selfAnimatedPages = ["/dashboard/create/style"];
   const isSelfAnimated = selfAnimatedPages.some((page) => pathname.includes(page));
 
-  const widthClass = isFullWidth ? "" : "mx-auto w-full max-w-[82.5rem]";
+  const widthClass = isFullWidth
+    ? "h-full min-h-0 overflow-hidden"
+    : "mx-auto w-full max-w-[82.5rem]";
 
   if (isSelfAnimated) {
     return <div className={widthClass}>{children}</div>;

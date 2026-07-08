@@ -62,6 +62,7 @@ const DashboardLayoutClientInner: React.FC<DashboardLayoutClientProps> = ({
   const { collapsed, setCollapsed } = useSidebar();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const isViewportLockedPage = pathname.includes("/dashboard/create/refine");
 
   const handleToggleCollapse = () => {
     setCollapsed(!collapsed);
@@ -147,7 +148,13 @@ const DashboardLayoutClientInner: React.FC<DashboardLayoutClientProps> = ({
               </div>
             </div>
           </header>
-          <div className="flex-1 overflow-y-auto overscroll-none py-1 md:py-1.5">
+          <div
+            className={
+              isViewportLockedPage
+                ? "min-h-0 flex-1 overflow-hidden"
+                : "flex-1 overflow-y-auto overscroll-none py-1 md:py-1.5"
+            }
+          >
             <DashboardMotionWrapper>{children}</DashboardMotionWrapper>
           </div>
         </div>

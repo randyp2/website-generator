@@ -136,7 +136,7 @@ const AIRefinementPage: React.FC = () => {
     // RENDER
     // ========================================================================
     return (
-        <div className="h-screen flex flex-col overflow-hidden relative">
+        <div className="relative flex h-full min-h-0 flex-col overflow-hidden bg-background text-foreground">
             {/* ================================================ */}
             {/* LAYER 1: SANDBOX - FULL SCREEN (BASE, z-0) */}
             {/* ================================================ */}

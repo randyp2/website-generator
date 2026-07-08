@@ -1,14 +1,24 @@
 "use client"
 
+import { useSyncExternalStore } from "react"
 import { motion, useMotionValue, useTransform } from "framer-motion"
 import { useTheme } from "next-themes"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
+const subscribeToHydration = () => () => undefined
+const getClientSnapshot = () => true
+const getServerSnapshot = () => false
+
 export const AnimatedThemeToggle = ({ className }: { className?: string }) => {
+  const mounted = useSyncExternalStore(
+    subscribeToHydration,
+    getClientSnapshot,
+    getServerSnapshot,
+  )
   const { resolvedTheme, setTheme } = useTheme()
-  const isDark = resolvedTheme === "dark"
+  const isDark = mounted && resolvedTheme === "dark"
 
   return (
     <Button
@@ -16,10 +26,20 @@ export const AnimatedThemeToggle = ({ className }: { className?: string }) => {
       onClick={() => setTheme(isDark ? "light" : "dark")}
       className={cn("px-2.5", className)}
       variant="outline"
-      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      aria-pressed={isDark}
+      aria-label={
+        mounted
+          ? isDark
+            ? "Switch to light mode"
+            : "Switch to dark mode"
+          : "Toggle color theme"
+      }
+      aria-pressed={mounted ? isDark : undefined}
     >
-      <SolarSwitch isDark={isDark} />
+      {mounted ? (
+        <SolarSwitch isDark={isDark} />
+      ) : (
+        <span className="block size-5" aria-hidden="true" />
+      )}
     </Button>
   )
 }
