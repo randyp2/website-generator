@@ -6,6 +6,7 @@ import { Sandpack } from "@codesandbox/sandpack-react";
 import { atomDark } from "@codesandbox/sandpack-themes";
 import { Panel, Group, Separator } from "react-resizable-panels";
 import type { SectionDTO, GlobalTheme } from "@/types/portfolio";
+import { cn } from "@/lib/utils";
 import { SANDPACK_RUNTIME_DEPENDENCIES } from "@/utils/sectionRuntimeScope";
 import {
     buildGoogleFontsUrl,
@@ -145,15 +146,23 @@ export const Preview: React.FC<PreviewProps> = ({
                     {/* The Draggable Gutter */}
                     <Separator
                         onPointerDownCapture={() => setIsDragging(true)}
-                        className="w-2 bg-slate-800 hover:bg-white transition-colors cursor-col-resize"
-                    />
+                        className="relative w-3 cursor-col-resize bg-transparent outline-none [&:focus-visible>span]:opacity-90 [&:hover>span]:opacity-90"
+                    >
+                        <span
+                            aria-hidden="true"
+                            className={cn(
+                                "pointer-events-none absolute left-1/2 top-1/2 h-10 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white opacity-0 shadow-[0_0_0_1px_rgba(0,0,0,0.16),0_8px_24px_rgba(255,255,255,0.28)] transition-opacity duration-150",
+                                isDragging && "opacity-90",
+                            )}
+                        />
+                    </Separator>
 
                     {/* Sandpack Panel */}
                     <Panel>
                         <div className="h-full overflow-hidden relative">
                             {isDragging && (
                                 <div
-                                    className="absolute inset-0 z-50 cursor-col-resize bg-black/40"
+                                    className="absolute inset-0 z-50 cursor-col-resize bg-transparent"
                                     style={{ pointerEvents: "auto" }}
                                 />
                             )}

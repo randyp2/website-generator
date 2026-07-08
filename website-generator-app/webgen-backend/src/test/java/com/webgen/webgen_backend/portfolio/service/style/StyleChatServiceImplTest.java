@@ -92,6 +92,76 @@ class StyleChatServiceImplTest {
     }
 
     @Test
+    void completionPrependsDesignGoalToCustomNotes() {
+        seedConversationContext(9);
+        stubModelResponse("""
+                {
+                  "assistantMessage": "All done!",
+                  "isAnswerValid": true,
+                  "nextQuestionNumber": 10,
+                  "suggestions": null,
+                  "designTip": null,
+                  "previewType": null,
+                  "compiledStylePreferences": {
+                    "colorScheme": "warm reds",
+                    "layoutDensity": "balanced",
+                    "tone": "playful",
+                    "visualStyle": "illustrations",
+                    "sectionEmphasis": "contact",
+                    "typography": "Syne / DM Sans",
+                    "animationStyle": "dramatic",
+                    "whitespace": "balanced",
+                    "visualRichness": "expressive",
+                    "interactiveElements": "hover effects",
+                    "customNotes": "comic book panel borders"
+                  }
+                }
+                """);
+
+        StyleChatResponseDTO response = service.chat(conversationRequest("Dramatic"));
+
+        assertEquals(
+                "Primary style goal: playful spiderman portfolio | comic book panel borders",
+                response.getStylePreferences().get("customNotes"),
+                "the user's first message must reach generation verbatim even when the compile model drops it");
+    }
+
+    @Test
+    void completionDoesNotDuplicateDesignGoalAlreadyInCustomNotes() {
+        seedConversationContext(9);
+        stubModelResponse("""
+                {
+                  "assistantMessage": "All done!",
+                  "isAnswerValid": true,
+                  "nextQuestionNumber": 10,
+                  "suggestions": null,
+                  "designTip": null,
+                  "previewType": null,
+                  "compiledStylePreferences": {
+                    "colorScheme": "warm reds",
+                    "layoutDensity": "balanced",
+                    "tone": "playful",
+                    "visualStyle": "illustrations",
+                    "sectionEmphasis": "contact",
+                    "typography": "Syne / DM Sans",
+                    "animationStyle": "dramatic",
+                    "whitespace": "balanced",
+                    "visualRichness": "expressive",
+                    "interactiveElements": "hover effects",
+                    "customNotes": "User wants a playful spiderman portfolio with comic accents"
+                  }
+                }
+                """);
+
+        StyleChatResponseDTO response = service.chat(conversationRequest("Dramatic"));
+
+        assertEquals(
+                "User wants a playful spiderman portfolio with comic accents",
+                response.getStylePreferences().get("customNotes"),
+                "notes already containing the goal verbatim must not get a duplicate prefix");
+    }
+
+    @Test
     void staysIncompleteWhenModelAnswersWithoutCompiledPreferences() {
         seedConversationContext(7);
         stubModelResponse("""

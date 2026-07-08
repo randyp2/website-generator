@@ -410,7 +410,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         contextStore.save(portfolioId, context);
 
         // Convert compiled preferences to Map<String, String>
-        Map<String, String> stylePrefsMap = compiledToMap(compiled);
+        Map<String, String> stylePrefsMap = compiledToMap(compiled, context);
 
         parsed.setQuestionNumber(TOTAL_QUESTIONS);
         parsed.setTotalQuestions(TOTAL_QUESTIONS);
@@ -463,7 +463,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         dto.setComplete(preferencesUpdated);
         dto.setSuggestions(parsed.suggestions());
         if (preferencesUpdated) {
-            dto.setStylePreferences(compiledToMap(context.getCompiledStylePreferences()));
+            dto.setStylePreferences(compiledToMap(context.getCompiledStylePreferences(), context));
             dto.setUpdatedStyleFields(updatedFields);
         }
 
@@ -479,7 +479,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         dto.setQuestionNumber(TOTAL_QUESTIONS);
         dto.setTotalQuestions(TOTAL_QUESTIONS);
         dto.setComplete(true);
-        dto.setStylePreferences(compiledToMap(context.getCompiledStylePreferences()));
+        dto.setStylePreferences(compiledToMap(context.getCompiledStylePreferences(), context));
         logResponseDto("already-complete-return", dto);
         return dto;
     }
@@ -572,7 +572,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         return notes.toString();
     }
 
-    private Map<String, String> compiledToMap(CompiledStylePreferences prefs) {
+    private Map<String, String> compiledToMap(CompiledStylePreferences prefs, StyleContext context) {
         if (prefs == null) return new HashMap<>();
         Map<String, String> map = new LinkedHashMap<>();
         map.put("colorScheme", safe(prefs.getColorScheme()));
@@ -585,8 +585,25 @@ public class StyleChatServiceImpl implements StyleChatService {
         map.put("whitespace", safe(prefs.getWhitespace()));
         map.put("visualRichness", safe(prefs.getVisualRichness()));
         map.put("interactiveElements", safe(prefs.getInteractiveElements()));
-        map.put("customNotes", safe(prefs.getCustomNotes()));
+        map.put("customNotes", withPrimaryGoal(safe(prefs.getCustomNotes()), context));
         return map;
+    }
+
+    /*
+     * Guarantees the user's first message (their design goal) reaches portfolio
+     * generation verbatim. The compile model summarizes the conversation and may
+     * drop or paraphrase the goal, so it is prepended to customNotes here
+     * deterministically. Idempotent: skipped when the notes already contain it.
+     */
+    private String withPrimaryGoal(String customNotes, StyleContext context) {
+        String goal = context == null ? null : context.getDesignGoal();
+        if (goal == null || goal.isBlank()) return customNotes;
+
+        String trimmedGoal = goal.trim();
+        if (customNotes.contains(trimmedGoal)) return customNotes;
+
+        String prefix = "Primary style goal: " + trimmedGoal;
+        return customNotes.isBlank() ? prefix : prefix + " | " + customNotes;
     }
 
     private String safe(String value) {
@@ -778,7 +795,7 @@ public class StyleChatServiceImpl implements StyleChatService {
               .append(": ").append(qa.getAnswer()).append("\n");
         }
         if (context.getCompiledStylePreferences() != null) {
-            sb.append("║  Compiled Preferences: ").append(compiledToMap(context.getCompiledStylePreferences())).append("\n");
+            sb.append("║  Compiled Preferences: ").append(compiledToMap(context.getCompiledStylePreferences(), context)).append("\n");
         }
         sb.append("╚══════════════════════════════════════════════════════════╝");
         log.info(sb.toString());
