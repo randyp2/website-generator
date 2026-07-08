@@ -12,6 +12,7 @@ import com.webgen.webgen_backend.portfolio.entity.GeneratedVersion;
 import com.webgen.webgen_backend.portfolio.entity.Portfolio;
 import com.webgen.webgen_backend.portfolio.entity.PortfolioSection;
 import com.webgen.webgen_backend.portfolio.service.PortfolioAiService;
+import com.webgen.webgen_backend.portfolio.service.fallback.FallbackSectionFactory;
 import com.webgen.webgen_backend.portfolio.service.job.GenerateJobService;
 import com.webgen.webgen_backend.portfolio.service.job.SectionGenerationMessage;
 import com.webgen.webgen_backend.portfolio.service.parser.PortfolioResponseParser;
@@ -50,6 +51,7 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
     private final PortfolioResponseParser portfolioResponseParser;
 
     private final JsxValidatorService jsxValidatorService;
+    private final FallbackSectionFactory fallbackSectionFactory;
 
     private final PortfolioRepository portfolioRepository;
     private final GeneratedVersionRepository generatedVersionRepository;
@@ -69,6 +71,7 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
             PortfolioPromptBuilder portfolioPromptBuilder,
             PortfolioResponseParser portfolioResponseParser,
             JsxValidatorService jsxValidatorService,
+            FallbackSectionFactory fallbackSectionFactory,
             PortfolioRepository portfolioRepository,
             GeneratedVersionRepository generatedVersionRepository,
             PortfolioSectionRepository sectionRepository,
@@ -81,6 +84,7 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
         this.portfolioPromptBuilder = portfolioPromptBuilder;
         this.portfolioResponseParser = portfolioResponseParser;
         this.jsxValidatorService = jsxValidatorService;
+        this.fallbackSectionFactory = fallbackSectionFactory;
         this.portfolioRepository = portfolioRepository;
         this.generatedVersionRepository = generatedVersionRepository;
         this.sectionRepository = sectionRepository;
@@ -287,14 +291,26 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
                             + formatValidationErrors(validation, parsedSection.getReactSource()));
         }
 
+        // --- Degrade to a placeholder section instead of failing the whole job:
+        // one stubborn section must not destroy every other valid section
         if (validation == null || !validation.isValid()) {
             System.err.println(">>> [SECTION-WORKER] Final validation errors for section '" + sectionKey + "':\n"
                     + formatValidationErrors(validation,
                             parsedSection == null ? null : parsedSection.getReactSource()));
-            String failReason = "Failed to generate valid JSX for section '"
-                    + sectionKey + "' after " + maxRetries + " attempts";
-            jobService.failJob(jobId, failReason);
-            throw new IllegalStateException(failReason);
+            System.out.println(">>> [SECTION-WORKER] Section '" + sectionKey
+                    + "' failed all " + maxRetries + " attempts — shipping fallback placeholder");
+
+            SectionDTO fallback = fallbackSectionFactory.createFallbackSection(
+                    msg.getPlanItem(), lockedTitle, lockedOrderIndex, lockedContentJson);
+            ValidationResult fallbackValidation = jsxValidatorService.validateGeneratedSection(fallback);
+
+            if (!fallbackValidation.isValid()) {
+                String failReason = "Failed to generate valid JSX for section '"
+                        + sectionKey + "' after " + maxRetries + " attempts, and the fallback section failed validation";
+                jobService.failJob(jobId, failReason);
+                throw new IllegalStateException(failReason);
+            }
+            parsedSection = fallback;
         }
 
         // Push completed section to Redis list

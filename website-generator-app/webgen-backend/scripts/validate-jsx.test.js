@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+'use strict';
 
 const assert = require('node:assert');
 const path = require('node:path');
@@ -30,7 +31,7 @@ const hasErrorContaining = (payload, text) =>
   payload.errors.some((err) => typeof err.message === 'string' && err.message.includes(text));
 
 const cases = [
-  // --- Existing AST checks (raw string, backward compat) ---
+  // --- Static AST checks (raw string, backward compat) ---
   {
     name: 'accepts valid default export function with { data }',
     source: `
@@ -97,7 +98,44 @@ const cases = [
     errorIncludes: 'Do not use data.contentJson'
   },
 
-  // --- Runtime smoke render tests (JSON payload) ---
+  // --- Icon call checks: icons are forwardRef components, not functions ---
+  {
+    name: 'rejects lucide icon called as a function',
+    source: `
+      export default function Contact({ data }) {
+        return (
+          <section>
+            {MapPin({ className: 'w-4 h-4' })}
+            <span>{data.location}</span>
+          </section>
+        );
+      }
+    `,
+    valid: false,
+    errorIncludes: 'must be rendered as a JSX element'
+  },
+  {
+    name: 'rejects icon call nested inside JSX attributes and children',
+    source: `
+      export default function Links({ data }) {
+        return <a href={data.url}>{ArrowUpRight({ size: 16 })}</a>;
+      }
+    `,
+    valid: false,
+    errorIncludes: "Lucide icon 'ArrowUpRight'"
+  },
+  {
+    name: 'accepts a locally shadowed identifier sharing an icon name',
+    source: `
+      export default function Hero({ data }) {
+        const Star = (props) => <span>{props.label}</span>;
+        return <section>{Star({ label: data.title })}</section>;
+      }
+    `,
+    valid: true
+  },
+
+  // --- Runtime smoke render against the real dependencies (JSON payload) ---
   {
     name: 'runtime: passes when reactSource matches contentJson',
     source: {
@@ -116,7 +154,7 @@ const cases = [
     errorIncludes: 'Runtime render error'
   },
   {
-    name: 'runtime: passes with motion stub',
+    name: 'runtime: passes with real framer-motion',
     source: {
       reactSource: `export default function Hero({ data }) { return <motion.div initial={{opacity:0}} animate={{opacity:1}}><h1>{data.title}</h1></motion.div>; }`,
       contentJson: { title: 'Hello World' }
@@ -124,10 +162,34 @@ const cases = [
     valid: true
   },
   {
-    name: 'runtime: passes with icon stubs',
+    name: 'runtime: passes with real lucide icons rendered as JSX',
     source: {
-      reactSource: `export default function Contact({ data }) { return <section><Mail /><span>{data.email}</span></section>; }`,
+      reactSource: `export default function Contact({ data }) { return <section><Mail className="w-4 h-4" /><MapPin className="w-4 h-4" /><span>{data.email}</span></section>; }`,
       contentJson: { email: 'test@example.com' }
+    },
+    valid: true
+  },
+  {
+    name: 'runtime: passes with extended icon set beyond the prompt whitelist',
+    source: {
+      reactSource: `export default function Skills({ data }) { return <section><Star /><Briefcase /><GraduationCap /><span>{data.title}</span></section>; }`,
+      contentJson: { title: 'Skills' }
+    },
+    valid: true
+  },
+  {
+    name: 'runtime: passes with react hooks in scope',
+    source: {
+      reactSource: `export default function Tabs({ data }) { const [active, setActive] = useState(0); return <section><button onClick={() => setActive(1)}>{data.items[active]}</button></section>; }`,
+      contentJson: { items: ['One', 'Two'] }
+    },
+    valid: true
+  },
+  {
+    name: 'runtime: passes with framer-motion hooks in scope',
+    source: {
+      reactSource: `export default function Hero({ data }) { const ref = useRef(null); const inView = useInView(ref); return <section ref={ref} data-visible={inView}><h1>{data.title}</h1></section>; }`,
+      contentJson: { title: 'Hello' }
     },
     valid: true
   },
@@ -141,7 +203,7 @@ const cases = [
     errorIncludes: 'Runtime render error'
   },
   {
-    name: 'runtime: passes with AnimatePresence stub',
+    name: 'runtime: passes with real AnimatePresence',
     source: {
       reactSource: `export default function Hero({ data }) { return <AnimatePresence><motion.section><h1>{data.title}</h1></motion.section></AnimatePresence>; }`,
       contentJson: { title: 'Test' }

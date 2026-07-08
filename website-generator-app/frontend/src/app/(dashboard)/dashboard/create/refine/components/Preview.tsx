@@ -6,6 +6,13 @@ import { Sandpack } from "@codesandbox/sandpack-react";
 import { atomDark } from "@codesandbox/sandpack-themes";
 import { Panel, Group, Separator } from "react-resizable-panels";
 import type { SectionDTO, GlobalTheme } from "@/types/portfolio";
+import { SANDPACK_RUNTIME_DEPENDENCIES } from "@/utils/sectionRuntimeScope";
+import {
+    buildGoogleFontsUrl,
+    buildSandpackFiles,
+    buildSkeletonOnlyFiles,
+    buildWelcomeFiles,
+} from "./sandpackFiles";
 
 interface PreviewProps {
     sections: SectionDTO[] | null;
@@ -17,189 +24,22 @@ interface PreviewProps {
     onLayoutModeChange?: (mode: "sidebar" | "floating" | "preview") => void;
 }
 
-const DEFAULT_THEME: GlobalTheme = {
-    background: "bg-slate-900",
-    textPrimary: "text-white",
-    textSecondary: "text-slate-400",
-    accentColor: "purple",
-};
+const SANDPACK_OPTIONS = {
+    showConsoleButton: true,
+    showInlineErrors: true,
+    showNavigator: false,
+    showLineNumbers: true,
+    showTabs: true,
+    editorHeight: "calc(100vh)",
+    editorWidthPercentage: 0,
+    resizablePanels: false,
+} as const;
 
-const buildGoogleFontsUrl = (fonts?: { heading: string; body: string }) => {
-    if (!fonts) return null;
-    const uniqueFonts = [...new Set([fonts.heading, fonts.body].filter(Boolean))];
-    if (uniqueFonts.length === 0) return null;
-    const families = uniqueFonts
-        .map((f) => `family=${f.replace(/ /g, "+")}:wght@300;400;500;600;700`)
-        .join("&");
-    return `https://fonts.googleapis.com/css2?${families}&display=swap`;
-};
-
-const normalizeTheme = (globalTheme?: GlobalTheme | null): GlobalTheme => {
-    if (!globalTheme) return DEFAULT_THEME;
-    const background = globalTheme.background?.trim();
-    const textPrimary = globalTheme.textPrimary?.trim();
-    const textSecondary = globalTheme.textSecondary?.trim();
-    const accentColor = globalTheme.accentColor?.trim();
-    if (!background || !textPrimary) return DEFAULT_THEME;
-    return {
-        background,
-        textPrimary,
-        textSecondary: textSecondary || DEFAULT_THEME.textSecondary,
-        accentColor: accentColor || DEFAULT_THEME.accentColor,
-        fonts: globalTheme.fonts,
-    };
-};
-
-const buildSandpackFiles = (
-    sections: SectionDTO[],
-    globalTheme?: GlobalTheme | null,
-    skeletonCount: number = 0,
-) => {
-    // --- Sort from 0 - n indexing
-    const sorted = [...sections].sort(
-        (a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0),
-    );
-
-    // Use provided theme or fallback to default
-    const theme = normalizeTheme(globalTheme);
-
-    // Extract section data
-    const sectionData = sorted.map((section) => ({
-        sectionKey: section.sectionKey,
-        title: section.title ?? "",
-        orderIndex: section.orderIndex ?? 0,
-        contentJson: section.contentJson ?? null,
-    }));
-
-    const imports = sorted
-        .map(
-            (_, index) =>
-                `import Section${index} from "./sections/Section${index}";`,
-        )
-        .join("\n");
-
-    const renders = sorted
-        .map(
-            (_, index) =>
-                `{sections[${index}] && <Section${index} content={sections[${index}].contentJson} data={sections[${index}].contentJson} />}`,
-        )
-        .join("\n");
-
-    // Skeleton placeholders for sections not yet received
-    const skeletonRenders = Array.from({ length: skeletonCount }, (_, i) => {
-        const heights = [320, 400, 280, 360];
-        const height = heights[i % heights.length];
-        return `<div key="skeleton-${i}" style={{ height: ${height}, margin: "0 auto", padding: "48px 24px" }}>
-                    <div style={{ maxWidth: 900, margin: "0 auto" }}>
-                        <div style={{ height: 28, width: "35%", background: "rgba(148,163,184,0.15)", borderRadius: 8, marginBottom: 24, animation: "pulse 2s ease-in-out infinite" }} />
-                        <div style={{ height: 16, width: "90%", background: "rgba(148,163,184,0.10)", borderRadius: 6, marginBottom: 12, animation: "pulse 2s ease-in-out infinite", animationDelay: "0.2s" }} />
-                        <div style={{ height: 16, width: "75%", background: "rgba(148,163,184,0.10)", borderRadius: 6, marginBottom: 12, animation: "pulse 2s ease-in-out infinite", animationDelay: "0.4s" }} />
-                        <div style={{ height: 16, width: "60%", background: "rgba(148,163,184,0.10)", borderRadius: 6, animation: "pulse 2s ease-in-out infinite", animationDelay: "0.6s" }} />
-                    </div>
-                </div>`;
-    }).join("\n");
-
-    const bodyFont = theme.fonts?.body || "Inter";
-    const headingFont = theme.fonts?.heading || bodyFont;
-
-    const files: Record<string, string> = {
-        "/App.js": `
-        import sections from "./sections.json";
-        import theme from "./theme.json";
-        ${imports}
-
-        function ThemeWrapper({ children }) {
-            return (
-                <div className={\`min-h-screen \${theme.background}\`}>
-                    <style dangerouslySetInnerHTML={{ __html: \`
-                        body { font-family: '${bodyFont}', sans-serif; }
-                        h1, h2, h3, h4, h5, h6 { font-family: '${headingFont}', sans-serif; }
-                        @keyframes pulse {
-                            0%, 100% { opacity: 1; }
-                            50% { opacity: 0.4; }
-                        }
-                    \`}} />
-                    <div className={\`\${theme.textPrimary}\`}>
-                        {children}
-                    </div>
-                </div>
-            );
-        }
-
-        export default function App() {
-            return (
-                <ThemeWrapper>
-                    <main>
-                    ${renders}
-                    ${skeletonRenders}
-                    </main>
-                </ThemeWrapper>
-            );
-        }
-        `,
-        "/sections.json": JSON.stringify(sectionData, null, 2),
-        "/theme.json": JSON.stringify(theme, null, 2),
-    };
-    
-    const ensureImports = (source: string) => {
-        const reactImport =
-            'import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";';
-        const framerImport =
-            'import { motion, AnimatePresence, useScroll, useTransform, useSpring, useInView } from "framer-motion";';
-        const lucideImport =
-            'import { Mail, Phone, MapPin, Globe, Github, Linkedin, ArrowUpRight } from "lucide-react";';
-        const hasReactImport =
-            /^import\s+[^;]*\s+from\s+["']react["'];?\s*$/m.test(source);
-        const hasFramerImport =
-            /^import\s+[^;]*\s+from\s+["']framer-motion["'];?\s*$/m.test(
-                source,
-            );
-        const hasLucideImport =
-            /^import\s+[^;]*\s+from\s+["']lucide-react["'];?\s*$/m.test(source);
-
-        const neededImports = [
-            ...(hasReactImport ? [] : [reactImport]),
-            ...(hasFramerImport ? [] : [framerImport]),
-            ...(hasLucideImport ? [] : [lucideImport]),
-        ].join("\n");
-
-        return neededImports
-            ? `${neededImports}\n\n${source.trimStart()}`
-            : source;
-    };
-
-    const ensureDefaultExport = (source: string, index: number) => {
-        const normalized = source.trim();
-        if (!normalized) {
-            return `export default function Section${index}() { return (<div className="p-8 text-white">Empty section source.</div>); }`;
-        }
-
-        if (/export\s+default/.test(normalized)) return normalized;
-
-        const functionMatch = normalized.match(
-            /function\s+([A-Z][A-Za-z0-9_]*)\s*\(/,
-        );
-        const constMatch = normalized.match(
-            /const\s+([A-Z][A-Za-z0-9_]*)\s*=\s*(\(|function|\(.*\)\s*=>)/,
-        );
-        const componentName = functionMatch?.[1] || constMatch?.[1];
-
-        if (componentName) {
-            return `${normalized}\n\nexport default ${componentName};`;
-        }
-
-        return `export default function Section${index}() { return (<div className="p-8 text-white">Section missing default export.</div>); }`;
-    };
-
-    sorted.forEach((section, index) => {
-        const source = section.reactSource ?? "";
-        const withExport = ensureDefaultExport(source, index);
-        files[`/sections/Section${index}.jsx`] = ensureImports(withExport);
-    });
-
-    return files;
-};
-
+/**
+ * Live Sandpack preview of the generated portfolio, with sidebar, floating,
+ * and preview-only layout modes. File contents come from sandpackFiles.ts;
+ * this component only manages layout and Sandpack lifecycle.
+ */
 export const Preview: React.FC<PreviewProps> = ({
     sections,
     globalTheme,
@@ -269,68 +109,26 @@ export const Preview: React.FC<PreviewProps> = ({
         ...(fontUrl ? [fontUrl] : []),
     ];
 
-    const buildSkeletonOnlyFiles = (count: number) => {
-        const theme = normalizeTheme(globalTheme);
-        const skeletons = Array.from({ length: count }, (_, i) => {
-            const heights = [320, 400, 280, 360];
-            const height = heights[i % heights.length];
-            return `<div key="skeleton-${i}" style={{ height: ${height}, margin: "0 auto", padding: "48px 24px" }}>
-                        <div style={{ maxWidth: 900, margin: "0 auto" }}>
-                            <div style={{ height: 28, width: "35%", background: "rgba(148,163,184,0.15)", borderRadius: 8, marginBottom: 24, animation: "pulse 2s ease-in-out infinite" }} />
-                            <div style={{ height: 16, width: "90%", background: "rgba(148,163,184,0.10)", borderRadius: 6, marginBottom: 12, animation: "pulse 2s ease-in-out infinite", animationDelay: "0.2s" }} />
-                            <div style={{ height: 16, width: "75%", background: "rgba(148,163,184,0.10)", borderRadius: 6, marginBottom: 12, animation: "pulse 2s ease-in-out infinite", animationDelay: "0.4s" }} />
-                            <div style={{ height: 16, width: "60%", background: "rgba(148,163,184,0.10)", borderRadius: 6, animation: "pulse 2s ease-in-out infinite", animationDelay: "0.6s" }} />
-                        </div>
-                    </div>`;
-        }).join("\n");
-
-        return {
-            "/App.js": `
-            export default function App() {
-                return (
-                    <div className={\`min-h-screen ${theme.background}\`}>
-                        <style dangerouslySetInnerHTML={{ __html: \`
-                            @keyframes pulse {
-                                0%, 100% { opacity: 1; }
-                                50% { opacity: 0.4; }
-                            }
-                        \`}} />
-                        <main>
-                            ${skeletons}
-                        </main>
-                    </div>
-                );
-            }
-            `,
-        };
-    };
-
     const files =
         sections && sections.length > 0
             ? buildSandpackFiles(sections, globalTheme, skeletonCount)
             : skeletonCount > 0
-              ? buildSkeletonOnlyFiles(skeletonCount)
-              : {
-                    "/App.js": `
-                  import { motion } from "framer-motion";
+              ? buildSkeletonOnlyFiles(globalTheme, skeletonCount)
+              : buildWelcomeFiles();
 
-                  export default function App() {
-                      return (
-                          <div className="min-h-screen bg-slate-900">
-                              <motion.div
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ duration: 0.6 }}
-                              style={{ padding: 40 }}
-                              className="text-purple-600"
-                              >
-                              <h1>Hello with animation</h1>
-                              </motion.div>
-                          </div>
-                      );
-                  }
-                  `,
-                };
+    const sandpack = (
+        <Sandpack
+            key={sandpackKey}
+            files={files}
+            customSetup={{ dependencies: SANDPACK_RUNTIME_DEPENDENCIES }}
+            theme={atomDark}
+            template="react"
+            options={{
+                externalResources,
+                ...SANDPACK_OPTIONS,
+            }}
+        />
+    );
 
     // Sidebar mode: resizable sidebar + preview
     if (layoutMode === "sidebar" && sidebarContent) {
@@ -347,49 +145,19 @@ export const Preview: React.FC<PreviewProps> = ({
                     {/* The Draggable Gutter */}
                     <Separator
                         onPointerDownCapture={() => setIsDragging(true)}
-                        className="group relative w-1.5 cursor-col-resize bg-transparent"
-                    >
-                        <span
-                            className={`pointer-events-none absolute left-1/2 top-1/2 h-12 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full transition-colors ${
-                                isDragging
-                                    ? "bg-white/80"
-                                    : "bg-white/0 group-hover:bg-white/55"
-                            }`}
-                        />
-                    </Separator>
+                        className="w-2 bg-slate-800 hover:bg-white transition-colors cursor-col-resize"
+                    />
 
                     {/* Sandpack Panel */}
                     <Panel>
                         <div className="h-full overflow-hidden relative">
                             {isDragging && (
                                 <div
-                                    className="absolute inset-0 z-50 cursor-col-resize bg-transparent"
+                                    className="absolute inset-0 z-50 cursor-col-resize bg-black/40"
                                     style={{ pointerEvents: "auto" }}
                                 />
                             )}
-                            <Sandpack
-                                key={sandpackKey}
-                                files={files}
-                                customSetup={{
-                                    dependencies: {
-                                        "framer-motion": "^10.0.0",
-                                        "lucide-react": "^0.294.0",
-                                    },
-                                }}
-                                theme={atomDark}
-                                template="react"
-                                options={{
-                                    externalResources,
-                                    showConsoleButton: true,
-                                    showInlineErrors: true,
-                                    showNavigator: false,
-                                    showLineNumbers: true,
-                                    showTabs: true,
-                                    editorHeight: "calc(100vh)",
-                                    editorWidthPercentage: 0,
-                                    resizablePanels: false,
-                                }}
-                            />
+                            {sandpack}
                         </div>
                     </Panel>
                 </Group>
@@ -435,29 +203,7 @@ export const Preview: React.FC<PreviewProps> = ({
                     )}
                 </div>
             )}
-            <Sandpack
-                key={sandpackKey}
-                files={files}
-                customSetup={{
-                    dependencies: {
-                        "framer-motion": "^10.0.0",
-                        "lucide-react": "^0.294.0",
-                    },
-                }}
-                theme={atomDark}
-                template="react"
-                options={{
-                    externalResources,
-                    showConsoleButton: true,
-                    showInlineErrors: true,
-                    showNavigator: false,
-                    showLineNumbers: true,
-                    showTabs: true,
-                    editorHeight: "calc(100vh)",
-                    editorWidthPercentage: 0,
-                    resizablePanels: false,
-                }}
-            />
+            {sandpack}
         </div>
     );
 };
