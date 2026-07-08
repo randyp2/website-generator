@@ -155,12 +155,20 @@ function checkUnboundDataReferences(ast, errors) {
     }
 }
 
-// --- The data prop IS the contentJson object; nested access is always a bug
+// --- The data prop IS the contentJson object; nested access is always a bug.
+// --- Covers data.contentJson, data?.contentJson, and data["contentJson"]
 function checkContentJsonAccess(ast, errors) {
+    const accessesContentJson = (node) => {
+        if (node.object.type !== 'Identifier' || node.object.name !== 'data') return false;
+        if (node.computed) {
+            return node.property.type === 'StringLiteral' && node.property.value === 'contentJson';
+        }
+        return node.property.type === 'Identifier' && node.property.name === 'contentJson';
+    };
+
     traverse(ast, {
-        MemberExpression(path) {
-            const { object, property } = path.node;
-            if (object.type === 'Identifier' && object.name === 'data' && property.name === 'contentJson') {
+        'MemberExpression|OptionalMemberExpression'(path) {
+            if (accessesContentJson(path.node)) {
                 errors.push(errorAt(
                     'Do not use data.contentJson — the data prop IS the contentJson object. Access fields directly (e.g., data.brand, data.navItems).',
                     path.node,

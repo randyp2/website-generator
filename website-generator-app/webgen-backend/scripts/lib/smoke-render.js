@@ -11,10 +11,11 @@
  */
 
 const vm = require('vm');
-const React = require('react');
 const { transformSync } = require('@babel/core');
 const { renderToStaticMarkup } = require('react-dom/server');
 const { buildSectionSandbox } = require('./section-scope');
+
+const RENDER_TIMEOUT_MS = 2000;
 
 const runtimeError = (message) => ({ message, line: null, column: null });
 
@@ -45,9 +46,10 @@ function runSmokeRender(source, contentJson) {
 
     // --- Evaluate the module inside the real-dependency sandbox
     const sandbox = buildSectionSandbox();
+    const context = vm.createContext(sandbox);
     try {
         const script = new vm.Script(transpiledCode, { filename: 'section.jsx' });
-        script.runInContext(vm.createContext(sandbox), { timeout: 2000 });
+        script.runInContext(context, { timeout: RENDER_TIMEOUT_MS });
     } catch (e) {
         return [runtimeError(`VM execution failed: ${e.message}`)];
     }
@@ -58,9 +60,17 @@ function runSmokeRender(source, contentJson) {
         return [runtimeError('Transpiled module did not export a function component.')];
     }
 
-    // --- Render with the locked contentJson exactly as production does
+    // --- Render with the locked contentJson exactly as production does.
+    // The render runs INSIDE the vm so its timeout also covers infinite loops
+    // in component render bodies, which would otherwise hang this process.
+    sandbox.__renderToStaticMarkup = renderToStaticMarkup;
+    sandbox.__contentJson = contentJson;
     try {
-        renderToStaticMarkup(React.createElement(Component, { data: contentJson }));
+        const renderScript = new vm.Script(
+            '__renderToStaticMarkup(React.createElement(module.exports.default || module.exports, { data: __contentJson }));',
+            { filename: 'smoke-render.js' },
+        );
+        renderScript.runInContext(context, { timeout: RENDER_TIMEOUT_MS });
     } catch (e) {
         return [runtimeError(`Runtime render error with contentJson: ${e.message}`)];
     }

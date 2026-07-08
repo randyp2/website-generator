@@ -17,7 +17,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -99,7 +98,10 @@ public class JsxValidatorService {
      * Spawns a Node.js subprocess to validate JSX syntax using Babel.
      * JSX parsing cannot be done in the JVM, so we delegate to scripts/validate-jsx.js
      * via stdin/stdout. The script receives a JSON payload and writes back a JSON result.
-     * A 30-second hard timeout prevents stalled processes from blocking worker threads.
+     *
+     * Stdout is consumed on a background thread so the 30-second timeout governs the
+     * whole validation: the script executes arbitrary generated code, and a hung render
+     * would otherwise block the calling worker thread forever on the stdout read.
      */
     private ValidationResult validateSingleSection(String sectionKey, String reactSource, JsonNode contentJson) {
         try {
@@ -108,7 +110,7 @@ public class JsxValidatorService {
 
             Process process = pb.start();
 
-            // Write JSON payload with reactSource and contentJson to stdin
+            // --- Write JSON payload with reactSource and contentJson to stdin
             try (OutputStream os = process.getOutputStream()) {
                 ObjectNode payload = objectMapper.createObjectNode();
                 payload.put("reactSource", reactSource);
@@ -119,20 +121,33 @@ public class JsxValidatorService {
                 os.flush();
             }
 
-            // Read result from stdout
-            String output;
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-                output = reader.lines().collect(Collectors.joining());
-            }
+            // --- Consume stdout on a background thread so waitFor() below is reached
+            // even when the process never closes its output stream
+            StringBuilder outputBuffer = new StringBuilder();
+            Thread outputReader = new Thread(() -> {
+                try (BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+                    reader.lines().forEach(outputBuffer::append);
+                } catch (Exception ignored) {
+                    // Stream closes when the process dies; partial output is handled below
+                }
+            }, "jsx-validator-output-" + sectionKey);
+            outputReader.setDaemon(true);
+            outputReader.start();
 
+            // --- Enforce the hard timeout on the process itself
             boolean finished = process.waitFor(30, TimeUnit.SECONDS);
             if (!finished) {
                 process.destroyForcibly();
                 return createErrorResult(sectionKey, "Validation timed out after 30 seconds");
             }
 
-            // Parse JSON result
+            // The process has exited, so the reader drains promptly; the join
+            // establishes visibility of the buffer contents on this thread
+            outputReader.join(5000);
+            String output = outputBuffer.toString();
+
+            // --- Parse JSON result
             JsonNode json = objectMapper.readTree(output);
             ValidationResult result = new ValidationResult();
             result.setValid(json.path("valid").asBoolean(false));

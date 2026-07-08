@@ -97,6 +97,26 @@ const cases = [
     valid: false,
     errorIncludes: 'Do not use data.contentJson'
   },
+  {
+    name: 'rejects computed data["contentJson"] usage',
+    source: `
+      export default function Hero({ data }) {
+        return <section>{data["contentJson"].title}</section>;
+      }
+    `,
+    valid: false,
+    errorIncludes: 'Do not use data.contentJson'
+  },
+  {
+    name: 'rejects optional-chained data?.contentJson usage',
+    source: `
+      export default function Hero({ data }) {
+        return <section>{data?.contentJson?.title}</section>;
+      }
+    `,
+    valid: false,
+    errorIncludes: 'Do not use data.contentJson'
+  },
 
   // --- Icon call checks: icons are forwardRef components, not functions ---
   {
@@ -198,6 +218,15 @@ const cases = [
     source: {
       reactSource: `export default function Skills({ data }) { return <section>{data.items.map(function(item, i) { return <span key={i}>{item}</span>; })}</section>; }`,
       contentJson: { items: 'not-an-array' }
+    },
+    valid: false,
+    errorIncludes: 'Runtime render error'
+  },
+  {
+    name: 'runtime: times out on an infinite loop in the render body',
+    source: {
+      reactSource: `export default function Hero({ data }) { while (true) {} return <section>{data.title}</section>; }`,
+      contentJson: { title: 'Hang' }
     },
     valid: false,
     errorIncludes: 'Runtime render error'
