@@ -10,8 +10,6 @@ import {
     PICKER_CONFIRM_CLASSES,
     PICKER_HEADING_CLASSES,
     PICKER_PANEL_CLASSES,
-    TOGGLE_SHELL_CLASSES,
-    toggleButtonClasses,
 } from "./picker-styles";
 import { ColorSwatchField } from "./color-picker/ColorSwatchField";
 import {
@@ -34,6 +32,20 @@ import {
 
 type ThemeMode = ColorPickerSurfaceMode;
 type PickerTab = "presets" | "custom";
+
+const SEGMENTED_CONTROL_CLASSES =
+    "relative inline-grid grid-cols-2 rounded-full border border-neutral-900/10 bg-neutral-900/5 p-1 dark:border-white/10 dark:bg-black/20";
+
+const SEGMENTED_PILL_CLASSES =
+    "pointer-events-none absolute bottom-1 left-1 top-1 w-[calc(50%-0.25rem)] rounded-full bg-white shadow-sm transition-transform duration-200 ease-out dark:bg-white";
+
+const segmentedButtonClasses = (isActive: boolean) =>
+    cn(
+        "relative z-10 flex h-9 cursor-pointer items-center justify-center rounded-full text-sm font-medium transition-colors duration-200",
+        isActive
+            ? "text-neutral-950 dark:text-black"
+            : "text-neutral-500 hover:text-neutral-900 dark:text-white/65 dark:hover:text-white",
+    );
 
 const randomHex = () =>
     `#${Math.floor(Math.random() * 0xffffff)
@@ -159,13 +171,19 @@ export const ColorPickerPanel = ({
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <div className={TOGGLE_SHELL_CLASSES}>
+                        <div className={cn(SEGMENTED_CONTROL_CLASSES, "min-w-[180px]")}>
+                            <span
+                                className={cn(
+                                    SEGMENTED_PILL_CLASSES,
+                                    activeTab === "custom" && "translate-x-full",
+                                )}
+                            />
                             <button
                                 type="button"
                                 onClick={() => setActiveTab("presets")}
                                 className={cn(
-                                    "px-4 py-2 text-sm",
-                                    toggleButtonClasses(
+                                    "px-4",
+                                    segmentedButtonClasses(
                                         activeTab === "presets",
                                     ),
                                 )}
@@ -176,21 +194,27 @@ export const ColorPickerPanel = ({
                                 type="button"
                                 onClick={() => setActiveTab("custom")}
                                 className={cn(
-                                    "px-4 py-2 text-sm",
-                                    toggleButtonClasses(activeTab === "custom"),
+                                    "px-4",
+                                    segmentedButtonClasses(activeTab === "custom"),
                                 )}
                             >
                                 Custom
                             </button>
                         </div>
 
-                        <div className={TOGGLE_SHELL_CLASSES}>
+                        <div className={cn(SEGMENTED_CONTROL_CLASSES, "w-[86px]")}>
+                            <span
+                                className={cn(
+                                    SEGMENTED_PILL_CLASSES,
+                                    themeMode === "dark" && "translate-x-full",
+                                )}
+                            />
                             <button
                                 type="button"
                                 onClick={() => setThemeMode("light")}
                                 className={cn(
-                                    "p-2.5",
-                                    toggleButtonClasses(themeMode === "light"),
+                                    segmentedButtonClasses(themeMode === "light"),
+                                    "px-0",
                                 )}
                                 aria-label="Use light mode palette preview"
                             >
@@ -200,8 +224,8 @@ export const ColorPickerPanel = ({
                                 type="button"
                                 onClick={() => setThemeMode("dark")}
                                 className={cn(
-                                    "p-2.5",
-                                    toggleButtonClasses(themeMode === "dark"),
+                                    segmentedButtonClasses(themeMode === "dark"),
+                                    "px-0",
                                 )}
                                 aria-label="Use dark mode palette preview"
                             >
