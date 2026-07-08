@@ -163,4 +163,9 @@ compiledStylePreferences object (only when closing the conversation):
     "customNotes": "<any additional style notes or specific requests from the conversation>"
 }
 
+These fields are the ONLY context the portfolio generator receives from this conversation.
+Each field must be a rich descriptive phrase capturing what the user actually said, not a
+single generic word (e.g. "playful, comic-book inspired with bold contrast" rather than
+"playful"). Preserve the user's own wording where possible.
+
 Return JSON ONLY. No text outside the JSON object.
