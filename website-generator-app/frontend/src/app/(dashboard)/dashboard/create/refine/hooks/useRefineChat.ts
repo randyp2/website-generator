@@ -177,6 +177,8 @@ export const useRefineChat = ({
      */
     const pollBuildJob = (jobId: string, buildingMessageId: string): void => {
         let sectionOffset = 0;
+        // Sections whose refinement failed and kept their previous version
+        const fallbackSectionNames: string[] = [];
 
         pollTimerRef.current = setInterval(async () => {
             try {
@@ -191,6 +193,14 @@ export const useRefineChat = ({
                 // Append any new sections incrementally
                 if (data.sections.length > 0) {
                     sectionOffset += data.sections.length;
+
+                    for (const section of data.sections) {
+                        if (section.refineFallback) {
+                            fallbackSectionNames.push(
+                                section.title || section.sectionKey,
+                            );
+                        }
+                    }
 
                     // Merge new/modified sections into existing sections
                     setSections(mergeSections(sections, data.sections));
@@ -218,8 +228,15 @@ export const useRefineChat = ({
                     // Final load to get the fully merged portfolio from DB
                     await loadSavedPortfolio();
 
+                    const completionText =
+                        fallbackSectionNames.length > 0
+                            ? `Portfolio updated, but I couldn't apply the change to ${fallbackSectionNames.join(
+                                  ", ",
+                              )}, so ${fallbackSectionNames.length === 1 ? "that section was" : "those sections were"} left unchanged. Try rephrasing that request.`
+                            : "Portfolio updated successfully!";
+
                     const completeMessage: Message = createAiMessage(
-                        "Portfolio updated successfully!",
+                        completionText,
                         {
                             id: `ai-complete-${Date.now()}`,
                             messageType: "build",

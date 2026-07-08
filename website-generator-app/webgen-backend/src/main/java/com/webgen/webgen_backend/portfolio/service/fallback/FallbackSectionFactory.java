@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.portfolio.dto.BlueprintSectionPlanDTO;
 import com.webgen.webgen_backend.portfolio.dto.common.SectionDTO;
+import com.webgen.webgen_backend.portfolio.dto.planner.SectionContentDTO;
 import com.webgen.webgen_backend.portfolio.util.SectionNames;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -50,6 +51,30 @@ public class FallbackSectionFactory {
         section.setOrderIndex(orderIndex);
         section.setContentJson(contentJson);
         section.setReactSource(buildFallbackReactSource(sectionKey, title));
+        return section;
+    }
+
+    /**
+     * Creates a fallback for a failed refinement by keeping the section's
+     * previous version unchanged. The existing code is already live, so it is
+     * always a safe result; the changeDescription tells the user their change
+     * did not apply.
+     *
+     * @param existing the section as it was before the refinement attempt
+     * @return section DTO identical to the existing section, flagged as a fallback
+     */
+    public SectionDTO createUnchangedSection(SectionContentDTO existing) {
+        SectionDTO section = new SectionDTO();
+        section.setSectionKey(existing.getSectionKey());
+        section.setTitle(existing.getTitle());
+        section.setOrderIndex(existing.getOrderIndex());
+        section.setContentJson(existing.getContentJson() != null
+                ? objectMapper.valueToTree(existing.getContentJson())
+                : objectMapper.createObjectNode());
+        section.setReactSource(existing.getReactSource());
+        section.setChangeDescription(
+                "The requested change could not be applied after multiple attempts, so this section was kept unchanged.");
+        section.setRefineFallback(true);
         return section;
     }
 

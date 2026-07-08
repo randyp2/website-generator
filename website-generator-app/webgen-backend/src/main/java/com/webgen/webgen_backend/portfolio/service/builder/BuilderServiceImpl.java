@@ -10,6 +10,7 @@ import com.webgen.webgen_backend.portfolio.dto.builder.BuilderResponseDTO;
 import com.webgen.webgen_backend.portfolio.dto.builder.ValidationResult;
 import com.webgen.webgen_backend.portfolio.dto.planner.SectionContentDTO;
 import com.webgen.webgen_backend.portfolio.dto.planner.SectionPlanDTO;
+import com.webgen.webgen_backend.portfolio.service.fallback.FallbackSectionFactory;
 import com.webgen.webgen_backend.portfolio.entity.GeneratedVersion;
 import com.webgen.webgen_backend.portfolio.entity.Portfolio;
 import com.webgen.webgen_backend.portfolio.entity.PortfolioSection;
@@ -46,6 +47,7 @@ public class BuilderServiceImpl implements BuilderService {
     private final BuilderPromptBuilder builderPromptBuilder;
     private final BuilderResponseParser builderResponseParser;
     private final JsxValidatorService jsxValidatorService;
+    private final FallbackSectionFactory fallbackSectionFactory;
     private final GenerateJobService generateJobService;
     private final ObjectMapper objectMapper;
     private final PortfolioRepository portfolioRepository;
@@ -221,11 +223,27 @@ public class BuilderServiceImpl implements BuilderService {
 
         }
 
+        // --- Degrade instead of failing the whole job: revert to the previous
+        // version of the section, or skip entirely when adding a new section
         if (validation == null || !validation.isValid()) {
-            String failReason = "Failed to generate valid JSX for refined section '"
-                    + sectionKey + "' after " + maxRetries + " attempts";
-            generateJobService.failJob(jobId, failReason);
-            throw new IllegalStateException(failReason);
+            SectionContentDTO existing = msg.getExistingSection();
+            boolean canRevert = existing != null
+                    && existing.getReactSource() != null
+                    && !existing.getReactSource().isBlank();
+
+            if (canRevert) {
+                System.err.println(">>> [REFINE-WORKER] Section '" + sectionKey + "' failed all "
+                        + maxRetries + " attempts — keeping previous version unchanged");
+                parsedSection = fallbackSectionFactory.createUnchangedSection(existing);
+            } else {
+                System.err.println(">>> [REFINE-WORKER] New section '" + sectionKey + "' failed all "
+                        + maxRetries + " attempts with no previous version — skipping it");
+                int completedCount = generateJobService.incrementCompleted(jobId);
+                if (completedCount == msg.getTotalSections()) {
+                    persistRefinementFromRedis(jobId, msg);
+                }
+                return;
+            }
         }
 
         // Push completed section to Redis list

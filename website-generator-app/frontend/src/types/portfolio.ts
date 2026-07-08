@@ -37,6 +37,8 @@ export interface SectionDTO {
     contentJson: unknown;
     reactSource: string;
     changeDescription: string | null;
+    /** True when a refinement failed and the section's previous version was kept. */
+    refineFallback?: boolean | null;
 }
 
 export interface GlobalTheme {
