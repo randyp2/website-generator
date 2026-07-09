@@ -5,9 +5,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { MessageSquareText, Plus, Send } from "lucide-react";
+import type { ElementType, KeyboardEvent, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
-const composerActions = [
+export interface StyleChatComposerAction {
+    icon: ElementType;
+    label: string;
+    onSelect?: () => void;
+    disabled?: boolean;
+    trailing?: ReactNode;
+}
+
+const defaultComposerActions: StyleChatComposerAction[] = [
     { icon: Plus, label: "Add references" },
     { icon: MessageSquareText, label: "General idea" },
 ] as const;
@@ -18,6 +27,9 @@ interface StyleChatComposerProps {
     onSend: () => void;
     isInputDisabled: boolean;
     isSendDisabled: boolean;
+    placeholder?: string;
+    actions?: readonly StyleChatComposerAction[];
+    className?: string;
     /**
      * Where the actions menu opens relative to the bar. Use "up" once the
      * composer sits at the bottom of the viewport so the menu stays visible.
@@ -35,6 +47,9 @@ export const StyleChatComposer = ({
     onSend,
     isInputDisabled,
     isSendDisabled,
+    placeholder = "Describe the general idea for your portfolio...",
+    actions = defaultComposerActions,
+    className,
     actionsPlacement = "down",
 }: StyleChatComposerProps) => {
     const [isActionsOpen, setIsActionsOpen] = useState(false);
@@ -62,7 +77,7 @@ export const StyleChatComposer = ({
             document.removeEventListener("pointerdown", handlePointerDown);
     }, [isActionsOpen]);
 
-    const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
         if (event.key === "Enter" && !event.shiftKey) {
             event.preventDefault();
             onSend();
@@ -70,9 +85,9 @@ export const StyleChatComposer = ({
     };
 
     return (
-        <div ref={composerRef} className="relative">
+        <div ref={composerRef} className={cn("relative", className)}>
             <AnimatePresence>
-                {isActionsOpen && (
+                {isActionsOpen && actions.length > 0 && (
                     <motion.div
                         initial={{
                             opacity: 0,
@@ -93,15 +108,23 @@ export const StyleChatComposer = ({
                                 : "top-full mt-1.5",
                         )}
                     >
-                        {composerActions.map(({ icon: Icon, label }) => (
+                        {actions.map(({ icon: Icon, label, onSelect, disabled, trailing }) => (
                             <button
                                 key={label}
                                 type="button"
-                                onClick={() => setIsActionsOpen(false)}
-                                className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-muted-foreground transition hover:bg-accent hover:text-accent-foreground dark:text-white/80 dark:hover:bg-white/[0.08] dark:hover:text-white"
+                                onClick={() => {
+                                    if (disabled) return;
+                                    onSelect?.();
+                                    setIsActionsOpen(false);
+                                }}
+                                disabled={disabled}
+                                className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-muted-foreground transition hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50 dark:text-white/80 dark:hover:bg-white/[0.08] dark:hover:text-white"
                             >
                                 <Icon className="h-4 w-4" />
-                                {label}
+                                <span className="min-w-0 flex-1 truncate text-left">
+                                    {label}
+                                </span>
+                                {trailing}
                             </button>
                         ))}
                     </motion.div>
@@ -116,6 +139,7 @@ export const StyleChatComposer = ({
                         isActionsOpen ? "Close options" : "More options"
                     }
                     aria-expanded={isActionsOpen}
+                    disabled={actions.length === 0}
                     className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition hover:text-foreground dark:text-white/70 dark:hover:text-white"
                 >
                     <Plus
@@ -133,7 +157,7 @@ export const StyleChatComposer = ({
                     onChange={(event) => onPromptChange(event.target.value)}
                     onKeyDown={handleKeyDown}
                     disabled={isInputDisabled}
-                    placeholder="Describe the general idea for your portfolio..."
+                    placeholder={placeholder}
                     className={cn(
                         "resize-none border-0 bg-transparent px-2 text-foreground placeholder:text-muted-foreground shadow-none focus-visible:ring-0 dark:text-white dark:placeholder:text-white/55",
                         "max-h-20 min-h-10 py-2 text-base leading-6 md:text-lg",

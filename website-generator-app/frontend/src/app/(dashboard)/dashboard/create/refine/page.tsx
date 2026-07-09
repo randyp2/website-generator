@@ -2,9 +2,9 @@
 
 import React, { useMemo, useState } from "react";
 import { Preview } from "./components/Preview";
-import { FloatingPromptBar } from "./components/FloatingPromptBar";
 import { ChatHistoryOverlay } from "./components/ChatHistoryOverlay";
 import { SidebarChatPanel } from "./components/SidebarChatPanel";
+import { RefineChatPromptBar } from "./components/RefineChatPromptBar";
 import { useInitialPortfolioGeneration } from "./hooks/useInitialPortfolioGeneration";
 import { GenerationOverlay } from "./components/loaders/GenerationOverlay";
 import { useRefineChat } from "./hooks/useRefineChat";
@@ -189,7 +189,7 @@ const AIRefinementPage: React.FC = () => {
             {/* Only visible in floating mode */}
             {/* ================================================ */}
             {chatLayoutMode === 'floating' && (
-                <FloatingPromptBar
+                <RefineChatPromptBar
                     uploadedFiles={uploadedFiles}
                     onSendMessage={sendMessage}
                     onFileSelect={handleFileSelect}
@@ -204,6 +204,7 @@ const AIRefinementPage: React.FC = () => {
                     isDownloading={isDownloading}
                     layoutMode={chatLayoutMode}
                     onLayoutModeChange={setChatLayoutMode}
+                    placement="floating"
                 />
             )}
 

@@ -3,10 +3,10 @@
 import React, { useEffect, useRef } from "react";
 import type { UploadedFile } from "@/types/file";
 import { PlanApprovalBar } from "./sidebar-chat/RefinePlanCard";
-import { SidebarChatComposer } from "./sidebar-chat/SidebarChatComposer";
 import { SidebarChatMessages } from "./sidebar-chat/SidebarChatMessages";
 import type { ChatLayoutMode, ChatMessage } from "./sidebar-chat/types";
 import { useCompletedStreamingIds } from "./sidebar-chat/useCompletedStreamingIds";
+import { RefineChatPromptBar } from "./RefineChatPromptBar";
 
 interface SidebarChatPanelProps {
     messages: ChatMessage[];
@@ -68,7 +68,7 @@ export const SidebarChatPanel: React.FC<SidebarChatPanelProps> = ({
                 />
             )}
 
-            <SidebarChatComposer
+            <RefineChatPromptBar
                 uploadedFiles={uploadedFiles}
                 isGenerating={isGenerating}
                 portfolioId={portfolioId}
@@ -80,6 +80,7 @@ export const SidebarChatPanel: React.FC<SidebarChatPanelProps> = ({
                 onDownload={onDownload}
                 onVersionActivated={onVersionActivated}
                 onLayoutModeChange={onLayoutModeChange}
+                placement="sidebar"
             />
         </div>
     );
