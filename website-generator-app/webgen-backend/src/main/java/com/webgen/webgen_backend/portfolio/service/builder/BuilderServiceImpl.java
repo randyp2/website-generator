@@ -10,6 +10,7 @@ import com.webgen.webgen_backend.portfolio.dto.builder.BuilderResponseDTO;
 import com.webgen.webgen_backend.portfolio.dto.builder.ValidationResult;
 import com.webgen.webgen_backend.portfolio.dto.planner.SectionContentDTO;
 import com.webgen.webgen_backend.portfolio.dto.planner.SectionPlanDTO;
+import com.webgen.webgen_backend.portfolio.mapper.PortfolioSectionMapper;
 import com.webgen.webgen_backend.portfolio.service.fallback.FallbackSectionFactory;
 import com.webgen.webgen_backend.portfolio.entity.GeneratedVersion;
 import com.webgen.webgen_backend.portfolio.entity.Portfolio;
@@ -53,6 +54,7 @@ public class BuilderServiceImpl implements BuilderService {
     private final PortfolioRepository portfolioRepository;
     private final GeneratedVersionRepository generatedVersionRepository;
     private final PortfolioSectionRepository sectionRepository;
+    private final PortfolioSectionMapper sectionMapper;
 
     @Value("${jsx.validator.max-retries:3}")
     private int maxRetries;
@@ -67,7 +69,6 @@ public class BuilderServiceImpl implements BuilderService {
             throw new IllegalArgumentException("sectionPlans required!");
         System.out.println(">>> [BUILDER] Input validation passed");
         System.out.println(">>> [BUILDER] Portfolio ID: " + req.getPortfolioId());
-        System.out.println(">>> [BUILDER] Sections count: " + (req.getSections() == null ? 0 : req.getSections().size()));
         System.out.println(">>> [BUILDER] Section plans count: " + req.getSectionPlans().size());
         System.out.println(">>> [BUILDER] Assets count: " + (req.getAssets() == null ? 0 : req.getAssets().size()));
 
@@ -107,11 +108,13 @@ public class BuilderServiceImpl implements BuilderService {
             req.setSectionPlans(filteredPlans);
         }
 
-        // Index existing sections
-        Map<String, SectionContentDTO> sectionsByKey  = (req.getSections() != null)
-                ? req.getSections().stream()
-                    .collect(Collectors.toMap(SectionContentDTO::getSectionKey, s -> s))
-                : Map.of();
+        // --- Load current sections from the DB. The DB is the source of truth
+        // for section code: a stale browser must never supply what gets modified
+        Map<String, SectionContentDTO> sectionsByKey = sectionMapper
+                .toSectionContentList(sectionRepository.findAllByPortfolioIdOrderByOrderIndexAsc(req.getPortfolioId()))
+                .stream()
+                .collect(Collectors.toMap(SectionContentDTO::getSectionKey, s -> s));
+        System.out.println(">>> [BUILDER] Loaded " + sectionsByKey.size() + " existing sections from DB");
 
         // Filter the plans that need LLM work
         List<SectionPlanDTO> actionablePlans  = req.getSectionPlans().stream()

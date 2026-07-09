@@ -47,31 +47,6 @@ export const buildSectionSummaries = (
 };
 
 /**
- * Build a list of section content from the Section DTOs
- * !NOTE = Might be redundant will refactor later
- *
- * @param items - List of SectionDTO to build section content
- * @returns an Array of sectionDTOs
- */
-export const buildSectionContent = (
-    items: SectionDTO[] | null,
-): Array<{
-    sectionKey: string;
-    title: string;
-    orderIndex: number;
-    reactSource: string;
-    contentJson: unknown;
-}> => {
-    return (items ?? []).map((section) => ({
-        sectionKey: section.sectionKey,
-        title: section.title ?? "",
-        orderIndex: section.orderIndex ?? 0,
-        reactSource: section.reactSource ?? "",
-        contentJson: section.contentJson ?? {},
-    }));
-};
-
-/**
  * Normalizes portfolio sections into the planner request payload shape.
  *
  * This is a frontend-to-backend boundary helper used before calling the

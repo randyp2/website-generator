@@ -9,7 +9,6 @@ import type {
 import type { Message, SectionPlan } from "@/types/preview";
 import {
     buildPlannerSections,
-    buildSectionContent,
     buildSectionSummaries,
 } from "../lib/section-serializers";
 import {
@@ -110,31 +109,19 @@ export const useRefineChat = ({
 
     /**
      * Kick off the build — returns a jobId for polling.
-     * The backend fans out section generation to RabbitMQ workers
-     * and persists results asynchronously.
+     * Sends only plans and the session id: the backend loads section code
+     * from the DB, so client state can never overwrite newer saved sections.
      */
     const callBuilder = async (
         sectionPlans: SectionPlan[],
     ): Promise<BuilderResponse | null> => {
         if (!portfolioId) return null;
 
-        // Only send sections that have a "modify" plan — "add" sections have no existing
-        // content, "delete" sections don't need LLM work
-        const modifyKeys = new Set(
-            sectionPlans
-                .filter((p) => p.action === "modify")
-                .map((p) => p.sectionKey),
-        );
-        const sectionsToSend = (sections ?? []).filter((s) =>
-            modifyKeys.has(s.sectionKey),
-        );
-
         const response = await fetch(`/api/portfolio/${portfolioId}/refine/build`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 sessionId: sessionIdRef.current,
-                sections: buildSectionContent(sectionsToSend),
                 sectionPlans,
             }),
         });

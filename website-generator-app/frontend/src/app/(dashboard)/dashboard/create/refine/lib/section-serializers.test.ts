@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import type { SectionDTO } from "@/types/portfolio";
 import {
     buildPlannerSections,
-    buildSectionContent,
     buildSectionSummaries,
     summarizeSection,
 } from "./section-serializers";
@@ -110,34 +109,6 @@ describe("section-serializers", () => {
                     title: "",
                     orderIndex: null,
                     summary: "hero",
-                },
-            ]);
-        });
-    });
-
-    describe("buildSectionContent", () => {
-        it("returns an empty array when input is null", () => {
-            expect(buildSectionContent(null)).toEqual([]);
-        });
-
-        it("maps sections and applies defaults for missing values", () => {
-            const sections: SectionDTO[] = [
-                makeSection({
-                    sectionKey: "about",
-                    title: undefined,
-                    orderIndex: undefined,
-                    reactSource: undefined as unknown as string,
-                    contentJson: undefined,
-                }),
-            ];
-
-            expect(buildSectionContent(sections)).toEqual([
-                {
-                    sectionKey: "about",
-                    title: "",
-                    orderIndex: 0,
-                    reactSource: "",
-                    contentJson: {},
                 },
             ]);
         });
