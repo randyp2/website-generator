@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 import { AppThemeProvider } from "@/components/theme/AppThemeProvider";
 import { Toaster } from "@/components/ui/toaster";
+import GenerationJobWatcher from "@/components/GenerationJobWatcher";
 import { getPublicSiteUrl } from "@/lib/public-env";
 import AppQueryProvider from "@/components/query/AppQueryProvider";
 
@@ -108,6 +109,7 @@ export default function RootLayout({
           <AppThemeProvider>
             {children}
             <Toaster />
+            <GenerationJobWatcher />
           </AppThemeProvider>
         </AppQueryProvider>
       </body>

@@ -1,6 +1,5 @@
 import DashboardLayoutClient from "../components/DashboardLayoutClient";
 import DashboardProfileProvider from "../components/DashboardProfileProvider";
-import GenerationJobWatcher from "../components/GenerationJobWatcher";
 import { getDashboardProfileState } from "./dashboard-profile.server";
 
 export default async function DashboardLayout({
@@ -12,7 +11,6 @@ export default async function DashboardLayout({
 
     return (
         <DashboardProfileProvider authUser={authUser} initialProfile={profile}>
-            <GenerationJobWatcher />
             <div className="dashboard-user-shell relative h-dvh overflow-hidden bg-background text-foreground">
                 <div className="pointer-events-none fixed inset-0 z-0 bg-background" />
                 <div className="relative z-10 h-full">
