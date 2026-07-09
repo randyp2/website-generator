@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { LayoutGrid, List, ChevronDown, ChevronUp } from "lucide-react"
+import { LayoutGrid, List, ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 import useVerificationSubTab from "../useVerificationSubTab"
@@ -24,7 +24,7 @@ import {
   deriveProviderCategoryCounts,
 } from "./evidence-tab.utils"
 
-const COLLAPSED_DOCUMENT_LIMIT = 10
+const ITEMS_PER_PAGE = 10
 
 // ─── View mode toggle ─────────────────────────────────────────────────────────
 
@@ -62,6 +62,39 @@ const ViewModeToggle = ({ active, onChange }: ViewModeToggleProps) => (
   </div>
 )
 
+// ─── Pagination controls ──────────────────────────────────────────────────────
+
+interface PaginationProps {
+  currentPage: number
+  totalPages: number
+  onPrev: () => void
+  onNext: () => void
+}
+
+const Pagination = ({ currentPage, totalPages, onPrev, onNext }: PaginationProps) => (
+  <div className="flex items-center justify-center gap-3 pt-2">
+    <button
+      onClick={onPrev}
+      disabled={currentPage === 1}
+      className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+    >
+      <ChevronLeft className="h-3.5 w-3.5" />
+      Prev
+    </button>
+    <span className="text-xs text-muted-foreground">
+      {currentPage} / {totalPages}
+    </span>
+    <button
+      onClick={onNext}
+      disabled={currentPage === totalPages}
+      className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+    >
+      Next
+      <ChevronRight className="h-3.5 w-3.5" />
+    </button>
+  </div>
+)
+
 // ─── Evidence detail adapter ──────────────────────────────────────────────────
 
 const toEvidenceItemForDialog = (
@@ -77,7 +110,7 @@ const EvidenceTabPanel = ({ evidence, isLoading, error }: EvidenceTabPanelProps)
   const [activeSource, setActiveSource] = useState<EvidenceSource | "all">("all")
   const [viewMode, setViewMode] = useState<EvidenceViewMode>("grid")
   const [selectedDoc, setSelectedDoc] = useState<EvidenceDocument | null>(null)
-  const [isExpanded, setIsExpanded] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
 
   const documents = useMemo(
     () => evidence.map(toEvidenceDocument),
@@ -104,6 +137,26 @@ const EvidenceTabPanel = ({ evidence, isLoading, error }: EvidenceTabPanelProps)
     [categoryFilteredDocuments, activeSource],
   )
 
+  const totalPages = Math.max(1, Math.ceil(filteredDocuments.length / ITEMS_PER_PAGE))
+
+  const pagedDocuments = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE
+    return filteredDocuments.slice(start, start + ITEMS_PER_PAGE)
+  }, [filteredDocuments, currentPage])
+
+  const stats = useMemo(() => deriveStats(documents), [documents])
+
+  const handleProviderCategoryChange = (category: EvidenceProviderCategory) => {
+    setProviderCategory(category)
+    setActiveSource("all")
+    setCurrentPage(1)
+  }
+
+  const handleSourceChange = (source: EvidenceSource | "all") => {
+    setActiveSource(source)
+    setCurrentPage(1)
+  }
+
   // The evidence a user navigated to from the skill drawer, derived from the URL.
   const targetDoc = useMemo(
     () =>
@@ -112,34 +165,6 @@ const EvidenceTabPanel = ({ evidence, isLoading, error }: EvidenceTabPanelProps)
         : null,
     [targetEvidenceId, documents],
   )
-
-  const shouldShowFullList = isExpanded || targetDoc !== null
-
-  const visibleDocuments = useMemo(
-    () =>
-      shouldShowFullList
-        ? filteredDocuments
-        : filteredDocuments.slice(0, COLLAPSED_DOCUMENT_LIMIT),
-    [filteredDocuments, shouldShowFullList],
-  )
-
-  const hiddenDocumentCount = Math.max(
-    filteredDocuments.length - COLLAPSED_DOCUMENT_LIMIT,
-    0,
-  )
-
-  const stats = useMemo(() => deriveStats(documents), [documents])
-
-  const handleProviderCategoryChange = (category: EvidenceProviderCategory) => {
-    setProviderCategory(category)
-    setActiveSource("all")
-    setIsExpanded(false)
-  }
-
-  const handleSourceChange = (source: EvidenceSource | "all") => {
-    setActiveSource(source)
-    setIsExpanded(false)
-  }
 
   // A user click takes precedence; otherwise fall back to the URL-driven target.
   const activeDoc = selectedDoc ?? targetDoc
@@ -209,32 +234,18 @@ const EvidenceTabPanel = ({ evidence, isLoading, error }: EvidenceTabPanelProps)
           </div>
 
           <EvidenceDocumentGrid
-            documents={visibleDocuments}
+            documents={pagedDocuments}
             viewMode={viewMode}
             onDocumentClick={handleDocumentClick}
           />
 
-          {hiddenDocumentCount > 0 && (
-            <button
-              type="button"
-              onClick={() => setIsExpanded(!shouldShowFullList)}
-              className="mx-auto flex items-center gap-1.5 rounded-full border border-border bg-background px-3.5 py-2 text-xs font-medium text-muted-foreground transition-colors hover:cursor-pointer hover:border-primary/40 hover:text-foreground"
-            >
-              {shouldShowFullList ? (
-                <>
-                  Show less
-                  <ChevronUp className="h-3.5 w-3.5" />
-                </>
-              ) : (
-                <>
-                  Read more
-                  <span className="text-muted-foreground/70">
-                    {hiddenDocumentCount} more
-                  </span>
-                  <ChevronDown className="h-3.5 w-3.5" />
-                </>
-              )}
-            </button>
+          {totalPages > 1 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPrev={() => setCurrentPage((p) => p - 1)}
+              onNext={() => setCurrentPage((p) => p + 1)}
+            />
           )}
         </div>
       </div>
