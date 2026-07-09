@@ -28,6 +28,7 @@ import { useUser } from "@/context/UserContext";
 import BrandWordmark from "@/components/branding/BrandWordmark";
 import useMyProfilePath from "@/hooks/useMyProfilePath";
 import { usePortfolioListQuery } from "../dashboard/hooks/usePortfolioListQuery";
+import { useGenerationJobStore } from "@/stores/useGenerationJobStore";
 
 interface NavItem {
     id: string;
@@ -39,7 +40,20 @@ interface NavItem {
     external?: boolean;
     /** Renders a separator above this item. */
     dividerBefore?: boolean;
+    /** Shows a spinner on the item while related background work runs. */
+    busy?: boolean;
 }
+
+/** Minimal orange ring spinner shown while a portfolio job is running. */
+const GenerationSpinner: React.FC<{ className?: string }> = ({
+    className = "",
+}) => (
+    <span
+        role="status"
+        aria-label="Portfolio generating"
+        className={`inline-block shrink-0 animate-spin rounded-full border-2 border-orange-500/25 border-t-orange-500 ${className}`}
+    />
+);
 
 interface SidebarNavigationProps {
     collapsed?: boolean;
@@ -65,6 +79,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
     const { theme, setTheme } = useTheme();
     const { data: portfolios = [] } = usePortfolioListQuery(user?.id);
     const portfoliosCount = portfolios.length;
+    const activeJob = useGenerationJobStore((state) => state.activeJob);
     const [showProfileMenu, setShowProfileMenu] = useState<boolean>(false);
     const [showThemeModal, setShowThemeModal] = useState<boolean>(false);
     const currentTheme =
@@ -93,6 +108,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
             label: "Create New",
             icon: MdOutlineCreate,
             path: "/dashboard/create",
+            busy: activeJob !== null,
         },
         {
             id: "publish",
@@ -153,6 +169,10 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                         />
                     </div>
 
+                    {collapsed && item.busy && (
+                        <GenerationSpinner className="absolute right-1 top-1 h-2.5 w-2.5" />
+                    )}
+
                     {!collapsed && (
                         <>
                             <span
@@ -164,6 +184,10 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                             >
                                 {item.label}
                             </span>
+
+                            {item.busy && (
+                                <GenerationSpinner className="h-3.5 w-3.5" />
+                            )}
 
                             {item.badge && (
                                 <span className="text-sm font-bold tabular-nums text-orange-400 transition-all duration-200">
