@@ -119,11 +119,21 @@ const OtherSourcesCard = () => (
       </div>
     </CardContent>
 
-    <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/60 px-5 text-center backdrop-blur-[2px] dark:bg-black/40">
-      <div className="max-w-[18rem]">
-        <Lock className="mx-auto mb-3 h-16 w-16 text-foreground/35 dark:text-white/35" />
-        <p className="text-sm font-semibold text-foreground">Coming soon</p>
-        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+    <div className="absolute inset-0 z-20 overflow-hidden bg-background/72 px-5 text-center backdrop-blur-[2.5px] dark:bg-black/55">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.58),transparent_58%)] dark:bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1),transparent_58%)]"
+      />
+      <Lock
+        aria-hidden
+        strokeWidth={1.35}
+        className="pointer-events-none absolute left-1/2 top-1/2 h-32 w-32 -translate-x-1/2 -translate-y-[58%] text-foreground/[0.09] dark:text-white/[0.11]"
+      />
+      <div className="relative flex h-full flex-col items-center justify-center">
+        <p className="text-sm font-semibold tracking-wide text-foreground">
+          Coming soon
+        </p>
+        <p className="mt-1 max-w-[16rem] text-xs leading-relaxed text-foreground/75 dark:text-white/70">
           Multi-source verification is being prepared for this workspace.
         </p>
       </div>
