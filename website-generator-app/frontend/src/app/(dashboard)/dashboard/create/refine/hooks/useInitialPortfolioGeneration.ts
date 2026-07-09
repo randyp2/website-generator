@@ -14,6 +14,7 @@ import {
     createUserMessage,
 } from "../lib/message-helpers";
 import type { GenerationPhase } from "../components/loaders/GenerationOverlay";
+import { useGenerationJobStore } from "@/stores/useGenerationJobStore";
 
 interface LoadPortfolioResponse {
     sections?: SectionDTO[] | null;
@@ -178,6 +179,7 @@ export const useInitialPortfolioGeneration = ({
                         if (sectionsData.status === "COMPLETED") {
                             if (pollTimer) clearInterval(pollTimer);
                             setGenerationPhase(null);
+                            useGenerationJobStore.getState().clearJob();
 
                             // Final load to sync global theme + catch any missed sections
                             await loadSavedPortfolio();
@@ -200,6 +202,7 @@ export const useInitialPortfolioGeneration = ({
                         if (sectionsData.status === "FAILED") {
                             if (pollTimer) clearInterval(pollTimer);
                             setGenerationPhase(null);
+                            useGenerationJobStore.getState().clearJob();
 
                             const error_message: Message = createAiMessage(
                                 "Generation failed. Please try again.",
@@ -240,6 +243,7 @@ export const useInitialPortfolioGeneration = ({
                         if (jobStatus.status === "COMPLETED") {
                             if (pollTimer) clearInterval(pollTimer);
                             setGenerationPhase(null);
+                            useGenerationJobStore.getState().clearJob();
                             await loadSavedPortfolio();
 
                             const done_message: Message = createAiMessage(
@@ -259,6 +263,7 @@ export const useInitialPortfolioGeneration = ({
                         if (jobStatus.status === "FAILED") {
                             if (pollTimer) clearInterval(pollTimer);
                             setGenerationPhase(null);
+                            useGenerationJobStore.getState().clearJob();
 
                             const error_message: Message = createAiMessage(
                                 "Generation failed. Please try again.",
@@ -344,6 +349,11 @@ export const useInitialPortfolioGeneration = ({
 
                 // Start polling for status + sections
                 const { jobId } = (await response.json()) as { jobId: string };
+                useGenerationJobStore.getState().startJob({
+                    jobId,
+                    portfolioId,
+                    kind: "generate",
+                });
                 pollJobStatus(jobId, tempAiMessage.id);
             } catch (err: unknown) {
                 console.error("[generate] Failed to start generation:", err);

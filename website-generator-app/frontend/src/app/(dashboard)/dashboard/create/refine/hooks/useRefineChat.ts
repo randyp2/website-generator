@@ -8,6 +8,7 @@ import type {
 } from "@/types/portfolio";
 import type { Message, SectionPlan } from "@/types/preview";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
+import { useGenerationJobStore } from "@/stores/useGenerationJobStore";
 import {
     buildPlannerSections,
     buildSectionSummaries,
@@ -235,6 +236,7 @@ export const useRefineChat = ({
 
                 if (data.status === "COMPLETED") {
                     if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+                    useGenerationJobStore.getState().clearJob();
 
                     // Final load to get the fully merged portfolio from DB
                     await loadSavedPortfolio();
@@ -269,6 +271,7 @@ export const useRefineChat = ({
 
                 if (data.status === "FAILED") {
                     if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+                    useGenerationJobStore.getState().clearJob();
 
                     const errorMessage: Message = createAiMessage(
                         "Sorry, there was an error building your changes. Please try again.",
@@ -309,6 +312,14 @@ export const useRefineChat = ({
 
             if (!buildResult?.jobId) {
                 throw new Error("No jobId returned from build endpoint");
+            }
+
+            if (portfolioId) {
+                useGenerationJobStore.getState().startJob({
+                    jobId: buildResult.jobId,
+                    portfolioId,
+                    kind: "refine",
+                });
             }
 
             // Start polling for incremental section updates
