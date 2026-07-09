@@ -7,6 +7,7 @@ import com.webgen.webgen_backend.portfolio.service.clarifier.ClarifierService;
 import com.webgen.webgen_backend.portfolio.service.parser.PlannerResponseParser;
 import com.webgen.webgen_backend.portfolio.service.planner.PlannerService;
 import com.webgen.webgen_backend.portfolio.service.prompt.PlannerPromptBuilder;
+import com.webgen.webgen_backend.portfolio.exception.RefineSessionExpiredException;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -40,7 +41,7 @@ public class PlannerServiceImpl implements PlannerService {
         System.out.println(">>> [PLANNER] Loading clarifier context for session: " + req.getSessionId());
         ClarifierContext context = clarifierService.getContext(req.getSessionId());
         if (context == null)
-            throw new IllegalStateException("No clarifier context found. Run clarify first.");
+            throw new RefineSessionExpiredException();
         System.out.println(">>> [PLANNER] Context loaded with turnCount=" + context.getTurnCount()
                 + ", confidence=" + context.getConfidenceScore()
                 + ", scope=" + context.getScope()

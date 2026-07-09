@@ -26,6 +26,7 @@ import com.webgen.webgen_backend.portfolio.service.validator.JsxValidatorService
 import com.webgen.webgen_backend.portfolio.repository.GeneratedVersionRepository;
 import com.webgen.webgen_backend.portfolio.repository.PortfolioRepository;
 import com.webgen.webgen_backend.portfolio.repository.PortfolioSectionRepository;
+import com.webgen.webgen_backend.portfolio.exception.RefineSessionExpiredException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
@@ -78,7 +79,7 @@ public class BuilderServiceImpl implements BuilderService {
         System.out.println(">>> [BUILDER] Loading clarifier context for session: " + req.getSessionId());
         ClarifierContext context = clarifierService.getContext(req.getSessionId());
         if (context == null)
-            throw new IllegalStateException("No clarifier context found. Run clarify first.");
+            throw new RefineSessionExpiredException();
         System.out.println(">>> [BUILDER] Context loaded with turnCount=" + context.getTurnCount()
                 + ", confidence=" + context.getConfidenceScore()
                 + ", scope=" + context.getScope());

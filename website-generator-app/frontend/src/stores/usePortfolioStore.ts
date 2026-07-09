@@ -53,6 +53,7 @@ export interface PortfolioCreateState {
     // AI-related info
     aiPrompt: string; // Prompt user types in for refinement
     previewHtml: string | null; // Generated preview from AI
+    refineSessionId: string | null; // Clarifier session for the current refinement conversation
 
     // --- Function definitions to update state
     setTemplateId: (templateId: string | null) => void;
@@ -138,6 +139,7 @@ export interface PortfolioCreateState {
 
     setAiPrompt: (prompt: string) => void;
     setPreviewHtml: (html: string) => void;
+    setRefineSessionId: (sessionId: string | null) => void;
     reset: () => void;
 }
 
@@ -176,6 +178,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             chatLayoutMode: 'sidebar',
             aiPrompt: "",
             previewHtml: null,
+            refineSessionId: null,
 
             /* -------- FUNCTION IMPLEMENTATIONS TO UPDATE STATE -------- */
             // Set selected template ID
@@ -286,6 +289,8 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             // Set AI-related info
             setPreviewHtml: (html: string) => set({ previewHtml: html }),
             setAiPrompt: (prompt: string) => set({ aiPrompt: prompt }),
+            setRefineSessionId: (sessionId: string | null) =>
+                set({ refineSessionId: sessionId }),
 
             // ========== PARSED RESUME DATA UPDATE FUNCTIONS ==========
 
@@ -605,6 +610,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                     isSendingStyle: false,
                     aiPrompt: "",
                     previewHtml: null,
+                    refineSessionId: null,
                 });
                 // Clear persisted storage when resetting
                 sessionStorage.removeItem("portfolio-creation-store");
@@ -629,6 +635,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                 chatLayoutMode: state.chatLayoutMode,
                 aiPrompt: state.aiPrompt,
                 previewHtml: state.previewHtml,
+                refineSessionId: state.refineSessionId,
                 // For files, store metadata only (File objects can't be serialized)
                 resumeFile: state.resumeFile
                     ? {

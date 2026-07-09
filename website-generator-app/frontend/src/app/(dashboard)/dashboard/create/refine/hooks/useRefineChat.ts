@@ -7,6 +7,7 @@ import type {
     SectionDTO,
 } from "@/types/portfolio";
 import type { Message, SectionPlan } from "@/types/preview";
+import { usePortfolioStore } from "@/stores/usePortfolioStore";
 import {
     buildPlannerSections,
     buildSectionSummaries,
@@ -63,6 +64,15 @@ interface UseRefineChatResult {
 
 const POLL_INTERVAL_MS = 3000;
 
+/** Raised when the backend reports the clarifier session expired (HTTP 410). */
+class RefineSessionExpiredError extends Error {
+    constructor() {
+        super(
+            "Your revision session expired, so I couldn't apply that. Please restate your request.",
+        );
+    }
+}
+
 const STATUS_LABELS: Record<string, string> = {
     QUEUED: "Queued...",
     PROCESSING: "Processing...",
@@ -85,7 +95,13 @@ export const useRefineChat = ({
     const [currentPlan, setCurrentPlan] = useState<SectionPlan[] | null>(null);
     const [isPlanApproved, setIsPlanApproved] = useState<boolean>(false);
     const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-    const sessionIdRef = useRef<string | null>(null);
+
+    // Session id lives in the persisted store so a page refresh mid-conversation
+    // keeps the clarifier context. Read via getState() to avoid stale closures.
+    const getSessionId = (): string | null =>
+        usePortfolioStore.getState().refineSessionId;
+    const setSessionId = (sessionId: string | null): void =>
+        usePortfolioStore.getState().setRefineSessionId(sessionId);
 
     const callPlanner = async (): Promise<PlannerResponse | null> => {
         if (!portfolioId) return null;
@@ -94,12 +110,16 @@ export const useRefineChat = ({
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                sessionId: sessionIdRef.current,
+                sessionId: getSessionId(),
                 sections: buildPlannerSections(sections),
             }),
         });
 
         if (!response.ok) {
+            if (response.status === 410) {
+                setSessionId(null);
+                throw new RefineSessionExpiredError();
+            }
             const error = (await response.json()) as { error?: string };
             throw new Error(error.error ?? "Plan request failed");
         }
@@ -121,12 +141,16 @@ export const useRefineChat = ({
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                sessionId: sessionIdRef.current,
+                sessionId: getSessionId(),
                 sectionPlans,
             }),
         });
 
         if (!response.ok) {
+            if (response.status === 410) {
+                setSessionId(null);
+                throw new RefineSessionExpiredError();
+            }
             const error = (await response.json()) as { error?: string };
             throw new Error(error.error ?? "Build request failed");
         }
@@ -240,7 +264,7 @@ export const useRefineChat = ({
                     setIsGenerating(false);
                     setIsPlanApproved(false);
                     // Clear session so next refinement starts fresh
-                    sessionIdRef.current = null;
+                    setSessionId(null);
                 }
 
                 if (data.status === "FAILED") {
@@ -293,7 +317,9 @@ export const useRefineChat = ({
             console.error("Build error:", error);
             setIsPlanApproved(false);
             const errorMessage: Message = createAiMessage(
-                "Sorry, there was an error building your changes. Please try again.",
+                error instanceof RefineSessionExpiredError
+                    ? error.message
+                    : "Sorry, there was an error building your changes. Please try again.",
                 {
                     id: `ai-error-${Date.now()}`,
                     messageType: "error",
@@ -355,7 +381,7 @@ export const useRefineChat = ({
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     userPrompt: prompt,
-                    sessionId: sessionIdRef.current,
+                    sessionId: getSessionId(),
                     sections: buildSectionSummaries(sections),
                 }),
             });
@@ -364,7 +390,7 @@ export const useRefineChat = ({
 
             // Store the sessionId returned by the backend (minted on first call)
             if (data.sessionId) {
-                sessionIdRef.current = data.sessionId;
+                setSessionId(data.sessionId);
             }
 
             if (!response.ok) {
@@ -433,7 +459,9 @@ export const useRefineChat = ({
                 } catch (error: unknown) {
                     console.error("Planning error:", error);
                     const errorMessage: Message = createAiMessage(
-                        "Sorry, there was an error creating the plan. Please try again.",
+                        error instanceof RefineSessionExpiredError
+                            ? error.message
+                            : "Sorry, there was an error creating the plan. Please try again.",
                         {
                             id: `ai-error-${Date.now()}`,
                             messageType: "error",
