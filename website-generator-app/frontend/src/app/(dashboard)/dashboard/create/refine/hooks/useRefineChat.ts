@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type {
     CompletedSectionsResponse,
     GlobalTheme,
@@ -96,6 +96,7 @@ export const useRefineChat = ({
     const [currentPlan, setCurrentPlan] = useState<SectionPlan[] | null>(null);
     const [isPlanApproved, setIsPlanApproved] = useState<boolean>(false);
     const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const hasResumedRef = useRef(false);
 
     // Session id lives in the persisted store so a page refresh mid-conversation
     // keeps the clarifier context. Read via getState() to avoid stale closures.
@@ -509,6 +510,57 @@ export const useRefineChat = ({
         setIsPlanApproved(true);
         await sendMessage("approve", []);
     };
+
+    // --- Re-attach to a refine job left running (page re-entry or new tab).
+    // The watcher stands down on this page, so the page must resume polling.
+    useEffect(() => {
+        if (hasResumedRef.current) return;
+        const job = useGenerationJobStore.getState().activeJob;
+        if (!job || job.kind !== "refine") return;
+
+        if (!portfolioId) {
+            // Fresh tab: seed the id and let the effect re-run with it
+            usePortfolioStore.getState().setPortfolioId(job.portfolioId);
+            return;
+        }
+
+        hasResumedRef.current = true;
+
+        const resume = async (): Promise<void> => {
+            // Job state expired in Redis (finished long ago): the saved
+            // portfolio is already loaded, so just drop the job
+            try {
+                const res = await fetch(`/api/portfolio/jobs/status/${job.jobId}`);
+                if (res.status === 404 || res.status === 410) {
+                    useGenerationJobStore.getState().clearJob();
+                    return;
+                }
+            } catch {
+                // Transient failure: attach anyway, the poller tolerates errors
+            }
+
+            const buildingMessage: Message = createGeneratingMessage("ai-building", {
+                content: "Resuming your changes...",
+                messageType: "build",
+            });
+            setMessages((prev) =>
+                prev.filter((m) => !m.isGenerating).concat(buildingMessage),
+            );
+            setIsGenerating(true);
+            pollBuildJob(job.jobId, buildingMessage.id);
+        };
+
+        void resume();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [portfolioId]);
+
+    // Stop polling when the page unmounts so a later resume never runs
+    // alongside a leaked interval from a previous mount
+    useEffect(() => {
+        return () => {
+            if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+        };
+    }, []);
 
     const handleKeepChatting = (): void => {
         setIsPlanApproved(false);

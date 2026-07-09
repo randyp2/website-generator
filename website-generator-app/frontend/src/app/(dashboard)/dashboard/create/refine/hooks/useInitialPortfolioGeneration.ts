@@ -14,7 +14,11 @@ import {
     createUserMessage,
 } from "../lib/message-helpers";
 import type { GenerationPhase } from "../components/loaders/GenerationOverlay";
-import { useGenerationJobStore } from "@/stores/useGenerationJobStore";
+import {
+    useGenerationJobStore,
+    type ActiveGenerationJob,
+} from "@/stores/useGenerationJobStore";
+import { usePortfolioStore } from "@/stores/usePortfolioStore";
 
 interface LoadPortfolioResponse {
     sections?: SectionDTO[] | null;
@@ -123,8 +127,12 @@ export const useInitialPortfolioGeneration = ({
             }
         };
 
-        const pollJobStatus = (jobId: string, tempMessageId: string): void => {
-            let sectionOffset = 0;
+        const pollJobStatus = (
+            jobId: string,
+            tempMessageId: string,
+            initialOffset: number = 0,
+        ): void => {
+            let sectionOffset = initialOffset;
 
             pollTimer = setInterval(async () => {
                 if (cancelled) {
@@ -285,9 +293,54 @@ export const useInitialPortfolioGeneration = ({
             }, POLL_INTERVAL_MS);
         };
 
+        /*
+         * Re-attaches to a generation job that is already running (page
+         * re-entry or a fresh tab) instead of starting a new one. Sections
+         * that already arrived stay in place; polling continues after them.
+         */
+        const resumeActiveJob = async (job: ActiveGenerationJob): Promise<void> => {
+            hasGeneratedRef.current = true;
+
+            // Job state expired in Redis (finished long ago): hydration already
+            // loaded the final portfolio from the DB, so just drop the job
+            try {
+                const statusRes = await fetch(
+                    `/api/portfolio/jobs/status/${job.jobId}`,
+                );
+                if (statusRes.status === 404 || statusRes.status === 410) {
+                    useGenerationJobStore.getState().clearJob();
+                    return;
+                }
+            } catch {
+                // Transient failure: attach anyway, the poller tolerates errors
+            }
+
+            console.log("[generate] Resuming active job:", job.jobId);
+            const throbber: Message = createGeneratingMessage("ai-temp");
+            setMessages((prev) =>
+                prev.filter((m) => !m.isGenerating).concat(throbber),
+            );
+            setGenerationPhase("GENERATING");
+            pollJobStatus(job.jobId, throbber.id, sectionsRef.current?.length ?? 0);
+        };
+
         const generate = async (): Promise<void> => {
             if (hasGeneratedRef.current) return;
             if (isHydrating || !hasResolvedInitialPortfolioLoad) return;
+
+            // --- An in-flight generation takes precedence over everything:
+            // re-attach to it rather than starting (and paying for) a new one
+            const activeJob = useGenerationJobStore.getState().activeJob;
+            if (activeJob && activeJob.kind === "generate") {
+                if (!portfolioId) {
+                    // Fresh tab: seed the id and let the effect re-run with it
+                    usePortfolioStore.getState().setPortfolioId(activeJob.portfolioId);
+                    return;
+                }
+                await resumeActiveJob(activeJob);
+                return;
+            }
+
             if (sectionsRef.current && sectionsRef.current.length > 0) {
                 hasGeneratedRef.current = true;
                 return;
