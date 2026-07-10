@@ -22,6 +22,7 @@ import com.webgen.webgen_backend.portfolio.service.job.GenerateJobService;
 import com.webgen.webgen_backend.portfolio.service.job.SectionGenerationMessage;
 import com.webgen.webgen_backend.portfolio.service.parser.BuilderResponseParser;
 import com.webgen.webgen_backend.portfolio.service.prompt.BuilderPromptBuilder;
+import com.webgen.webgen_backend.portfolio.service.refine.RefineChatTurnHistoryService;
 import com.webgen.webgen_backend.portfolio.service.validator.JsxValidatorService;
 import com.webgen.webgen_backend.portfolio.repository.GeneratedVersionRepository;
 import com.webgen.webgen_backend.portfolio.repository.PortfolioRepository;
@@ -57,6 +58,7 @@ public class BuilderServiceImpl implements BuilderService {
     private final GeneratedVersionRepository generatedVersionRepository;
     private final PortfolioSectionRepository sectionRepository;
     private final PortfolioSectionMapper sectionMapper;
+    private final RefineChatTurnHistoryService refineChatTurnHistoryService;
 
     @Value("${jsx.validator.max-retries:3}")
     private int maxRetries;
@@ -130,7 +132,8 @@ public class BuilderServiceImpl implements BuilderService {
         // barrier: persist synchronously and return the already-finished job
         if (actionablePlans.isEmpty()) {
             System.out.println(">>> [BUILDER] Delete-only plan — persisting without workers | job: " + jobId);
-            persistRefinementFromRedis(jobId, req.getPortfolioId());
+            refineChatTurnHistoryService.recordBuildApproval(userId, req.getPortfolioId());
+            persistRefinementFromRedis(jobId, req.getPortfolioId(), userId);
             BuilderResponseDTO response = new BuilderResponseDTO();
             response.setJobId(jobId);
             return response;
@@ -155,6 +158,7 @@ public class BuilderServiceImpl implements BuilderService {
                 .toList();
 
         generateJobService.fanOutSections(messages);
+        refineChatTurnHistoryService.recordBuildApproval(userId, req.getPortfolioId());
 
         // No explicit context reset needed — TTL handles cleanup,
         // and each new refinement gets a fresh sessionId
@@ -243,7 +247,11 @@ public class BuilderServiceImpl implements BuilderService {
                         + maxRetries + " attempts with no previous version — skipping it");
                 int completedCount = generateJobService.incrementCompleted(jobId);
                 if (completedCount == msg.getTotalSections()) {
-                    persistRefinementFromRedis(jobId, UUID.fromString(msg.getPortfolioId()));
+                    persistRefinementFromRedis(
+                            jobId,
+                            UUID.fromString(msg.getPortfolioId()),
+                            UUID.fromString(msg.getUserId())
+                    );
                 }
                 return;
             }
@@ -260,7 +268,11 @@ public class BuilderServiceImpl implements BuilderService {
         // If last worker then persist
         if (completedCount == msg.getTotalSections()) {
             System.out.println(">>> [REFINE-WORKER] All sections complete — triggering persistence | job: " + jobId);
-            persistRefinementFromRedis(jobId, UUID.fromString(msg.getPortfolioId()));
+            persistRefinementFromRedis(
+                    jobId,
+                    UUID.fromString(msg.getPortfolioId()),
+                    UUID.fromString(msg.getUserId())
+            );
         }
     }
 
@@ -274,7 +286,7 @@ public class BuilderServiceImpl implements BuilderService {
      * Runs inside the last worker thread as a barrier, except for delete-only
      * plans, which have no workers and persist on the HTTP request thread.
      */
-    private void persistRefinementFromRedis(String jobId, UUID portfolioId) {
+    private void persistRefinementFromRedis(String jobId, UUID portfolioId, UUID userId) {
         System.out.println(">>> [REFINE-PERSIST] Starting DB persistence | job: " + jobId);
         long persistStart = System.currentTimeMillis();
         generateJobService.updateStatus(jobId, JobStatusDTO.Status.PERSISTING);
@@ -430,8 +442,23 @@ public class BuilderServiceImpl implements BuilderService {
         }
         System.out.println(">>> [REFINE-PERSIST] Sections upserted: " + modifiedSections.size());
 
+        refineChatTurnHistoryService.recordBuildCompletion(
+                userId,
+                portfolioId,
+                fallbackSectionNames(modifiedSections)
+        );
+
         generateJobService.updateStatus(jobId, JobStatusDTO.Status.COMPLETED);
         System.out.println(">>> [REFINE-PERSIST] Completed in "
                 + (System.currentTimeMillis() - persistStart) + "ms | job: " + jobId);
+    }
+
+    private List<String> fallbackSectionNames(List<SectionDTO> modifiedSections) {
+        return modifiedSections.stream()
+                .filter(section -> Boolean.TRUE.equals(section.getRefineFallback()))
+                .map(section -> section.getTitle() != null && !section.getTitle().isBlank()
+                        ? section.getTitle()
+                        : section.getSectionKey())
+                .toList();
     }
 }

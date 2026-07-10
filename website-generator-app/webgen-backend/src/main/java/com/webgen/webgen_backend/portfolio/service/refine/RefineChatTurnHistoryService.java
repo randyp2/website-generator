@@ -60,6 +60,37 @@ public class RefineChatTurnHistoryService {
         refineChatHistoryService.saveHistory(userId, portfolioId, history);
     }
 
+    /**
+     * Appends the user's build approval after the refine build is accepted.
+     *
+     * @param userId authenticated portfolio owner id
+     * @param portfolioId portfolio id whose history should be updated
+     */
+    public void recordBuildApproval(UUID userId, UUID portfolioId) {
+        List<RefineChatMessage> history = refineChatHistoryService.loadHistory(userId, portfolioId);
+        history.add(userMessage("approve", "build"));
+
+        refineChatHistoryService.saveHistory(userId, portfolioId, history);
+    }
+
+    /**
+     * Appends the final build result once refined sections are persisted.
+     *
+     * @param userId authenticated portfolio owner id
+     * @param portfolioId portfolio id whose history should be updated
+     * @param fallbackSectionNames sections left unchanged because refinement failed
+     */
+    public void recordBuildCompletion(
+            UUID userId,
+            UUID portfolioId,
+            List<String> fallbackSectionNames
+    ) {
+        List<RefineChatMessage> history = refineChatHistoryService.loadHistory(userId, portfolioId);
+        history.add(buildCompletionMessage(fallbackSectionNames));
+
+        refineChatHistoryService.saveHistory(userId, portfolioId, history);
+    }
+
     private RefineChatMessage userMessage(String content, String messageType) {
         return new RefineChatMessage(
                 messageId("user"),
@@ -108,6 +139,35 @@ public class RefineChatTurnHistoryService {
                 sectionPlans,
                 planSummary
         );
+    }
+
+    private RefineChatMessage buildCompletionMessage(List<String> fallbackSectionNames) {
+        return new RefineChatMessage(
+                messageId("ai-build"),
+                "ai",
+                buildCompletionContent(fallbackSectionNames),
+                Instant.now().toString(),
+                false,
+                "build",
+                null,
+                new ArrayList<>(),
+                null
+        );
+    }
+
+    private String buildCompletionContent(List<String> fallbackSectionNames) {
+        List<String> names = copyStrings(fallbackSectionNames);
+        if (names.isEmpty()) {
+            return "Portfolio updated successfully!";
+        }
+
+        String target = String.join(", ", names);
+        String sectionPhrase = names.size() == 1 ? "that section was" : "those sections were";
+        return "Portfolio updated, but I couldn't apply the change to "
+                + target
+                + ", so "
+                + sectionPhrase
+                + " left unchanged. Try rephrasing that request.";
     }
 
     private String buildPlanContent(

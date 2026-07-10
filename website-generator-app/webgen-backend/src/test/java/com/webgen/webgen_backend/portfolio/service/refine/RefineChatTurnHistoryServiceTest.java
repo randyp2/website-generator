@@ -69,6 +69,52 @@ class RefineChatTurnHistoryServiceTest {
         assertEquals("MEDIUM", planMessage.getSectionPlans().getFirst().getIntensity());
     }
 
+    @Test
+    void recordBuildApprovalAppendsApproveMessage() {
+        UUID userId = UUID.randomUUID();
+        UUID portfolioId = UUID.randomUUID();
+
+        service.recordBuildApproval(userId, portfolioId);
+
+        assertEquals(userId, historyService.savedUserId);
+        assertEquals(portfolioId, historyService.savedPortfolioId);
+        assertEquals(1, historyService.savedHistory.size());
+        assertEquals("user", historyService.savedHistory.getFirst().getRole());
+        assertEquals("approve", historyService.savedHistory.getFirst().getContent());
+        assertEquals("build", historyService.savedHistory.getFirst().getMessageType());
+    }
+
+    @Test
+    void recordBuildCompletionAppendsSuccessMessage() {
+        UUID userId = UUID.randomUUID();
+        UUID portfolioId = UUID.randomUUID();
+
+        service.recordBuildCompletion(userId, portfolioId, List.of());
+
+        assertEquals(userId, historyService.savedUserId);
+        assertEquals(portfolioId, historyService.savedPortfolioId);
+        assertEquals(1, historyService.savedHistory.size());
+        assertEquals("ai", historyService.savedHistory.getFirst().getRole());
+        assertEquals("build", historyService.savedHistory.getFirst().getMessageType());
+        assertEquals(
+                "Portfolio updated successfully!",
+                historyService.savedHistory.getFirst().getContent()
+        );
+    }
+
+    @Test
+    void recordBuildCompletionIncludesFallbackSections() {
+        UUID userId = UUID.randomUUID();
+        UUID portfolioId = UUID.randomUUID();
+
+        service.recordBuildCompletion(userId, portfolioId, List.of("Hero", "Projects"));
+
+        assertEquals(
+                "Portfolio updated, but I couldn't apply the change to Hero, Projects, so those sections were left unchanged. Try rephrasing that request.",
+                historyService.savedHistory.getFirst().getContent()
+        );
+    }
+
     private SectionPlanDTO sectionPlan() {
         SectionPlanDTO plan = new SectionPlanDTO();
         plan.setSectionKey("hero");
