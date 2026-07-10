@@ -100,12 +100,17 @@ public interface PortfolioCrudService {
     VersionListResponseDTO listVersions(UUID userId, UUID portfolioId);
 
     /**
-     * Activate a specific version, updating the portfolio's active_version_id
+     * Activate a specific version by RESTORING its sections snapshot into the
+     * live portfolio_sections rows and updating the portfolio's
+     * active_version_id. After activation the editor, refine pipeline, and
+     * public rendering all operate on the restored state.
      *
      * @param userId      - UUID of the authenticated user (for ownership check)
      * @param portfolioId - UUID of the portfolio
      * @param versionId   - UUID of the version to activate
      * @return ActivateVersionResponseDTO - portfolioId and new activeVersionId
+     * @throws org.springframework.web.server.ResponseStatusException 422 when
+     *         the version has no restorable snapshot
      */
     ActivateVersionResponseDTO activateVersion(UUID userId, UUID portfolioId, UUID versionId);
 

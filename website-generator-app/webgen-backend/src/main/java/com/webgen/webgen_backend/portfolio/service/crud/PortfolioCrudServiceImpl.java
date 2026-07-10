@@ -23,17 +23,24 @@ import com.webgen.webgen_backend.profile.repository.ProfileRepository;
 import com.webgen.webgen_backend.resume.repository.ResumeRepository;
 import com.webgen.webgen_backend.shared.util.ExternalUrlSafetyValidator;
 import com.webgen.webgen_backend.shared.util.SlugUtil;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -52,6 +59,7 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
     private final AssetMapper assetMapper;
 
     private final RabbitTemplate rabbitTemplate;
+    private final ObjectMapper objectMapper;
 
     private static final int MAX_PORTFOLIO_DESCRIPTION_LENGTH = 1000;
 
@@ -310,6 +318,7 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
     }
 
     @Override
+    @Transactional
     public ActivateVersionResponseDTO activateVersion(UUID userId, UUID portfolioId, UUID versionId) {
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio not found"));
@@ -317,14 +326,83 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         if (!portfolio.getUserId().equals(userId))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
 
-        generatedVersionRepository.findByIdAndPortfolio_Id(versionId, portfolioId)
+        GeneratedVersion version = generatedVersionRepository.findByIdAndPortfolio_Id(versionId, portfolioId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Version not found"));
+
+        // Activation is a real restore: live sections must always equal the
+        // active version, or the editor and refine pipeline would keep working
+        // on code the user believes they rolled away from
+        List<SectionDTO> snapshotSections = parseSnapshotSections(version);
+        if (snapshotSections.isEmpty())
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "This version has no restorable snapshot");
+
+        restoreSectionsFromSnapshot(portfolio, snapshotSections);
 
         portfolio.setActiveVersionId(versionId);
         portfolio.setUpdatedAt(OffsetDateTime.now());
         portfolioRepository.save(portfolio);
 
         return new ActivateVersionResponseDTO(portfolioId, versionId);
+    }
+
+    /*
+     * Reads the version's sections snapshot ({"sections": [...], "globalTheme": ...},
+     * written identically by generation and refinement persistence). Returns an
+     * empty list when the snapshot is absent or unreadable, which callers treat
+     * as "not restorable".
+     */
+    private List<SectionDTO> parseSnapshotSections(GeneratedVersion version) {
+        JsonNode snapshot = version.getSectionsSnapshot();
+        JsonNode sectionsNode = snapshot == null ? null : snapshot.get("sections");
+        if (sectionsNode == null || !sectionsNode.isArray() || sectionsNode.isEmpty())
+            return List.of();
+
+        try {
+            return objectMapper.readerForListOf(SectionDTO.class).readValue(sectionsNode);
+        } catch (IOException e) {
+            return List.of();
+        }
+    }
+
+    /*
+     * Replaces the live portfolio_sections rows with the snapshot contents:
+     * sections absent from the snapshot are deleted, present ones are upserted
+     * by sectionKey. Mirrors the upsert in the refine persistence barrier.
+     */
+    private void restoreSectionsFromSnapshot(Portfolio portfolio, List<SectionDTO> snapshotSections) {
+        OffsetDateTime now = OffsetDateTime.now();
+
+        List<PortfolioSection> existingSections =
+                portfolioSectionRepository.findAllByPortfolioIdOrderByOrderIndexAsc(portfolio.getId());
+        Map<String, PortfolioSection> existingByKey = existingSections.stream()
+                .collect(Collectors.toMap(PortfolioSection::getSectionKey, s -> s));
+        Set<String> snapshotKeys = snapshotSections.stream()
+                .map(SectionDTO::getSectionKey)
+                .collect(Collectors.toSet());
+
+        for (PortfolioSection existing : existingSections) {
+            if (!snapshotKeys.contains(existing.getSectionKey()))
+                portfolioSectionRepository.delete(existing);
+        }
+
+        for (SectionDTO dto : snapshotSections) {
+            PortfolioSection section = existingByKey.get(dto.getSectionKey());
+            if (section == null) {
+                section = new PortfolioSection();
+                section.setId(UUID.randomUUID());
+                section.setPortfolio(portfolio);
+                section.setSectionKey(dto.getSectionKey());
+                section.setCreatedAt(now);
+                section.setSource("ai");
+            }
+            section.setTitle(dto.getTitle());
+            section.setContentJson(dto.getContentJson());
+            section.setReactSource(dto.getReactSource());
+            section.setOrderIndex(dto.getOrderIndex() != null ? dto.getOrderIndex() : 0);
+            section.setUpdatedAt(now);
+            portfolioSectionRepository.save(section);
+        }
     }
 
     @Override
