@@ -7,6 +7,7 @@ type UpdatePortfolioBody = {
     last_step?: string;
     template_id?: string;
     style_chat_history?: unknown[];
+    refine_chat_history?: unknown[];
     description?: string;
 };
 
@@ -44,6 +45,7 @@ export const PATCH = async (
             lastStep: body?.last_step,
             templateId: body?.template_id,
             styleChatHistory: body?.style_chat_history,
+            refineChatHistory: body?.refine_chat_history,
             description,
         }),
     });

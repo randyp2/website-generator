@@ -2,6 +2,7 @@ import { UUID } from "node:crypto";
 
 type Timestamp = string;
 import type { PersistedStyleChatMessage } from "./style-chat";
+import type { Message } from "./preview";
 
 export interface Portfolio {
     id: UUID;
@@ -16,6 +17,7 @@ export interface Portfolio {
     slug?: string | null;
     description?: string | null;
     style_chat_history?: PersistedStyleChatMessage[] | null;
+    refine_chat_history?: Message[] | null;
     screenshot_url?: string | null;
     updated_at: Timestamp;
     created_at: Timestamp;

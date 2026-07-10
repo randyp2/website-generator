@@ -51,6 +51,7 @@ export async function GET(
             portfolio: {
                 ...p,
                 style_chat_history: p.styleChatHistory,
+                refine_chat_history: p.refineChatHistory,
                 last_step: p.lastStep,
                 template_id: p.templateId,
                 created_at: p.createdAt,

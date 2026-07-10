@@ -108,6 +108,7 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         portfolio.setStatus("draft");
         portfolio.setLastStep("style");
         portfolio.setStyleChatHistory(new ArrayList<>());
+        portfolio.setRefineChatHistory(new ArrayList<>());
         portfolio.setSourceType(PublishRequestDTO.SourceType.GENERATED.name());
 
         Portfolio saved = portfolioRepository.save(portfolio);
@@ -130,6 +131,8 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
             portfolio.setTemplateId(request.getTemplateId());
         if (request.getStyleChatHistory() != null)
             portfolio.setStyleChatHistory(request.getStyleChatHistory());
+        if (request.getRefineChatHistory() != null)
+            portfolio.setRefineChatHistory(request.getRefineChatHistory());
         if (request.getDescription() != null)
             portfolio.setDescription(normalizeDescription(request.getDescription()));
 
@@ -277,6 +280,7 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         response.setSections(sections);
         response.setGlobalTheme(globalTheme);
         response.setAssistantMessage(assistantMessage);
+        response.setRefineChatHistory(portfolio.getRefineChatHistory());
         return response;
     }
 
@@ -503,6 +507,7 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         portfolio.setSlug(slug);
         portfolio.setLastStep("publish");
         portfolio.setStyleChatHistory(new ArrayList<>());
+        portfolio.setRefineChatHistory(new ArrayList<>());
         portfolio.setDescription(normalizeDescription(request.getDescription()));
         portfolio.setSourceType(PublishRequestDTO.SourceType.EXTERNAL.name());
         portfolio.setExternalUrl(normalizedExternalUrl);

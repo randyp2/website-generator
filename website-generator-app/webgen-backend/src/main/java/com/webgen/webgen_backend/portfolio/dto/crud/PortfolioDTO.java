@@ -1,6 +1,7 @@
 package com.webgen.webgen_backend.portfolio.dto.crud;
 
 import com.webgen.webgen_backend.portfolio.entity.StyleChatMessage;
+import com.webgen.webgen_backend.portfolio.entity.RefineChatMessage;
 import lombok.Data;
 
 import java.time.OffsetDateTime;
@@ -18,6 +19,7 @@ public class PortfolioDTO {
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
     private List<StyleChatMessage> styleChatHistory;
+    private List<RefineChatMessage> refineChatHistory;
     private String screenshotUrl;
     private String description;
     private String sourceType;

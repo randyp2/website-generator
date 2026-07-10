@@ -1,6 +1,4 @@
 package com.webgen.webgen_backend.portfolio.entity;
-
-import com.webgen.webgen_backend.portfolio.entity.StyleChatMessage;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -58,6 +56,10 @@ public class Portfolio {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "style_chat_history", nullable = false)
     private List<StyleChatMessage> styleChatHistory;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "refine_chat_history", nullable = false)
+    private List<RefineChatMessage> refineChatHistory;
 
     @Column(name = "description")
     private String description;
