@@ -619,6 +619,23 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
         {
             name: "portfolio-creation-store",
             storage: createJSONStorage(() => sessionStorage),
+            // Corrupt persisted state must never lock the UI: zustand swallows
+            // rehydration errors and leaves hasHydrated() false forever, which
+            // keeps every hydration-gated input disabled. Recover by dropping
+            // the bad entry and rehydrating with defaults. The retry is
+            // deferred because the first hydrate runs synchronously during
+            // store creation, before the store const is initialized.
+            onRehydrateStorage: () => (_state, error) => {
+                if (!error) return;
+                console.error(
+                    "[portfolio-store] Failed to rehydrate persisted state; clearing it and retrying with defaults",
+                    error,
+                );
+                sessionStorage.removeItem("portfolio-creation-store");
+                setTimeout(() => {
+                    void usePortfolioStore.persist.rehydrate();
+                }, 0);
+            },
             partialize: (state) => ({
                 // Persist most state, but handle files specially
                 templateId: state.templateId,

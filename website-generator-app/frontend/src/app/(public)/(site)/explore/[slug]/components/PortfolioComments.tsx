@@ -79,7 +79,7 @@ const PortfolioComments = ({
 
             {!commentsState.isLoading &&
               !commentsState.loadError &&
-              commentsState.comments.map((comment, index) => (
+              commentsState.comments.map((comment) => (
                 <div key={comment.id}>
                   <PortfolioCommentItem
                     activeReplyId={commentsState.activeReplyId}
@@ -102,9 +102,6 @@ const PortfolioComments = ({
                     portfolioOwnerId={portfolioOwnerId}
                     replyBody={commentsState.replyBody}
                   />
-                  {index < commentsState.comments.length - 1 && (
-                    <div className="mt-5 h-px w-full bg-border" />
-                  )}
                 </div>
               ))}
 

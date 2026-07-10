@@ -39,6 +39,21 @@ export const useGenerationJobStore = create<GenerationJobState>()(
         {
             name: STORE_KEY,
             storage: createJSONStorage(() => localStorage),
+            // Corrupt persisted state would silently disable job tracking:
+            // recover by dropping the bad entry and rehydrating with defaults.
+            // Deferred because the first hydrate runs synchronously during
+            // store creation, before the store const is initialized.
+            onRehydrateStorage: () => (_state, error) => {
+                if (!error) return;
+                console.error(
+                    "[generation-job-store] Failed to rehydrate persisted state; clearing it and retrying with defaults",
+                    error,
+                );
+                localStorage.removeItem(STORE_KEY);
+                setTimeout(() => {
+                    void useGenerationJobStore.persist.rehydrate();
+                }, 0);
+            },
         },
     ),
 );
