@@ -6,6 +6,7 @@ import {
     type SetStateAction,
 } from "react";
 
+import { useStoreHydration } from "@/hooks/useStoreHydration";
 import { isStyleChatHistory, toUiStyleMessages } from "@/lib/style-chat-history";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
 import type { Message } from "@/types/preview";
@@ -52,24 +53,11 @@ export const useStyleChatHistory = ({
     const setPersistedStyleMessages = usePortfolioStore(
         (state) => state.setStyleMessages,
     );
-    const [isHydrated, setIsHydrated] = useState(false);
+    const isHydrated = useStoreHydration(usePortfolioStore);
     const [styleMessages, setStyleMessages] = useState<Message[]>(() =>
         toInitialStyleMessages(null),
     );
     const [hasLoadedHistory, setHasLoadedHistory] = useState(!activePortfolioId);
-
-    useEffect(() => {
-        const hasHydrated = usePortfolioStore.persist.hasHydrated();
-        setIsHydrated(hasHydrated);
-
-        const unsubHydrate = usePortfolioStore.persist.onFinishHydration(() => {
-            setIsHydrated(true);
-        });
-
-        return () => {
-            unsubHydrate();
-        };
-    }, []);
 
     useEffect(() => {
         let cancelled = false;

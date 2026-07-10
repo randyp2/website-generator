@@ -622,6 +622,13 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
         {
             name: "portfolio-creation-store",
             storage: createJSONStorage(() => sessionStorage),
+            // Draft/session state is disposable: discard any older schema
+            // instead of loading a stale shape into new code. Bump `version`
+            // on every change to the persisted shape (partialize fields or
+            // their types) and add a case here only if data must survive.
+            version: 1,
+            migrate: (persistedState, version) =>
+                version === 1 ? persistedState : undefined,
             // Corrupt persisted state must never lock the UI: zustand swallows
             // rehydration errors and leaves hasHydrated() false forever, which
             // keeps every hydration-gated input disabled. Recover ONCE by

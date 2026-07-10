@@ -42,6 +42,12 @@ export const useGenerationJobStore = create<GenerationJobState>()(
         {
             name: STORE_KEY,
             storage: createJSONStorage(() => localStorage),
+            // Jobs are short-lived: discard any older schema instead of
+            // loading a stale shape. Bump `version` when ActiveGenerationJob
+            // changes shape.
+            version: 1,
+            migrate: (persistedState, version) =>
+                version === 1 ? persistedState : undefined,
             // Corrupt persisted state would silently disable job tracking:
             // recover ONCE by dropping the bad entry and rehydrating with
             // defaults; a second failure would loop. Deferred because the
