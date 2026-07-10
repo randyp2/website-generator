@@ -12,6 +12,9 @@ interface VersionTimelineProps {
     isActivating: boolean;
 }
 
+/**
+ * Version history list with loading and empty states.
+ */
 export const VersionTimeline: React.FC<VersionTimelineProps> = ({
     versions,
     isLoading,
@@ -21,13 +24,16 @@ export const VersionTimeline: React.FC<VersionTimelineProps> = ({
     // Loading skeleton
     if (isLoading) {
         return (
-            <div className="p-3 space-y-2">
+            <div className="space-y-2 p-3">
                 {[1, 2, 3].map((i) => (
-                    <div key={i} className="flex items-center gap-3 px-3 py-2 animate-pulse">
-                        <div className="w-2 h-2 rounded-full bg-slate-700" />
-                        <div className="flex-1 space-y-1.5">
-                            <div className="h-3 w-20 bg-slate-700 rounded" />
-                            <div className="h-2 w-32 bg-slate-700/50 rounded" />
+                    <div
+                        key={i}
+                        className="flex animate-pulse items-center gap-3 rounded-2xl px-3 py-2.5"
+                    >
+                        <div className="h-2.5 w-2.5 rounded-full bg-muted-foreground/20 dark:bg-white/15" />
+                        <div className="flex-1 space-y-2">
+                            <div className="h-3 w-24 rounded-full bg-muted-foreground/20 dark:bg-white/15" />
+                            <div className="h-2.5 w-40 rounded-full bg-muted-foreground/10 dark:bg-white/10" />
                         </div>
                     </div>
                 ))}
@@ -41,9 +47,9 @@ export const VersionTimeline: React.FC<VersionTimelineProps> = ({
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex flex-col items-center justify-center py-8 px-4"
+                className="flex flex-col items-center justify-center px-4 py-8"
             >
-                <p className="text-sm text-white/40 text-center">
+                <p className="text-center text-sm text-muted-foreground dark:text-white/50">
                     No versions yet
                 </p>
             </motion.div>
@@ -51,7 +57,7 @@ export const VersionTimeline: React.FC<VersionTimelineProps> = ({
     }
 
     return (
-        <div className="p-2">
+        <div className="space-y-1 p-2.5">
             {versions.map((version, index) => (
                 <VersionNode
                     key={version.id}

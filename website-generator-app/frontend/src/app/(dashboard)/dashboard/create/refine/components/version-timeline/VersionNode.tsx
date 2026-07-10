@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { motion } from "framer-motion";
+import { Check, RotateCcw } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { Version } from "@/types/version";
 
 interface VersionNodeProps {
@@ -12,13 +14,16 @@ interface VersionNodeProps {
     isActivating: boolean;
 }
 
+/**
+ * Single saved version row inside the refine version history panel.
+ */
 export const VersionNode: React.FC<VersionNodeProps> = ({
     version,
     index,
+    total,
     onActivate,
+    isActivating,
 }) => {
-    const [isHovered, setIsHovered] = useState(false);
-
     const formatTime = (dateStr: string) => {
         const date = new Date(dateStr);
         return date.toLocaleDateString("en-US", {
@@ -29,69 +34,89 @@ export const VersionNode: React.FC<VersionNodeProps> = ({
         });
     };
 
-    const getPromptSnippet = (prompt: string | null, maxLength = 60) => {
+    const getPromptSnippet = (prompt: string | null, maxLength = 72) => {
         if (!prompt) return "Initial generation";
         return prompt.length > maxLength
             ? `${prompt.slice(0, maxLength)}...`
             : prompt;
     };
 
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05, duration: 0.15 }}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            className={`
-                relative flex items-center gap-3 px-3 py-2.5 rounded-lg
-                transition-colors duration-150 cursor-pointer
-                ${version.is_active
-                    ? "bg-white/10 border border-white/20 shadow-[0_0_18px_rgba(255,255,255,0.18)]"
-                    : isHovered
-                        ? "bg-white/5 ring-1 ring-white/10"
-                        : ""
-                }
-            `}
-            onClick={() => !version.is_active && onActivate(version.id)}
-        >
-            {/* Left indicator dot */}
-            <div
-                className={`
-                    w-2 h-2 rounded-full shrink-0
-                    ${version.is_active
-                        ? "bg-white shadow-[0_0_10px_rgba(255,255,255,0.7)]"
-                        : "bg-slate-500"
-                    }
-                `}
-            />
+    const isActive = version.is_active;
+    const isLast = index === total - 1;
 
-            {/* Content */}
-            <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                    <span
-                        className={`text-sm font-medium ${
-                            version.is_active ? "text-white" : "text-white/80"
-                        }`}
-                    >
-                        Version {index + 1}
-                    </span>
-                    {version.is_active && (
-                        <span className="text-[10px] uppercase tracking-wider text-white/80 bg-white/15 px-1.5 py-0.5 rounded">
-                            Current
-                        </span>
+    return (
+        <motion.div className="relative">
+            {!isLast && (
+                <span
+                    aria-hidden="true"
+                    className="absolute left-[1.125rem] top-9 h-[calc(100%-1.25rem)] w-px bg-border dark:bg-white/10"
+                />
+            )}
+
+            <motion.button
+                type="button"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.04, duration: 0.16 }}
+                disabled={isActive || isActivating}
+                onClick={() => onActivate(version.id)}
+                className={cn(
+                    "group relative flex w-full items-start gap-3 rounded-2xl border px-3 py-3 text-left transition-colors duration-150",
+                    isActive
+                        ? "cursor-default border-border bg-muted/70 shadow-sm dark:border-white/10 dark:bg-white/[0.07]"
+                        : "cursor-pointer border-transparent hover:cursor-pointer hover:border-border hover:bg-muted/60 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:border-white/10 dark:hover:bg-white/[0.05]",
+                )}
+            >
+                <span
+                    className={cn(
+                        "relative z-10 mt-1 flex h-3 w-3 shrink-0 items-center justify-center rounded-full ring-4",
+                        isActive
+                            ? "bg-primary text-primary-foreground ring-primary/20 shadow-[0_0_18px_rgba(245,158,11,0.28)]"
+                            : "bg-muted-foreground/40 ring-background group-hover:bg-primary/70 dark:bg-white/40 dark:ring-[#1c1d22]",
                     )}
-                </div>
-                <p className="text-xs text-white/40 mt-0.5">
-                    {formatTime(version.created_at)}
-                </p>
-                {version.prompt_used && (
-                    <p className="text-xs text-white/30 mt-1 truncate">
+                >
+                    {isActive && <Check className="h-2 w-2" strokeWidth={3} />}
+                </span>
+
+                <div className="min-w-0 flex-1">
+                    <div className="flex min-w-0 items-center gap-2">
+                        <span
+                            className={cn(
+                                "truncate text-sm font-medium",
+                                isActive
+                                    ? "text-foreground dark:text-white"
+                                    : "text-foreground/80 dark:text-white/80",
+                            )}
+                        >
+                            Version {index + 1}
+                        </span>
+                        {isActive && (
+                            <span className="shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-primary dark:bg-primary/20 dark:text-primary">
+                                Current
+                            </span>
+                        )}
+                    </div>
+                    <p className="mt-0.5 text-xs text-muted-foreground dark:text-white/50">
+                        {formatTime(version.created_at)}
+                    </p>
+                    <p
+                        className={cn(
+                            "mt-1 truncate text-xs",
+                            isActive
+                                ? "text-muted-foreground dark:text-white/60"
+                                : "text-muted-foreground/80 dark:text-white/40",
+                        )}
+                    >
                         {getPromptSnippet(version.prompt_used)}
                     </p>
-                )}
-            </div>
+                </div>
 
+                {!isActive && (
+                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground opacity-0 transition group-hover:cursor-pointer group-hover:bg-background/80 group-hover:opacity-100 dark:text-white/50 dark:group-hover:bg-white/[0.06] dark:group-hover:text-white/75">
+                        <RotateCcw className="h-3.5 w-3.5" />
+                    </span>
+                )}
+            </motion.button>
         </motion.div>
     );
 };

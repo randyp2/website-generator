@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { X } from "lucide-react";
+import { History, X } from "lucide-react";
 import type { Version } from "@/types/version";
 import { VersionTimeline } from "./VersionTimeline";
 
@@ -14,6 +14,9 @@ interface VersionTimelineDrawerProps {
     isActivating: boolean;
 }
 
+/**
+ * Rounded version history panel anchored above the refine prompt bar.
+ */
 export const VersionTimelineDrawer: React.FC<VersionTimelineDrawerProps> = ({
     versions,
     isLoading,
@@ -46,33 +49,36 @@ export const VersionTimelineDrawer: React.FC<VersionTimelineDrawerProps> = ({
     return (
         <motion.div
             ref={drawerRef}
-            initial={{ y: "100%", opacity: 0 }}
+            initial={{ y: 18, opacity: 0, scale: 0.98 }}
             animate={{ y: 0, opacity: 1 }}
-            exit={{ y: "100%", opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 350 }}
-            className="w-full flex flex-col items-center overflow-hidden"
+            exit={{ y: 18, opacity: 0, scale: 0.98 }}
+            transition={{ type: "spring", damping: 28, stiffness: 360 }}
+            className="flex w-full flex-col items-center overflow-hidden px-1 pb-3"
         >
-            <div className="
-                w-full overflow-hidden
-                bg-[#1a1d21] backdrop-blur-lg
-                border-x border-t border-white/10
-            ">
-                <div className="max-h-72 overflow-y-auto
-                    [&::-webkit-scrollbar]:w-1.5
-                    [&::-webkit-scrollbar-track]:bg-transparent
-                    [&::-webkit-scrollbar-thumb]:bg-white/10
-                    [&::-webkit-scrollbar-thumb]:rounded-full
-                ">
-                    <div className="sticky top-0 px-4 py-3 bg-[#1a1d21] border-b border-white/5 flex items-center justify-between">
-                        <h3 className="text-xs font-medium text-white/50 uppercase tracking-wider">
-                            Version History
-                        </h3>
+            <div className="w-full overflow-hidden rounded-3xl border border-border bg-card/95 text-foreground shadow-[0_24px_80px_rgba(0,0,0,0.16)] backdrop-blur-2xl dark:border-white/10 dark:bg-[#1c1d22]/92 dark:text-white dark:shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
+                <div className="max-h-72 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/30 dark:[&::-webkit-scrollbar-thumb]:bg-white/10 dark:[&::-webkit-scrollbar-thumb]:hover:bg-white/20">
+                    <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border/70 bg-card/95 px-4 py-3 backdrop-blur-2xl dark:border-white/10 dark:bg-[#1c1d22]/95">
+                        <div className="flex min-w-0 items-center gap-2">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground dark:bg-white/[0.06] dark:text-white/70">
+                                <History className="h-4 w-4" />
+                            </div>
+                            <div className="min-w-0">
+                                <h3 className="text-sm font-medium text-foreground dark:text-white">
+                                    Version history
+                                </h3>
+                                <p className="text-xs text-muted-foreground dark:text-white/50">
+                                    {versions.length} saved{" "}
+                                    {versions.length === 1 ? "version" : "versions"}
+                                </p>
+                            </div>
+                        </div>
                         <button
+                            type="button"
                             onClick={onClose}
-                            className="w-6 h-6 rounded-full bg-white/5 text-white/50 hover:text-white/80 hover:bg-white/10 transition-colors flex items-center justify-center cursor-pointer"
+                            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:cursor-pointer hover:bg-muted hover:text-foreground dark:text-white/60 dark:hover:bg-white/[0.07] dark:hover:text-white"
                             aria-label="Close version history"
                         >
-                            <X className="w-3.5 h-3.5" />
+                            <X className="h-4 w-4" />
                         </button>
                     </div>
 
