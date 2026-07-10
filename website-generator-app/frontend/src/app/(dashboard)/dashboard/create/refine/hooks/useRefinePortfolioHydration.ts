@@ -2,6 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import {
+    isRefineChatHistory,
+    toUiRefineMessages,
+} from "@/lib/refine-chat-history";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
 import type { GlobalTheme } from "@/types/portfolio";
 
@@ -9,6 +13,8 @@ interface LoadedPortfolioResponse {
     templateId?: string | null;
     sections?: unknown;
     globalTheme?: unknown;
+    refineChatHistory?: unknown;
+    refine_chat_history?: unknown;
 }
 
 const parseGlobalTheme = (value: unknown): GlobalTheme | null => {
@@ -128,6 +134,14 @@ export const useRefinePortfolioHydration = (): {
                 setTemplateId(data.templateId ?? null);
                 setSections(Array.isArray(data.sections) ? data.sections : []);
                 setGlobalTheme(parseGlobalTheme(data.globalTheme));
+
+                const refineHistory =
+                    data.refineChatHistory ?? data.refine_chat_history;
+                setMessages(
+                    isRefineChatHistory(refineHistory)
+                        ? toUiRefineMessages(refineHistory)
+                        : [],
+                );
             } catch (error: unknown) {
                 console.error("Failed to load portfolio:", error);
             } finally {

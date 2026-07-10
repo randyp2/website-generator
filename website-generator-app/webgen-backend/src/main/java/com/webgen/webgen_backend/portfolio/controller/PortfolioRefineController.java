@@ -12,6 +12,7 @@ import com.webgen.webgen_backend.portfolio.service.builder.BuilderService;
 import com.webgen.webgen_backend.portfolio.service.clarifier.ClarifierService;
 import com.webgen.webgen_backend.portfolio.service.crud.PortfolioCrudService;
 import com.webgen.webgen_backend.portfolio.service.planner.PlannerService;
+import com.webgen.webgen_backend.portfolio.service.refine.RefineChatTurnHistoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -32,6 +33,7 @@ public class PortfolioRefineController {
     private final BuilderService builderService;
     private final PortfolioCrudService portfolioCrudService;
     private final CreditGuardService creditGuardService;
+    private final RefineChatTurnHistoryService refineChatTurnHistoryService;
 
     @PostMapping("/clarify")
     public ResponseEntity<ClarifierResponseDTO> clarify(
@@ -48,6 +50,12 @@ public class PortfolioRefineController {
         );
 
         ClarifierResponseDTO response = clarifierService.clarify(req);
+        refineChatTurnHistoryService.recordClarifierTurn(
+                userId,
+                req.getPortfolioId(),
+                req.getUserPrompt(),
+                response
+        );
         return ResponseEntity.ok(response);
     }
 
@@ -66,6 +74,7 @@ public class PortfolioRefineController {
         );
 
         PlannerResponseDTO response = plannerService.plan(req);
+        refineChatTurnHistoryService.recordPlannerTurn(userId, req.getPortfolioId(), response);
         return ResponseEntity.ok(response);
     }
 
