@@ -144,6 +144,9 @@ export interface PortfolioCreateState {
 }
 
 /* ========== ZUSTAND STORE ========== */
+/** One-shot guard so a persistent rehydration failure never retry-loops. */
+let hasAttemptedStoreRecovery = false;
+
 export const usePortfolioStore = create<PortfolioCreateState>()(
     persist(
         (set, get) => ({
@@ -621,16 +624,20 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             storage: createJSONStorage(() => sessionStorage),
             // Corrupt persisted state must never lock the UI: zustand swallows
             // rehydration errors and leaves hasHydrated() false forever, which
-            // keeps every hydration-gated input disabled. Recover by dropping
-            // the bad entry and rehydrating with defaults. The retry is
-            // deferred because the first hydrate runs synchronously during
-            // store creation, before the store const is initialized.
+            // keeps every hydration-gated input disabled. Recover ONCE by
+            // dropping the bad entry and rehydrating with defaults; a second
+            // failure means the error is not storage-borne, so retrying again
+            // would loop. The retry is deferred because the first hydrate runs
+            // synchronously during store creation, before the store const is
+            // initialized.
             onRehydrateStorage: () => (_state, error) => {
                 if (!error) return;
                 console.error(
-                    "[portfolio-store] Failed to rehydrate persisted state; clearing it and retrying with defaults",
+                    "[portfolio-store] Failed to rehydrate persisted state",
                     error,
                 );
+                if (hasAttemptedStoreRecovery) return;
+                hasAttemptedStoreRecovery = true;
                 sessionStorage.removeItem("portfolio-creation-store");
                 setTimeout(() => {
                     void usePortfolioStore.persist.rehydrate();
@@ -684,8 +691,11 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                     file: null as unknown as File,
                 })),
             }),
+            // persistedState is undefined when storage is empty (fresh session,
+            // or right after reset() removed the entry): fall back to defaults
             merge: (persistedState, currentState) => {
-                const persisted = persistedState as Partial<PortfolioCreateState>;
+                const persisted = (persistedState ??
+                    {}) as Partial<PortfolioCreateState>;
 
                 return {
                     ...currentState,

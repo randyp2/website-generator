@@ -20,6 +20,9 @@ interface GenerationJobState {
 
 const STORE_KEY = "generation-job-store";
 
+/** One-shot guard so a persistent rehydration failure never retry-loops. */
+let hasAttemptedJobStoreRecovery = false;
+
 /**
  * Tracks the currently running generation/refine job.
  *
@@ -40,15 +43,18 @@ export const useGenerationJobStore = create<GenerationJobState>()(
             name: STORE_KEY,
             storage: createJSONStorage(() => localStorage),
             // Corrupt persisted state would silently disable job tracking:
-            // recover by dropping the bad entry and rehydrating with defaults.
-            // Deferred because the first hydrate runs synchronously during
-            // store creation, before the store const is initialized.
+            // recover ONCE by dropping the bad entry and rehydrating with
+            // defaults; a second failure would loop. Deferred because the
+            // first hydrate runs synchronously during store creation, before
+            // the store const is initialized.
             onRehydrateStorage: () => (_state, error) => {
                 if (!error) return;
                 console.error(
-                    "[generation-job-store] Failed to rehydrate persisted state; clearing it and retrying with defaults",
+                    "[generation-job-store] Failed to rehydrate persisted state",
                     error,
                 );
+                if (hasAttemptedJobStoreRecovery) return;
+                hasAttemptedJobStoreRecovery = true;
                 localStorage.removeItem(STORE_KEY);
                 setTimeout(() => {
                     void useGenerationJobStore.persist.rehydrate();
