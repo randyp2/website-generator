@@ -50,6 +50,7 @@ public class BuilderServiceImpl implements BuilderService {
     private final BuilderResponseParser builderResponseParser;
     private final JsxValidatorService jsxValidatorService;
     private final FallbackSectionFactory fallbackSectionFactory;
+    private final PlanConsistencyValidator planConsistencyValidator;
     private final GenerateJobService generateJobService;
     private final ObjectMapper objectMapper;
     private final PortfolioRepository portfolioRepository;
@@ -95,13 +96,18 @@ public class BuilderServiceImpl implements BuilderService {
                 .collect(Collectors.toMap(SectionContentDTO::getSectionKey, s -> s));
         System.out.println(">>> [BUILDER] Loaded " + sectionsByKey.size() + " existing sections from DB");
 
+        // --- Reject plans that no longer match the persisted sections (409)
+        // rather than executing changes against data the plan never saw
+        List<SectionPlanDTO> reconciledPlans =
+                planConsistencyValidator.reconcile(req.getSectionPlans(), sectionsByKey.keySet());
+
         // Filter the plans that need LLM work
-        List<SectionPlanDTO> actionablePlans  = req.getSectionPlans().stream()
+        List<SectionPlanDTO> actionablePlans = reconciledPlans.stream()
                 .filter(p -> "modify".equals(p.getAction()) || "add".equals(p.getAction()))
                 .toList();
 
         // Collect section keys marked for deletion
-        List<String> deleteKeys = req.getSectionPlans().stream()
+        List<String> deleteKeys = reconciledPlans.stream()
                 .filter(p -> "delete".equals(p.getAction()))
                 .map(SectionPlanDTO::getSectionKey)
                 .toList();

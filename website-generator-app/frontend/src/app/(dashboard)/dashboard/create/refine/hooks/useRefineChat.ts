@@ -9,10 +9,7 @@ import type {
 import type { Message, SectionPlan } from "@/types/preview";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
 import { useGenerationJobStore } from "@/stores/useGenerationJobStore";
-import {
-    buildPlannerSections,
-    buildSectionSummaries,
-} from "../lib/section-serializers";
+import { buildSectionSummaries } from "../lib/section-serializers";
 import {
     createAiMessage,
     createGeneratingMessage,
@@ -74,6 +71,15 @@ class RefineSessionExpiredError extends Error {
     }
 }
 
+/** Raised when the approved plan no longer matches the saved portfolio (HTTP 409). */
+class RefinePlanConflictError extends Error {
+    constructor() {
+        super(
+            "The portfolio changed since this plan was made, so I couldn't apply it. Please request the change again.",
+        );
+    }
+}
+
 const STATUS_LABELS: Record<string, string> = {
     QUEUED: "Queued...",
     PROCESSING: "Processing...",
@@ -105,6 +111,10 @@ export const useRefineChat = ({
     const setSessionId = (sessionId: string | null): void =>
         usePortfolioStore.getState().setRefineSessionId(sessionId);
 
+    /**
+     * Request a modification plan. Sends only the session id: the backend
+     * plans against sections loaded from the DB, never client state.
+     */
     const callPlanner = async (): Promise<PlannerResponse | null> => {
         if (!portfolioId) return null;
 
@@ -113,7 +123,6 @@ export const useRefineChat = ({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 sessionId: getSessionId(),
-                sections: buildPlannerSections(sections),
             }),
         });
 
@@ -152,6 +161,9 @@ export const useRefineChat = ({
             if (response.status === 410) {
                 setSessionId(null);
                 throw new RefineSessionExpiredError();
+            }
+            if (response.status === 409) {
+                throw new RefinePlanConflictError();
             }
             const error = (await response.json()) as { error?: string };
             throw new Error(error.error ?? "Build request failed");
@@ -328,8 +340,13 @@ export const useRefineChat = ({
         } catch (error: unknown) {
             console.error("Build error:", error);
             setIsPlanApproved(false);
+            // A conflicting plan is unusable: drop it so the user re-plans
+            if (error instanceof RefinePlanConflictError) {
+                setCurrentPlan(null);
+            }
             const errorMessage: Message = createAiMessage(
-                error instanceof RefineSessionExpiredError
+                error instanceof RefineSessionExpiredError ||
+                    error instanceof RefinePlanConflictError
                     ? error.message
                     : "Sorry, there was an error building your changes. Please try again.",
                 {
