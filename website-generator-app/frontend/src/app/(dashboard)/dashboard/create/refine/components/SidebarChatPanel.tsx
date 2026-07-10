@@ -52,7 +52,7 @@ export const SidebarChatPanel: React.FC<SidebarChatPanelProps> = ({
     }, [messages]);
 
     return (
-        <div className="flex h-full flex-col border-r border-border bg-background/95 text-foreground backdrop-blur-md dark:border-white/10 dark:bg-black/60 dark:text-white">
+        <div className="flex h-full flex-col border-r border-border bg-card/95 text-foreground backdrop-blur-2xl dark:border-white/10 dark:bg-[#1c1d22]/92 dark:text-white">
             <SidebarChatMessages
                 messages={messages}
                 completedStreamingIds={completedStreamingIds}

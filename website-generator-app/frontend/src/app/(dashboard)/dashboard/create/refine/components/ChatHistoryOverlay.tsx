@@ -414,6 +414,7 @@ export const ChatHistoryOverlay: React.FC<ChatHistoryOverlayProps> = ({
                                                     key={message.id}
                                                     message={message}
                                                     streamPlainText
+                                                    showFlowStateStatus
                                                     skipAnimation={completedStreamingIds.has(
                                                         message.id,
                                                     )}

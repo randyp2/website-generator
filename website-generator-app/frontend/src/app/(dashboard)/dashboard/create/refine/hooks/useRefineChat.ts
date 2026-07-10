@@ -314,9 +314,11 @@ export const useRefineChat = ({
 
         setIsGenerating(true);
 
+        const buildingStartedAt = Date.now();
         const buildingMessage: Message = createGeneratingMessage("ai-building", {
             content: "Building your refined portfolio...",
             messageType: "build",
+            timestamp: new Date(buildingStartedAt),
         });
         setMessages((prev) => [...prev, buildingMessage]);
 
@@ -332,6 +334,7 @@ export const useRefineChat = ({
                     jobId: buildResult.jobId,
                     portfolioId,
                     kind: "refine",
+                    startedAt: buildingStartedAt,
                 });
             }
 
@@ -559,6 +562,7 @@ export const useRefineChat = ({
             const buildingMessage: Message = createGeneratingMessage("ai-building", {
                 content: "Resuming your changes...",
                 messageType: "build",
+                timestamp: new Date(job.startedAt),
             });
             setMessages((prev) =>
                 prev.filter((m) => !m.isGenerating).concat(buildingMessage),

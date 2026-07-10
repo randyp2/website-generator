@@ -23,6 +23,7 @@ export const SidebarChatMessages: React.FC<SidebarChatMessagesProps> = ({
                 key={message.id}
                 message={message}
                 streamPlainText
+                showFlowStateStatus
                 skipAnimation={completedStreamingIds.has(message.id)}
                 onStreamingComplete={onStreamingComplete}
             />

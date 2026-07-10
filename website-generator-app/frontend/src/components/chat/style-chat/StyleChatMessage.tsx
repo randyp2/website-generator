@@ -5,6 +5,7 @@ import { StreamingText } from "@/components/ui/StreamingText";
 import { cn } from "@/lib/utils";
 import type { Message } from "@/types/preview";
 import { AiMessageContent } from "./AiMessageContent";
+import { FlowStateStatus } from "./FlowStateStatus";
 import { RefinePlanCard } from "./RefinePlanCard";
 import { StyleSummaryCard } from "./StyleSummaryCard";
 
@@ -31,6 +32,7 @@ interface StyleChatMessageProps {
     onSuggestionClick?: (suggestion: string) => void;
     onLayoutSelect?: (layout: string) => void;
     streamPlainText?: boolean;
+    showFlowStateStatus?: boolean;
     skipAnimation?: boolean;
     onStreamingComplete?: (messageId: string) => void;
 }
@@ -43,6 +45,7 @@ export const StyleChatMessage = ({
     onSuggestionClick,
     onLayoutSelect,
     streamPlainText = false,
+    showFlowStateStatus = false,
     skipAnimation = false,
     onStreamingComplete,
 }: StyleChatMessageProps) => {
@@ -77,9 +80,13 @@ export const StyleChatMessage = ({
             >
                 {message.role === "ai" ? (
                     message.isGenerating ? (
-                        <GenerationStatus
-                            statusText={message.content || undefined}
-                        />
+                        showFlowStateStatus ? (
+                            <FlowStateStatus startedAt={message.timestamp} />
+                        ) : (
+                            <GenerationStatus
+                                statusText={message.content || undefined}
+                            />
+                        )
                     ) : message.messageType === "plan" &&
                       message.sectionPlans ? (
                         <RefinePlanCard

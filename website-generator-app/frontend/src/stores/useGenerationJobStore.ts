@@ -14,7 +14,11 @@ export interface ActiveGenerationJob {
 
 interface GenerationJobState {
     activeJob: ActiveGenerationJob | null;
-    startJob: (job: Omit<ActiveGenerationJob, "startedAt">) => void;
+    startJob: (
+        job: Omit<ActiveGenerationJob, "startedAt"> & {
+            startedAt?: ActiveGenerationJob["startedAt"];
+        },
+    ) => void;
     clearJob: () => void;
 }
 
@@ -36,7 +40,12 @@ export const useGenerationJobStore = create<GenerationJobState>()(
         (set) => ({
             activeJob: null,
             startJob: (job) =>
-                set({ activeJob: { ...job, startedAt: Date.now() } }),
+                set({
+                    activeJob: {
+                        ...job,
+                        startedAt: job.startedAt ?? Date.now(),
+                    },
+                }),
             clearJob: () => set({ activeJob: null }),
         }),
         {
