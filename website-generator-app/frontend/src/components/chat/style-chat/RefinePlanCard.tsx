@@ -8,6 +8,9 @@ interface RefinePlanCardProps {
     plans: SectionPlan[];
 }
 
+/**
+ * Shared plan preview used when refine chat moves from clarification to build.
+ */
 export const RefinePlanCard: React.FC<RefinePlanCardProps> = ({
     summary,
     plans,
@@ -36,6 +39,9 @@ interface PlanApprovalBarProps {
     onKeepChatting?: () => void;
 }
 
+/**
+ * Shared refine action bar shown once a plan is ready to be applied.
+ */
 export const PlanApprovalBar: React.FC<PlanApprovalBarProps> = ({
     isGenerating,
     onApprovePlan,
@@ -51,15 +57,15 @@ export const PlanApprovalBar: React.FC<PlanApprovalBarProps> = ({
                 <Button
                     onClick={onApprovePlan}
                     disabled={isGenerating}
-                    className="rounded-xl bg-orange-500/90 text-white shadow-[0_0_18px_rgba(249,115,22,0.35)] hover:bg-orange-500"
+                    className="h-10 cursor-pointer rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                     Apply changes
                 </Button>
                 <Button
-                    variant="ghost"
+                    variant="outline"
                     onClick={onKeepChatting}
                     disabled={isGenerating}
-                    className="rounded-xl text-orange-700 hover:bg-orange-500/10 dark:text-orange-100/70"
+                    className="h-10 cursor-pointer rounded-full px-4 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-[#1c1d22]/92 dark:text-white dark:hover:bg-white/5"
                 >
                     Keep chatting
                 </Button>

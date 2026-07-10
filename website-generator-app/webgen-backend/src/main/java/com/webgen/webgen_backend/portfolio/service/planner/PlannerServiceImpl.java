@@ -24,6 +24,7 @@ public class PlannerServiceImpl implements PlannerService {
     private final ClarifierService clarifierService;
     private final PlannerPromptBuilder plannerPromptBuilder;
     private final PlannerResponseParser plannerResponseParser;
+    private final SectionPlanScopeGuard sectionPlanScopeGuard;
 
     @Override
     public PlannerResponseDTO plan(PlannerRequestDTO req) {
@@ -66,6 +67,10 @@ public class PlannerServiceImpl implements PlannerService {
         long parseStart = System.currentTimeMillis();
         PlannerResponseDTO parsed = plannerResponseParser.parse(rawJson);
         System.out.println(">>> [PLANNER] Parse completed in " + (System.currentTimeMillis() - parseStart) + "ms");
+
+        // --- Enforce the clarified scope BEFORE the user sees the plan, so the
+        // approval screen shows exactly what the builder will execute
+        parsed.setSectionPlans(sectionPlanScopeGuard.filterToScope(context, parsed.getSectionPlans()));
 
         // Debug output
         System.out.println("=== PLANNER RESPONSE ===");

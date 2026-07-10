@@ -84,30 +84,8 @@ public class BuilderServiceImpl implements BuilderService {
                 + ", confidence=" + context.getConfidenceScore()
                 + ", scope=" + context.getScope());
 
-        // Guard: drop modify plans for sections outside the clarifier's target scope.
-        // When scope is "section" or "multi", only sections explicitly targeted should
-        // be modified. This prevents over-scoped planner output from reaching workers.
-        List<String> targetKeys = (context.getTargetSectionKeys() != null)
-                ? context.getTargetSectionKeys()
-                : List.of();
-        java.util.Set<String> targetKeySet = new java.util.HashSet<>(targetKeys);
-        String scope = context.getScope() != null ? context.getScope() : "unknown";
-
-        if ("section".equals(scope) || "multi".equals(scope)) {
-            List<SectionPlanDTO> originalPlans = req.getSectionPlans();
-            List<SectionPlanDTO> filteredPlans = originalPlans.stream()
-                    .filter(p -> {
-                        if ("modify".equals(p.getAction()) && !targetKeySet.contains(p.getSectionKey())) {
-                            System.out.println(">>> [BUILDER] DROPPED out-of-scope modify plan: "
-                                    + p.getSectionKey() + " (scope=" + scope
-                                    + ", targets=" + targetKeys + ")");
-                            return false;
-                        }
-                        return true;
-                    })
-                    .toList();
-            req.setSectionPlans(filteredPlans);
-        }
+        // Scope enforcement happens at PLAN time (SectionPlanScopeGuard), so the
+        // plan the user approved executes verbatim — no filtering here.
 
         // --- Load current sections from the DB. The DB is the source of truth
         // for section code: a stale browser must never supply what gets modified
@@ -128,6 +106,11 @@ public class BuilderServiceImpl implements BuilderService {
                 .map(SectionPlanDTO::getSectionKey)
                 .toList();
 
+        // A plan with nothing to build or delete would create a job no worker
+        // ever completes, so the barrier would leave it hanging forever
+        if (actionablePlans.isEmpty() && deleteKeys.isEmpty())
+            throw new IllegalArgumentException("Plan contains no actionable changes");
+
         // Create Redis job
         String jobId = generateJobService.createJob(req.getPortfolioId());
         generateJobService.setTotalSections(jobId, actionablePlans.size());
@@ -135,6 +118,16 @@ public class BuilderServiceImpl implements BuilderService {
         // Store delete keys in Redis so the barrier worker can handle them at persistence
         if (!deleteKeys.isEmpty()) {
             generateJobService.storeDeleteKeys(jobId, deleteKeys);
+        }
+
+        // --- Delete-only plans have no workers to trigger the persistence
+        // barrier: persist synchronously and return the already-finished job
+        if (actionablePlans.isEmpty()) {
+            System.out.println(">>> [BUILDER] Delete-only plan — persisting without workers | job: " + jobId);
+            persistRefinementFromRedis(jobId, req.getPortfolioId());
+            BuilderResponseDTO response = new BuilderResponseDTO();
+            response.setJobId(jobId);
+            return response;
         }
 
         // Build messages and fan out to queue
@@ -244,7 +237,7 @@ public class BuilderServiceImpl implements BuilderService {
                         + maxRetries + " attempts with no previous version — skipping it");
                 int completedCount = generateJobService.incrementCompleted(jobId);
                 if (completedCount == msg.getTotalSections()) {
-                    persistRefinementFromRedis(jobId, msg);
+                    persistRefinementFromRedis(jobId, UUID.fromString(msg.getPortfolioId()));
                 }
                 return;
             }
@@ -261,20 +254,21 @@ public class BuilderServiceImpl implements BuilderService {
         // If last worker then persist
         if (completedCount == msg.getTotalSections()) {
             System.out.println(">>> [REFINE-WORKER] All sections complete — triggering persistence | job: " + jobId);
-            persistRefinementFromRedis(jobId, msg);
+            persistRefinementFromRedis(jobId, UUID.fromString(msg.getPortfolioId()));
         }
     }
 
     /**
-     * Persist refinement results after all workers complete (barrier).
+     * Persist refinement results once all LLM work for the job is done.
      *
      * Merges worker-generated sections with unchanged existing sections,
      * handles deletions, creates a new GeneratedVersion, and upserts
      * portfolio_sections.
      *
-     * Runs inside the last worker thread, NOT the HTTP request thread.
+     * Runs inside the last worker thread as a barrier, except for delete-only
+     * plans, which have no workers and persist on the HTTP request thread.
      */
-    private void persistRefinementFromRedis(String jobId, SectionGenerationMessage msg) {
+    private void persistRefinementFromRedis(String jobId, UUID portfolioId) {
         System.out.println(">>> [REFINE-PERSIST] Starting DB persistence | job: " + jobId);
         long persistStart = System.currentTimeMillis();
         generateJobService.updateStatus(jobId, JobStatusDTO.Status.PERSISTING);
@@ -303,7 +297,6 @@ public class BuilderServiceImpl implements BuilderService {
         System.out.println(">>> [REFINE-PERSIST] Sections to delete: " + (deleteKeys.isEmpty() ? "none" : deleteKeys));
 
         // 3. Load portfolio and existing sections from DB
-        UUID portfolioId = UUID.fromString(msg.getPortfolioId());
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
                 .orElseThrow(() -> new IllegalStateException("Portfolio not found: " + portfolioId));
 

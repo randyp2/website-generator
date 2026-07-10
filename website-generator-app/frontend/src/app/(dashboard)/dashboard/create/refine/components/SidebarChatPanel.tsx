@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
+import { PlanApprovalBar } from "@/components/chat/style-chat/RefinePlanCard";
 import type { UploadedFile } from "@/types/file";
-import { PlanApprovalBar } from "./sidebar-chat/RefinePlanCard";
 import { SidebarChatMessages } from "./sidebar-chat/SidebarChatMessages";
 import type { ChatLayoutMode, ChatMessage } from "./sidebar-chat/types";
 import { useCompletedStreamingIds } from "./sidebar-chat/useCompletedStreamingIds";
