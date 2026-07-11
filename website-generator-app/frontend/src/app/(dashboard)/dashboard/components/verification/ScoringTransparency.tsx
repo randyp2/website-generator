@@ -34,7 +34,7 @@ const SCORING_RULES = [
   {
     title: "Reviewed Range",
     description:
-      "Connector-only claims are capped at 80. Qualifying AI-reviewed uploads can unlock the range above 80.",
+      "Connector-only claims are capped at 80. Reviewed evidence gradually unlocks the cap from 80 at 85% confidence to 100 at 95% confidence.",
   },
   {
     title: "Parser Confidence Is Diagnostic",

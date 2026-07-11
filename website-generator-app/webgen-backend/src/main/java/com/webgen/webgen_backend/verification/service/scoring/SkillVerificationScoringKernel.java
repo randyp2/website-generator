@@ -264,9 +264,11 @@ public class SkillVerificationScoringKernel {
         int evidenceLinksUsedForScoring = matched ? evidenceLinksUsed : 0;
 
         boolean llmVerified = evidenceNudgeCalculator.isLlmVerified(input);
-        int claimScoreCap = evidenceNudgeCalculator.claimScoreCap(llmVerified);
-        log.debug("[CLAIM SCORE][LLM] claimId={} llmVerified={} claimScoreCap={}",
-                input.claimId(), llmVerified, claimScoreCap);
+        BigDecimal reviewConfidence = evidenceNudgeCalculator.strongestReviewConfidence(input);
+        int claimScoreCap = evidenceNudgeCalculator.claimScoreCap(input);
+        log.debug("[CLAIM SCORE][REVIEW CAP] claimId={} llmVerified={} reviewConfidence={} "
+                        + "cap=80+round(20*clamp((confidence-0.85)/0.10))={}",
+                input.claimId(), llmVerified, reviewConfidence, claimScoreCap);
 
         // Source provenance is deliberately excluded. Recognition establishes a
         // neutral progress baseline; evidence is responsible for further lift.
@@ -403,8 +405,8 @@ public class SkillVerificationScoringKernel {
         if (finalScoreCapped) {
             claimReason = new ClaimReasonComputation(
                     "expert_reserved_llm",
-                    "You've hit the max score we can give automatically. "
-                            + "Higher scores require a deeper review — that feature is coming soon."
+                    "You've reached the ceiling unlocked by your current reviewed evidence. "
+                            + "Stronger reviewed evidence can unlock more progress."
             );
         }
 

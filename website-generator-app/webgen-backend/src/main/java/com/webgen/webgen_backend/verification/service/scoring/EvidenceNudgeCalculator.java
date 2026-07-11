@@ -39,13 +39,26 @@ public class EvidenceNudgeCalculator {
      * Resolves the score ceiling that applies to a claim based on whether it is
      * eligible for the LLM-verified expert tier.
      */
-    public int claimScoreCap(boolean llmVerified) {
-        return verificationSignalPolicy.claimScoreCap(llmVerified);
+    public int claimScoreCap(SkillClaimInput input) {
+        return verificationSignalPolicy.claimScoreCap(strongestReviewConfidence(input));
+    }
+
+    /** Returns the strongest reviewed-upload confidence attached to a claim. */
+    public BigDecimal strongestReviewConfidence(SkillClaimInput input) {
+        if (input == null || input.canonicalSkillId() == null || input.evidenceLinks() == null) {
+            return SkillScoringPolicy.ZERO;
+        }
+        return input.evidenceLinks().stream()
+                .filter(link -> link != null && verificationSignalPolicy.isLlmReviewSignal(
+                        link.provider(), link.linkType()))
+                .map(link -> scoringPolicy.clamp01(link.linkConfidence()))
+                .max(BigDecimal::compareTo)
+                .orElse(SkillScoringPolicy.ZERO);
     }
 
     /**
      * Returns true when the claim is canonically matched and has at least one
-     * evidence link eligible to unlock the expert score tier.
+     * evidence link eligible for reviewed status.
      */
     public boolean isLlmVerified(SkillClaimInput input) {
         if (input == null || input.canonicalSkillId() == null) {

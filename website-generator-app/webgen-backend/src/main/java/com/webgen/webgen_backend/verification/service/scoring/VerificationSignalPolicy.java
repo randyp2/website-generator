@@ -3,6 +3,7 @@ package com.webgen.webgen_backend.verification.service.scoring;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Locale;
 import java.util.Map;
 
@@ -186,21 +187,22 @@ public class VerificationSignalPolicy {
     );
 
     /**
-     * Minimum AI confidence required to treat an upload as LLM-verified and
-     * unlock the expert score tier (scores above 80).
+     * Minimum AI confidence required to treat an upload as reviewed. This is
+     * the start of the gradual cap range and does not itself add cap headroom.
      *
-     * Below 85%, the upload still contributes to the score through the normal
-     * evidence nudge — it just doesn't unlock the higher ceiling. This prevents
+     * Below 85%, the upload still contributes through the normal evidence nudge,
+     * but it does not unlock a higher ceiling. This prevents
      * a vague document match (e.g. a resume that lists Java once in a skills
      * table with no supporting detail) from reaching the same ceiling as a
      * well-evidenced portfolio piece the AI assessed with high certainty.
      *
-     * Example: a CRUD app portfolio submitted as a PDF → AI confidence 0.87
-     * → exceeds threshold → expert tier unlocked.
-     * Example: a resume with a one-line "Java" skills mention → AI confidence
-     * 0.52 → still scores, but stays capped at 80.
+     * A confidence of 0.87 unlocks a cap of 84. A confidence of 0.95 unlocks
+     * the full cap of 100. The evidence curve still determines the earned score.
      */
     private static final BigDecimal LLM_MIN_CONFIDENCE = new BigDecimal("0.85");
+
+    /** Confidence at which reviewed evidence unlocks the full 100-point cap. */
+    private static final BigDecimal LLM_FULL_UNLOCK_CONFIDENCE = new BigDecimal("0.95");
 
     /**
      * Score ceiling for claims that have not been LLM-verified.
@@ -214,14 +216,7 @@ public class VerificationSignalPolicy {
     public static final int CLAIM_CAP_WITHOUT_LLM = 80;
 
     /**
-     * Score ceiling for claims that have been LLM-verified.
-     *
-     * When the AI has reviewed an upload with at least 85% confidence, the
-     * full 0–100 range opens up. Reaching scores above 80 still requires
-     * enough accumulated evidence strength — the cap opening up doesn't push
-     * the score there automatically. A single upload at 0.85 confidence still
-     * lands around 66; it takes multiple strong signals or a very high-confidence
-     * upload to push into the 80–100 range.
+     * Maximum ceiling available once reviewed evidence reaches 95% confidence.
      */
     public static final int CLAIM_CAP_WITH_LLM = 100;
 
@@ -254,19 +249,40 @@ public class VerificationSignalPolicy {
         if (provider == null || linkType == null || confidence == null) {
             return false;
         }
-        String normalizedProvider = provider.trim().toLowerCase(Locale.ROOT);
-        String normalizedLinkType = linkType.trim().toLowerCase(Locale.ROOT);
-        return LLM_ELIGIBLE_PROVIDER.equals(normalizedProvider)
-                && LLM_ELIGIBLE_LINK_TYPES.contains(normalizedLinkType)
+        return isLlmReviewSignal(provider, linkType)
                 && confidence.compareTo(LLM_MIN_CONFIDENCE) >= 0;
     }
 
     /**
-     * Returns the score ceiling that applies to a claim based on whether it
-     * has been LLM-verified. Applied after the evidence nudge is calculated,
-     * so it acts as a hard upper bound on what the claim can score.
+     * Returns whether a signal came from the reviewed-upload path, independent
+     * of its confidence. This lets cap calculation inspect sub-threshold reviews
+     * without granting them reviewed status.
      */
-    public int claimScoreCap(boolean llmVerified) {
-        return llmVerified ? CLAIM_CAP_WITH_LLM : CLAIM_CAP_WITHOUT_LLM;
+    public boolean isLlmReviewSignal(String provider, String linkType) {
+        if (provider == null || linkType == null) {
+            return false;
+        }
+        return LLM_ELIGIBLE_PROVIDER.equals(provider.trim().toLowerCase(Locale.ROOT))
+                && LLM_ELIGIBLE_LINK_TYPES.contains(linkType.trim().toLowerCase(Locale.ROOT));
+    }
+
+    /**
+     * Gradually unlocks score headroom from 80 at 85% review confidence to
+     * 100 at 95%. Evidence support still determines how much of this cap is earned.
+     */
+    public int claimScoreCap(BigDecimal reviewConfidence) {
+        if (reviewConfidence == null || reviewConfidence.compareTo(LLM_MIN_CONFIDENCE) <= 0) {
+            return CLAIM_CAP_WITHOUT_LLM;
+        }
+        BigDecimal bounded = reviewConfidence.min(BigDecimal.ONE);
+        BigDecimal progress = bounded.subtract(LLM_MIN_CONFIDENCE)
+                .divide(LLM_FULL_UNLOCK_CONFIDENCE.subtract(LLM_MIN_CONFIDENCE), 6, RoundingMode.HALF_UP)
+                .max(BigDecimal.ZERO)
+                .min(BigDecimal.ONE);
+        int unlockedPoints = BigDecimal.valueOf(CLAIM_CAP_WITH_LLM - CLAIM_CAP_WITHOUT_LLM)
+                .multiply(progress)
+                .setScale(0, RoundingMode.HALF_UP)
+                .intValue();
+        return CLAIM_CAP_WITHOUT_LLM + unlockedPoints;
     }
 }

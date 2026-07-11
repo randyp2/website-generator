@@ -24,6 +24,15 @@ const signalWeights = [
   ["Language plus text", "0.48"],
 ];
 
+const reviewCaps = [
+  ["Below 0.85", "80"],
+  ["0.85", "80"],
+  ["0.875", "85"],
+  ["0.90", "90"],
+  ["0.925", "95"],
+  ["0.95+", "100"],
+];
+
 export default function VerificationDocsPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -107,6 +116,34 @@ claim score        = 50 + (claim cap - 50) × boost progress`}</code>
             range above 80.
           </p>
 
+          <h3 className="mt-8 text-lg font-semibold">Gradual reviewed-evidence cap</h3>
+          <pre className="mt-4 overflow-x-auto border border-border bg-muted/30 p-5 text-sm leading-7">
+            <code>{`review progress = clamp((confidence - 0.85) / 0.10, 0, 1)
+claim cap       = 80 + round(20 × review progress)`}</code>
+          </pre>
+          <div className="mt-4 overflow-x-auto border border-border">
+            <table className="w-full border-collapse text-left text-sm">
+              <thead className="bg-muted/40">
+                <tr>
+                  <th className="border-b border-border px-4 py-3 font-medium">Review confidence</th>
+                  <th className="border-b border-border px-4 py-3 font-medium">Available cap</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reviewCaps.map(([confidence, cap]) => (
+                  <tr key={confidence} className="border-b border-border last:border-0">
+                    <td className="px-4 py-3 font-mono">{confidence}</td>
+                    <td className="px-4 py-3 font-mono">{cap}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-4 leading-7 text-muted-foreground">
+            The cap only defines available headroom. Evidence strength and breadth
+            still determine how much of that headroom the claim earns.
+          </p>
+
           <div className="mt-6 overflow-x-auto border border-border">
             <table className="w-full border-collapse text-left text-sm">
               <thead className="bg-muted/40">
@@ -150,13 +187,13 @@ overall   = baseline + mean lift × sqrt(coverage)`}</code>
                 <li>Set every recognized active claim to a neutral baseline of 50.</li>
                 <li>Removed manual, resume, and imported source from baseline scoring.</li>
                 <li>Kept parser confidence as diagnostics with no score effect.</li>
+                <li>Replaced the hard AI cap jump with a gradual 80–100 unlock.</li>
                 <li>Excluded rejected claims and left unresolved claims unscored.</li>
               </ul>
             </div>
             <div className="border border-border p-5">
               <h3 className="font-semibold">Still under review</h3>
               <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
-                <li>The AI review threshold still uses a hard 85% expert-tier unlock.</li>
                 <li>Evidence independence, GitHub authorship, and artifact depth need refinement.</li>
                 <li>Signal weights have not yet been calibrated against reviewed data.</li>
               </ul>
