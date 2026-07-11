@@ -16,6 +16,7 @@ import com.webgen.webgen_backend.portfolio.service.refine.RefineChatTurnHistoryS
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import com.webgen.webgen_backend.shared.ratelimit.RateLimiterService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,6 +34,7 @@ public class PortfolioRefineController {
     private final BuilderService builderService;
     private final PortfolioCrudService portfolioCrudService;
     private final CreditGuardService creditGuardService;
+    private final RateLimiterService rateLimiterService;
     private final RefineChatTurnHistoryService refineChatTurnHistoryService;
 
     @PostMapping("/clarify")
@@ -42,6 +44,7 @@ public class PortfolioRefineController {
         UUID userId = UUID.fromString(
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
         );
+        rateLimiterService.check("refine-turn", userId.toString());
         portfolioCrudService.verifyOwnership(userId, req.getPortfolioId());
         creditGuardService.assertHasRequiredCredits(
                 userId,
@@ -68,6 +71,7 @@ public class PortfolioRefineController {
         UUID userId = UUID.fromString(
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
         );
+        rateLimiterService.check("refine-turn", userId.toString());
         portfolioCrudService.verifyOwnership(userId, req.getPortfolioId());
         creditGuardService.assertHasRequiredCredits(
                 userId,
@@ -93,6 +97,7 @@ public class PortfolioRefineController {
         UUID userId = UUID.fromString(
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
         );
+        rateLimiterService.check("refine-build", userId.toString());
         portfolioCrudService.verifyOwnership(userId, req.getPortfolioId());
         creditGuardService.assertHasRequiredCredits(
                 userId,

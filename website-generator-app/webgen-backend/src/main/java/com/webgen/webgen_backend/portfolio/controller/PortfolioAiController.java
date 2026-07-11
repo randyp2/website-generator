@@ -12,6 +12,7 @@ import com.webgen.webgen_backend.portfolio.service.job.GenerateJobService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import com.webgen.webgen_backend.shared.ratelimit.RateLimiterService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,6 +28,7 @@ public class PortfolioAiController {
     private final PortfolioAiService portfolioAiService;
     private final CreditGuardService creditGuardService;
     private final ObjectMapper objectMapper;
+    private final RateLimiterService rateLimiterService;
 
     @PostMapping("/{id}/generate")
     public ResponseEntity<Map<String, String>> generatePortfolio(
@@ -35,6 +37,8 @@ public class PortfolioAiController {
 
         UUID userId = UUID.fromString(
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
+
+        rateLimiterService.check("portfolio-generate", userId.toString());
 
         creditGuardService.assertHasRequiredCredits(
                 userId,
