@@ -325,7 +325,7 @@ export const PublishHero = ({
                 type="button"
                 onClick={openInEditMode}
                 variant="outline"
-                className="flex-1 gap-1.5 sm:flex-none"
+                className="flex-1 cursor-pointer gap-1.5 sm:flex-none"
               >
                 <FiEdit3 className="h-4 w-4" />
                 Edit description
@@ -333,7 +333,7 @@ export const PublishHero = ({
               <Button
                 type="button"
                 onClick={onOpenWizard}
-                className="flex-1 gap-1.5 sm:flex-none"
+                className="flex-1 cursor-pointer gap-1.5 sm:flex-none"
               >
                 <FiUploadCloud className="h-4 w-4" />
                 Publish a new portfolio

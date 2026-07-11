@@ -10,6 +10,8 @@ interface BrowserPreviewFrameProps {
   url: string
   fallback?: string
   className?: string
+  contentClassName?: string
+  imageClassName?: string
 }
 
 const DEFAULT_FALLBACK =
@@ -21,6 +23,8 @@ export const BrowserPreviewFrame = ({
   url,
   fallback = DEFAULT_FALLBACK,
   className,
+  contentClassName,
+  imageClassName,
 }: BrowserPreviewFrameProps) => {
   const [imgSrc, setImgSrc] = React.useState<string>(src ?? fallback)
   const [isLoading, setIsLoading] = React.useState(true)
@@ -54,7 +58,7 @@ export const BrowserPreviewFrame = ({
           <p className="truncate text-[11px] text-white/75">{url}</p>
         </div>
       </div>
-      <div className="relative bg-[#13161d]">
+      <div className={cn("relative bg-[#13161d]", contentClassName)}>
         {isLoading && (
           <div className="absolute inset-0 animate-pulse bg-accent/20" />
         )}
@@ -69,6 +73,7 @@ export const BrowserPreviewFrame = ({
           className={cn(
             "block h-auto w-full transition-opacity duration-500",
             isLoading ? "opacity-0" : "opacity-100",
+            imageClassName,
           )}
         />
       </div>

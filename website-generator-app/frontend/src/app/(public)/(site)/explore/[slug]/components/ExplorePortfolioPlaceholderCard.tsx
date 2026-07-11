@@ -106,9 +106,9 @@ export const ExplorePortfolioPlaceholderCard = ({
   return (
     <div className="self-start">
       <article className="relative overflow-hidden rounded-xl border border-border bg-card/80 shadow-sm">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/20 via-accent/10 to-transparent dark:from-primary/15 dark:via-transparent dark:to-accent/12" />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(251,146,60,0.14),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(245,158,11,0.10),transparent_30%)]" />
-        <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-primary/20 blur-3xl dark:bg-primary/12" />
+        {/* Coffee-gold wash: one smooth diagonal gradient (#554023 -> #c99846),
+            kept translucent so the card text stays theme-readable */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#554023]/14 via-[#8a6c35]/8 to-[#c99846]/18 dark:from-[#554023]/45 dark:via-[#8a6c35]/20 dark:to-[#c99846]/25" />
 
         <div className="relative z-10 p-6 sm:p-8">
           <p className="text-xs font-semibold tracking-[0.24em] text-primary uppercase">

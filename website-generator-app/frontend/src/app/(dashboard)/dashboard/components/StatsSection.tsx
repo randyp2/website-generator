@@ -11,6 +11,8 @@ type StatCard = {
     value: string;
     subtitle: string;
     icon: IconType;
+    accentClassName: string;
+    iconClassName: string;
 };
 
 const numberFormatter = new Intl.NumberFormat("en-US");
@@ -38,6 +40,8 @@ export const StatsSection: React.FC = () => {
                     ? "All deployed"
                     : `${draftCount} not yet deployed`,
             icon: FiFolder,
+            accentClassName: "bg-orange-500",
+            iconClassName: "text-orange-500/15 dark:text-orange-300/15",
         },
         {
             label: "Deployed",
@@ -48,6 +52,8 @@ export const StatsSection: React.FC = () => {
                     ? "Publish a portfolio to go live"
                     : `${deployedPortfolioCount === 1 ? "1 site" : `${deployedPortfolioCount} sites`} currently live`,
             icon: FiGlobe,
+            accentClassName: "bg-sky-500",
+            iconClassName: "text-sky-500/15 dark:text-sky-300/15",
         },
         {
             label: "Total Engagement",
@@ -58,6 +64,8 @@ export const StatsSection: React.FC = () => {
                     ? "No deployed portfolios yet"
                     : `Across ${deployedPortfolioCount === 1 ? "1 deployed portfolio" : `${deployedPortfolioCount} deployed portfolios`}`,
             icon: FiActivity,
+            accentClassName: "bg-emerald-500",
+            iconClassName: "text-emerald-500/15 dark:text-emerald-300/15",
         },
     ];
 
@@ -78,23 +86,28 @@ export const StatsSection: React.FC = () => {
                         whileHover={{ y: -4 }}
                         className="group relative"
                     >
-                        <div className="relative rounded-2xl border border-border bg-card p-5 shadow-lg transition-shadow hover:shadow-xl md:p-6">
-                            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15 text-primary transition-transform group-hover:scale-110">
-                                <Icon className="h-5 w-5" />
-                            </div>
+                        <div className="relative min-h-[176px] overflow-hidden rounded-lg border border-border bg-card p-5 shadow-md transition-colors group-hover:border-foreground/20 md:p-6">
+                            <Icon
+                                aria-hidden="true"
+                                className={`pointer-events-none absolute -bottom-7 -right-5 h-40 w-40 stroke-[0.85] transition-transform duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1 group-hover:scale-105 ${stat.iconClassName}`}
+                            />
 
-                            <div className="mb-2">
-                                <div className="text-3xl font-bold text-card-foreground">
-                                    {stat.value}
+                            <div className={`absolute left-0 top-6 h-10 w-1 ${stat.accentClassName}`} />
+
+                            <div className="relative z-10 flex min-h-[128px] flex-col justify-between">
+                                <div>
+                                    <div className="text-xs font-semibold uppercase text-muted-foreground">
+                                        {stat.label}
+                                    </div>
+                                    <div className="mt-1 text-4xl font-bold text-card-foreground">
+                                        {stat.value}
+                                    </div>
                                 </div>
-                                <div className="text-sm font-medium text-muted-foreground">
-                                    {stat.label}
+
+                                <div className="max-w-[70%] text-xs leading-relaxed text-muted-foreground">
+                                    {stat.subtitle}
                                 </div>
                             </div>
-
-                            <div className="text-xs text-muted-foreground">{stat.subtitle}</div>
-
-                            <div className="pointer-events-none absolute inset-0 rounded-2xl bg-primary/0 transition-shadow group-hover:bg-primary/5" />
                         </div>
                     </motion.div>
                 );

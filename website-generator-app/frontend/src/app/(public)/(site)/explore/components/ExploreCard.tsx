@@ -114,11 +114,11 @@ export const ExploreCard = ({
               aria-pressed={hasLiked}
               aria-label={hasLiked ? "Unlike portfolio" : "Like portfolio"}
               className={cn(
-                "relative z-10 flex items-center gap-1.5 rounded-md px-1 py-1 transition-colors hover:cursor-pointer hover:text-primary disabled:cursor-not-allowed disabled:opacity-60",
-                hasLiked && "text-primary",
+                "relative z-10 flex items-center gap-1.5 rounded-md px-1 py-1 transition-colors hover:cursor-pointer hover:text-rose-500 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:text-rose-400",
+                hasLiked && "text-rose-500 dark:text-rose-400",
               )}
             >
-              <Heart className={cn("size-4", hasLiked && "fill-primary")} />
+              <Heart className={cn("size-4", hasLiked && "fill-current")} />
               <span>{formatMetric(metrics?.likes ?? null)}</span>
             </button>
             <div className="flex items-center gap-1.5">

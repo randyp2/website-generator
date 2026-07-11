@@ -5,7 +5,6 @@ import { ArrowLeft, SquareArrowOutUpRight } from "lucide-react";
 
 import { fetchPublicPortfolio } from "@/lib/api/publicPortfolio";
 import { ExplorePortfolioDescription } from "./components/ExplorePortfolioDescription";
-import { ExplorePortfolioPlaceholderCard } from "./components/ExplorePortfolioPlaceholderCard";
 import { ExplorePortfolioPreviewCard } from "./components/ExplorePortfolioPreviewCard";
 import { ExplorePortfolioSidebar } from "./components/ExplorePortfolioSidebar";
 import PortfolioComments from "./components/PortfolioComments";
@@ -105,10 +104,6 @@ const ExplorePortfolioDetailPage = async ({ params }: Props) => {
             </div>
           </div>
 
-          <ExplorePortfolioPlaceholderCard
-            profileId={portfolio.userId}
-            username={portfolio.ownerUsername}
-          />
         </div>
       </div>
     </section>

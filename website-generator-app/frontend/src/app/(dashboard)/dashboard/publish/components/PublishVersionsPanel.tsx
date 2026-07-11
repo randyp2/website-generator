@@ -106,7 +106,7 @@ export const PublishVersionsPanel = ({ portfolioId }: PublishVersionsPanelProps)
                                 />
                             )}
 
-                            {/* Timeline node: emerald = live, orange = in editor */}
+                            {/* Timeline node: emerald marks the live version */}
                             <span
                                 className={cn(
                                     "absolute left-0 top-[5px] z-10 h-2.5 w-2.5 rounded-full",

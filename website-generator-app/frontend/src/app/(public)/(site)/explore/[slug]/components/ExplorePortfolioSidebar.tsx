@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Calendar, Eye, Heart, Share2, User } from "lucide-react";
 
 import {
@@ -16,9 +17,9 @@ import type {
 } from "../explore-portfolio-detail.types";
 import {
   getPortfolioOwnerName,
-  getTemplateLabel,
 } from "../explore-portfolio-detail.utils";
 import { usePublicAuthGate } from "@/context/PublicAuthGateContext";
+import { ExplorePortfolioPlaceholderCard } from "./ExplorePortfolioPlaceholderCard";
 import { cn } from "@/lib/utils";
 
 interface ExplorePortfolioSidebarProps {
@@ -41,9 +42,8 @@ export const ExplorePortfolioSidebar = ({
   } = useRecordPortfolioViewMutation();
   const recordShareMutation = useRecordPortfolioShareMutation();
 
-  const ownerName = portfolio.ownerUsername ?? getPortfolioOwnerName(portfolio);
-  const templateLabel = getTemplateLabel(portfolio.templateId);
-  const sectionCount = portfolio.sections.length;
+  const ownerName = getPortfolioOwnerName(portfolio);
+  const ownerUsername = portfolio.ownerUsername?.replace(/^@/, "") || null;
   const metrics =
     engagementQuery.data ??
     createEmptyPortfolioEngagementSummary(portfolio.portfolioId);
@@ -138,7 +138,19 @@ export const ExplorePortfolioSidebar = ({
                 ) : (
                   <User className="size-5 text-muted-foreground" />
                 )}
-                <span className="text-sm font-medium text-foreground">{ownerName}</span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium text-foreground">
+                    {ownerName}
+                  </span>
+                  {ownerUsername && (
+                    <Link
+                      href={`/${ownerUsername}`}
+                      className="block truncate text-sm font-medium text-primary transition-colors hover:cursor-pointer hover:text-primary/80"
+                    >
+                      @{ownerUsername}
+                    </Link>
+                  )}
+                </span>
               </dd>
             </div>
             <div>
@@ -186,39 +198,11 @@ export const ExplorePortfolioSidebar = ({
             <p className="mt-3 text-xs text-destructive">{actionError}</p>
           )}
         </div>
-        <div className="rounded-xl border border-border bg-card p-6 shadow-sm sm:p-8">
-          <p className="text-xs font-semibold tracking-[0.24em] text-primary uppercase">
-            Portfolio Snapshot
-          </p>
-          <dl className="mt-5 space-y-4">
-            <div>
-              <dt className="text-xs text-muted-foreground uppercase">Template</dt>
-              <dd className="mt-1 text-sm font-medium text-foreground">{templateLabel}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground uppercase">Sections</dt>
-              <dd className="mt-1 text-sm font-medium text-foreground">
-                {sectionCount} section{sectionCount === 1 ? "" : "s"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground uppercase">Slug</dt>
-              <dd className="mt-1 break-all text-sm font-medium text-foreground">
-                {portfolio.slug}
-              </dd>
-            </div>
-          </dl>
 
-          <div className="mt-6 border-t border-border pt-6">
-            <p className="text-xs font-semibold tracking-[0.24em] text-primary uppercase">
-              Summary
-            </p>
-            <p className="mt-3 text-sm leading-7 text-muted-foreground">
-              This right-side area keeps the core portfolio metadata visible while the preview
-              image and description expand across the left side of the page.
-            </p>
-          </div>
-        </div>
+        <ExplorePortfolioPlaceholderCard
+          profileId={portfolio.userId}
+          username={portfolio.ownerUsername}
+        />
       </div>
     </aside>
   );

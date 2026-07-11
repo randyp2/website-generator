@@ -26,6 +26,8 @@ export const ExplorePortfolioPreviewCard = ({
       alt={`${portfolio.title} preview`}
       url={displayUrl}
       fallback="https://placehold.co/1200x675?text=Portfolio+Preview"
+      contentClassName="-mt-px overflow-hidden"
+      imageClassName="-mt-2"
     />
   );
 };
