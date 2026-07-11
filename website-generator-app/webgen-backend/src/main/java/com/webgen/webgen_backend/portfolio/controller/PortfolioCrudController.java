@@ -134,6 +134,15 @@ public class PortfolioCrudController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/{id}/versions/publish-current")
+    public ResponseEntity<ActivateVersionResponseDTO> publishCurrentVersion(@PathVariable UUID id) {
+        UUID userId = UUID.fromString(
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
+        );
+        ActivateVersionResponseDTO response = portfolioCrudService.publishActiveVersion(userId, id);
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/publish")
     public ResponseEntity<PublishResponseDTO> publishPortfolio(
             @RequestBody @Valid PublishRequestDTO request) {

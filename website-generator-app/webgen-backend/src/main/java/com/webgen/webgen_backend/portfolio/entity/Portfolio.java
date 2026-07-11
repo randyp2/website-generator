@@ -47,6 +47,11 @@ public class Portfolio {
     @Column(name = "active_version_id")
     private UUID activeVersionId;
 
+    // Version pinned to the public site; null falls back to live sections
+    // (pre-pinning portfolios). See V19 migration.
+    @Column(name = "published_version_id")
+    private UUID publishedVersionId;
+
     @Column(name = "last_step", nullable = false)
     private String lastStep;
 

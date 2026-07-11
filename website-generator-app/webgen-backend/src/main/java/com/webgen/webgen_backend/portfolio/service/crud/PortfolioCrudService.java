@@ -115,6 +115,17 @@ public interface PortfolioCrudService {
     ActivateVersionResponseDTO activateVersion(UUID userId, UUID portfolioId, UUID versionId);
 
     /**
+     * Pin the portfolio's current active version as the one served on the
+     * public site ("Publish changes" for an already-published portfolio).
+     * Requires the portfolio to be published and to have an active version.
+     *
+     * @param userId      - UUID of the authenticated user (for ownership check)
+     * @param portfolioId - UUID of the portfolio
+     * @return ActivateVersionResponseDTO - portfolioId and the pinned versionId
+     */
+    ActivateVersionResponseDTO publishActiveVersion(UUID userId, UUID portfolioId);
+
+    /**
      * Verify that the authenticated user owns the given portfolio.
      * Throws ResponseStatusException(FORBIDDEN) if not, or NOT_FOUND if portfolio doesn't exist.
      *

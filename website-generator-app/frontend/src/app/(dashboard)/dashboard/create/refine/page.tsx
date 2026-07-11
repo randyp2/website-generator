@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Preview } from "./components/Preview";
 import { ChatHistoryOverlay } from "./components/ChatHistoryOverlay";
 import { SidebarChatPanel } from "./components/SidebarChatPanel";
@@ -10,6 +10,8 @@ import { GenerationOverlay } from "./components/loaders/GenerationOverlay";
 import { useRefineChat } from "./hooks/useRefineChat";
 import { useRefinePortfolioHydration } from "./hooks/useRefinePortfolioHydration";
 import { useRefineUploads } from "./hooks/useRefineUploads";
+import { usePublishState } from "./hooks/usePublishState";
+import PublishChangesChip from "./components/PublishChangesChip";
 import { normalizeMessages } from "./lib/message-helpers";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
 import { downloadPortfolioHtml } from "@/utils/downloadHtml";
@@ -80,6 +82,23 @@ const AIRefinementPage: React.FC = () => {
         removeVideoFile,
     });
 
+    const {
+        hasUnpublishedChanges,
+        isPublishing,
+        refresh: refreshPublishState,
+        publishChanges,
+    } = usePublishState(portfolioId);
+
+    // Re-check publish divergence when a build finishes (true -> false edge);
+    // the hook already fetched on mount
+    const wasGeneratingRef = useRef(false);
+    useEffect(() => {
+        if (wasGeneratingRef.current && !isGenerating) {
+            void refreshPublishState();
+        }
+        wasGeneratingRef.current = isGenerating;
+    }, [isGenerating, refreshPublishState]);
+
     const { uploadedFiles, handleFileSelect, removeFile } = useRefineUploads({
         mediaFiles,
         videoFiles,
@@ -109,6 +128,8 @@ const AIRefinementPage: React.FC = () => {
         } catch (error) {
             console.error("Failed to reload portfolio after version change:", error);
         }
+
+        void refreshPublishState();
     };
 
     // ========================================================================
@@ -209,6 +230,18 @@ const AIRefinementPage: React.FC = () => {
             )}
 
             {/* Preview mode: no chat UI rendered */}
+
+            {/* ================================================ */}
+            {/* PUBLISH STATE CHIP - TOP CENTER (z-50) */}
+            {/* Shown when the live site is behind the editor */}
+            {/* ================================================ */}
+            <div className="pointer-events-none absolute inset-x-0 top-4 z-50 flex justify-center">
+                <PublishChangesChip
+                    visible={hasUnpublishedChanges}
+                    isPublishing={isPublishing}
+                    onPublish={publishChanges}
+                />
+            </div>
         </div>
     );
 };

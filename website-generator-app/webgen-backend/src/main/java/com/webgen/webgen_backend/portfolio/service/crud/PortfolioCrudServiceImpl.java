@@ -15,6 +15,7 @@ import com.webgen.webgen_backend.portfolio.mapper.PortfolioMapper;
 import com.webgen.webgen_backend.resume.mapper.ResumeMapper;
 import com.webgen.webgen_backend.portfolio.service.crud.PortfolioCrudService;
 import com.webgen.webgen_backend.portfolio.service.job.ScreenshotMessage;
+import com.webgen.webgen_backend.portfolio.service.version.VersionSnapshotReader;
 import com.webgen.webgen_backend.portfolio.repository.AssetRepository;
 import com.webgen.webgen_backend.portfolio.repository.GeneratedVersionRepository;
 import com.webgen.webgen_backend.portfolio.repository.PortfolioRepository;
@@ -60,6 +61,7 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
 
     private final RabbitTemplate rabbitTemplate;
     private final ObjectMapper objectMapper;
+    private final VersionSnapshotReader versionSnapshotReader;
 
     private static final int MAX_PORTFOLIO_DESCRIPTION_LENGTH = 1000;
 
@@ -277,6 +279,9 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         response.setPortfolioId(portfolio.getId().toString());
         response.setTemplateId(portfolio.getTemplateId());
         response.setTitle(portfolio.getTitle());
+        response.setStatus(portfolio.getStatus());
+        response.setActiveVersionId(portfolio.getActiveVersionId());
+        response.setPublishedVersionId(portfolio.getPublishedVersionId());
         response.setSections(sections);
         response.setGlobalTheme(globalTheme);
         response.setAssistantMessage(assistantMessage);
@@ -336,7 +341,7 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         // Activation is a real restore: live sections must always equal the
         // active version, or the editor and refine pipeline would keep working
         // on code the user believes they rolled away from
-        List<SectionDTO> snapshotSections = parseSnapshotSections(version);
+        List<SectionDTO> snapshotSections = versionSnapshotReader.readSections(version);
         if (snapshotSections.isEmpty())
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
                     "This version has no restorable snapshot");
@@ -350,23 +355,30 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         return new ActivateVersionResponseDTO(portfolioId, versionId);
     }
 
-    /*
-     * Reads the version's sections snapshot ({"sections": [...], "globalTheme": ...},
-     * written identically by generation and refinement persistence). Returns an
-     * empty list when the snapshot is absent or unreadable, which callers treat
-     * as "not restorable".
-     */
-    private List<SectionDTO> parseSnapshotSections(GeneratedVersion version) {
-        JsonNode snapshot = version.getSectionsSnapshot();
-        JsonNode sectionsNode = snapshot == null ? null : snapshot.get("sections");
-        if (sectionsNode == null || !sectionsNode.isArray() || sectionsNode.isEmpty())
-            return List.of();
+    @Override
+    public ActivateVersionResponseDTO publishActiveVersion(UUID userId, UUID portfolioId) {
+        Portfolio portfolio = portfolioRepository.findById(portfolioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio not found"));
 
-        try {
-            return objectMapper.readerForListOf(SectionDTO.class).readValue(sectionsNode);
-        } catch (IOException e) {
-            return List.of();
-        }
+        if (!portfolio.getUserId().equals(userId))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+
+        if (!"publish".equals(portfolio.getStatus()))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Portfolio is not published; use the publish flow first");
+
+        UUID activeVersionId = portfolio.getActiveVersionId();
+        if (activeVersionId == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Portfolio has no version to publish");
+
+        portfolio.setPublishedVersionId(activeVersionId);
+        portfolio.setUpdatedAt(OffsetDateTime.now()); // last publish date
+        portfolioRepository.save(portfolio);
+
+        // Live content changed: refresh the explore-card screenshot
+        queueScreenshotJob(portfolio.getId(), portfolio.getSlug(), null);
+
+        return new ActivateVersionResponseDTO(portfolioId, activeVersionId);
     }
 
     /*
@@ -469,6 +481,9 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         portfolio.setExternalUrl(null);
         portfolio.setStatus("publish");
         portfolio.setLastStep("publish");
+        // Pin what visitors see to the version being published; later
+        // refinements stay private until publishActiveVersion re-pins
+        portfolio.setPublishedVersionId(portfolio.getActiveVersionId());
         portfolio.setUpdatedAt(OffsetDateTime.now()); // last publish date
         portfolioRepository.save(portfolio);
 
