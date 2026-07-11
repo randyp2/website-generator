@@ -328,7 +328,7 @@ class ConnectionServiceImplTest {
             ConnectedAccountRepository accountRepo,
             ConnectedAccountMapper mapper
     ) {
-        return new ConnectionServiceImpl(accountRepo, profileRepo, mapper);
+        return new ConnectionServiceImpl(accountRepo, profileRepo, mapper, noOpRetractionService());
     }
 
     private ConnectionServiceImpl buildConfiguredService(
@@ -338,12 +338,19 @@ class ConnectionServiceImplTest {
             String clientId,
             String redirectUri
     ) throws Exception {
-        ConnectionServiceImpl service = new ConnectionServiceImpl(accountRepo, profileRepo, mapper);
+        ConnectionServiceImpl service = new ConnectionServiceImpl(accountRepo, profileRepo, mapper, noOpRetractionService());
         setField(service, "githubOauthClientId", clientId);
         setField(service, "githubOauthRedirectUri", redirectUri);
         setField(service, "githubOauthScopes", "read:user,repo");
         setField(service, "githubOauthStateTtlSeconds", 600L);
         return service;
+    }
+
+    private com.webgen.webgen_backend.verification.service.EvidenceRetractionService noOpRetractionService() {
+        return new com.webgen.webgen_backend.verification.service.EvidenceRetractionService() {
+            public int retractUpload(UUID profileId, UUID uploadId) { return 0; }
+            public int retractProvider(UUID profileId, String provider) { return 0; }
+        };
     }
 
     private void setField(Object target, String fieldName, Object value) throws Exception {

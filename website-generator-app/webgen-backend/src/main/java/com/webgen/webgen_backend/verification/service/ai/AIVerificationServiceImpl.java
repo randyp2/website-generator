@@ -16,6 +16,7 @@ import com.webgen.webgen_backend.verification.repository.ClaimEvidenceUploadRepo
 import com.webgen.webgen_backend.verification.repository.ClaimRepository;
 import com.webgen.webgen_backend.verification.repository.EvidenceRepository;
 import com.webgen.webgen_backend.verification.service.job.AssetVerificationMessage;
+import com.webgen.webgen_backend.verification.service.ClaimVerificationStatusService;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -43,6 +44,7 @@ public class AIVerificationServiceImpl implements AIVerificationService {
     private static final Logger log = LoggerFactory.getLogger(AIVerificationServiceImpl.class);
 
     private static final String STATUS_FAILED = "failed";
+    private static final String STATUS_COMPLETED = "completed";
 
     private static final String EVIDENCE_PROVIDER_MANUAL_UPLOAD = "manual_upload";
     private static final String EVIDENCE_TYPE_USER_UPLOADED_ASSET = "user_uploaded_asset";
@@ -63,6 +65,7 @@ public class AIVerificationServiceImpl implements AIVerificationService {
     private final AssetVerificationPromptBuilder promptBuilder;
     private final AssetVerificationResponseParser responseParser;
     private final AssetContentExtractorService assetContentExtractorService;
+    private final ClaimVerificationStatusService claimVerificationStatusService;
 
     @Override
     public AssetVerificationResultDTO verify(AssetVerificationMessage message) {
@@ -157,6 +160,7 @@ public class AIVerificationServiceImpl implements AIVerificationService {
                     + " summaryLength=" + safeLength(parsed.result().getSummary()));
 
             upsertEvidenceAndLink(profile, claim, upload, assetFamily, parsed);
+            claimVerificationStatusService.reconcileClaims(profileId, java.util.List.of(claimId));
             markUploadCompleted(upload, parsed, assetFamily, textExcerpt);
             System.out.println(">>> [ASSET-AI] verify complete | jobId=" + message.getJobId()
                     + " uploadId=" + uploadId);
@@ -169,7 +173,10 @@ public class AIVerificationServiceImpl implements AIVerificationService {
                     + " error=" + e.getMessage());
             markUploadFailed(upload, e.getMessage());
 
-            throw (RuntimeException) e;
+            if (e instanceof RuntimeException runtimeException) {
+                throw runtimeException;
+            }
+            throw new IllegalStateException("Asset verification failed", e);
         }
     }
 
@@ -192,6 +199,8 @@ public class AIVerificationServiceImpl implements AIVerificationService {
                         .externalId(externalId)
                         .createdAt(now)
                         .build());
+
+        evidence.setSourceUploadId(upload.getId());
 
         evidence.setEvidenceType(EVIDENCE_TYPE_USER_UPLOADED_ASSET);
         evidence.setTitle(upload.getOriginalFileName());
@@ -278,6 +287,7 @@ public class AIVerificationServiceImpl implements AIVerificationService {
     ) {
         OffsetDateTime now = OffsetDateTime.now();
         upload.setAnalysisError(null);
+        upload.setStatus(STATUS_COMPLETED);
         upload.setUpdatedAt(now);
 
         ObjectNode metadata = asObjectNode(upload.getMetadata());

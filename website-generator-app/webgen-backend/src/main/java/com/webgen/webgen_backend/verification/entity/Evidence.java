@@ -44,6 +44,10 @@ public class Evidence {
     @Column(name = "external_id", nullable = false)
     private String externalId;
 
+    /** Upload that produced this evidence, when the source is a user artifact. */
+    @Column(name = "source_upload_id")
+    private UUID sourceUploadId;
+
     @Column(name = "evidence_type", nullable = false)
     private String evidenceType;
 

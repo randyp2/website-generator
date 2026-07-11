@@ -58,7 +58,7 @@ public class ClaimEvidenceUpload {
     @Column(name = "file_size_bytes", nullable = false)
     private Long fileSizeBytes;
 
-    // Synchronous lifecycle: uploaded -> completed (or failed)
+    // Asynchronous lifecycle: uploaded -> queued -> analyzing -> completed/failed.
     @Column(name = "status", nullable = false)
     private String status;
 

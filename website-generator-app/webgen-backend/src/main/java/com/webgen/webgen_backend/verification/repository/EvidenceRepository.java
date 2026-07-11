@@ -19,4 +19,8 @@ public interface EvidenceRepository extends JpaRepository<Evidence, UUID> {
     List<Evidence> findByProfileIdOrderByCapturedAtDesc(UUID profileId);
 
     List<Evidence> findByProfileIdAndProviderOrderByCapturedAtDesc(UUID profileId, String provider);
+
+    List<Evidence> findByProfileIdAndProvider(UUID profileId, String provider);
+
+    Optional<Evidence> findByProfileIdAndSourceUploadId(UUID profileId, UUID sourceUploadId);
 }

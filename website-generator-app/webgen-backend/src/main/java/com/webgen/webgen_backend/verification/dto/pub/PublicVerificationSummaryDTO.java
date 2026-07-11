@@ -12,6 +12,11 @@ public class PublicVerificationSummaryDTO {
     private Integer baselineOverallScore;
     private Integer evidenceDelta;
     private Integer overallScore;
+    private BigDecimal recognitionCoverage;
+    private BigDecimal evidenceCoverage;
+    private BigDecimal evidenceStrength;
+    private String verificationTier;
+    private String scoreLabel;
 
     private Integer totalSkills;
     private Integer matchedSkills;

@@ -16,6 +16,7 @@ import com.webgen.webgen_backend.verification.repository.EvidenceRepository;
 import com.webgen.webgen_backend.verification.repository.SkillRepository;
 import com.webgen.webgen_backend.verification.service.ConnectionSyncService;
 import com.webgen.webgen_backend.verification.service.SkillVerificationSummaryService;
+import com.webgen.webgen_backend.verification.service.ClaimVerificationStatusService;
 import com.webgen.webgen_backend.verification.service.provider.github.GithubApiClient;
 import com.webgen.webgen_backend.verification.service.provider.github.GithubEvidenceCandidateMapper;
 import com.webgen.webgen_backend.verification.service.provider.github.GithubRepositorySignalScanner;
@@ -72,6 +73,7 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
 
     private static final String CLAIM_STATUS_PENDING = "pending";
     private static final String CLAIM_STATUS_VERIFIED = "verified";
+    private static final String CLAIM_STATUS_CORROBORATED = "corroborated";
     private static final String CLAIM_STATUS_NEEDS_EVIDENCE = "needs_evidence";
     private static final String CLAIM_STATUS_USER_CONFIRMED = "user_confirmed";
     private static final String CLAIM_STATUS_REJECTED = "rejected";
@@ -89,6 +91,7 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
     private final GithubRepositorySignalScanner githubRepositorySignalScanner;
     private final GithubSyncTokenService githubSyncTokenService;
     private final ClaimEvidenceMatcher claimEvidenceMatcher;
+    private final ClaimVerificationStatusService claimVerificationStatusService;
 
     @Override
     @Transactional
@@ -222,7 +225,8 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
                             + " claimsMatched="
                             + linkStats.getClaimsMatched());
 
-            int claimStatusesUpdated = reconcileClaimStatusesAfterSync(profileId, startedAt);
+            claimVerificationStatusService.reconcileProfile(profileId);
+            int claimStatusesUpdated = 0;
             logSync(
                     "Connection sync claim status reconciliation complete profileId="
                             + profileId
@@ -751,7 +755,9 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
         }
 
         boolean hasEvidence = hasEvidenceByClaimId.getOrDefault(claim.getId(), false);
-        return hasEvidence ? CLAIM_STATUS_VERIFIED : CLAIM_STATUS_NEEDS_EVIDENCE;
+        // Connector evidence corroborates a claim. The verified tier is reserved
+        // for qualifying reviewed evidence under the centralized status policy.
+        return hasEvidence ? CLAIM_STATUS_CORROBORATED : CLAIM_STATUS_NEEDS_EVIDENCE;
     }
 
     /**

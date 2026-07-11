@@ -30,7 +30,11 @@ class AIVerificationServiceImplTest {
                 objectMapper,
                 null,
                 null,
-                null
+                null,
+                new com.webgen.webgen_backend.verification.service.ClaimVerificationStatusService() {
+                    public void reconcileClaims(UUID profileId, java.util.Collection<UUID> claimIds) {}
+                    public void reconcileProfile(UUID profileId) {}
+                }
         );
         ClaimEvidenceUpload upload = ClaimEvidenceUpload.builder()
                 .id(UUID.randomUUID())

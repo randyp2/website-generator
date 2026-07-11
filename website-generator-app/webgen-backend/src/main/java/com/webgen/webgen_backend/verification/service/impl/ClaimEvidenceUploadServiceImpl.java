@@ -17,9 +17,11 @@ import com.webgen.webgen_backend.verification.repository.ClaimEvidenceUploadRepo
 import com.webgen.webgen_backend.verification.repository.ClaimRepository;
 import com.webgen.webgen_backend.verification.service.ClaimEvidenceUploadService;
 import com.webgen.webgen_backend.verification.service.job.AssetVerificationJobService;
+import com.webgen.webgen_backend.verification.service.EvidenceRetractionService;
 import com.webgen.webgen_backend.verification.service.shared.ClaimEvidenceUploadFilePolicy;
 import com.webgen.webgen_backend.verification.service.shared.ClaimEvidenceUploadObjectVerifier;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -47,11 +49,12 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadService {
 
     private static final String STORAGE_PROVIDER_R2 = "r2";
     private static final String STATUS_UPLOADED = "uploaded";
-    private static final String STATUS_COMPLETED = "completed";
+    private static final String STATUS_QUEUED = "queued";
     private static final Duration PRESIGNED_URL_TTL = Duration.ofMinutes(15);
     private static final Duration PRESIGNED_DOWNLOAD_URL_TTL = Duration.ofMinutes(5);
 
@@ -64,6 +67,7 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
     private final ClaimEvidenceUploadFilePolicy claimEvidenceUploadFilePolicy;
     private final ClaimEvidenceUploadObjectVerifier claimEvidenceUploadObjectVerifier;
     private final AssetVerificationJobService assetVerificationJobService;
+    private final EvidenceRetractionService evidenceRetractionService;
 
     @Override
     @Transactional
@@ -176,7 +180,7 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
         );
 
         //--- Transition lifecycle status and persist finalize metadata
-        upload.setStatus(STATUS_COMPLETED);
+        upload.setStatus(STATUS_QUEUED);
         upload.setAnalysisError(null);
         upload.setMetadata(Optional.ofNullable(request.getMetadata()).orElseGet(objectMapper::createObjectNode));
         upload.setUpdatedAt(OffsetDateTime.now());
@@ -198,9 +202,8 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
                 .fileSizeBytes(saved.getFileSizeBytes())
                 .build();
         String jobId = assetVerificationJobService.createJobAndQueue(enqueueDTO);
-        System.out.println(">>> [ASSET-UPLOAD] verification enqueued | uploadId=" + saved.getId()
-                + " jobId=" + jobId
-                + " routingKey=asset.verification");
+        log.info("Asset verification queued profileId={} claimId={} uploadId={} jobId={}",
+                profileId, claimId, saved.getId(), jobId);
 
         return FinalizeClaimEvidenceUploadResponseDTO.builder()
                 .upload(toDto(saved))
@@ -251,8 +254,13 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
                 upload.getStorageKey()
         );
 
+        // Retract derived scoring inputs before deleting their source artifact.
+        int retracted = evidenceRetractionService.retractUpload(profileId, uploadId);
+
         //--- Delete persisted upload row after successful storage delete
         claimEvidenceUploadRepository.delete(upload);
+        log.info("Claim evidence upload deleted profileId={} claimId={} uploadId={} retractedEvidence={}",
+                profileId, claimId, uploadId, retracted);
     }
 
     @Override
