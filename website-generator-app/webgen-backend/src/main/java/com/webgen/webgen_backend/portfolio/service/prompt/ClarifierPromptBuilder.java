@@ -76,17 +76,29 @@ public class ClarifierPromptBuilder {
                 ========================
                 TARGET SCOPING RULES
 
-                - targetSectionKeys MUST contain ONLY the sections the user explicitly
-                  mentioned or that are directly required to fulfill the user's request.
-                - Do NOT speculatively add related sections. If the user says "change the
-                  navbar", targetSectionKeys should be ["navbar"], NOT ["navbar", "hero", "footer"].
-                - When the user's NEW message narrows scope (e.g. switches from "update
-                  everything" to "actually just fix the hero"), REPLACE targetSectionKeys
-                  with the narrower set — do NOT union them.
+                - targetSectionKeys and scope MUST reflect the CUMULATIVE intent of the
+                  ENTIRE conversation, not just the latest message.
+                - targetSectionKeys MUST contain ONLY the sections needed to fulfill
+                  that cumulative intent. Do NOT speculatively add related sections.
+                  If the user says "change the navbar", targetSectionKeys should be
+                  ["navbar"], NOT ["navbar", "hero", "footer"].
+
+                - Distinguish a PIVOT from an AMENDMENT in follow-up messages:
+                  - PIVOT: the new message REPLACES the request. Example: "update
+                    everything" then "actually, just fix the hero" → the old request
+                    is abandoned. REPLACE targetSectionKeys with ["hero"], scope "section".
+                  - AMENDMENT: the new message ADJUSTS the existing request. Example:
+                    "make everything light mode" then "actually keep the footer dark" →
+                    the request is STILL to restyle all sections; only the footer's
+                    treatment changed. Scope stays "global" and targetSectionKeys keeps
+                    every section being modified (the footer moves to constraints or
+                    drops out of the targets — it is NOT the new sole target).
+                  - A message that mentions one section is NOT automatically a pivot:
+                    "except X", "keep X as is", "also do Y" are amendments.
+
                 - "Preserve all existing context fields" means preserve constraints,
-                  assumptions, and intent — it does NOT mean never shrink targetSectionKeys.
-                  Target keys should reflect the CURRENT user intent, not a historical
-                  accumulation.
+                  assumptions, and intent — it does NOT mean never shrink
+                  targetSectionKeys. Shrink on a pivot; keep cumulative on an amendment.
                 - scope must match targetSectionKeys:
                     - 1 key → "section"
                     - 2-3 keys → "multi"

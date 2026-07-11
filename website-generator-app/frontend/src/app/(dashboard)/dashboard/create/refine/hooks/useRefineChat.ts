@@ -9,6 +9,7 @@ import type {
 import type { Message, SectionPlan } from "@/types/preview";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
 import { useGenerationJobStore } from "@/stores/useGenerationJobStore";
+import { getElapsedSeconds } from "@/components/chat/style-chat/FlowStateStatus";
 import { buildSectionSummaries } from "../lib/section-serializers";
 import {
     createAiMessage,
@@ -200,7 +201,11 @@ export const useRefineChat = ({
      * Poll the job's section endpoint for incremental progress.
      * Same pattern used by useInitialPortfolioGeneration.
      */
-    const pollBuildJob = (jobId: string, buildingMessageId: string): void => {
+    const pollBuildJob = (
+        jobId: string,
+        buildingMessageId: string,
+        buildingStartedAt: Date,
+    ): void => {
         let sectionOffset = 0;
         // Sections whose refinement failed and kept their previous version
         const fallbackSectionNames: string[] = [];
@@ -266,6 +271,8 @@ export const useRefineChat = ({
                         {
                             id: `ai-complete-${Date.now()}`,
                             messageType: "build",
+                            flowStateDurationSeconds:
+                                getElapsedSeconds(buildingStartedAt),
                         },
                     );
 
@@ -291,6 +298,8 @@ export const useRefineChat = ({
                         {
                             id: `ai-error-${Date.now()}`,
                             messageType: "error",
+                            flowStateDurationSeconds:
+                                getElapsedSeconds(buildingStartedAt),
                         },
                     );
 
@@ -339,7 +348,11 @@ export const useRefineChat = ({
             }
 
             // Start polling for incremental section updates
-            pollBuildJob(buildResult.jobId, buildingMessage.id);
+            pollBuildJob(
+                buildResult.jobId,
+                buildingMessage.id,
+                buildingMessage.timestamp,
+            );
         } catch (error: unknown) {
             console.error("Build error:", error);
             setIsPlanApproved(false);
@@ -355,6 +368,9 @@ export const useRefineChat = ({
                 {
                     id: `ai-error-${Date.now()}`,
                     messageType: "error",
+                    flowStateDurationSeconds: getElapsedSeconds(
+                        buildingMessage.timestamp,
+                    ),
                 },
             );
             setMessages((prev) =>
@@ -438,6 +454,9 @@ export const useRefineChat = ({
                 ...createAiMessage(aiResponseText, {
                     messageType: "clarify",
                     readyForPlanning: isReadyForPlanning,
+                    flowStateDurationSeconds: getElapsedSeconds(
+                        tempAiMessage.timestamp,
+                    ),
                 }),
                 id: (Date.now() + 1).toString(),
             };
@@ -461,7 +480,35 @@ export const useRefineChat = ({
                 try {
                     const planResult = await callPlanner();
 
-                    if (planResult?.sectionPlans) {
+                    // A plan with nothing to modify, add, or delete cannot be
+                    // built: never offer approval for it, ask the user to
+                    // clarify instead
+                    const hasActionablePlan = (
+                        planResult?.sectionPlans ?? []
+                    ).some(
+                        (plan) =>
+                            plan.action === "modify" ||
+                            plan.action === "add" ||
+                            plan.action === "delete",
+                    );
+
+                    if (planResult?.sectionPlans && !hasActionablePlan) {
+                        const noChangesMessage: Message = createAiMessage(
+                            "It looks like nothing needs to change for that request. Tell me more about what you'd like to adjust.",
+                            {
+                                id: `ai-no-changes-${Date.now()}`,
+                                messageType: "plan",
+                                flowStateDurationSeconds: getElapsedSeconds(
+                                    planningMessage.timestamp,
+                                ),
+                            },
+                        );
+                        setMessages((prev) =>
+                            prev
+                                .filter((message) => message.id !== planningMessage.id)
+                                .concat(noChangesMessage),
+                        );
+                    } else if (planResult?.sectionPlans) {
                         setCurrentPlan(planResult.sectionPlans);
                         setIsPlanApproved(false);
 
@@ -480,6 +527,9 @@ export const useRefineChat = ({
                             messageType: "plan",
                             sectionPlans: planResult.sectionPlans,
                             planSummary: planResult.planSummary,
+                            flowStateDurationSeconds: getElapsedSeconds(
+                                planningMessage.timestamp,
+                            ),
                         });
 
                         setMessages((prev) =>
@@ -497,6 +547,9 @@ export const useRefineChat = ({
                         {
                             id: `ai-error-${Date.now()}`,
                             messageType: "error",
+                            flowStateDurationSeconds: getElapsedSeconds(
+                                planningMessage.timestamp,
+                            ),
                         },
                     );
                     setMessages((prev) =>
@@ -512,6 +565,11 @@ export const useRefineChat = ({
             const errorMessage: Message = {
                 ...createAiMessage(
                     "Sorry, there was an error processing your request. Please try again.",
+                    {
+                        flowStateDurationSeconds: getElapsedSeconds(
+                            tempAiMessage.timestamp,
+                        ),
+                    },
                 ),
                 id: (Date.now() + 1).toString(),
             };
@@ -568,7 +626,7 @@ export const useRefineChat = ({
                 prev.filter((m) => !m.isGenerating).concat(buildingMessage),
             );
             setIsGenerating(true);
-            pollBuildJob(job.jobId, buildingMessage.id);
+            pollBuildJob(job.jobId, buildingMessage.id, buildingMessage.timestamp);
         };
 
         void resume();
