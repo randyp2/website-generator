@@ -25,6 +25,11 @@ public class SecurityConfig {
     @Autowired
     private JWTFilter jwtFilter;
 
+    // Verifies the request came from the Next.js server; runs before JWT auth.
+    // Does not affect identity verification — see InternalSecretFilter.
+    @Autowired
+    private com.webgen.webgen_backend.auth.filter.InternalSecretFilter internalSecretFilter;
+
     // Inject allowed origins from properties file
     @Value("${cors.allowed.origins}")
     private String allowedOrigins;
@@ -56,6 +61,7 @@ public class SecurityConfig {
                         session ->
                             session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Make stateless
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(internalSecretFilter, JWTFilter.class)
                 .build();
     }
 
