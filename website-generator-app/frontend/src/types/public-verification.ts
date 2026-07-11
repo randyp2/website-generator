@@ -28,6 +28,11 @@ export interface PublicVerificationSummaryDTO {
   baselineOverallScore: number
   evidenceDelta: number
   overallScore: number
+  recognitionCoverage: number
+  evidenceCoverage: number
+  evidenceStrength: number
+  verificationTier: "self_declared" | "corroborated" | "ai_reviewed"
+  scoreLabel: "evidence_score"
   totalSkills: number
   matchedSkills: number
   unmatchedSkills: number

@@ -102,14 +102,14 @@ public class ClaimScoreNarrator {
                         + "connecting GitHub or adding portfolio links will push your score up.";
             }
             if (unmatchedSkills > 0) {
-                return "This is your starting score — we pulled your skills from your resume but haven't seen any real-world proof yet. "
+                return "This is your starting score. We recognized the skills you added but haven't seen any real-world proof yet. "
                         + unmatchedSkills + " skill" + (unmatchedSkills == 1 ? " couldn't" : "s couldn't")
                         + " be recognized, so " + (unmatchedSkills == 1 ? "it isn't" : "they aren't")
                         + " counted toward your score yet — rename " + (unmatchedSkills == 1 ? "it" : "them")
                         + " to more common terms to include " + (unmatchedSkills == 1 ? "it" : "them") + ". "
                         + "Connect your GitHub or add portfolio links to start raising your score.";
             }
-            return "This is your starting score — we pulled your skills from your resume but haven't seen any real-world proof yet. "
+            return "This is your starting score. We recognized the skills you added but haven't seen any real-world proof yet. "
                     + "Every skill here needs real-world proof before recruiters can trust it. "
                     + "Connect your GitHub or add portfolio links to start pushing these numbers up.";
         }
@@ -144,7 +144,7 @@ public class ClaimScoreNarrator {
             if (matched) {
                 return new ClaimReasonComputation(
                         "match_no_evidence",
-                        "We found this skill on your resume, but haven't seen it in any of your projects yet. "
+                        "We recognized this skill claim, but haven't seen it in any of your projects yet. "
                                 + "Connect your GitHub or add a portfolio link and your score will go up."
                 );
             }

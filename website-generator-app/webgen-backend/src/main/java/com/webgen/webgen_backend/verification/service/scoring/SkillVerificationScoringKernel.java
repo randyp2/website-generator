@@ -15,7 +15,7 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Orchestrates deterministic skill scoring: assembles per-claim priors, applies
+ * Orchestrates deterministic skill scoring: assembles per-claim baselines, applies
  * evidence nudges, rolls the results up into an overall score, and delegates the
  * narrative, suggested-action, and evidence-nudge concerns to dedicated
  * collaborators. Math constants live in {@link SkillScoringPolicy}.
@@ -53,9 +53,13 @@ public class SkillVerificationScoringKernel {
      * @return deterministic score summary
      */
     public SkillScoreSummary score(SkillScoreRequest request) {
-        List<SkillClaimInput> inputs = request == null || request.claims() == null
+        List<SkillClaimInput> requestedInputs = request == null || request.claims() == null
                 ? List.of()
                 : request.claims();
+        List<SkillClaimInput> inputs = requestedInputs.stream()
+                .filter(input -> input != null
+                        && !"rejected".equals(scoringPolicy.normalizeStatus(input.status())))
+                .toList();
 
         BigDecimal requestedParserConfidence = request == null
                 ? null
@@ -116,14 +120,14 @@ public class SkillVerificationScoringKernel {
         // sourceQuality = sourceWeightSum / totalSkills
         BigDecimal sourceQuality = scoringPolicy.safeDivide(sourceWeightSum, totalSkills);
 
-        // Baseline overall tracks the average per-claim prior over RECOGNIZED skills
+        // Baseline overall tracks the neutral baseline over RECOGNIZED skills
         // only, so the profile score reflects the same evidence-aware prior logic
         // users see on claim cards. Unmatched (unrecognized) skills carry no trust
         // signal and can never be improved by evidence, so they are excluded from
         // the average instead of silently dragging it down; they surface separately
         // as rename actions. When nothing is recognized the baseline is 0.
-        // claimPrior_i = (0.70 * matchValue_i) + (0.30 * sourceWeight_i)
-        // baseNormalizedScore = average(claimPrior_i over matched claims)
+        // claimBaseline_i = 0.50 for every active, recognized claim
+        // baseNormalizedScore = average(claimBaseline_i over matched claims)
         BigDecimal matchedClaimPriorSum = claimComputations.stream()
                 .filter(c -> c.score().matched())
                 .map(ClaimScoreComputation::baselineClaimNormalized)
@@ -181,7 +185,7 @@ public class SkillVerificationScoringKernel {
                 matchedSkills, totalSkills, normalizedCoverage);
         log.debug("[BASELINE SCORE] sourceQuality = sourceWeightSum/total = {}/{} = {}",
                 sourceWeightSum, totalSkills, sourceQuality);
-        log.debug("[BASELINE SCORE] claimPriorAverage = matchedClaimPriorSum/matched = {}/{} = {}",
+        log.debug("[BASELINE SCORE] recognizedBaselineAverage = baselineSum/matched = {}/{} = {}",
                 matchedClaimPriorSum, matchedSkills, baseNormalizedScore);
         if (boundedParserConfidence != null) {
             log.debug("[BASELINE SCORE] finalNormalized = (0.90*{}) + (0.10*{}) = {}",
@@ -248,7 +252,7 @@ public class SkillVerificationScoringKernel {
     }
 
     /**
-     * Scores a single claim with deterministic match/source weighting and the
+     * Scores a single claim with a source-neutral recognition baseline and the
      * evidence nudge supplied by {@link EvidenceNudgeCalculator}.
      *
      * @param input normalized claim input
@@ -266,18 +270,16 @@ public class SkillVerificationScoringKernel {
         int evidenceLinksUsed = evidenceLinks.size();
         int evidenceLinksUsedForScoring = matched ? evidenceLinksUsed : 0;
 
-        BigDecimal sourceWeight = scoringPolicy.sourceWeight(source);
-        BigDecimal matchValue = resolveMatchValue(matched);
         boolean llmVerified = evidenceNudgeCalculator.isLlmVerified(input);
         int claimScoreCap = evidenceNudgeCalculator.claimScoreCap(llmVerified);
         log.debug("[CLAIM SCORE][LLM] claimId={} llmVerified={} claimScoreCap={}",
                 input.claimId(), llmVerified, claimScoreCap);
 
-        // claimPriorNormalized =
-        //   (matchValue   * COVERAGE_WEIGHT)
-        // + (sourceWeight * SOURCE_QUALITY_WEIGHT)
-        BigDecimal baselineClaimNormalized = matchValue.multiply(SkillScoringPolicy.COVERAGE_WEIGHT)
-                .add(sourceWeight.multiply(SkillScoringPolicy.SOURCE_QUALITY_WEIGHT));
+        // Source provenance is deliberately excluded. Recognition establishes a
+        // neutral progress baseline; evidence is responsible for further lift.
+        BigDecimal baselineClaimNormalized = matched
+                ? SkillScoringPolicy.RECOGNIZED_CLAIM_BASELINE
+                : SkillScoringPolicy.ZERO;
 
         // baselineClaimScore = min(round(100 * baselineClaimNormalized), claimScoreCap)
         int uncappedBaselineClaimScore = scoringPolicy.toPercent(baselineClaimNormalized);
@@ -285,8 +287,9 @@ public class SkillVerificationScoringKernel {
 
         log.debug("[CLAIM SCORE] claimId={} rawValue={} source={} matched={} status={}",
                 input.claimId(), input.rawValue(), source, matched, status);
-        log.debug("[CLAIM SCORE] claimId={} baselineNormalized = (0.70*{}) + (0.30*{}) = {} -> baselineScore={}",
-                input.claimId(), matchValue, sourceWeight, baselineClaimNormalized, baselineClaimScore);
+        log.debug("[CLAIM SCORE] claimId={} baselineNormalized = matched ? {} : 0 = {} -> baselineScore={}",
+                input.claimId(), SkillScoringPolicy.RECOGNIZED_CLAIM_BASELINE,
+                baselineClaimNormalized, baselineClaimScore);
 
         String state = resolveClaimState(matched, status);
 
@@ -432,14 +435,6 @@ public class SkillVerificationScoringKernel {
         );
 
         return new ClaimScoreComputation(score, uncappedEvidenceContribution, baselineClaimNormalized);
-    }
-
-    // Resolves canonical match prior without using evidence as a binary jump.
-    private BigDecimal resolveMatchValue(boolean matched) {
-        if (!matched) {
-            return SkillScoringPolicy.ZERO;
-        }
-        return SkillScoringPolicy.MATCHED_WITHOUT_EVIDENCE_VALUE;
     }
 
     private SkillScoreSummary applyPostProcessors(

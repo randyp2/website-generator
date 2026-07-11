@@ -404,7 +404,7 @@ export const deriveOverview = (
     unverifiedClaimsCount,
     lastRunDate: new Date().toISOString(),
     trustNote:
-      "Initial deterministic score based on canonical matching and claim source.",
+      "Verification progress starts at 50 for each recognized active claim and grows through evidence.",
   }
 }
 

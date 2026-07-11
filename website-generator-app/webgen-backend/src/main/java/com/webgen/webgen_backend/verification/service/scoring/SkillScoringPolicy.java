@@ -13,8 +13,8 @@ import java.util.Map;
  * <p>Overall score formula:</p>
  *
  * <pre>
- * claimPrior_i  = 0.70 * matchValue_i + 0.30 * sourceWeight_i
- * base          = average(claimPrior_i)
+ * claimBaseline_i = 0.50 when the active claim is canonically recognized
+ * base            = average(claimBaseline_i over recognized claims)
  *
  * // optional parser-confidence blend when confidence exists
  * finalNormalized = 0.90 * base + 0.10 * parserConfidence
@@ -32,14 +32,12 @@ import java.util.Map;
  * finalClaim        = baselineClaimNormalized + (headroom * boostProgress)
  * </pre>
  *
- * <p>Per-claim prior formula (before evidence nudge):</p>
+ * <p>Per-claim baseline formula (before evidence nudge):</p>
  *
  * <pre>
- * matchValue =
- *   0.00 when unmatched
- *   0.35 when matched but no linked evidence
- *
- * claimPrior = 0.70 * matchValue + 0.30 * sourceWeight
+ * claimBaseline =
+ *   0.00 when unresolved
+ *   0.50 when recognized and active
  * </pre>
  */
 @Component
@@ -50,26 +48,14 @@ public class SkillScoringPolicy {
     public static final BigDecimal ONE = BigDecimal.ONE;
     public static final BigDecimal HUNDRED = new BigDecimal("100");
 
-    /** Coverage drives 70% of the score because canonical matching is the primary signal. */
-    public static final BigDecimal COVERAGE_WEIGHT = new BigDecimal("0.70");
-
-    /** Source quality drives the remaining 30% to reward stronger claim origins. */
-    public static final BigDecimal SOURCE_QUALITY_WEIGHT = new BigDecimal("0.30");
+    /** Neutral starting point for every active, canonically recognized claim. */
+    public static final BigDecimal RECOGNIZED_CLAIM_BASELINE = new BigDecimal("0.50");
 
     /** Base deterministic score retains 90% influence when parser confidence is blended. */
     public static final BigDecimal BASE_WITH_PARSER_WEIGHT = new BigDecimal("0.90");
 
     /** Parser confidence contributes 10% as a small quality nudge, not a dominant signal. */
     public static final BigDecimal PARSER_CONFIDENCE_WEIGHT = new BigDecimal("0.10");
-
-    /**
-     * Canonical-matched claims without linked evidence keep reduced prior value.
-     * This avoids treating extraction/canonical mapping as proof before accounts
-     * are connected, while still giving recognized skills a credible starting
-     * score (a clean resume of recognized skills lands in the mid-50s rather than
-     * looking like a failing grade before any account is connected).
-     */
-    public static final BigDecimal MATCHED_WITHOUT_EVIDENCE_VALUE = new BigDecimal("0.45");
 
     /**
      * Additional evidence links are down-weighted geometrically by rank:
@@ -136,7 +122,8 @@ public class SkillScoringPolicy {
     public static final BigDecimal DEFAULT_SOURCE_WEIGHT = new BigDecimal("0.50");
 
     /**
-     * Fixed source trust priors for the initial deterministic phase.
+     * Informational source-quality priors retained for the sourceQuality metric
+     * and action ordering. They do not affect claim or overall score baselines.
      *
      * <p>These weights represent initial confidence in claim origin before any external evidence checks.</p>
      */
@@ -229,7 +216,7 @@ public class SkillScoringPolicy {
 
         String normalized = status.trim().toLowerCase(Locale.ROOT);
         return switch (normalized) {
-            case "pending", "user_confirmed", "rejected", "needs_evidence", "verified" -> normalized;
+            case "pending", "user_confirmed", "rejected", "needs_evidence", "corroborated", "verified" -> normalized;
             default -> "pending";
         };
     }
