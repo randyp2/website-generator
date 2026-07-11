@@ -12,19 +12,26 @@ ALTER TABLE public.claims
     ]));
 
 ALTER TABLE public.evidence
-    ADD COLUMN source_upload_id uuid,
-    ADD CONSTRAINT evidence_source_upload_id_fkey
-        FOREIGN KEY (source_upload_id) REFERENCES public.claim_evidence_uploads(id) ON DELETE CASCADE;
+    ADD COLUMN source_upload_id uuid;
+
+-- Legacy evidence may reference uploads that users already deleted. Backfill
+-- only live, same-profile uploads so stale metadata cannot violate the new FK.
+UPDATE public.evidence AS evidence
+SET source_upload_id = upload.id
+FROM public.claim_evidence_uploads AS upload
+WHERE evidence.provider = 'manual_upload'
+  AND evidence.profile_id = upload.profile_id
+  AND evidence.metadata ? 'uploadId'
+  AND (evidence.metadata ->> 'uploadId') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+  AND upload.id = (evidence.metadata ->> 'uploadId')::uuid;
 
 CREATE UNIQUE INDEX evidence_source_upload_id_key
     ON public.evidence (source_upload_id)
     WHERE source_upload_id IS NOT NULL;
 
-UPDATE public.evidence
-SET source_upload_id = (metadata ->> 'uploadId')::uuid
-WHERE provider = 'manual_upload'
-  AND metadata ? 'uploadId'
-  AND (metadata ->> 'uploadId') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$';
+ALTER TABLE public.evidence
+    ADD CONSTRAINT evidence_source_upload_id_fkey
+        FOREIGN KEY (source_upload_id) REFERENCES public.claim_evidence_uploads(id) ON DELETE CASCADE;
 
 CREATE TABLE public.asset_verification_jobs (
     id uuid NOT NULL PRIMARY KEY,
