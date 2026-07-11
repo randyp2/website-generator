@@ -149,13 +149,13 @@ overall   = baseline + mean lift × sqrt(coverage)`}</code>
                 <li>Defined the number as verification progress.</li>
                 <li>Set every recognized active claim to a neutral baseline of 50.</li>
                 <li>Removed manual, resume, and imported source from baseline scoring.</li>
+                <li>Kept parser confidence as diagnostics with no score effect.</li>
                 <li>Excluded rejected claims and left unresolved claims unscored.</li>
               </ul>
             </div>
             <div className="border border-border p-5">
               <h3 className="font-semibold">Still under review</h3>
               <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
-                <li>Parser confidence still contributes 10% to some profile baselines.</li>
                 <li>The AI review threshold still uses a hard 85% expert-tier unlock.</li>
                 <li>Evidence independence, GitHub authorship, and artifact depth need refinement.</li>
                 <li>Signal weights have not yet been calibrated against reviewed data.</li>

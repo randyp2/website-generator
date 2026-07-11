@@ -15,11 +15,7 @@ import java.util.Map;
  * <pre>
  * claimBaseline_i = 0.50 when the active claim is canonically recognized
  * base            = average(claimBaseline_i over recognized claims)
- *
- * // optional parser-confidence blend when confidence exists
- * finalNormalized = 0.90 * base + 0.10 * parserConfidence
- *
- * baselineOverallScore = round(finalNormalized * 100)
+ * baselineOverallScore = round(base * 100)
  * </pre>
  *
  * <p>Phase 7 evidence nudge model (when evidence exists for a matched claim):</p>
@@ -50,12 +46,6 @@ public class SkillScoringPolicy {
 
     /** Neutral starting point for every active, canonically recognized claim. */
     public static final BigDecimal RECOGNIZED_CLAIM_BASELINE = new BigDecimal("0.50");
-
-    /** Base deterministic score retains 90% influence when parser confidence is blended. */
-    public static final BigDecimal BASE_WITH_PARSER_WEIGHT = new BigDecimal("0.90");
-
-    /** Parser confidence contributes 10% as a small quality nudge, not a dominant signal. */
-    public static final BigDecimal PARSER_CONFIDENCE_WEIGHT = new BigDecimal("0.10");
 
     /**
      * Additional evidence links are down-weighted geometrically by rank:

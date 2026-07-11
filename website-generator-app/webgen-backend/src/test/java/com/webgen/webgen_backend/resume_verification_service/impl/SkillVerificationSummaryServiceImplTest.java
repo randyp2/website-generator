@@ -103,7 +103,7 @@ class SkillVerificationSummaryServiceImplTest {
         VerificationSummaryDTO dto = service.getSkillVerificationSummary(profileId);
 
         assertThat(dto.getParserConfidence()).isEqualByComparingTo("0.85");
-        assertThat(dto.getScoreType()).isEqualTo("initial_with_parser_confidence");
+        assertThat(dto.getScoreType()).isEqualTo("initial");
     }
 
     @Test

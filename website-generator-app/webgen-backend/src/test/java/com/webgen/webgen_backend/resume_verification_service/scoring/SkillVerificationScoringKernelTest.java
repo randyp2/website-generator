@@ -90,7 +90,7 @@ class SkillVerificationScoringKernelTest {
     }
 
     @Test
-    void blendsParserConfidenceWhenProvided() {
+    void retainsParserConfidenceWithoutChangingVerificationProgress() {
         UUID c1 = UUID.randomUUID();
         UUID c2 = UUID.randomUUID();
         UUID skillOne = UUID.randomUUID();
@@ -102,11 +102,11 @@ class SkillVerificationScoringKernelTest {
 
         SkillScoreSummary summary = kernel.score(new SkillScoreRequest(claims, new BigDecimal("0.90")));
 
-        assertThat(summary.scoreType()).isEqualTo("initial_with_parser_confidence");
+        assertThat(summary.scoreType()).isEqualTo("initial");
         assertThat(summary.parserConfidence()).isEqualByComparingTo("0.90");
-        assertThat(summary.baselineOverallScore()).isEqualTo(54);
+        assertThat(summary.baselineOverallScore()).isEqualTo(50);
         assertThat(summary.evidenceDelta()).isZero();
-        assertThat(summary.overallScore()).isEqualTo(54);
+        assertThat(summary.overallScore()).isEqualTo(50);
     }
 
     @Test

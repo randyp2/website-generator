@@ -68,7 +68,7 @@ public class SkillVerificationScoringKernel {
                 ? null
                 : scoringPolicy.clamp01(requestedParserConfidence);
 
-        String scoreType = resolveScoreType(boundedParserConfidence != null, false);
+        String scoreType = resolveScoreType(false);
 
         if (inputs.isEmpty()) {
             return new SkillScoreSummary(
@@ -134,19 +134,14 @@ public class SkillVerificationScoringKernel {
                 .reduce(SkillScoringPolicy.ZERO, BigDecimal::add);
         BigDecimal baseNormalizedScore = scoringPolicy.safeDivide(matchedClaimPriorSum, matchedSkills);
 
-        // Baseline overall before evidence adjustments.
+        // Parser confidence is retained as extraction diagnostics only. Evidence
+        // and recognized-claim state are the only inputs to verification progress.
         BigDecimal baselineOverallNormalized = baseNormalizedScore;
-        if (boundedParserConfidence != null) {
-            // parser-adjusted baseline:
-            //   baseline = 0.90*base + 0.10*parserConfidence
-            baselineOverallNormalized = baselineOverallNormalized.multiply(SkillScoringPolicy.BASE_WITH_PARSER_WEIGHT)
-                    .add(boundedParserConfidence.multiply(SkillScoringPolicy.PARSER_CONFIDENCE_WEIGHT));
-        }
 
         int baselineOverallScore = scoringPolicy.toPercent(baselineOverallNormalized);
 
         boolean hasAnyEvidence = claimScores.stream().anyMatch(claim -> claim.evidenceLinksUsed() > 0);
-        scoreType = resolveScoreType(boundedParserConfidence != null, hasAnyEvidence);
+        scoreType = resolveScoreType(hasAnyEvidence);
 
         /*
          * Overall evidence adjustment strategy:
@@ -187,10 +182,8 @@ public class SkillVerificationScoringKernel {
                 sourceWeightSum, totalSkills, sourceQuality);
         log.debug("[BASELINE SCORE] recognizedBaselineAverage = baselineSum/matched = {}/{} = {}",
                 matchedClaimPriorSum, matchedSkills, baseNormalizedScore);
-        if (boundedParserConfidence != null) {
-            log.debug("[BASELINE SCORE] finalNormalized = (0.90*{}) + (0.10*{}) = {}",
-                    baseNormalizedScore, boundedParserConfidence, baselineOverallNormalized);
-        }
+        log.debug("[BASELINE SCORE] parserConfidence={} diagnosticOnly=true scoreEffect=0",
+                boundedParserConfidence);
         log.debug("[BASELINE SCORE] baselineOverallScore = round(100*{}) = {}",
                 baselineOverallNormalized, baselineOverallScore);
         if (hasAnyEvidence) {
@@ -550,15 +543,8 @@ public class SkillVerificationScoringKernel {
         return Math.max(0, Math.min(100, score));
     }
 
-    private String resolveScoreType(boolean hasParserConfidence, boolean evidenceEnhanced) {
-        if (evidenceEnhanced) {
-            return hasParserConfidence
-                    ? "evidence_enhanced_with_parser_confidence"
-                    : "evidence_enhanced";
-        }
-        return hasParserConfidence
-                ? "initial_with_parser_confidence"
-                : "initial";
+    private String resolveScoreType(boolean evidenceEnhanced) {
+        return evidenceEnhanced ? "evidence_enhanced" : "initial";
     }
 
     /**

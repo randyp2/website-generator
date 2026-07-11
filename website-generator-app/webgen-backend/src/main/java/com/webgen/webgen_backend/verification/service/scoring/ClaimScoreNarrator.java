@@ -90,7 +90,7 @@ public class ClaimScoreNarrator {
             int unmatchedSkills,
             String scoreType
     ) {
-        boolean isFirstPass = scoreType.equals("initial") || scoreType.equals("initial_with_parser_confidence");
+        boolean isFirstPass = scoreType.equals("initial");
 
         if (isFirstPass) {
             if (totalSkills == 0) {
