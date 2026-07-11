@@ -20,6 +20,7 @@ import {
     mapProfileToForm,
 } from "../lib/onboarding-utils";
 import { type FormState } from "../types";
+import type { ProfileMeResponse } from "../types";
 
 type UseOnboardingBootstrapReturn = {
     form: FormState;
@@ -29,10 +30,12 @@ type UseOnboardingBootstrapReturn = {
     retryBootstrap: () => void;
 };
 
-export const useOnboardingBootstrap = (): UseOnboardingBootstrapReturn => {
+export const useOnboardingBootstrap = (
+    initialProfile?: ProfileMeResponse,
+): UseOnboardingBootstrapReturn => {
     const router = useRouter();
     const [draftForm, setDraftForm] = useState<FormState | null>(null);
-    const profileQuery = useProfileMeQuery();
+    const profileQuery = useProfileMeQuery({ initialData: initialProfile });
     const profile = profileQuery.data;
     const profileForm = useMemo(
         () =>
@@ -52,7 +55,11 @@ export const useOnboardingBootstrap = (): UseOnboardingBootstrapReturn => {
         [form],
     );
     const bootstrapError = useMemo(() => {
-        if (profileQuery.isPending || profileQuery.isFetching) {
+        if (profileQuery.isPending) {
+            return null;
+        }
+
+        if (profile) {
             return null;
         }
 
@@ -62,16 +69,15 @@ export const useOnboardingBootstrap = (): UseOnboardingBootstrapReturn => {
                 : "We couldn't load your profile right now.";
         }
 
-        return profile ? null : "We couldn't parse your profile data.";
+        return "We couldn't parse your profile data.";
     }, [
         profile,
         profileQuery.error,
-        profileQuery.isFetching,
         profileQuery.isPending,
     ]);
 
     useEffect(() => {
-        if (profileQuery.isPending || profileQuery.isFetching) {
+        if (profileQuery.isPending) {
             return;
         }
 
@@ -95,7 +101,6 @@ export const useOnboardingBootstrap = (): UseOnboardingBootstrapReturn => {
     }, [
         profile,
         profileQuery.error,
-        profileQuery.isFetching,
         profileQuery.isPending,
         router,
     ]);
@@ -108,7 +113,7 @@ export const useOnboardingBootstrap = (): UseOnboardingBootstrapReturn => {
     return {
         form,
         setForm,
-        isBootstrapping: profileQuery.isPending || profileQuery.isFetching,
+        isBootstrapping: profileQuery.isPending,
         bootstrapError,
         retryBootstrap,
     };

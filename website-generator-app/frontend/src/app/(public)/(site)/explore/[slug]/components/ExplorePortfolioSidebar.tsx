@@ -170,12 +170,12 @@ export const ExplorePortfolioSidebar = ({
               onClick={handleLike}
               disabled={toggleLikeMutation.isPending}
               aria-pressed={metrics.viewerHasLiked}
-              className="flex min-w-0 items-center gap-2 rounded-md px-1 py-1 text-left transition-colors hover:cursor-pointer hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex min-w-0 items-center gap-2 rounded-md px-1 py-1 text-left transition-colors hover:cursor-pointer hover:text-rose-500 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:text-rose-400"
             >
               <Heart
                 className={cn(
                   "size-4 text-muted-foreground transition-colors",
-                  metrics.viewerHasLiked && "fill-primary text-primary",
+                  metrics.viewerHasLiked && "fill-current text-rose-500 dark:text-rose-400",
                 )}
               />
               <span>{metrics.likesCount.toLocaleString()}</span>
