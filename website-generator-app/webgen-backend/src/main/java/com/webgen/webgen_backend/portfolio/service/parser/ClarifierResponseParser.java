@@ -30,6 +30,9 @@ public class ClarifierResponseParser {
             dto.setAssistantMessage(root.path("assistantMessage").asText());
             dto.setReadyForPlanning(root.path("readyForPlanning").asBoolean(false));
             dto.setClarificationComplete(root.path("clarificationComplete").asBoolean(false));
+            // Fail-open: a missing flag must degrade to pre-gate behavior
+            // (planning allowed), never brick the pipeline
+            dto.setAdvancesRequest(root.path("advancesRequest").asBoolean(true));
 
             JsonNode ctxNode = root.path("updatedContext");
             if (ctxNode.isMissingNode() || !ctxNode.isObject())

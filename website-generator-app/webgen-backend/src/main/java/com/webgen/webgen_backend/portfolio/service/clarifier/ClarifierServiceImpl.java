@@ -93,13 +93,14 @@ public class ClarifierServiceImpl implements ClarifierService {
         System.out.println(">>> [CLARIFIER] Parsed flags: clarificationComplete=" + parsed.isClarificationComplete()
                 + ", readyForPlanning=" + parsed.isReadyForPlanning());
 
-        // Update context in Redis
+        // Update context from the model's response
         ClarifierContext updatedContext = clarifierResponseParser.getUpdatedContext();
 
-        // Force increment turnCount server-side (don't rely on AI)
-        updatedContext.setTurnCount(context.getTurnCount() + 1);
-
-        saveContext(sessionId, updatedContext);
+        // --- Turn counting is per clarification CYCLE, not per session: a turn
+        // that delivered a plan closes its cycle, so the next message gets a
+        // fresh budget instead of force-planning forever once the cap is hit
+        int cycleTurns = context.isLastTurnReadyForPlanning() ? 0 : context.getTurnCount();
+        updatedContext.setTurnCount(cycleTurns + 1);
 
         // === STOPPING LOGIC ===
         // Override AI's decision when certain conditions are met
@@ -126,12 +127,28 @@ public class ClarifierServiceImpl implements ClarifierService {
             }
         }
 
+        // --- Intent gate: readiness describes what the SESSION knows, but
+        // planning requires the LATEST message to actually request something.
+        // Greetings and small talk must never re-plan a finished conversation.
+        if (!parsed.isAdvancesRequest()) {
+            if (parsed.isReadyForPlanning() || parsed.isClarificationComplete()) {
+                System.out.println(">>> INTENT GATE: message does not advance the request — planning suppressed");
+            }
+            parsed.setReadyForPlanning(false);
+            parsed.setClarificationComplete(false);
+        }
+
         // If we're ready to plan, ensure we don't ask another question
         if (parsed.isReadyForPlanning()) {
             parsed.setAssistantMessage(
                     "Got it. I have enough context to proceed to planning your updates."
             );
         }
+
+        // Persist the final decision so the next message knows whether it
+        // starts a new cycle
+        updatedContext.setLastTurnReadyForPlanning(parsed.isReadyForPlanning());
+        saveContext(sessionId, updatedContext);
 
         // Always return the sessionId so the frontend can pass it on subsequent calls
         parsed.setSessionId(sessionId);

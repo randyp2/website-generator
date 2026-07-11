@@ -8,4 +8,6 @@ public class ClarifierResponseDTO {
     private String sessionId;
     private boolean readyForPlanning;
     private boolean clarificationComplete;
+    /** Whether the latest user message expressed or refined a change request. */
+    private boolean advancesRequest;
 }

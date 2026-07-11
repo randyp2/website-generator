@@ -158,12 +158,30 @@ public class ClarifierPromptBuilder {
                 - readyForPlanning MUST be false
 
                 ========================
+                MESSAGE INTENT (advancesRequest)
+
+                Set advancesRequest per the LATEST user message:
+                - true when the message expresses, refines, answers a question
+                  about, or confirms a modification request ("make it blue",
+                  "actually keep the footer dark", "yes", "just proceed")
+                - false when the message adds nothing to any request: greetings
+                  ("hi", "hey"), small talk, thanks, or questions about the
+                  system itself ("what can you do?")
+
+                When advancesRequest is false:
+                - readyForPlanning and clarificationComplete MUST be false
+                - Reply briefly and helpfully in assistantMessage (greet back,
+                  answer their question, or ask what they'd like to change)
+                - Do NOT alter updatedContext fields other than lastUserMessage
+
+                ========================
                 OUTPUT FORMAT (STRICT)
 
                 You MUST return a single JSON object with EXACTLY these fields:
 
                 {
                     "assistantMessage": "<user-facing conversational message>",
+                    "advancesRequest": <true|false>,
                     "readyForPlanning": <true|false>,
                     "clarificationComplete": <true|false>,
                     "updatedContext": {

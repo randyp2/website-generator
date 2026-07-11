@@ -48,4 +48,8 @@ public class ClarifierContext {
 
     // Keep track of how many clarifications have been made prevents infinite conversations
     private int turnCount;
+
+    // True when the previous turn delivered a plan: the next message starts a
+    // fresh clarification cycle with its own turn budget
+    private boolean lastTurnReadyForPlanning;
 }
