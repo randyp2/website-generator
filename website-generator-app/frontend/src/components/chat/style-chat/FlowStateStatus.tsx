@@ -5,10 +5,10 @@ import { SpiralLoader } from "@/components/ui/SpiralLoader";
 
 const FLOWSTATE_THRESHOLD_SECONDS = 10;
 
-const getElapsedSeconds = (startedAt: Date): number =>
+export const getElapsedSeconds = (startedAt: Date): number =>
     Math.max(0, Math.floor((Date.now() - startedAt.getTime()) / 1000));
 
-const formatDuration = (seconds: number): string => {
+export const formatDuration = (seconds: number): string => {
     if (seconds < 60) return `${seconds}s`;
 
     const minutes = Math.floor(seconds / 60);
@@ -25,6 +25,9 @@ const formatDuration = (seconds: number): string => {
 
     return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
 };
+
+export const formatCompletedFlowStateStatus = (seconds: number): string =>
+    `Entered flow state for ${formatDuration(seconds)}`;
 
 interface FlowStateStatusProps {
     startedAt: Date;
@@ -48,7 +51,7 @@ export const FlowStateStatus = ({ startedAt }: FlowStateStatusProps) => {
 
     const statusText =
         elapsedSeconds >= FLOWSTATE_THRESHOLD_SECONDS
-            ? `Entered flowstate for ${formatDuration(elapsedSeconds)}`
+            ? formatCompletedFlowStateStatus(elapsedSeconds)
             : `Thinking for ${formatDuration(elapsedSeconds)}`;
 
     return (

@@ -97,6 +97,7 @@ class RefineChatHistoryServiceImplTest {
                 "clarify",
                 false,
                 new ArrayList<>(),
+                null,
                 null
         );
     }

@@ -66,6 +66,7 @@ class RefineChatHistoryPolicyTest {
                 "clarify",
                 false,
                 new ArrayList<>(),
+                null,
                 null
         );
     }

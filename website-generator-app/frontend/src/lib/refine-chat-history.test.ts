@@ -26,6 +26,7 @@ describe("refine-chat-history", () => {
                     },
                 ],
                 planSummary: "I will refine the hero.",
+                flowStateDurationSeconds: 14,
             },
         ];
 
@@ -54,6 +55,7 @@ describe("refine-chat-history", () => {
                 timestamp: "2026-07-10T00:00:00.000Z",
                 messageType: "clarify",
                 readyForPlanning: true,
+                flowStateDurationSeconds: 9,
             },
         ]);
 
@@ -63,5 +65,6 @@ describe("refine-chat-history", () => {
             "2026-07-10T00:00:00.000Z",
         );
         expect(uiMessages[0].readyForPlanning).toBe(true);
+        expect(uiMessages[0].flowStateDurationSeconds).toBe(9);
     });
 });

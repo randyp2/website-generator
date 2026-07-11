@@ -65,5 +65,6 @@ public class SectionGenerationMessage {
     private SectionContentDTO existingSection;
     private ClarifierContext clarifierContext;
     private List<AssetDTO> assets;
+    private Long refineBuildStartedAtMillis;
 
 }

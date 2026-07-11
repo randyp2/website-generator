@@ -48,7 +48,8 @@ public class RefineChatHistoryPolicy {
                 message.getMessageType(),
                 message.getReadyForPlanning(),
                 copySectionPlans(message.getSectionPlans()),
-                message.getPlanSummary()
+                message.getPlanSummary(),
+                message.getFlowStateDurationSeconds()
         );
     }
 

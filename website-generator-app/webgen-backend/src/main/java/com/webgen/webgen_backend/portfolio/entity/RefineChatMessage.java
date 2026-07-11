@@ -22,4 +22,5 @@ public class RefineChatMessage {
     private Boolean readyForPlanning;
     private List<RefineChatSectionPlan> sectionPlans;
     private String planSummary;
+    private Integer flowStateDurationSeconds;
 }

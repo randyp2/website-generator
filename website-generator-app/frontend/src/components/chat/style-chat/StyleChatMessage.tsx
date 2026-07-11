@@ -5,7 +5,10 @@ import { StreamingText } from "@/components/ui/StreamingText";
 import { cn } from "@/lib/utils";
 import type { Message } from "@/types/preview";
 import { AiMessageContent } from "./AiMessageContent";
-import { FlowStateStatus } from "./FlowStateStatus";
+import {
+    FlowStateStatus,
+    formatCompletedFlowStateStatus,
+} from "./FlowStateStatus";
 import { RefinePlanCard } from "./RefinePlanCard";
 import { StyleSummaryCard } from "./StyleSummaryCard";
 
@@ -56,6 +59,13 @@ export const StyleChatMessage = ({
         !message.previewType &&
         !message.isStyleComplete &&
         !(message.messageType === "plan" && message.sectionPlans);
+    const completedFlowStateStatus =
+        showFlowStateStatus &&
+        message.role === "ai" &&
+        !message.isGenerating &&
+        typeof message.flowStateDurationSeconds === "number"
+            ? formatCompletedFlowStateStatus(message.flowStateDurationSeconds)
+            : null;
 
     return (
         <div
@@ -118,8 +128,13 @@ export const StyleChatMessage = ({
                     message.content
                 )}
             </div>
-            <span className="mt-1 text-xs text-muted-foreground dark:text-white/40">
-                {formatChatTimestamp(message.timestamp)}
+            <span className="mt-1 inline-flex items-center gap-2 text-xs text-muted-foreground dark:text-white/40">
+                <span>{formatChatTimestamp(message.timestamp)}</span>
+                {completedFlowStateStatus ? (
+                    <span className="border-l border-border/70 pl-2 dark:border-white/10">
+                        {completedFlowStateStatus}
+                    </span>
+                ) : null}
             </span>
         </div>
     );

@@ -305,12 +305,12 @@ const RefinePlanPrompt: React.FC<RefinePlanPromptProps> = ({
     onApprovePlan,
     onKeepChatting,
 }) => (
-    <div className="rounded-3xl border border-border bg-card/95 p-4 text-foreground shadow-[0_24px_80px_rgba(0,0,0,0.16)] backdrop-blur-2xl dark:border-white/10 dark:bg-[#1c1d22]/92 dark:text-white dark:shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
+    <div className="rounded-3xl border border-orange-400/30 bg-orange-50/80 p-4 text-foreground shadow-[0_18px_48px_rgba(249,115,22,0.12)] backdrop-blur-2xl dark:border-orange-900/45 dark:bg-orange-950/35 dark:text-orange-50 dark:shadow-[0_18px_48px_rgba(124,45,18,0.24)]">
         <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-orange-700/80 dark:text-orange-300/80">
-            <span className="h-2 w-2 rounded-full bg-orange-400 shadow-[0_0_12px_rgba(251,146,60,0.9)]" />
+            <span className="h-2 w-2 rounded-full bg-orange-400 shadow-[0_0_12px_rgba(251,146,60,0.9)] dark:bg-orange-500 dark:shadow-[0_0_14px_rgba(194,65,12,0.75)]" />
             Approve plan
         </div>
-        <p className="mt-2 text-sm text-muted-foreground dark:text-white/75">
+        <p className="mt-2 text-sm text-foreground/90 dark:text-orange-100/80">
             Review the planned changes, then apply or keep refining.
         </p>
         <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -328,8 +328,8 @@ const RefinePlanPrompt: React.FC<RefinePlanPromptProps> = ({
                 onClick={onKeepChatting}
                 disabled={isGenerating}
                 className={cn(
-                    "h-10 cursor-pointer rounded-full px-4 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50",
-                    "dark:border-white/10 dark:bg-[#1c1d22]/92 dark:text-white dark:hover:bg-white/5",
+                    "h-10 cursor-pointer rounded-full border-zinc-200 bg-zinc-100 px-4 text-sm font-medium text-zinc-700 hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50",
+                    "dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700",
                 )}
             >
                 Keep chatting

@@ -58,6 +58,7 @@ export interface Message {
     readyForPlanning?: boolean;
     sectionPlans?: SectionPlan[];
     planSummary?: string;
+    flowStateDurationSeconds?: number;
     // Style chat rich response fields
     suggestions?: string[];
     designTip?: string;

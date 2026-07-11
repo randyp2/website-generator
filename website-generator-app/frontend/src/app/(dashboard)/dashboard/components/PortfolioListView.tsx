@@ -23,7 +23,7 @@ export const PortfolioListView: React.FC<PortfolioListViewProps> = ({
     const router = useRouter();
 
     return (
-        <div className="h-full divide-y divide-border overflow-y-auto [scrollbar-color:var(--primary)_var(--muted)] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb:hover]:bg-primary [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-primary/65 [&::-webkit-scrollbar-track]:bg-muted/60 [&::-webkit-scrollbar]:w-2 [&>*:last-child]:border-b [&>*:last-child]:border-border">
+        <div className="h-full divide-y divide-border overflow-y-auto [scrollbar-color:#52525b_var(--muted)] [scrollbar-width:thin] dark:[scrollbar-color:#d4d4d8_var(--muted)] [&::-webkit-scrollbar-thumb:hover]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-600 dark:[&::-webkit-scrollbar-thumb:hover]:bg-zinc-200 dark:[&::-webkit-scrollbar-thumb]:bg-zinc-300 [&::-webkit-scrollbar-track]:bg-muted/60 [&::-webkit-scrollbar]:w-2 [&>*:last-child]:border-b [&>*:last-child]:border-border">
             {portfolios.map((portfolio, index) => (
                 <motion.div
                     key={portfolio.id}

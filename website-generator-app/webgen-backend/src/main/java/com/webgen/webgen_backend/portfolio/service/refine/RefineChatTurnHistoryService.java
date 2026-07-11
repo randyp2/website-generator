@@ -28,16 +28,18 @@ public class RefineChatTurnHistoryService {
      * @param portfolioId portfolio id whose history should be updated
      * @param userPrompt prompt submitted by the user
      * @param response successful clarifier response
+     * @param flowStateDurationSeconds total seconds spent generating the response
      */
     public void recordClarifierTurn(
             UUID userId,
             UUID portfolioId,
             String userPrompt,
-            ClarifierResponseDTO response
+            ClarifierResponseDTO response,
+            int flowStateDurationSeconds
     ) {
         List<RefineChatMessage> history = refineChatHistoryService.loadHistory(userId, portfolioId);
         history.add(userMessage(userPrompt, "clarify"));
-        history.add(clarifierMessage(response));
+        history.add(clarifierMessage(response, flowStateDurationSeconds));
 
         refineChatHistoryService.saveHistory(userId, portfolioId, history);
     }
@@ -48,14 +50,16 @@ public class RefineChatTurnHistoryService {
      * @param userId authenticated portfolio owner id
      * @param portfolioId portfolio id whose history should be updated
      * @param response successful planner response
+     * @param flowStateDurationSeconds total seconds spent generating the plan
      */
     public void recordPlannerTurn(
             UUID userId,
             UUID portfolioId,
-            PlannerResponseDTO response
+            PlannerResponseDTO response,
+            int flowStateDurationSeconds
     ) {
         List<RefineChatMessage> history = refineChatHistoryService.loadHistory(userId, portfolioId);
-        history.add(planMessage(response));
+        history.add(planMessage(response, flowStateDurationSeconds));
 
         refineChatHistoryService.saveHistory(userId, portfolioId, history);
     }
@@ -79,14 +83,16 @@ public class RefineChatTurnHistoryService {
      * @param userId authenticated portfolio owner id
      * @param portfolioId portfolio id whose history should be updated
      * @param fallbackSectionNames sections left unchanged because refinement failed
+     * @param flowStateDurationSeconds total seconds spent building the refinement
      */
     public void recordBuildCompletion(
             UUID userId,
             UUID portfolioId,
-            List<String> fallbackSectionNames
+            List<String> fallbackSectionNames,
+            int flowStateDurationSeconds
     ) {
         List<RefineChatMessage> history = refineChatHistoryService.loadHistory(userId, portfolioId);
-        history.add(buildCompletionMessage(fallbackSectionNames));
+        history.add(buildCompletionMessage(fallbackSectionNames, flowStateDurationSeconds));
 
         refineChatHistoryService.saveHistory(userId, portfolioId, history);
     }
@@ -101,11 +107,15 @@ public class RefineChatTurnHistoryService {
                 messageType,
                 null,
                 new ArrayList<>(),
+                null,
                 null
         );
     }
 
-    private RefineChatMessage clarifierMessage(ClarifierResponseDTO response) {
+    private RefineChatMessage clarifierMessage(
+            ClarifierResponseDTO response,
+            int flowStateDurationSeconds
+    ) {
         String content = response.getAssistantMessage();
         if (content == null || content.isBlank()) {
             content = "Thanks. I can help clarify that. What would you like to change?";
@@ -120,11 +130,15 @@ public class RefineChatTurnHistoryService {
                 "clarify",
                 response.isReadyForPlanning(),
                 new ArrayList<>(),
-                null
+                null,
+                flowStateDurationSeconds
         );
     }
 
-    private RefineChatMessage planMessage(PlannerResponseDTO response) {
+    private RefineChatMessage planMessage(
+            PlannerResponseDTO response,
+            int flowStateDurationSeconds
+    ) {
         List<RefineChatSectionPlan> sectionPlans = toPersistedSectionPlans(response.getSectionPlans());
         String planSummary = response.getPlanSummary();
 
@@ -137,11 +151,15 @@ public class RefineChatTurnHistoryService {
                 "plan",
                 null,
                 sectionPlans,
-                planSummary
+                planSummary,
+                flowStateDurationSeconds
         );
     }
 
-    private RefineChatMessage buildCompletionMessage(List<String> fallbackSectionNames) {
+    private RefineChatMessage buildCompletionMessage(
+            List<String> fallbackSectionNames,
+            int flowStateDurationSeconds
+    ) {
         return new RefineChatMessage(
                 messageId("ai-build"),
                 "ai",
@@ -151,7 +169,8 @@ public class RefineChatTurnHistoryService {
                 "build",
                 null,
                 new ArrayList<>(),
-                null
+                null,
+                flowStateDurationSeconds
         );
     }
 

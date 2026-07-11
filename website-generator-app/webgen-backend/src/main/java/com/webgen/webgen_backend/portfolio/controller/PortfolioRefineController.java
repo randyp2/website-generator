@@ -49,12 +49,14 @@ public class PortfolioRefineController {
                 "refine_clarify"
         );
 
+        long startedAtMillis = System.currentTimeMillis();
         ClarifierResponseDTO response = clarifierService.clarify(req);
         refineChatTurnHistoryService.recordClarifierTurn(
                 userId,
                 req.getPortfolioId(),
                 req.getUserPrompt(),
-                response
+                response,
+                elapsedSeconds(startedAtMillis)
         );
         return ResponseEntity.ok(response);
     }
@@ -73,8 +75,14 @@ public class PortfolioRefineController {
                 "refine_plan"
         );
 
+        long startedAtMillis = System.currentTimeMillis();
         PlannerResponseDTO response = plannerService.plan(req);
-        refineChatTurnHistoryService.recordPlannerTurn(userId, req.getPortfolioId(), response);
+        refineChatTurnHistoryService.recordPlannerTurn(
+                userId,
+                req.getPortfolioId(),
+                response,
+                elapsedSeconds(startedAtMillis)
+        );
         return ResponseEntity.ok(response);
     }
 
@@ -94,5 +102,9 @@ public class PortfolioRefineController {
 
         BuilderResponseDTO response = builderService.build(req, userId);
         return ResponseEntity.ok(response);
+    }
+
+    private int elapsedSeconds(long startedAtMillis) {
+        return Math.max(0, (int) ((System.currentTimeMillis() - startedAtMillis) / 1000));
     }
 }

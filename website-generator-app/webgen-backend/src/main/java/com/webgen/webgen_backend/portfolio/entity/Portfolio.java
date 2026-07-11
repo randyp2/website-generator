@@ -48,7 +48,7 @@ public class Portfolio {
     private UUID activeVersionId;
 
     // Version pinned to the public site; null falls back to live sections
-    // (pre-pinning portfolios). See V19 migration.
+    // (pre-pinning portfolios). See V34 migration.
     @Column(name = "published_version_id")
     private UUID publishedVersionId;
 

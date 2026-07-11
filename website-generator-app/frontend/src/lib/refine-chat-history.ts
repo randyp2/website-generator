@@ -13,6 +13,7 @@ export interface PersistedRefineChatMessage {
     readyForPlanning?: boolean | null;
     sectionPlans?: SectionPlan[] | null;
     planSummary?: string | null;
+    flowStateDurationSeconds?: number | null;
 }
 
 const MESSAGE_TYPES = new Set<MessageType>([
@@ -72,6 +73,13 @@ export const isRefineChatHistory = (
             return false;
         }
 
+        if (
+            message.flowStateDurationSeconds != null &&
+            typeof message.flowStateDurationSeconds !== "number"
+        ) {
+            return false;
+        }
+
         return true;
     });
 };
@@ -95,6 +103,9 @@ export const toUiRefineMessages = (
             ? { sectionPlans: message.sectionPlans }
             : {}),
         ...(message.planSummary ? { planSummary: message.planSummary } : {}),
+        ...(typeof message.flowStateDurationSeconds === "number"
+            ? { flowStateDurationSeconds: message.flowStateDurationSeconds }
+            : {}),
     }));
 
 const isSectionPlanList = (value: unknown): value is SectionPlan[] => {

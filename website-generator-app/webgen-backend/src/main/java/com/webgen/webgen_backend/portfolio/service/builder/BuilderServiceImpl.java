@@ -120,6 +120,7 @@ public class BuilderServiceImpl implements BuilderService {
             throw new IllegalArgumentException("Plan contains no actionable changes");
 
         // Create Redis job
+        long buildStartedAtMillis = System.currentTimeMillis();
         String jobId = generateJobService.createJob(req.getPortfolioId());
         generateJobService.setTotalSections(jobId, actionablePlans.size());
 
@@ -133,7 +134,7 @@ public class BuilderServiceImpl implements BuilderService {
         if (actionablePlans.isEmpty()) {
             System.out.println(">>> [BUILDER] Delete-only plan — persisting without workers | job: " + jobId);
             refineChatTurnHistoryService.recordBuildApproval(userId, req.getPortfolioId());
-            persistRefinementFromRedis(jobId, req.getPortfolioId(), userId);
+            persistRefinementFromRedis(jobId, req.getPortfolioId(), userId, buildStartedAtMillis);
             BuilderResponseDTO response = new BuilderResponseDTO();
             response.setJobId(jobId);
             return response;
@@ -152,6 +153,7 @@ public class BuilderServiceImpl implements BuilderService {
                     msg.setExistingSection(sectionsByKey.get(plan.getSectionKey()));
                     msg.setClarifierContext(context);
                     msg.setAssets(req.getAssets());
+                    msg.setRefineBuildStartedAtMillis(buildStartedAtMillis);
 
                     return msg;
                 })
@@ -250,7 +252,8 @@ public class BuilderServiceImpl implements BuilderService {
                     persistRefinementFromRedis(
                             jobId,
                             UUID.fromString(msg.getPortfolioId()),
-                            UUID.fromString(msg.getUserId())
+                            UUID.fromString(msg.getUserId()),
+                            buildStartedAtMillis(msg)
                     );
                 }
                 return;
@@ -271,7 +274,8 @@ public class BuilderServiceImpl implements BuilderService {
             persistRefinementFromRedis(
                     jobId,
                     UUID.fromString(msg.getPortfolioId()),
-                    UUID.fromString(msg.getUserId())
+                    UUID.fromString(msg.getUserId()),
+                    buildStartedAtMillis(msg)
             );
         }
     }
@@ -286,7 +290,12 @@ public class BuilderServiceImpl implements BuilderService {
      * Runs inside the last worker thread as a barrier, except for delete-only
      * plans, which have no workers and persist on the HTTP request thread.
      */
-    private void persistRefinementFromRedis(String jobId, UUID portfolioId, UUID userId) {
+    private void persistRefinementFromRedis(
+            String jobId,
+            UUID portfolioId,
+            UUID userId,
+            long buildStartedAtMillis
+    ) {
         System.out.println(">>> [REFINE-PERSIST] Starting DB persistence | job: " + jobId);
         long persistStart = System.currentTimeMillis();
         generateJobService.updateStatus(jobId, JobStatusDTO.Status.PERSISTING);
@@ -445,7 +454,8 @@ public class BuilderServiceImpl implements BuilderService {
         refineChatTurnHistoryService.recordBuildCompletion(
                 userId,
                 portfolioId,
-                fallbackSectionNames(modifiedSections)
+                fallbackSectionNames(modifiedSections),
+                elapsedSeconds(buildStartedAtMillis)
         );
 
         generateJobService.updateStatus(jobId, JobStatusDTO.Status.COMPLETED);
@@ -460,5 +470,14 @@ public class BuilderServiceImpl implements BuilderService {
                         ? section.getTitle()
                         : section.getSectionKey())
                 .toList();
+    }
+
+    private long buildStartedAtMillis(SectionGenerationMessage msg) {
+        Long startedAtMillis = msg.getRefineBuildStartedAtMillis();
+        return startedAtMillis == null ? System.currentTimeMillis() : startedAtMillis;
+    }
+
+    private int elapsedSeconds(long startedAtMillis) {
+        return Math.max(0, (int) ((System.currentTimeMillis() - startedAtMillis) / 1000));
     }
 }

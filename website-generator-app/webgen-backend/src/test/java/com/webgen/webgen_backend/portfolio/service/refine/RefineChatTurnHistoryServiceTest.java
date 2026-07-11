@@ -29,7 +29,7 @@ class RefineChatTurnHistoryServiceTest {
         response.setAssistantMessage("What should change in the hero?");
         response.setReadyForPlanning(false);
 
-        service.recordClarifierTurn(userId, portfolioId, "Make the hero stronger", response);
+        service.recordClarifierTurn(userId, portfolioId, "Make the hero stronger", response, 12);
 
         assertEquals(userId, historyService.savedUserId);
         assertEquals(portfolioId, historyService.savedPortfolioId);
@@ -41,6 +41,7 @@ class RefineChatTurnHistoryServiceTest {
         assertEquals("ai", historyService.savedHistory.get(2).getRole());
         assertEquals("What should change in the hero?", historyService.savedHistory.get(2).getContent());
         assertFalse(historyService.savedHistory.get(2).getReadyForPlanning());
+        assertEquals(12, historyService.savedHistory.get(2).getFlowStateDurationSeconds());
     }
 
     @Test
@@ -52,7 +53,7 @@ class RefineChatTurnHistoryServiceTest {
         response.setPlanSummary("I will refine the hero.");
         response.setSectionPlans(List.of(sectionPlan()));
 
-        service.recordPlannerTurn(userId, portfolioId, response);
+        service.recordPlannerTurn(userId, portfolioId, response, 18);
 
         assertEquals(userId, historyService.savedUserId);
         assertEquals(portfolioId, historyService.savedPortfolioId);
@@ -67,6 +68,7 @@ class RefineChatTurnHistoryServiceTest {
         assertEquals(1, planMessage.getSectionPlans().size());
         assertEquals("hero", planMessage.getSectionPlans().getFirst().getSectionKey());
         assertEquals("MEDIUM", planMessage.getSectionPlans().getFirst().getIntensity());
+        assertEquals(18, planMessage.getFlowStateDurationSeconds());
     }
 
     @Test
@@ -89,7 +91,7 @@ class RefineChatTurnHistoryServiceTest {
         UUID userId = UUID.randomUUID();
         UUID portfolioId = UUID.randomUUID();
 
-        service.recordBuildCompletion(userId, portfolioId, List.of());
+        service.recordBuildCompletion(userId, portfolioId, List.of(), 24);
 
         assertEquals(userId, historyService.savedUserId);
         assertEquals(portfolioId, historyService.savedPortfolioId);
@@ -100,6 +102,7 @@ class RefineChatTurnHistoryServiceTest {
                 "Portfolio updated successfully!",
                 historyService.savedHistory.getFirst().getContent()
         );
+        assertEquals(24, historyService.savedHistory.getFirst().getFlowStateDurationSeconds());
     }
 
     @Test
@@ -107,12 +110,13 @@ class RefineChatTurnHistoryServiceTest {
         UUID userId = UUID.randomUUID();
         UUID portfolioId = UUID.randomUUID();
 
-        service.recordBuildCompletion(userId, portfolioId, List.of("Hero", "Projects"));
+        service.recordBuildCompletion(userId, portfolioId, List.of("Hero", "Projects"), 31);
 
         assertEquals(
                 "Portfolio updated, but I couldn't apply the change to Hero, Projects, so those sections were left unchanged. Try rephrasing that request.",
                 historyService.savedHistory.getFirst().getContent()
         );
+        assertEquals(31, historyService.savedHistory.getFirst().getFlowStateDurationSeconds());
     }
 
     private SectionPlanDTO sectionPlan() {
@@ -136,6 +140,7 @@ class RefineChatTurnHistoryServiceTest {
                 "clarify",
                 false,
                 new ArrayList<>(),
+                null,
                 null
         );
     }
