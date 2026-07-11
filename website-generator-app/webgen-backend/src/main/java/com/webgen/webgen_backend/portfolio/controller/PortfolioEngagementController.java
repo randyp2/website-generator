@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import com.webgen.webgen_backend.shared.ratelimit.RateLimiterService;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,11 +26,13 @@ import java.util.UUID;
 public class PortfolioEngagementController {
 
     private final PortfolioEngagementService portfolioEngagementService;
+    private final RateLimiterService rateLimiterService;
 
     @PostMapping("/{portfolioId}/like")
     public ResponseEntity<PortfolioEngagementSummaryDTO> likePortfolio(
             @PathVariable UUID portfolioId) {
         UUID userId = resolveAuthenticatedUserId();
+        rateLimiterService.check("engagement-write", userId.toString());
         return ResponseEntity.ok(portfolioEngagementService.likePortfolio(userId, portfolioId));
     }
 
@@ -45,6 +48,7 @@ public class PortfolioEngagementController {
             @PathVariable UUID portfolioId,
             @RequestBody CreatePortfolioCommentRequestDTO request) {
         UUID userId = resolveAuthenticatedUserId();
+        rateLimiterService.check("engagement-write", userId.toString());
         PortfolioCommentDTO response = portfolioEngagementService.createComment(
                 userId,
                 portfolioId,
@@ -70,6 +74,7 @@ public class PortfolioEngagementController {
     @PostMapping("/comments/{commentId}/like")
     public ResponseEntity<PortfolioCommentDTO> likeComment(@PathVariable UUID commentId) {
         UUID userId = resolveAuthenticatedUserId();
+        rateLimiterService.check("engagement-write", userId.toString());
         return ResponseEntity.ok(portfolioEngagementService.likeComment(userId, commentId));
     }
 

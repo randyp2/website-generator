@@ -7,6 +7,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import jakarta.servlet.http.HttpServletRequest;
+import com.webgen.webgen_backend.shared.ratelimit.ClientIp;
+import com.webgen.webgen_backend.shared.ratelimit.RateLimiterService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,6 +24,7 @@ import java.util.UUID;
 public class PublicPortfolioEngagementController {
 
     private final PortfolioEngagementService portfolioEngagementService;
+    private final RateLimiterService rateLimiterService;
 
     @GetMapping
     public ResponseEntity<PortfolioEngagementSummaryDTO> getSummary(
@@ -36,13 +40,15 @@ public class PublicPortfolioEngagementController {
 
     @PostMapping("/views")
     public ResponseEntity<PortfolioEngagementSummaryDTO> recordView(
-            @PathVariable String slug) {
+            @PathVariable String slug, HttpServletRequest httpRequest) {
+        rateLimiterService.check("public-engagement", ClientIp.key(httpRequest));
         return ResponseEntity.ok(portfolioEngagementService.recordView(slug));
     }
 
     @PostMapping("/shares")
     public ResponseEntity<PortfolioEngagementSummaryDTO> recordShare(
-            @PathVariable String slug) {
+            @PathVariable String slug, HttpServletRequest httpRequest) {
+        rateLimiterService.check("public-engagement", ClientIp.key(httpRequest));
         return ResponseEntity.ok(portfolioEngagementService.recordShare(slug));
     }
 

@@ -5,6 +5,7 @@ import com.webgen.webgen_backend.profile.service.social.ProfileSocialService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import com.webgen.webgen_backend.shared.ratelimit.RateLimiterService;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,6 +21,7 @@ import java.util.UUID;
 public class ProfileSocialController {
 
     private final ProfileSocialService profileSocialService;
+    private final RateLimiterService rateLimiterService;
 
     @GetMapping("/{profileId}")
     public ResponseEntity<ProfileSocialSummaryDTO> getSummary(
@@ -32,6 +34,7 @@ public class ProfileSocialController {
     public ResponseEntity<ProfileSocialSummaryDTO> followProfile(
             @PathVariable UUID profileId) {
         UUID viewerId = resolveAuthenticatedUserId();
+        rateLimiterService.check("engagement-write", viewerId.toString());
         return ResponseEntity.ok(profileSocialService.followProfile(viewerId, profileId));
     }
 

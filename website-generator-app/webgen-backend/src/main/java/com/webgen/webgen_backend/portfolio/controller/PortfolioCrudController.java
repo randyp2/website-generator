@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import com.webgen.webgen_backend.shared.ratelimit.RateLimiterService;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -18,6 +19,7 @@ import java.util.UUID;
 public class PortfolioCrudController {
 
     private final PortfolioCrudService portfolioCrudService;
+    private final RateLimiterService rateLimiterService;
 
     @GetMapping("/list")
     public ResponseEntity<PortfolioListDTO> listPortfolios() {
@@ -37,6 +39,7 @@ public class PortfolioCrudController {
         UUID userId = UUID.fromString(
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
         );
+        rateLimiterService.check("portfolio-draft", userId.toString());
         PortfolioDTO response = portfolioCrudService.createDraft(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

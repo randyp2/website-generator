@@ -10,6 +10,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import jakarta.servlet.http.HttpServletRequest;
+import com.webgen.webgen_backend.shared.ratelimit.ClientIp;
+import com.webgen.webgen_backend.shared.ratelimit.RateLimiterService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,6 +28,7 @@ import java.util.UUID;
 public class PublicProfileSocialController {
 
     private final ProfileSocialService profileSocialService;
+    private final RateLimiterService rateLimiterService;
 
     @GetMapping
     public ResponseEntity<ProfileSocialSummaryDTO> getSummary(
@@ -56,7 +60,8 @@ public class PublicProfileSocialController {
 
     @PostMapping("/views")
     public ResponseEntity<ProfileSocialSummaryDTO> recordView(
-            @PathVariable String username) {
+            @PathVariable String username, HttpServletRequest httpRequest) {
+        rateLimiterService.check("public-engagement", ClientIp.key(httpRequest));
         return ResponseEntity.ok(profileSocialService.recordProfileView(username, resolveViewerId()));
     }
 

@@ -14,6 +14,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import jakarta.servlet.http.HttpServletRequest;
+import com.webgen.webgen_backend.shared.ratelimit.ClientIp;
+import com.webgen.webgen_backend.shared.ratelimit.RateLimiterService;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -22,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class PublicProfileController {
 
     private final ProfileService profileService;
+    private final RateLimiterService rateLimiterService;
     private final PublicPortfolioService publicPortfolioService;
 
     @GetMapping("/{username}")
@@ -53,8 +57,10 @@ public class PublicProfileController {
 
     @GetMapping("/username-available")
     public ResponseEntity<UsernameAvailabilityResponseDTO> checkUsernameAvailability(
-            @RequestParam(required = false) String username
+            @RequestParam(required = false) String username,
+            HttpServletRequest httpRequest
     ) {
+        rateLimiterService.check("public-username-check", ClientIp.key(httpRequest));
         return ResponseEntity.ok(
                 profileService.checkUsernameAvailability(username, null)
         );
