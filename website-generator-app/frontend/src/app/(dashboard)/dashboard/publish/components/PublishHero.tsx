@@ -216,7 +216,7 @@ export const PublishHero = ({
                 href={livePath}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:cursor-pointer hover:text-orange-400"
+                className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-orange-400"
               >
                 <FiExternalLink className="h-3.5 w-3.5" />
                 Open live
@@ -227,7 +227,7 @@ export const PublishHero = ({
           {/* Description preview + metadata */}
           <div className="space-y-3">
             {hasDescription ? (
-              <div className="min-h-[132px]">
+              <div className={cn(isModalOpen && "min-h-[132px]")}>
                 {!isModalOpen && (
                   <motion.div
                     layoutId="description-card"
@@ -346,7 +346,7 @@ export const PublishHero = ({
                 onClick={onCopyUrl}
                 disabled={!slug}
                 className={cn(
-                  "inline-flex items-center gap-1.5 font-medium text-muted-foreground transition-colors hover:cursor-pointer hover:text-foreground",
+                  "inline-flex cursor-pointer items-center gap-1.5 font-medium text-muted-foreground transition-colors hover:text-foreground",
                   !slug && "cursor-not-allowed opacity-40 hover:cursor-not-allowed hover:text-muted-foreground",
                 )}
               >
@@ -365,7 +365,7 @@ export const PublishHero = ({
               <button
                 type="button"
                 onClick={onUnpublish}
-                className="inline-flex items-center gap-1.5 font-medium text-muted-foreground transition-colors hover:cursor-pointer hover:text-red-400"
+                className="inline-flex cursor-pointer items-center gap-1.5 font-medium text-muted-foreground transition-colors hover:text-red-400"
               >
                 <FiEyeOff className="h-4 w-4" />
                 Unpublish

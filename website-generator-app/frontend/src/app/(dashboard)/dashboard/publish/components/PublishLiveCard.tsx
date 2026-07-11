@@ -150,7 +150,7 @@ export const PublishLiveCard = ({
             type="button"
             onClick={onCopyUrl}
             disabled={!slug}
-            className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
           >
             {copied ? (
               <FiCheck className="h-3.5 w-3.5 text-emerald-400" />
@@ -164,7 +164,7 @@ export const PublishLiveCard = ({
               href={openHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               onClick={(e) => e.stopPropagation()}
             >
               <FiExternalLink className="h-3.5 w-3.5" />
@@ -174,7 +174,7 @@ export const PublishLiveCard = ({
           <button
             type="button"
             onClick={onUnpublish}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:border-red-500/35 hover:text-red-400"
+            className="ml-auto inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:border-red-500/35 hover:text-red-400"
           >
             <FiEyeOff className="h-3.5 w-3.5" />
             Unpublish

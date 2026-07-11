@@ -377,7 +377,7 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         portfolioRepository.save(portfolio);
 
         // Live content changed: refresh the explore-card screenshot
-        queueScreenshotJob(portfolio.getId(), portfolio.getSlug(), null);
+        queueScreenshotJob(portfolio.getId(), portfolio.getSlug(), null, portfolio.getPublishedVersionId());
 
         return new ActivateVersionResponseDTO(portfolioId, activeVersionId);
     }
@@ -488,7 +488,7 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         portfolio.setUpdatedAt(OffsetDateTime.now()); // last publish date
         portfolioRepository.save(portfolio);
 
-        queueScreenshotJob(portfolio.getId(), slug, null);
+        queueScreenshotJob(portfolio.getId(), slug, null, portfolio.getPublishedVersionId());
         return buildPublishResponse(portfolio, PublishRequestDTO.SourceType.GENERATED);
     }
 
@@ -537,7 +537,7 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
 
         // Queue screenshot message
         // - For external publish we use targetUrl to capture remote website
-        queueScreenshotJob(saved.getId(), saved.getSlug(), saved.getExternalUrl());
+        queueScreenshotJob(saved.getId(), saved.getSlug(), saved.getExternalUrl(), null);
 
         return buildPublishResponse(saved, PublishRequestDTO.SourceType.EXTERNAL);
     }
@@ -590,12 +590,13 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
      * @param slug publish slug associated with screenshot
      * @param targetUrl external url for capture, null when using internal slug route
      */
-    private void queueScreenshotJob(UUID portfolioId, String slug, String targetUrl) {
+    private void queueScreenshotJob(UUID portfolioId, String slug, String targetUrl, UUID publishedVersionId) {
         ScreenshotMessage screenshotMsg = new ScreenshotMessage(
                 UUID.randomUUID().toString(),
                 portfolioId.toString(),
                 slug,
-                targetUrl
+                targetUrl,
+                publishedVersionId != null ? publishedVersionId.toString() : null
         );
 
         rabbitTemplate.convertAndSend(

@@ -98,41 +98,53 @@ export function useVersions(portfolioId: string | null): UseVersionsReturn {
         async (versionId: string): Promise<boolean> => {
             if (!portfolioId) return false;
 
+            const wasActive = versions.find((v) => v.id === versionId)?.is_active;
+
+            // Optimistic: reflect the end state immediately; on any failure we
+            // refetch rather than restore a snapshot, because a partial failure
+            // (restored but not pinned) leaves server state neither old nor new
+            setVersions((prev) =>
+                prev.map((v) => ({
+                    ...v,
+                    is_active: v.id === versionId,
+                    is_published: v.id === versionId,
+                })),
+            );
             setIsMakingLive(true);
+
             try {
                 // Never publish blind: restore into the editor first so what's
                 // live is always something the user can see, then pin it
-                const target = versions.find((v) => v.id === versionId);
-                if (!target?.is_active) {
+                if (!wasActive) {
                     const activated = await fetch(
                         `/api/portfolio/${portfolioId}/versions/${versionId}/activate`,
                         { method: "POST" },
                     );
-                    if (!activated.ok) return false;
+                    if (!activated.ok) {
+                        await fetchVersions();
+                        return false;
+                    }
                 }
 
                 const pinned = await fetch(
                     `/api/portfolio/${portfolioId}/versions/publish-current`,
                     { method: "POST" },
                 );
-                if (!pinned.ok) return false;
+                if (!pinned.ok) {
+                    await fetchVersions();
+                    return false;
+                }
 
-                setVersions((prev) =>
-                    prev.map((v) => ({
-                        ...v,
-                        is_active: v.id === versionId,
-                        is_published: v.id === versionId,
-                    })),
-                );
                 return true;
             } catch (err) {
                 console.error("Make live error:", err);
+                await fetchVersions();
                 return false;
             } finally {
                 setIsMakingLive(false);
             }
         },
-        [portfolioId, versions],
+        [portfolioId, versions, fetchVersions],
     );
 
     return {

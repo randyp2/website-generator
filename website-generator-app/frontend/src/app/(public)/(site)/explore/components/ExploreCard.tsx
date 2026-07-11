@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils"
 import type { PortfolioCard, PortfolioCardMetrics } from "./explore.types"
 import {
   formatPublishedDate,
+  getPortfolioCardHref,
   getPortfolioInitials,
   getPortfolioSummary,
   getTemplateLabel,
@@ -35,8 +36,8 @@ export const ExploreCard = ({
   onToggleLike,
 }: ExploreCardProps) => {
   const router = useRouter()
-  const href = `/explore/${portfolio.slug}`
-  const commentsHref = `${href}#comments`
+  const href = getPortfolioCardHref(portfolio)
+  const commentsHref = `/explore/${portfolio.slug}#comments`
   const templateLabel = getTemplateLabel(portfolio.templateId)
   const summary = getPortfolioSummary(portfolio)
   const metricsLoaded = metrics !== null
@@ -54,7 +55,7 @@ export const ExploreCard = ({
       <Link
         href={href}
         aria-label={portfolio.title}
-        className="absolute inset-0 z-0 rounded-lg"
+        className="absolute inset-0 z-[1] rounded-lg"
       />
 
       <LazyImage

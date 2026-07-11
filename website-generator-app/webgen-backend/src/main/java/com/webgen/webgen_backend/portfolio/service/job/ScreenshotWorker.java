@@ -35,6 +35,14 @@ public class ScreenshotWorker {
                     + " | portfolioId: " + msg.getPortfolioId()
                     + " | jobId: " + msg.getJobId());
 
+            // --- Skip stale jobs before the expensive capture: when versions
+            // are switched rapidly, only the job for the current pin runs
+            if (isStaleForPin(msg)) {
+                System.out.println(">>> [SCREENSHOT] Skipping stale job (pin moved on) — jobId: " + msg.getJobId());
+                channel.basicAck(deliveryTag, false);
+                return;
+            }
+
             // --- Capture screenshot via Playwright
             String targetUrl = msg.getTargetUrl();
             if (targetUrl != null && !targetUrl.isBlank()) {
@@ -54,7 +62,16 @@ public class ScreenshotWorker {
             String screenshotUrl = screenshotStorageService.uploadScreenshot(msg.getPortfolioId(), pngBytes);
             System.out.println(">>> [SCREENSHOT] Uploaded — url: " + screenshotUrl);
 
-            // --- Persist url to DB
+            // --- Persist url to DB, unless the pin moved while we were
+            // capturing: a concurrent job for the new pin owns the screenshot,
+            // and saving here could overwrite it with a stale image
+            if (isStaleForPin(msg)) {
+                System.out.println(">>> [SCREENSHOT] Discarding capture (pin moved during capture) — jobId: "
+                        + msg.getJobId());
+                channel.basicAck(deliveryTag, false);
+                return;
+            }
+
             UUID portfolioId = UUID.fromString(msg.getPortfolioId());
             Portfolio portfolio = portfolioRepository.findById(portfolioId)
                     .orElseThrow(() -> new RuntimeException(
@@ -76,4 +93,18 @@ public class ScreenshotWorker {
         }
     }
 
+    /*
+     * A job is stale when it was queued for a published version that is no
+     * longer the portfolio's pin. Unstamped jobs (external portfolios, legacy
+     * messages in flight) always run.
+     */
+    private boolean isStaleForPin(ScreenshotMessage msg) {
+        if (msg.getPublishedVersionId() == null || msg.getPublishedVersionId().isBlank())
+            return false;
+
+        return portfolioRepository.findById(UUID.fromString(msg.getPortfolioId()))
+                .map(Portfolio::getPublishedVersionId)
+                .map(currentPin -> !msg.getPublishedVersionId().equals(currentPin.toString()))
+                .orElse(true);
+    }
 }
