@@ -308,6 +308,7 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
                     dto.setPromptUsed(v.getPromptUsed());
                     dto.setPreviewUrl(v.getPreviewUrl());
                     dto.setActive(v.getId().equals(portfolio.getActiveVersionId()));
+                    dto.setPublished(v.getId().equals(portfolio.getPublishedVersionId()));
                     return dto;
                 })
                 .toList();

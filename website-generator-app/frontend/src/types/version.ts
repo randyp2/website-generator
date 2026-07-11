@@ -5,4 +5,6 @@ export interface Version {
     prompt_used: string | null;
     preview_url: string | null;
     is_active: boolean;
+    /** True when this version is pinned to the public site. */
+    is_published: boolean;
 }

@@ -55,6 +55,7 @@ export const GET = async (
                 promptUsed: string | null;
                 previewUrl: string | null;
                 active: boolean;
+                published?: boolean;
             }) => ({
                 id: v.id,
                 created_at: v.createdAt,
@@ -62,6 +63,7 @@ export const GET = async (
                 prompt_used: v.promptUsed,
                 preview_url: v.previewUrl,
                 is_active: v.active,
+                is_published: v.published === true,
             })),
         });
     } catch (error) {

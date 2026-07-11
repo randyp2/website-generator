@@ -26,6 +26,7 @@ import type { Portfolio } from "@/types/portfolio"
 import { formatPortfolioDate } from "../../utils/deployedPortfolio"
 import { type PublishHeroViewMode } from "./PublishHeroViewToggle"
 import { DescriptionMarkdown } from "./DescriptionMarkdown"
+import { PublishVersionsPanel } from "./PublishVersionsPanel"
 import { DESCRIPTION_MAX_LENGTH } from "./wizard/StepDetails"
 
 const DEFAULT_HERO_IMAGE =
@@ -313,6 +314,9 @@ export const PublishHero = ({
               </div>
             </dl>
           </div>
+
+          {/* Version management: what's live vs what's in the editor */}
+          <PublishVersionsPanel portfolioId={String(portfolio.id)} />
 
           {/* CTA action row */}
           <div className="flex flex-wrap items-center justify-between gap-3">
