@@ -138,6 +138,28 @@ class ClaimEvidenceMatcherTest {
         assertThat(result.linkType()).isEqualTo("language_plus_text_match");
     }
 
+    @Test
+    void topicAloneRemainsDiscoveryOnly() {
+        ClaimTermSet termSet = matcher.buildTermSet("React", "React", List.of());
+        Evidence evidence = repositoryEvidence(
+                "portfolio", null, List.of("react"), List.of(), "Java");
+
+        ClaimEvidenceMatchResult result = matcher.evaluate(termSet, evidence);
+
+        assertThat(result.linkType()).isEqualTo("topic_match");
+    }
+
+    @Test
+    void matchingPrimaryLanguageUpgradesTopicDiscovery() {
+        ClaimTermSet termSet = matcher.buildTermSet("Java", "Java", List.of());
+        Evidence evidence = repositoryEvidence(
+                "portfolio", null, List.of("java"), List.of(), "Java");
+
+        ClaimEvidenceMatchResult result = matcher.evaluate(termSet, evidence);
+
+        assertThat(result.linkType()).isEqualTo("language_plus_text_match");
+    }
+
     private Evidence repositoryEvidence(
             String repoName,
             String description,

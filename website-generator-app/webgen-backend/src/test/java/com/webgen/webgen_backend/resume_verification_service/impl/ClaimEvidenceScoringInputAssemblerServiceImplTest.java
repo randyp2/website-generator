@@ -38,7 +38,7 @@ class ClaimEvidenceScoringInputAssemblerServiceImplTest {
             UUID evidenceId = new UUID(0L, i + 1L);
             OffsetDateTime capturedAt = asOf.minusDays(i);
 
-            links.add(buildLink(profileId, claimId, evidenceId, "topic_match", "1.0"));
+            links.add(buildLink(profileId, claimId, evidenceId, "dependency_match", "1.0"));
             evidenceRows.add(buildEvidence(profileId, evidenceId, null, capturedAt, "repo-" + i));
         }
 
@@ -63,7 +63,7 @@ class ClaimEvidenceScoringInputAssemblerServiceImplTest {
         assertThat(signals.getFirst().evidenceId()).isEqualTo(new UUID(0L, 1L));
         assertThat(signals.getLast().evidenceId()).isEqualTo(new UUID(0L, 10L));
         assertThat(signals).allSatisfy(signal -> assertThat(signal.linkTypeWeight())
-                .isEqualByComparingTo("0.85"));
+                .isEqualByComparingTo("1.00"));
     }
 
     @Test
@@ -81,9 +81,9 @@ class ClaimEvidenceScoringInputAssemblerServiceImplTest {
         UUID idC = new UUID(0L, 2L);
 
         List<ClaimEvidenceLink> links = List.of(
-                buildLink(profileId, claimId, idA, "topic_match", "0.9"),
-                buildLink(profileId, claimId, idB, "topic_match", "0.9"),
-                buildLink(profileId, claimId, idC, "topic_match", "0.9")
+                buildLink(profileId, claimId, idA, "dependency_match", "0.9"),
+                buildLink(profileId, claimId, idB, "dependency_match", "0.9"),
+                buildLink(profileId, claimId, idC, "dependency_match", "0.9")
         );
 
         List<Evidence> evidenceRows = List.of(
@@ -198,8 +198,8 @@ class ClaimEvidenceScoringInputAssemblerServiceImplTest {
 
         List<ClaimEvidenceLink> links = List.of(
                 buildLink(profileId, claimId, strongId, "dependency_match", "0.95"),
-                buildLink(profileId, claimId, duplicateId, "topic_match", "0.90"),
-                buildLink(profileId, claimId, independentId, "topic_match", "0.80"));
+                buildLink(profileId, claimId, duplicateId, "dependency_match", "0.90"),
+                buildLink(profileId, claimId, independentId, "language_plus_text_match", "0.80"));
         Evidence strong = buildEvidence(profileId, strongId, asOf, asOf, "strong");
         Evidence duplicate = buildEvidence(profileId, duplicateId, asOf, asOf, "duplicate");
         Evidence independent = buildEvidence(profileId, independentId, asOf, asOf, "independent");

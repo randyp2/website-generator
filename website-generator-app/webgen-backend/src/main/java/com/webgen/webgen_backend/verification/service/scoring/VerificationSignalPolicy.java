@@ -38,6 +38,7 @@ public class VerificationSignalPolicy {
 
     /** Link types retained for discovery provenance but excluded from verification. */
     private static final Set<String> DISCOVERY_ONLY_LINK_TYPES = Set.of(
+            "topic_match",
             "name_match",
             "description_match");
 
@@ -80,21 +81,16 @@ public class VerificationSignalPolicy {
             Map.entry("dependency_match", new BigDecimal("1.00")),
 
             /*
-             * TOPIC MATCH — 0.85
+             * TOPIC MATCH: DISCOVERY ONLY
              *
              * The skill appears as a GitHub repository topic — for example,
              * a repo manually tagged with "java" or "react".
              *
-             * Topics are curated by hand, which is a good signal. But they're
-             * also easy to add without much depth — someone could tag "java" on
-             * a repo that uses Java for a single config file. The 0.85 weight
-             * reflects that topics show intent and awareness, but not the same
-             * depth of usage as a declared dependency.
-             *
-             * Reduced weight (0.85): a 0.85 confidence topic match contributes
-             * 0.85 × 0.85 = 0.72 — about 15% less than a dependency match.
+             * Topics help associate a repository with a claim, but users control
+             * them and they do not prove implementation. The link remains
+             * available as provenance but contributes zero.
              */
-            Map.entry("topic_match", new BigDecimal("0.85")),
+            Map.entry("topic_match", BigDecimal.ZERO),
 
             /*
              * NAME MATCH: DISCOVERY ONLY
@@ -171,14 +167,13 @@ public class VerificationSignalPolicy {
      * Link types that can contribute to LLM-verified status.
      *
      * - llm_document_match: the current canonical type for all AI-analyzed uploads.
-     * - dependency_match / topic_match (legacy): kept for backward compatibility
+     * - dependency_match (legacy): kept for backward compatibility
      *   with evidence records created before llm_document_match was introduced.
      *   All new uploads produce llm_document_match exclusively.
      */
     private static final java.util.Set<String> LLM_ELIGIBLE_LINK_TYPES = java.util.Set.of(
             "llm_document_match",
-            "dependency_match",
-            "topic_match"
+            "dependency_match"
     );
 
     /**

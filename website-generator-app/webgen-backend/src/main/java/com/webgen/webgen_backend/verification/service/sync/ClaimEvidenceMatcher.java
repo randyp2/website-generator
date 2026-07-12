@@ -42,6 +42,7 @@ public class ClaimEvidenceMatcher {
             Map.entry("dotnet", Set.of(".net")));
 
     private static final Set<String> DISCOVERY_ONLY_LINK_TYPES = Set.of(
+            "topic_match",
             "name_match",
             "description_match");
 

@@ -31,14 +31,18 @@ class VerificationSignalPolicyTest {
                 "manual_upload", "llm_document_match", new BigDecimal("0.849"))).isFalse();
         assertThat(policy.isEligibleForReviewedStatus(
                 "github", "dependency_match", BigDecimal.ONE)).isFalse();
+        assertThat(policy.isEligibleForReviewedStatus(
+                "manual_upload", "topic_match", BigDecimal.ONE)).isFalse();
     }
 
     @Test
-    void repositoryNamesAndDescriptionsRemainDiscoveryOnly() {
+    void userControlledRepositoryMetadataRemainsDiscoveryOnly() {
         assertThat(policy.isScoringEligibleLinkType("description_match")).isFalse();
         assertThat(policy.linkTypeWeight("description_match")).isEqualByComparingTo("0");
         assertThat(policy.isScoringEligibleLinkType("name_match")).isFalse();
         assertThat(policy.linkTypeWeight("name_match")).isEqualByComparingTo("0");
+        assertThat(policy.isScoringEligibleLinkType("topic_match")).isFalse();
+        assertThat(policy.linkTypeWeight("topic_match")).isEqualByComparingTo("0");
         assertThat(policy.isScoringEligibleLinkType("dependency_match")).isTrue();
     }
 }

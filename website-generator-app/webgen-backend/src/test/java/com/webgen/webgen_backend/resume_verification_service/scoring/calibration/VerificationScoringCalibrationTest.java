@@ -35,6 +35,8 @@ class VerificationScoringCalibrationTest {
                 .isEqualTo(score(results, "claims_only_builder"));
         assertThat(score(results, "five_name_matches"))
                 .isEqualTo(score(results, "claims_only_builder"));
+        assertThat(score(results, "five_topic_matches"))
+                .isEqualTo(score(results, "claims_only_builder"));
         assertThat(score(results, "duplicate_reviewed_upload"))
                 .isEqualTo(score(results, "strong_reviewed_artifact"));
         assertThat(score(results, "broad_profile_sparse_evidence"))
@@ -77,6 +79,13 @@ class VerificationScoringCalibrationTest {
                                 github("name 3", "name-3", "name_match", "0.78", "0.60", 0),
                                 github("name 4", "name-4", "name_match", "0.78", "0.60", 0),
                                 github("name 5", "name-5", "name_match", "0.78", "0.60", 0))),
+                scenario("five_topic_matches", "Five independent repository topic matches",
+                        claim("React",
+                                github("topic 1", "topic-1", "topic_match", "0.85", "0.60", 0),
+                                github("topic 2", "topic-2", "topic_match", "0.85", "0.60", 0),
+                                github("topic 3", "topic-3", "topic_match", "0.85", "0.60", 0),
+                                github("topic 4", "topic-4", "topic_match", "0.85", "0.60", 0),
+                                github("topic 5", "topic-5", "topic_match", "0.85", "0.60", 0))),
                 scenario("duplicate_reviewed_upload", "Same reviewed artifact uploaded twice",
                         claim("React",
                                 upload("reviewed original", "same-artifact", "0.97", "0.95", 0),
