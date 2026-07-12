@@ -27,6 +27,11 @@ class ClaimVerificationStatusServiceImplTest {
     }
 
     @Test
+    void nameDiscoveryDoesNotCorroborateClaim() {
+        assertThat(reconcileWithLinkType("name_match")).isEqualTo("needs_evidence");
+    }
+
+    @Test
     void substantiveConnectorSignalCorroboratesClaim() {
         assertThat(reconcileWithLinkType("dependency_match")).isEqualTo("corroborated");
     }

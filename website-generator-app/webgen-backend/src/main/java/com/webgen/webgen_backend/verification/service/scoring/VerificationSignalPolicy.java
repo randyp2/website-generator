@@ -37,7 +37,9 @@ public class VerificationSignalPolicy {
     private static final BigDecimal DEFAULT_LINK_TYPE_WEIGHT = new BigDecimal("0.50");
 
     /** Link types retained for discovery provenance but excluded from verification. */
-    private static final Set<String> DISCOVERY_ONLY_LINK_TYPES = Set.of("description_match");
+    private static final Set<String> DISCOVERY_ONLY_LINK_TYPES = Set.of(
+            "name_match",
+            "description_match");
 
     /**
      * How much to trust each link type when calculating evidence strength.
@@ -95,21 +97,16 @@ public class VerificationSignalPolicy {
             Map.entry("topic_match", new BigDecimal("0.85")),
 
             /*
-             * NAME MATCH — 0.72
+             * NAME MATCH: DISCOVERY ONLY
              *
              * The skill appears in the repository name itself:
              * "java-portfolio-app", "react-dashboard", "python-scraper".
              *
-             * Naming a repo after a skill is a reasonable hint, but it's one
-             * step removed from the actual code. A repo called "java-experiments"
-             * might contain three lines of Java and a lot of README documentation.
-             * Moderate weight (0.72) because the name shows association,
-             * not necessarily active use.
-             *
-             * Reduced weight (0.72): a 0.85 confidence name match contributes
-             * 0.85 × 0.72 = 0.61 — about 28% less than a dependency match.
+             * Repository names can associate a repository with a claim, but
+             * users control them and they do not prove implementation. The link
+             * remains available as provenance but contributes zero.
              */
-            Map.entry("name_match", new BigDecimal("0.72")),
+            Map.entry("name_match", BigDecimal.ZERO),
 
             /*
              * DESCRIPTION MATCH: DISCOVERY ONLY

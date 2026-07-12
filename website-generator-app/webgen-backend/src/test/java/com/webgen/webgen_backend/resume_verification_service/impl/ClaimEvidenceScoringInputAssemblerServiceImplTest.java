@@ -38,7 +38,7 @@ class ClaimEvidenceScoringInputAssemblerServiceImplTest {
             UUID evidenceId = new UUID(0L, i + 1L);
             OffsetDateTime capturedAt = asOf.minusDays(i);
 
-            links.add(buildLink(profileId, claimId, evidenceId, "name_match", "1.0"));
+            links.add(buildLink(profileId, claimId, evidenceId, "topic_match", "1.0"));
             evidenceRows.add(buildEvidence(profileId, evidenceId, null, capturedAt, "repo-" + i));
         }
 
@@ -63,7 +63,7 @@ class ClaimEvidenceScoringInputAssemblerServiceImplTest {
         assertThat(signals.getFirst().evidenceId()).isEqualTo(new UUID(0L, 1L));
         assertThat(signals.getLast().evidenceId()).isEqualTo(new UUID(0L, 10L));
         assertThat(signals).allSatisfy(signal -> assertThat(signal.linkTypeWeight())
-                .isEqualByComparingTo("0.72"));
+                .isEqualByComparingTo("0.85"));
     }
 
     @Test
@@ -198,7 +198,7 @@ class ClaimEvidenceScoringInputAssemblerServiceImplTest {
 
         List<ClaimEvidenceLink> links = List.of(
                 buildLink(profileId, claimId, strongId, "dependency_match", "0.95"),
-                buildLink(profileId, claimId, duplicateId, "name_match", "0.90"),
+                buildLink(profileId, claimId, duplicateId, "topic_match", "0.90"),
                 buildLink(profileId, claimId, independentId, "topic_match", "0.80"));
         Evidence strong = buildEvidence(profileId, strongId, asOf, asOf, "strong");
         Evidence duplicate = buildEvidence(profileId, duplicateId, asOf, asOf, "duplicate");
@@ -259,20 +259,24 @@ class ClaimEvidenceScoringInputAssemblerServiceImplTest {
     }
 
     @Test
-    void excludesDescriptionMatchesFromScoringInputs() {
+    void excludesMetadataOnlyMatchesFromScoringInputs() {
         UUID profileId = UUID.randomUUID();
         UUID claimId = UUID.randomUUID();
         UUID skillId = UUID.randomUUID();
-        UUID evidenceId = UUID.randomUUID();
+        UUID descriptionEvidenceId = UUID.randomUUID();
+        UUID nameEvidenceId = UUID.randomUUID();
         OffsetDateTime asOf = OffsetDateTime.parse("2026-04-16T00:00:00Z");
-        ClaimEvidenceLink link = buildLink(
-                profileId, claimId, evidenceId, "description_match", "0.90");
-        Evidence evidence = buildEvidence(profileId, evidenceId, asOf, asOf, "description");
+        List<ClaimEvidenceLink> links = List.of(
+                buildLink(profileId, claimId, descriptionEvidenceId, "description_match", "0.90"),
+                buildLink(profileId, claimId, nameEvidenceId, "name_match", "0.90"));
+        List<Evidence> evidenceRows = List.of(
+                buildEvidence(profileId, descriptionEvidenceId, asOf, asOf, "description"),
+                buildEvidence(profileId, nameEvidenceId, asOf, asOf, "name"));
 
         ClaimEvidenceScoringInputAssemblerServiceImpl assembler =
                 new ClaimEvidenceScoringInputAssemblerServiceImpl(
-                        stubClaimEvidenceLinkRepository(List.of(link)),
-                        stubEvidenceRepository(List.of(evidence)),
+                        stubClaimEvidenceLinkRepository(links),
+                        stubEvidenceRepository(evidenceRows),
                         new VerificationSignalPolicy(),
                         new IndependentEvidenceSelector());
 

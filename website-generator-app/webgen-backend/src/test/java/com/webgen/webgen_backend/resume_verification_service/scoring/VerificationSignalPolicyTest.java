@@ -34,9 +34,11 @@ class VerificationSignalPolicyTest {
     }
 
     @Test
-    void repositoryDescriptionsRemainDiscoveryOnly() {
+    void repositoryNamesAndDescriptionsRemainDiscoveryOnly() {
         assertThat(policy.isScoringEligibleLinkType("description_match")).isFalse();
         assertThat(policy.linkTypeWeight("description_match")).isEqualByComparingTo("0");
+        assertThat(policy.isScoringEligibleLinkType("name_match")).isFalse();
+        assertThat(policy.linkTypeWeight("name_match")).isEqualByComparingTo("0");
         assertThat(policy.isScoringEligibleLinkType("dependency_match")).isTrue();
     }
 }

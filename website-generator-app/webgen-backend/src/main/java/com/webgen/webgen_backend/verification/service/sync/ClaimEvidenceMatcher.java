@@ -41,6 +41,10 @@ public class ClaimEvidenceMatcher {
             Map.entry(".net", Set.of("dotnet")),
             Map.entry("dotnet", Set.of(".net")));
 
+    private static final Set<String> DISCOVERY_ONLY_LINK_TYPES = Set.of(
+            "name_match",
+            "description_match");
+
     private final ObjectMapper objectMapper;
 
     public ClaimTermSet buildTermSet(
@@ -139,7 +143,7 @@ public class ClaimEvidenceMatcher {
                     primaryLanguage,
                     "language",
                     null);
-            best = "description_match".equals(best.linkType())
+            best = DISCOVERY_ONLY_LINK_TYPES.contains(best.linkType())
                     ? languageMatch
                     : maxMatch(best, languageMatch);
         }
