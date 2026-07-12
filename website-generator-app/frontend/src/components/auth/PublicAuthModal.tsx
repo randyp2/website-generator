@@ -19,8 +19,13 @@ import {
 import { resolvePostLoginNextPath } from "@/lib/public-auth-intent-storage";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/client";
+import { TermsAgreementCheckbox } from "@/components/auth/TermsAgreementCheckbox";
 
 type Mode = "login" | "signup";
+
+// Bump when the Terms/Privacy content materially changes so we can tell which
+// version a user accepted at sign-up.
+const TERMS_VERSION = "2026-07-12";
 
 const REASON_COPY: Record<
     AuthModalReason,
@@ -69,6 +74,7 @@ export const PublicAuthModal = ({
     const [lastName, setLastName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [agreedToTerms, setAgreedToTerms] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
@@ -99,10 +105,15 @@ export const PublicAuthModal = ({
         setLastName("");
         setEmail("");
         setPassword("");
+        setAgreedToTerms(false);
         setErrorMessage(null);
         setIsSuccess(false);
         setSuccessMessage("");
     }, [open, reason]);
+
+    // Consent is required to create an account (email or Google), but not to
+    // log an existing user back in.
+    const needsTermsConsent = mode === "signup" && !agreedToTerms;
 
     const handleAuthSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -131,6 +142,13 @@ export const PublicAuthModal = ({
                 return;
             }
 
+            if (needsTermsConsent) {
+                setErrorMessage(
+                    "Please agree to the Terms of Use and Privacy Policy to continue.",
+                );
+                return;
+            }
+
             const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
 
             const { data, error } = await supabase.auth.signUp({
@@ -140,6 +158,10 @@ export const PublicAuthModal = ({
                     data: {
                         full_name: fullName,
                         email: email.trim(),
+                        // Record proof of consent: what was accepted and when.
+                        terms_accepted: true,
+                        terms_version: TERMS_VERSION,
+                        terms_accepted_at: new Date().toISOString(),
                     },
                 },
             });
@@ -169,6 +191,16 @@ export const PublicAuthModal = ({
 
     const handleGoogleOauth = async () => {
         if (isLoading) {
+            return;
+        }
+
+        // Consent is captured by the required checkbox before this button is
+        // enabled. Supabase's OAuth start does not accept user metadata, so for
+        // Google sign-ups the checked box is the record of assent.
+        if (needsTermsConsent) {
+            setErrorMessage(
+                "Please agree to the Terms of Use and Privacy Policy to continue.",
+            );
             return;
         }
 
@@ -317,6 +349,14 @@ export const PublicAuthModal = ({
                         className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/40"
                     />
 
+                    {mode === "signup" ? (
+                        <TermsAgreementCheckbox
+                            checked={agreedToTerms}
+                            onCheckedChange={setAgreedToTerms}
+                            className="pt-1"
+                        />
+                    ) : null}
+
                     {errorMessage ? (
                         <p className="text-xs text-red-500">{errorMessage}</p>
                     ) : null}
@@ -329,7 +369,7 @@ export const PublicAuthModal = ({
                     <Button
                         type="submit"
                         className="w-full hover:cursor-pointer"
-                        disabled={isLoading}
+                        disabled={isLoading || needsTermsConsent}
                     >
                         {isLoading ? (
                             <>
@@ -356,7 +396,7 @@ export const PublicAuthModal = ({
                     variant="outline"
                     className="w-full hover:cursor-pointer"
                     onClick={handleGoogleOauth}
-                    disabled={isLoading}
+                    disabled={isLoading || needsTermsConsent}
                 >
                     <FcGoogle className="mr-2 h-4 w-4" />
                     Continue with Google
