@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.verification.service.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.webgen.webgen_backend.verification.entity.Claim;
 import com.webgen.webgen_backend.verification.entity.ClaimEvidenceLink;
 import com.webgen.webgen_backend.verification.entity.Evidence;
@@ -171,6 +172,7 @@ public class ClaimEvidenceScoringInputAssemblerServiceImpl
         BigDecimal boundedEvidenceDepth = link.getEvidenceDepth() == null
                 ? boundedMatchConfidence
                 : clamp01(link.getEvidenceDepth());
+        BigDecimal authorshipWeight = resolveAuthorshipWeight(evidence);
 
         OffsetDateTime signalTimestamp = resolveSignalTimestamp(evidence);
         int ageDays = resolveAgeDays(signalTimestamp, asOf);
@@ -182,23 +184,27 @@ public class ClaimEvidenceScoringInputAssemblerServiceImpl
          * decayedStrength =
          *     scoringStrength
          *   * linkTypeWeight
+         *   * authorshipWeight
          *   * recencyDecay(ageDays)
          *
          * Interpretation:
          * - reviewed uploads use evidence depth as scoring strength
          * - connectors and legacy rows fall back to matcher confidence
          * - linkTypeWeight encodes signal quality prior
+         * - authorshipWeight discounts GitHub repositories without demonstrated contribution
          * - recencyDecay discounts stale evidence continuously over time
          */
         BigDecimal decayedStrength = boundedEvidenceDepth
                 .multiply(linkTypeWeight)
+                .multiply(authorshipWeight)
                 .multiply(recencyDecay)
                 .setScale(SIGNAL_SCALE, RoundingMode.HALF_UP);
 
         if (log.isDebugEnabled()) {
             log.debug("[EvidenceInput] claimId={} rawValue={} evidenceId={} externalId={} linkType={} "
                             + "matchConfidence={} evidenceDepth={} "
-                            + "signalTimestampSource={} occurredAt={} capturedAt={} asOf={} ageDays={} recencyDecay={} decayedStrength={}",
+                            + "authorshipWeight={} signalTimestampSource={} occurredAt={} capturedAt={} "
+                            + "asOf={} ageDays={} recencyDecay={} decayedStrength={}",
                     claim == null ? null : claim.getId(),
                     claim == null ? null : claim.getRawValue(),
                     evidence.getId(),
@@ -206,6 +212,7 @@ public class ClaimEvidenceScoringInputAssemblerServiceImpl
                     normalizedLinkType,
                     boundedMatchConfidence,
                     boundedEvidenceDepth,
+                    authorshipWeight,
                     resolveSignalTimestampSource(evidence),
                     evidence.getOccurredAt(),
                     evidence.getCapturedAt(),
@@ -232,6 +239,17 @@ public class ClaimEvidenceScoringInputAssemblerServiceImpl
                 evidence.getProvider(),
                 resolveEvidenceGroupKey(evidence)
         );
+    }
+
+    private BigDecimal resolveAuthorshipWeight(Evidence evidence) {
+        if (!"github".equalsIgnoreCase(evidence.getProvider())
+                || !"repository".equalsIgnoreCase(evidence.getEvidenceType())
+                || evidence.getMetadata() == null) {
+            return ONE;
+        }
+
+        JsonNode weightNode = evidence.getMetadata().path("authorship").path("weight");
+        return weightNode.isNumber() ? clamp01(weightNode.decimalValue()) : ONE;
     }
 
     private String resolveEvidenceGroupKey(Evidence evidence) {

@@ -3,6 +3,7 @@ package com.webgen.webgen_backend.verification.service.provider.github;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.webgen.webgen_backend.verification.service.provider.github.model.GithubAuthorshipSignal;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubRepoResponse;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubUserResponse;
 import com.webgen.webgen_backend.verification.service.sync.model.EvidenceCandidate;
@@ -60,6 +61,18 @@ public class GithubEvidenceCandidateMapper {
             GithubRepoResponse repo,
             Map<String, String> dependencySources,
             OffsetDateTime capturedAt) {
+        return fromRepository(
+                repo,
+                dependencySources,
+                GithubAuthorshipSignal.unavailable("not_assessed"),
+                capturedAt);
+    }
+
+    public EvidenceCandidate fromRepository(
+            GithubRepoResponse repo,
+            Map<String, String> dependencySources,
+            GithubAuthorshipSignal authorship,
+            OffsetDateTime capturedAt) {
         if (repo == null || isBlank(repo.fullName())) {
             return null;
         }
@@ -88,6 +101,15 @@ public class GithubEvidenceCandidateMapper {
         if (repo.pushedAt() != null) {
             metadata.put("pushed_at", repo.pushedAt());
         }
+
+        GithubAuthorshipSignal resolvedAuthorship = authorship == null
+                ? GithubAuthorshipSignal.unavailable("not_assessed")
+                : authorship;
+        ObjectNode authorshipNode = metadata.putObject("authorship");
+        authorshipNode.put("status", resolvedAuthorship.status().name().toLowerCase(Locale.ROOT));
+        authorshipNode.put("authoredCommitCount", resolvedAuthorship.authoredCommitCount());
+        authorshipNode.put("weight", resolvedAuthorship.weight());
+        authorshipNode.put("reason", resolvedAuthorship.reason());
 
         ArrayNode topicsArray = metadata.putArray("topics");
         if (repo.topics() != null) {

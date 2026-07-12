@@ -3,6 +3,7 @@ package com.webgen.webgen_backend.verification.service.provider.github;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubRepoResponse;
+import com.webgen.webgen_backend.verification.service.provider.github.model.GithubAuthorshipSignal;
 import com.webgen.webgen_backend.verification.service.sync.model.EvidenceCandidate;
 import com.webgen.webgen_backend.verification.service.shared.EvidenceGroupKeyFactory;
 import org.junit.jupiter.api.Test;
@@ -73,5 +74,24 @@ class GithubEvidenceCandidateMapperTest {
 
         assertThat(candidate.evidenceGroupKey()).isEqualTo("github:repository:10");
         assertThat(candidate.metadata().path("root_repository_id").asLong()).isEqualTo(10L);
+    }
+
+    @Test
+    void persistsAuthorshipProvenanceForScoring() {
+        GithubRepoResponse repo = new GithubRepoResponse(
+                "app", "octo/app", "demo", "https://github.com/octo/app",
+                "2026-01-01T00:00:00Z", "Java", List.of(), "main");
+
+        EvidenceCandidate candidate = mapper.fromRepository(
+                repo,
+                Map.of(),
+                GithubAuthorshipSignal.assessed(2, false),
+                OffsetDateTime.parse("2026-06-28T00:00:00Z"));
+
+        JsonNode authorship = candidate.metadata().path("authorship");
+        assertThat(authorship.path("status").asText()).isEqualTo("confirmed");
+        assertThat(authorship.path("authoredCommitCount").asInt()).isEqualTo(2);
+        assertThat(authorship.path("weight").decimalValue()).isEqualByComparingTo("0.90");
+        assertThat(authorship.path("reason").asText()).isEqualTo("multiple_authored_commits");
     }
 }

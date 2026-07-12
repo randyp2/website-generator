@@ -17,13 +17,9 @@ import com.webgen.webgen_backend.verification.repository.SkillRepository;
 import com.webgen.webgen_backend.verification.service.ConnectionSyncService;
 import com.webgen.webgen_backend.verification.service.SkillVerificationSummaryService;
 import com.webgen.webgen_backend.verification.service.ClaimVerificationStatusService;
-import com.webgen.webgen_backend.verification.service.provider.github.GithubApiClient;
-import com.webgen.webgen_backend.verification.service.provider.github.GithubEvidenceCandidateMapper;
-import com.webgen.webgen_backend.verification.service.provider.github.GithubRepositorySignalScanner;
+import com.webgen.webgen_backend.verification.service.provider.github.GithubEvidenceSnapshotService;
 import com.webgen.webgen_backend.verification.service.provider.github.GithubSyncTokenService;
-import com.webgen.webgen_backend.verification.service.provider.github.model.GithubRepoResponse;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubSyncTokenResult;
-import com.webgen.webgen_backend.verification.service.provider.github.model.GithubUserResponse;
 import com.webgen.webgen_backend.verification.service.shared.ProviderNormalizationHelper;
 import com.webgen.webgen_backend.verification.service.sync.ClaimEvidenceMatcher;
 import com.webgen.webgen_backend.verification.service.sync.model.ClaimEvidenceMatchResult;
@@ -78,17 +74,13 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
     private static final String CLAIM_STATUS_USER_CONFIRMED = "user_confirmed";
     private static final String CLAIM_STATUS_REJECTED = "rejected";
 
-    private static final int MAX_REPOS_WITH_PACKAGE_SCAN = 30;
-
     private final ConnectedAccountRepository connectedAccountRepository;
     private final EvidenceRepository evidenceRepository;
     private final ClaimRepository claimRepository;
     private final ClaimEvidenceLinkRepository claimEvidenceLinkRepository;
     private final SkillRepository skillRepository;
     private final SkillVerificationSummaryService skillVerificationSummaryService;
-    private final GithubApiClient githubApiClient;
-    private final GithubEvidenceCandidateMapper githubEvidenceCandidateMapper;
-    private final GithubRepositorySignalScanner githubRepositorySignalScanner;
+    private final GithubEvidenceSnapshotService githubEvidenceSnapshotService;
     private final GithubSyncTokenService githubSyncTokenService;
     private final ClaimEvidenceMatcher claimEvidenceMatcher;
     private final ClaimVerificationStatusService claimVerificationStatusService;
@@ -156,7 +148,7 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
                             + " refreshTokenExpiresAt="
                             + account.getRefreshTokenExpiresAt());
 
-            ProviderSyncSnapshot snapshot = fetchGithubEvidenceSnapshot(
+            ProviderSyncSnapshot snapshot = githubEvidenceSnapshotService.fetch(
                     token.accessToken(),
                     startedAt);
             logSync(
@@ -322,72 +314,6 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
 
     private boolean isSyncImplementedForProvider(String provider) {
         return PROVIDER_GITHUB.equals(provider);
-    }
-
-    /**
-     * Fetches GitHub profile/repository data and converts it into evidence
-     * candidates.
-     *
-     * Profile is always captured. Dependency extraction is capped to keep
-     * manual sync latency predictable.
-     */
-    private ProviderSyncSnapshot fetchGithubEvidenceSnapshot(
-            String accessToken,
-            OffsetDateTime capturedAt) {
-
-        // Fetch user info
-        // - profile metadata
-        // - users repostiories
-        GithubUserResponse profile = githubApiClient.fetchAuthenticatedUser(accessToken);
-        List<GithubRepoResponse> repositories = githubApiClient.enrichForkLineage(
-                accessToken,
-                githubApiClient.fetchOwnedRepositories(accessToken));
-        List<String> repositoryNames = repositories.stream()
-                .map(GithubRepoResponse::fullName)
-                .filter(name -> !isBlank(name))
-                .toList();
-
-        List<EvidenceCandidate> candidates = new ArrayList<>();
-        candidates.add(githubEvidenceCandidateMapper.fromProfile(profile, capturedAt));
-
-        int dependencyScans = 0;
-        for (GithubRepoResponse repo : repositories) {
-            Map<String, String> dependencySources = Map.of();
-            if (dependencyScans < MAX_REPOS_WITH_PACKAGE_SCAN) {
-                dependencySources = githubRepositorySignalScanner.scanRepository(
-                        accessToken,
-                        repo.fullName(),
-                        repo.defaultBranch());
-                dependencyScans++;
-            }
-
-            EvidenceCandidate candidate = githubEvidenceCandidateMapper.fromRepository(
-                    repo,
-                    dependencySources,
-                    capturedAt);
-            if (candidate != null) {
-                candidates.add(candidate);
-                logSync(
-                        "Connection sync repo candidate timestamp fullName="
-                                + repo.fullName()
-                                + " pushedAtRaw="
-                                + repo.pushedAt()
-                                + " occurredAt="
-                                + candidate.occurredAt()
-                                + " capturedAt="
-                                + candidate.capturedAt()
-                                + " dependencyCount="
-                                + dependencySources.size());
-            }
-
-        }
-
-        return new ProviderSyncSnapshot(
-                candidates,
-                repositoryNames,
-                dependencyScans,
-                profile.login(),
-                profile.id());
     }
 
     private EvidenceUpsertResult upsertEvidence(

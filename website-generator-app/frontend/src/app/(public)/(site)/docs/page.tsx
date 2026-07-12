@@ -33,6 +33,15 @@ const evidenceDepthCaps = [
   ["0.95+", "100"],
 ];
 
+const authorshipWeights = [
+  ["Five or more attributed commits", "1.00"],
+  ["Two to four attributed commits", "0.90"],
+  ["One attributed commit", "0.75"],
+  ["No attributed commits, owned repository", "0.60"],
+  ["No attributed commits, fork", "0.30"],
+  ["GitHub data unavailable or scan limit reached", "1.00"],
+];
+
 export default function VerificationDocsPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -102,7 +111,7 @@ imported source         = 50`}</code>
         <section>
           <h2 className="text-2xl font-semibold">How evidence adds progress</h2>
           <pre className="mt-5 overflow-x-auto border border-border bg-muted/30 p-5 text-sm leading-7">
-            <code>{`connector strength = link confidence × signal weight × recency
+            <code>{`connector strength = link confidence × signal weight × authorship × recency
 reviewed strength  = evidence depth × signal weight × recency
 signal strength    = connector strength or reviewed strength
 
@@ -140,6 +149,38 @@ claim score        = 50 + (claim cap - 50) × boost progress`}</code>
               uploads cannot be fingerprinted retroactively without reading them again.
             </li>
           </ul>
+
+          <h3 className="mt-8 text-lg font-semibold">GitHub authorship</h3>
+          <p className="mt-4 leading-7 text-muted-foreground">
+            Repository evidence is multiplied by an authorship weight based on commits
+            GitHub attributes to the connected account. The sync reads at most five
+            matching commits for each of the thirty most recently updated repositories.
+            Uploads and non-repository evidence always use an authorship weight of 1.00.
+          </p>
+          <div className="mt-4 overflow-x-auto border border-border">
+            <table className="w-full border-collapse text-left text-sm">
+              <thead className="bg-muted/40">
+                <tr>
+                  <th className="border-b border-border px-4 py-3 font-medium">Authorship result</th>
+                  <th className="border-b border-border px-4 py-3 font-medium">Weight</th>
+                </tr>
+              </thead>
+              <tbody>
+                {authorshipWeights.map(([result, weight]) => (
+                  <tr key={result} className="border-b border-border last:border-0">
+                    <td className="px-4 py-3 text-muted-foreground">{result}</td>
+                    <td className="px-4 py-3 font-mono">{weight}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-4 leading-7 text-muted-foreground">
+            API failures and scan limits never reduce a score. GitHub may report no
+            matching commits when work uses an unlinked email or alternate identity,
+            so zero-commit results use gradual floors instead of excluding a repository.
+            Commit count is an authorship signal, not a judgment of code quality.
+          </p>
 
           <h3 className="mt-8 text-lg font-semibold">Gradual reviewed-evidence cap</h3>
           <pre className="mt-4 overflow-x-auto border border-border bg-muted/30 p-5 text-sm leading-7">
@@ -232,13 +273,14 @@ overall   = baseline + mean lift × sqrt(coverage)`}</code>
                 <li>Replaced the hard AI cap jump with a gradual 80–100 unlock.</li>
                 <li>Separated artifact match confidence from demonstrated evidence depth.</li>
                 <li>Collapsed correlated evidence before top-K selection and rank decay.</li>
+                <li>Added contribution-sensitive weighting for GitHub repositories.</li>
                 <li>Excluded rejected claims and left unresolved claims unscored.</li>
               </ul>
             </div>
             <div className="border border-border p-5">
               <h3 className="font-semibold">Still under review</h3>
               <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
-                <li>GitHub authorship and semantic near-duplicate detection need refinement.</li>
+                <li>Semantic near-duplicate and commit-quality detection need refinement.</li>
                 <li>Signal weights have not yet been calibrated against reviewed data.</li>
               </ul>
             </div>

@@ -40,10 +40,11 @@ public class VerificationSignalPolicy {
      *
      * These weights appear in the decayed-strength formula:
      *
-     *   decayedStrength = scoringStrength × linkTypeWeight × recencyDecay
+     *   decayedStrength = scoringStrength × linkTypeWeight × authorshipWeight × recencyDecay
      *
      * scoringStrength is connector match confidence or reviewed evidence depth.
      * linkTypeWeight is how much that type of sighting actually proves usage.
+     * authorshipWeight discounts GitHub repositories without demonstrated contribution.
      * recencyDecay discounts older evidence over time.
      *
      * So a weight of 1.00 means we trust the evidence at full face value.

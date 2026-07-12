@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.resume_verification_service.impl;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.webgen.webgen_backend.profile.entity.Profile;
 import com.webgen.webgen_backend.verification.entity.*;
 import com.webgen.webgen_backend.verification.repository.ClaimEvidenceLinkRepository;
@@ -7,8 +8,8 @@ import com.webgen.webgen_backend.verification.repository.EvidenceRepository;
 import com.webgen.webgen_backend.verification.service.scoring.model.EvidenceLinkSignal;
 import com.webgen.webgen_backend.verification.service.scoring.model.SkillClaimInput;
 import com.webgen.webgen_backend.verification.service.impl.ClaimEvidenceScoringInputAssemblerServiceImpl;
-import com.webgen.webgen_backend.verification.service.scoring.VerificationSignalPolicy;
 import com.webgen.webgen_backend.verification.service.scoring.IndependentEvidenceSelector;
+import com.webgen.webgen_backend.verification.service.scoring.VerificationSignalPolicy;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
@@ -224,6 +225,37 @@ class ClaimEvidenceScoringInputAssemblerServiceImplTest {
                 .containsExactly(strongId, independentId);
         assertThat(signals).extracting(EvidenceLinkSignal::evidenceGroupKey)
                 .containsExactly("manual_upload:etag:same-object", "github:repository:42");
+    }
+
+    @Test
+    void appliesAuthorshipWeightToGithubRepositoryStrength() {
+        UUID profileId = UUID.randomUUID();
+        UUID claimId = UUID.randomUUID();
+        UUID skillId = UUID.randomUUID();
+        UUID evidenceId = UUID.randomUUID();
+        OffsetDateTime asOf = OffsetDateTime.parse("2026-04-16T00:00:00Z");
+        ClaimEvidenceLink link = buildLink(
+                profileId, claimId, evidenceId, "dependency_match", "1.0");
+        Evidence evidence = buildEvidence(profileId, evidenceId, asOf, asOf, "fork");
+        ObjectNode metadata = com.fasterxml.jackson.databind.node.JsonNodeFactory.instance.objectNode();
+        metadata.putObject("authorship").put("weight", new BigDecimal("0.30"));
+        evidence.setMetadata(metadata);
+
+        ClaimEvidenceScoringInputAssemblerServiceImpl assembler =
+                new ClaimEvidenceScoringInputAssemblerServiceImpl(
+                        stubClaimEvidenceLinkRepository(List.of(link)),
+                        stubEvidenceRepository(List.of(evidence)),
+                        new VerificationSignalPolicy(),
+                        new IndependentEvidenceSelector());
+
+        EvidenceLinkSignal signal = assembler.assembleSkillClaimInputs(
+                        profileId,
+                        List.of(buildClaim(profileId, claimId, skillId, "React")),
+                        Map.of(skillId, buildSkill(skillId, "React", "engineering", "1.0")),
+                        asOf)
+                .getFirst().evidenceLinks().getFirst();
+
+        assertThat(signal.decayedStrength()).isEqualByComparingTo("0.30000000");
     }
 
     @SuppressWarnings("unchecked")
