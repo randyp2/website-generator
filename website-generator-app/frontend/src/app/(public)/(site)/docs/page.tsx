@@ -42,6 +42,21 @@ const authorshipWeights = [
   ["GitHub data unavailable or scan limit reached", "1.00"],
 ];
 
+const calibrationRows = [
+  ["Three recognized claims, no evidence", "50", "Neutral baseline"],
+  ["Untouched fork with dependency match", "53", "Small corroboration lift"],
+  ["Repository with one attributed commit", "58", "Authorship improves the signal"],
+  ["Active repository with five commits", "61", "Strong single repository"],
+  ["Authorship API unavailable", "61", "No outage penalty"],
+  ["Two-year-old active repository", "55", "Gradual recency decay"],
+  ["Three active repositories", "71", "Repeated independent usage"],
+  ["One reviewed artifact at 0.95 depth", "69", "Strong reviewed evidence"],
+  ["Five weak repository descriptions", "58", "Weak signals accumulate slowly"],
+  ["Same reviewed upload submitted twice", "69", "Duplicate adds no score"],
+  ["Five reviewed artifacts at 0.95 depth", "91", "Expert-range evidence"],
+  ["Four claims, only one evidenced", "56", "Coverage dampens profile lift"],
+];
+
 export default function VerificationDocsPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -261,6 +276,35 @@ overall   = baseline + mean lift × sqrt(coverage)`}</code>
         </section>
 
         <section>
+          <h2 className="text-2xl font-semibold">Calibration snapshot</h2>
+          <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
+            These deterministic scenarios were run through the real evidence assembler
+            and scoring kernel on July 12, 2026. They validate relative behavior and
+            are not promised scores for individual users.
+          </p>
+          <div className="mt-6 overflow-x-auto border border-border">
+            <table className="w-full border-collapse text-left text-sm">
+              <thead className="bg-muted/40">
+                <tr>
+                  <th className="border-b border-border px-4 py-3 font-medium">Scenario</th>
+                  <th className="border-b border-border px-4 py-3 font-medium">Score</th>
+                  <th className="border-b border-border px-4 py-3 font-medium">Observed behavior</th>
+                </tr>
+              </thead>
+              <tbody>
+                {calibrationRows.map(([scenario, score, behavior]) => (
+                  <tr key={scenario} className="border-b border-border last:border-0">
+                    <td className="px-4 py-3 text-muted-foreground">{scenario}</td>
+                    <td className="px-4 py-3 font-mono">{score}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{behavior}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section>
           <h2 className="text-2xl font-semibold">Reform status</h2>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <div className="border border-border p-5">
@@ -274,6 +318,7 @@ overall   = baseline + mean lift × sqrt(coverage)`}</code>
                 <li>Separated artifact match confidence from demonstrated evidence depth.</li>
                 <li>Collapsed correlated evidence before top-K selection and rank decay.</li>
                 <li>Added contribution-sensitive weighting for GitHub repositories.</li>
+                <li>Added deterministic calibration scenarios and scoring invariants.</li>
                 <li>Excluded rejected claims and left unresolved claims unscored.</li>
               </ul>
             </div>
