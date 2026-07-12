@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AssetVerificationResultDTO {
-    private Double confidence;
+    private Double matchConfidence;
+    private Double evidenceDepth;
     private String summary;
 }

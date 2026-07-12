@@ -12,19 +12,28 @@ import type { AssetJobPhase } from "./verification.types";
 
 export interface AssetVerificationStatusState {
     phase: AssetJobPhase | null;
-    confidence: number | null;
+    matchConfidence: number | null;
+    evidenceDepth: number | null;
     summary: string | null;
     analysisError: string | null;
 }
 
 const extractVerificationResult = (
     metadata: Record<string, unknown> | null | undefined,
-): { confidence: number | null; summary: string | null } => {
+): { matchConfidence: number | null; evidenceDepth: number | null; summary: string | null } => {
     const av = metadata?.assetVerification;
-    if (!av || typeof av !== "object") return { confidence: null, summary: null };
+    if (!av || typeof av !== "object") {
+        return { matchConfidence: null, evidenceDepth: null, summary: null };
+    }
     const record = av as Record<string, unknown>;
+    const legacyConfidence = typeof record.confidence === "number" ? record.confidence : null;
     return {
-        confidence: typeof record.confidence === "number" ? record.confidence : null,
+        matchConfidence: typeof record.matchConfidence === "number"
+            ? record.matchConfidence
+            : legacyConfidence,
+        evidenceDepth: typeof record.evidenceDepth === "number"
+            ? record.evidenceDepth
+            : legacyConfidence,
         summary: typeof record.summary === "string" && record.summary.trim()
             ? record.summary.trim()
             : null,
@@ -47,7 +56,7 @@ export const useAssetVerificationStatus = (
         enabled: !jobId || isTerminalPhase,
     });
     const upload = uploadQuery.data ?? null;
-    const { confidence, summary } = extractVerificationResult(upload?.metadata);
+    const { matchConfidence, evidenceDepth, summary } = extractVerificationResult(upload?.metadata);
 
     useEffect(() => {
         if (!isTerminalPhase) return;
@@ -57,7 +66,8 @@ export const useAssetVerificationStatus = (
 
     return {
         phase,
-        confidence,
+        matchConfidence,
+        evidenceDepth,
         summary,
         analysisError: jobStatus?.error ?? upload?.analysisError ?? null,
     };

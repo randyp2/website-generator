@@ -17,6 +17,7 @@ public class ClaimEvidenceLinkDTO {
     private UUID evidenceId;
     private String linkType;
     private BigDecimal linkConfidence;
+    private BigDecimal evidenceDepth;
     private String reason;
     private JsonNode metadata;
     private OffsetDateTime createdAt;

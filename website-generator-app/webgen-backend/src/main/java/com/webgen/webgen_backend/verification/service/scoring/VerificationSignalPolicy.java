@@ -40,9 +40,9 @@ public class VerificationSignalPolicy {
      *
      * These weights appear in the decayed-strength formula:
      *
-     *   decayedStrength = linkConfidence × linkTypeWeight × recencyDecay
+     *   decayedStrength = scoringStrength × linkTypeWeight × recencyDecay
      *
-     * linkConfidence is how certain the scanner was that the skill appears.
+     * scoringStrength is connector match confidence or reviewed evidence depth.
      * linkTypeWeight is how much that type of sighting actually proves usage.
      * recencyDecay discounts older evidence over time.
      *
@@ -146,16 +146,13 @@ public class VerificationSignalPolicy {
              * certificate, project writeup — and assessed how strongly it
              * demonstrates the skill.
              *
-             * Unlike GitHub signals, where linkTypeWeight discounts for signal
-             * quality because confidence just means "did we spot the skill name",
-             * the AI's confidence score here already encodes depth of usage.
-             * A hello-world program gets a low confidence (e.g. 0.35). A full
-             * CRUD app with database integration and error handling gets a high
-             * confidence (e.g. 0.85). The AI made the quality judgment call,
-             * so we don't need a separate type weight to do it again.
+             * Unlike GitHub signals, reviewed uploads provide a dedicated evidence
+             * depth value. A hello-world program gets low depth. A full CRUD app
+             * with integration and error handling gets high depth. The review has
+             * already made the quality judgment, so the type weight is full strength.
              *
-             * Full pass-through (1.00): a 0.85 AI confidence document match
-             * contributes 0.85 × 1.00 = 0.85. The 0.85 itself already reflects
+             * Full pass-through (1.00): a 0.85 evidence depth document match
+             * contributes 0.85 × 1.00 = 0.85. The depth itself reflects
              * the difference between a toy project and real-world usage.
              */
             Map.entry("llm_document_match", new BigDecimal("1.00"))
@@ -187,7 +184,7 @@ public class VerificationSignalPolicy {
     );
 
     /**
-     * Minimum AI confidence required to treat an upload as reviewed. This is
+     * Minimum evidence depth required to treat an upload as reviewed. This is
      * the start of the gradual cap range and does not itself add cap headroom.
      *
      * Below 85%, the upload still contributes through the normal evidence nudge,
@@ -196,13 +193,13 @@ public class VerificationSignalPolicy {
      * table with no supporting detail) from reaching the same ceiling as a
      * well-evidenced portfolio piece the AI assessed with high certainty.
      *
-     * A confidence of 0.87 unlocks a cap of 84. A confidence of 0.95 unlocks
+     * A depth of 0.87 unlocks a cap of 84. A depth of 0.95 unlocks
      * the full cap of 100. The evidence curve still determines the earned score.
      */
-    private static final BigDecimal LLM_MIN_CONFIDENCE = new BigDecimal("0.85");
+    private static final BigDecimal LLM_MIN_EVIDENCE_DEPTH = new BigDecimal("0.85");
 
-    /** Confidence at which reviewed evidence unlocks the full 100-point cap. */
-    private static final BigDecimal LLM_FULL_UNLOCK_CONFIDENCE = new BigDecimal("0.95");
+    /** Evidence depth at which reviewed evidence unlocks the full 100-point cap. */
+    private static final BigDecimal LLM_FULL_UNLOCK_EVIDENCE_DEPTH = new BigDecimal("0.95");
 
     /**
      * Score ceiling for claims that have not been LLM-verified.
@@ -216,7 +213,7 @@ public class VerificationSignalPolicy {
     public static final int CLAIM_CAP_WITHOUT_LLM = 80;
 
     /**
-     * Maximum ceiling available once reviewed evidence reaches 95% confidence.
+     * Maximum ceiling available once reviewed evidence reaches 95% depth.
      */
     public static final int CLAIM_CAP_WITH_LLM = 100;
 
@@ -243,19 +240,19 @@ public class VerificationSignalPolicy {
      * All three conditions must hold:
      *   1. The evidence came from our own upload flow, not an external connector.
      *   2. The link type is one produced by AI document analysis.
-     *   3. The AI's confidence is at least 85%.
+     *   3. The demonstrated evidence depth is at least 85%.
      */
-    public boolean isEligibleForLlmVerification(String provider, String linkType, BigDecimal confidence) {
-        if (provider == null || linkType == null || confidence == null) {
+    public boolean isEligibleForReviewedStatus(String provider, String linkType, BigDecimal evidenceDepth) {
+        if (provider == null || linkType == null || evidenceDepth == null) {
             return false;
         }
         return isLlmReviewSignal(provider, linkType)
-                && confidence.compareTo(LLM_MIN_CONFIDENCE) >= 0;
+                && evidenceDepth.compareTo(LLM_MIN_EVIDENCE_DEPTH) >= 0;
     }
 
     /**
      * Returns whether a signal came from the reviewed-upload path, independent
-     * of its confidence. This lets cap calculation inspect sub-threshold reviews
+     * of its depth. This lets cap calculation inspect sub-threshold reviews
      * without granting them reviewed status.
      */
     public boolean isLlmReviewSignal(String provider, String linkType) {
@@ -267,16 +264,16 @@ public class VerificationSignalPolicy {
     }
 
     /**
-     * Gradually unlocks score headroom from 80 at 85% review confidence to
+     * Gradually unlocks score headroom from 80 at 85% evidence depth to
      * 100 at 95%. Evidence support still determines how much of this cap is earned.
      */
-    public int claimScoreCap(BigDecimal reviewConfidence) {
-        if (reviewConfidence == null || reviewConfidence.compareTo(LLM_MIN_CONFIDENCE) <= 0) {
+    public int claimScoreCap(BigDecimal evidenceDepth) {
+        if (evidenceDepth == null || evidenceDepth.compareTo(LLM_MIN_EVIDENCE_DEPTH) <= 0) {
             return CLAIM_CAP_WITHOUT_LLM;
         }
-        BigDecimal bounded = reviewConfidence.min(BigDecimal.ONE);
-        BigDecimal progress = bounded.subtract(LLM_MIN_CONFIDENCE)
-                .divide(LLM_FULL_UNLOCK_CONFIDENCE.subtract(LLM_MIN_CONFIDENCE), 6, RoundingMode.HALF_UP)
+        BigDecimal bounded = evidenceDepth.min(BigDecimal.ONE);
+        BigDecimal progress = bounded.subtract(LLM_MIN_EVIDENCE_DEPTH)
+                .divide(LLM_FULL_UNLOCK_EVIDENCE_DEPTH.subtract(LLM_MIN_EVIDENCE_DEPTH), 6, RoundingMode.HALF_UP)
                 .max(BigDecimal.ZERO)
                 .min(BigDecimal.ONE);
         int unlockedPoints = BigDecimal.valueOf(CLAIM_CAP_WITH_LLM - CLAIM_CAP_WITHOUT_LLM)

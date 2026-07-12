@@ -12,7 +12,7 @@ class VerificationSignalPolicyTest {
     private final VerificationSignalPolicy policy = new VerificationSignalPolicy();
 
     @Test
-    void graduallyUnlocksReviewedScoreCapWithoutThresholdJump() {
+    void graduallyUnlocksReviewedScoreCapFromEvidenceDepthWithoutThresholdJump() {
         assertThat(policy.claimScoreCap(null)).isEqualTo(80);
         assertThat(policy.claimScoreCap(new BigDecimal("0.849"))).isEqualTo(80);
         assertThat(policy.claimScoreCap(new BigDecimal("0.850"))).isEqualTo(80);
@@ -25,11 +25,11 @@ class VerificationSignalPolicyTest {
 
     @Test
     void onlyManualReviewSignalsQualifyForReviewedStatus() {
-        assertThat(policy.isEligibleForLlmVerification(
+        assertThat(policy.isEligibleForReviewedStatus(
                 "manual_upload", "llm_document_match", new BigDecimal("0.85"))).isTrue();
-        assertThat(policy.isEligibleForLlmVerification(
+        assertThat(policy.isEligibleForReviewedStatus(
                 "manual_upload", "llm_document_match", new BigDecimal("0.849"))).isFalse();
-        assertThat(policy.isEligibleForLlmVerification(
+        assertThat(policy.isEligibleForReviewedStatus(
                 "github", "dependency_match", BigDecimal.ONE)).isFalse();
     }
 }

@@ -110,6 +110,7 @@ public class ClaimEvidenceReadServiceImpl implements ClaimEvidenceReadService {
                 .capturedAt(evidence.getCapturedAt())
                 .linkType(link.getLinkType())
                 .linkConfidence(link.getLinkConfidence())
+                .evidenceDepth(link.getEvidenceDepth())
                 .reason(link.getReason())
                 .sourceFile(readSourceFile(link.getMetadata()))
                 .build();

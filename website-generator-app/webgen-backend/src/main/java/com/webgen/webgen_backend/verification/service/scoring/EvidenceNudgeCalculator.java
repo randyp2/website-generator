@@ -40,18 +40,19 @@ public class EvidenceNudgeCalculator {
      * eligible for the LLM-verified expert tier.
      */
     public int claimScoreCap(SkillClaimInput input) {
-        return verificationSignalPolicy.claimScoreCap(strongestReviewConfidence(input));
+        return verificationSignalPolicy.claimScoreCap(strongestEvidenceDepth(input));
     }
 
-    /** Returns the strongest reviewed-upload confidence attached to a claim. */
-    public BigDecimal strongestReviewConfidence(SkillClaimInput input) {
+    /** Returns the strongest reviewed-upload evidence depth attached to a claim. */
+    public BigDecimal strongestEvidenceDepth(SkillClaimInput input) {
         if (input == null || input.canonicalSkillId() == null || input.evidenceLinks() == null) {
             return SkillScoringPolicy.ZERO;
         }
         return input.evidenceLinks().stream()
                 .filter(link -> link != null && verificationSignalPolicy.isLlmReviewSignal(
                         link.provider(), link.linkType()))
-                .map(link -> scoringPolicy.clamp01(link.linkConfidence()))
+                .map(link -> scoringPolicy.clamp01(
+                        link.evidenceDepth() == null ? link.linkConfidence() : link.evidenceDepth()))
                 .max(BigDecimal::compareTo)
                 .orElse(SkillScoringPolicy.ZERO);
     }
@@ -60,7 +61,7 @@ public class EvidenceNudgeCalculator {
      * Returns true when the claim is canonically matched and has at least one
      * evidence link eligible for reviewed status.
      */
-    public boolean isLlmVerified(SkillClaimInput input) {
+    public boolean isReviewed(SkillClaimInput input) {
         if (input == null || input.canonicalSkillId() == null) {
             return false;
         }
@@ -170,13 +171,16 @@ public class EvidenceNudgeCalculator {
         if (link == null) {
             return false;
         }
-        BigDecimal confidence = link.linkConfidence() == null
+        BigDecimal reviewDepth = link.evidenceDepth() == null
+                ? link.linkConfidence()
+                : link.evidenceDepth();
+        BigDecimal boundedReviewDepth = reviewDepth == null
                 ? SkillScoringPolicy.ZERO
-                : scoringPolicy.clamp01(link.linkConfidence());
-        return verificationSignalPolicy.isEligibleForLlmVerification(
+                : scoringPolicy.clamp01(reviewDepth);
+        return verificationSignalPolicy.isEligibleForReviewedStatus(
                 link.provider(),
                 link.linkType(),
-                confidence
+                boundedReviewDepth
         );
     }
 }

@@ -43,8 +43,10 @@ public class AssetVerificationWorker {
             System.out.println(">>> [ASSET-WORKER] processing | jobId=" + jobId);
 
             AssetVerificationResultDTO result = aiVerificationService.verify(msg);
-            System.out.println(">>> [ASSET-WORKER] verify success | jobId=" + jobId
-                    + " confidence=" + (result == null ? null : result.getConfidence()));
+            log.info("Verification worker succeeded jobId={} matchConfidence={} evidenceDepth={}",
+                    jobId,
+                    result == null ? null : result.getMatchConfidence(),
+                    result == null ? null : result.getEvidenceDepth());
 
             jobService.complete(jobId);
             System.out.println(">>> [ASSET-WORKER] completed | jobId=" + jobId);

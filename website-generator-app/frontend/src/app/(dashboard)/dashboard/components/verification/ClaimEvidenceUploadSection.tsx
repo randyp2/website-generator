@@ -16,7 +16,8 @@ interface ClaimEvidenceUploadSectionProps {
 }
 
 interface ParsedAssetVerificationSummary {
-    confidence: number;
+    matchConfidence: number;
+    evidenceDepth: number;
     summary: string;
 }
 
@@ -33,20 +34,27 @@ const extractAssetVerificationSummary = (
     }
 
     const record = assetVerification as Record<string, unknown>;
-    const confidence =
-        typeof record.confidence === "number" && Number.isFinite(record.confidence)
-            ? Math.max(0, Math.min(1, record.confidence))
-            : null;
+    const legacyConfidence = typeof record.confidence === "number" ? record.confidence : null;
+    const matchConfidence = typeof record.matchConfidence === "number"
+        ? record.matchConfidence
+        : legacyConfidence;
+    const evidenceDepth = typeof record.evidenceDepth === "number"
+        ? record.evidenceDepth
+        : legacyConfidence;
     const summary =
         typeof record.summary === "string" && record.summary.trim().length > 0
             ? record.summary.trim()
             : null;
 
-    if (confidence === null || !summary) {
+    if (matchConfidence === null || evidenceDepth === null || !summary) {
         return null;
     }
 
-    return { confidence, summary };
+    return {
+        matchConfidence: Math.max(0, Math.min(1, matchConfidence)),
+        evidenceDepth: Math.max(0, Math.min(1, evidenceDepth)),
+        summary,
+    };
 };
 
 const formatConfidencePercent = (confidence: number): string =>
@@ -186,10 +194,8 @@ const ClaimEvidenceUploadSection = ({
                             verificationSummary && onSelectAssetSummary,
                         );
                         const confidenceText = verificationSummary
-                            ? `Confidence ${formatConfidencePercent(
-                                  verificationSummary.confidence,
-                              )}`
-                            : "Awaiting confidence";
+                            ? `Match ${formatConfidencePercent(verificationSummary.matchConfidence)} · Depth ${formatConfidencePercent(verificationSummary.evidenceDepth)}`
+                            : "Awaiting analysis";
 
                         return (
                             <div
@@ -206,7 +212,8 @@ const ClaimEvidenceUploadSection = ({
                                             claimId,
                                             uploadId: u.id,
                                             originalFileName: u.originalFileName,
-                                            confidence: verificationSummary.confidence,
+                                            matchConfidence: verificationSummary.matchConfidence,
+                                            evidenceDepth: verificationSummary.evidenceDepth,
                                             summary: verificationSummary.summary,
                                         });
                                     }}

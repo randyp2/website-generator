@@ -71,6 +71,7 @@ export interface EvidenceDocument {
   linkedSkillId: string | null
   linkType: string | null
   linkConfidence: number | null
+  evidenceDepth: number | null
   quality: QualityFlag
   /** Primary display date — occurred > captured > created */
   date: string

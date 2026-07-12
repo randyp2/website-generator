@@ -24,7 +24,7 @@ const signalWeights = [
   ["Language plus text", "0.48"],
 ];
 
-const reviewCaps = [
+const evidenceDepthCaps = [
   ["Below 0.85", "80"],
   ["0.85", "80"],
   ["0.875", "85"],
@@ -102,7 +102,9 @@ imported source         = 50`}</code>
         <section>
           <h2 className="text-2xl font-semibold">How evidence adds progress</h2>
           <pre className="mt-5 overflow-x-auto border border-border bg-muted/30 p-5 text-sm leading-7">
-            <code>{`signal strength = link confidence × signal weight × recency
+            <code>{`connector strength = link confidence × signal weight × recency
+reviewed strength  = evidence depth × signal weight × recency
+signal strength    = connector strength or reviewed strength
 
 effective evidence = Σ(signal strength × 0.75^rank)
 support            = 1 - exp(-0.70 × effective evidence)
@@ -118,21 +120,21 @@ claim score        = 50 + (claim cap - 50) × boost progress`}</code>
 
           <h3 className="mt-8 text-lg font-semibold">Gradual reviewed-evidence cap</h3>
           <pre className="mt-4 overflow-x-auto border border-border bg-muted/30 p-5 text-sm leading-7">
-            <code>{`review progress = clamp((confidence - 0.85) / 0.10, 0, 1)
+            <code>{`review progress = clamp((evidence depth - 0.85) / 0.10, 0, 1)
 claim cap       = 80 + round(20 × review progress)`}</code>
           </pre>
           <div className="mt-4 overflow-x-auto border border-border">
             <table className="w-full border-collapse text-left text-sm">
               <thead className="bg-muted/40">
                 <tr>
-                  <th className="border-b border-border px-4 py-3 font-medium">Review confidence</th>
+                  <th className="border-b border-border px-4 py-3 font-medium">Evidence depth</th>
                   <th className="border-b border-border px-4 py-3 font-medium">Available cap</th>
                 </tr>
               </thead>
               <tbody>
-                {reviewCaps.map(([confidence, cap]) => (
-                  <tr key={confidence} className="border-b border-border last:border-0">
-                    <td className="px-4 py-3 font-mono">{confidence}</td>
+                {evidenceDepthCaps.map(([depth, cap]) => (
+                  <tr key={depth} className="border-b border-border last:border-0">
+                    <td className="px-4 py-3 font-mono">{depth}</td>
                     <td className="px-4 py-3 font-mono">{cap}</td>
                   </tr>
                 ))}
@@ -143,6 +145,23 @@ claim cap       = 80 + round(20 × review progress)`}</code>
             The cap only defines available headroom. Evidence strength and breadth
             still determine how much of that headroom the claim earns.
           </p>
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <div className="border border-border p-5">
+              <h3 className="font-semibold">Match confidence</h3>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Measures whether the uploaded artifact actually relates to the claim.
+                It controls whether an evidence link is created.
+              </p>
+            </div>
+            <div className="border border-border p-5">
+              <h3 className="font-semibold">Evidence depth</h3>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Measures substantive demonstrated usage. It controls score strength,
+                reviewed status, and gradual cap progression.
+              </p>
+            </div>
+          </div>
 
           <div className="mt-6 overflow-x-auto border border-border">
             <table className="w-full border-collapse text-left text-sm">
@@ -188,6 +207,7 @@ overall   = baseline + mean lift × sqrt(coverage)`}</code>
                 <li>Removed manual, resume, and imported source from baseline scoring.</li>
                 <li>Kept parser confidence as diagnostics with no score effect.</li>
                 <li>Replaced the hard AI cap jump with a gradual 80–100 unlock.</li>
+                <li>Separated artifact match confidence from demonstrated evidence depth.</li>
                 <li>Excluded rejected claims and left unresolved claims unscored.</li>
               </ul>
             </div>

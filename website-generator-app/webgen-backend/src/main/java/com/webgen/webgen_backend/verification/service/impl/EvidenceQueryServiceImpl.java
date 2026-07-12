@@ -119,6 +119,7 @@ public class EvidenceQueryServiceImpl implements EvidenceQueryService {
                 .claimId(link.getClaimId())
                 .linkType(link.getLinkType())
                 .linkConfidence(link.getLinkConfidence())
+                .evidenceDepth(link.getEvidenceDepth())
                 .reason(link.getReason())
                 .sourceFile(readSourceFile(link.getMetadata()))
                 .build();

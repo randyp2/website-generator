@@ -26,10 +26,10 @@ class ReviewedEvidenceCapScoringTest {
 
     @Test
     void gradualCapFlowsThroughClaimScoring() {
-        int belowThreshold = scoreAtReviewConfidence("0.849");
-        int threshold = scoreAtReviewConfidence("0.850");
-        int partialUnlock = scoreAtReviewConfidence("0.900");
-        int fullUnlock = scoreAtReviewConfidence("0.950");
+        int belowThreshold = scoreAtEvidenceDepth("0.849");
+        int threshold = scoreAtEvidenceDepth("0.850");
+        int partialUnlock = scoreAtEvidenceDepth("0.900");
+        int fullUnlock = scoreAtEvidenceDepth("0.950");
 
         assertThat(threshold).isEqualTo(belowThreshold);
         assertThat(threshold).isLessThanOrEqualTo(80);
@@ -37,9 +37,9 @@ class ReviewedEvidenceCapScoringTest {
         assertThat(fullUnlock).isGreaterThan(partialUnlock).isLessThanOrEqualTo(100);
     }
 
-    private int scoreAtReviewConfidence(String confidence) {
+    private int scoreAtEvidenceDepth(String depth) {
         List<EvidenceLinkSignal> signals = IntStream.range(0, 10)
-                .mapToObj(index -> reviewedSignal(new BigDecimal(confidence)))
+                .mapToObj(index -> reviewedSignal(new BigDecimal(depth)))
                 .toList();
         SkillClaimInput claim = new SkillClaimInput(
                 UUID.randomUUID(), "React", UUID.randomUUID(), "React",
@@ -48,10 +48,11 @@ class ReviewedEvidenceCapScoringTest {
                 .claims().getFirst().claimScore();
     }
 
-    private EvidenceLinkSignal reviewedSignal(BigDecimal confidence) {
+    private EvidenceLinkSignal reviewedSignal(BigDecimal evidenceDepth) {
         OffsetDateTime now = OffsetDateTime.parse("2026-07-11T00:00:00Z");
         return new EvidenceLinkSignal(
-                UUID.randomUUID(), "llm_document_match", confidence, BigDecimal.ONE,
+                UUID.randomUUID(), "llm_document_match", new BigDecimal("0.99"),
+                evidenceDepth, BigDecimal.ONE,
                 now, now, 0, BigDecimal.ONE, BigDecimal.ONE,
                 "reviewed upload", "portfolio.pdf", null, "manual_upload");
     }

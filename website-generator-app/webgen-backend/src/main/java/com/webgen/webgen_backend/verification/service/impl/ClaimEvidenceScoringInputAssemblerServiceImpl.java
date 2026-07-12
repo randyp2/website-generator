@@ -164,7 +164,10 @@ public class ClaimEvidenceScoringInputAssemblerServiceImpl
 
         String normalizedLinkType = normalizeLinkType(link.getLinkType());
         BigDecimal linkTypeWeight = verificationSignalPolicy.linkTypeWeight(normalizedLinkType);
-        BigDecimal boundedConfidence = clamp01(link.getLinkConfidence());
+        BigDecimal boundedMatchConfidence = clamp01(link.getLinkConfidence());
+        BigDecimal boundedEvidenceDepth = link.getEvidenceDepth() == null
+                ? boundedMatchConfidence
+                : clamp01(link.getEvidenceDepth());
 
         OffsetDateTime signalTimestamp = resolveSignalTimestamp(evidence);
         int ageDays = resolveAgeDays(signalTimestamp, asOf);
@@ -174,29 +177,32 @@ public class ClaimEvidenceScoringInputAssemblerServiceImpl
          * Deterministic per-link strength formula:
          *
          * decayedStrength =
-         *     boundedConfidence
+         *     scoringStrength
          *   * linkTypeWeight
          *   * recencyDecay(ageDays)
          *
          * Interpretation:
-         * - confidence reflects matcher certainty in [0,1]
+         * - reviewed uploads use evidence depth as scoring strength
+         * - connectors and legacy rows fall back to matcher confidence
          * - linkTypeWeight encodes signal quality prior
          * - recencyDecay discounts stale evidence continuously over time
          */
-        BigDecimal decayedStrength = boundedConfidence
+        BigDecimal decayedStrength = boundedEvidenceDepth
                 .multiply(linkTypeWeight)
                 .multiply(recencyDecay)
                 .setScale(SIGNAL_SCALE, RoundingMode.HALF_UP);
 
         if (log.isDebugEnabled()) {
-            log.debug("[EvidenceInput] claimId={} rawValue={} evidenceId={} externalId={} linkType={} confidence={} "
+            log.debug("[EvidenceInput] claimId={} rawValue={} evidenceId={} externalId={} linkType={} "
+                            + "matchConfidence={} evidenceDepth={} "
                             + "signalTimestampSource={} occurredAt={} capturedAt={} asOf={} ageDays={} recencyDecay={} decayedStrength={}",
                     claim == null ? null : claim.getId(),
                     claim == null ? null : claim.getRawValue(),
                     evidence.getId(),
                     evidence.getExternalId(),
                     normalizedLinkType,
-                    boundedConfidence,
+                    boundedMatchConfidence,
+                    boundedEvidenceDepth,
                     resolveSignalTimestampSource(evidence),
                     evidence.getOccurredAt(),
                     evidence.getCapturedAt(),
@@ -209,7 +215,8 @@ public class ClaimEvidenceScoringInputAssemblerServiceImpl
         return new EvidenceLinkSignal(
                 evidence.getId(),
                 normalizedLinkType,
-                boundedConfidence,
+                boundedMatchConfidence,
+                boundedEvidenceDepth,
                 linkTypeWeight,
                 evidence.getOccurredAt(),
                 evidence.getCapturedAt(),

@@ -149,6 +149,37 @@ class ClaimEvidenceScoringInputAssemblerServiceImplTest {
         assertThat(signal.decayedStrength()).isEqualByComparingTo("0.50000000");
     }
 
+    @Test
+    void reviewedUploadUsesEvidenceDepthInsteadOfMatchConfidenceForStrength() {
+        UUID profileId = UUID.randomUUID();
+        UUID claimId = UUID.randomUUID();
+        UUID skillId = UUID.randomUUID();
+        UUID evidenceId = UUID.randomUUID();
+        OffsetDateTime asOf = OffsetDateTime.parse("2026-04-16T00:00:00Z");
+
+        ClaimEvidenceLink link = buildLink(
+                profileId, claimId, evidenceId, "llm_document_match", "0.97");
+        link.setEvidenceDepth(new BigDecimal("0.32"));
+        Evidence evidence = buildEvidence(profileId, evidenceId, asOf, asOf, "portfolio.pdf");
+        evidence.setProvider("manual_upload");
+
+        ClaimEvidenceScoringInputAssemblerServiceImpl assembler = new ClaimEvidenceScoringInputAssemblerServiceImpl(
+                stubClaimEvidenceLinkRepository(List.of(link)),
+                stubEvidenceRepository(List.of(evidence)),
+                new VerificationSignalPolicy());
+
+        EvidenceLinkSignal signal = assembler.assembleSkillClaimInputs(
+                        profileId,
+                        List.of(buildClaim(profileId, claimId, skillId, "React")),
+                        Map.of(skillId, buildSkill(skillId, "React", "engineering", "1.0")),
+                        asOf)
+                .getFirst().evidenceLinks().getFirst();
+
+        assertThat(signal.linkConfidence()).isEqualByComparingTo("0.97");
+        assertThat(signal.evidenceDepth()).isEqualByComparingTo("0.32");
+        assertThat(signal.decayedStrength()).isEqualByComparingTo("0.32000000");
+    }
+
     @SuppressWarnings("unchecked")
     private ClaimEvidenceLinkRepository stubClaimEvidenceLinkRepository(List<ClaimEvidenceLink> links) {
         return (ClaimEvidenceLinkRepository) Proxy.newProxyInstance(

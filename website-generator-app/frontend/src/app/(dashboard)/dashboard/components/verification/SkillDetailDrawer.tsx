@@ -170,14 +170,14 @@ const SkillDetailDrawer = ({
                                                 <button
                                                     type="button"
                                                     className="inline-flex items-center gap-1.5 rounded-full text-sm font-semibold text-emerald-600 outline-none transition-colors hover:text-emerald-500 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                                    aria-label="Confidence score information"
+                                                    aria-label="Evidence depth information"
                                                 >
-                                                    {formatConfidencePercent(view.data.confidence)}
+                                                    Match {formatConfidencePercent(view.data.matchConfidence)} · Depth {formatConfidencePercent(view.data.evidenceDepth)}
                                                     <CircleHelp className="h-3.5 w-3.5 text-muted-foreground" />
                                                 </button>
                                             </TooltipTrigger>
                                             <TooltipContent side="left" align="center">
-                                                <p>This is the confidence score.</p>
+                                                <p>Match measures relevance. Depth measures demonstrated usage.</p>
                                             </TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>

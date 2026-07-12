@@ -78,6 +78,7 @@ export const toEvidenceDocument = (item: EvidenceItem): EvidenceDocument => {
     linkedSkillId: item.skillId === "unlinked" ? null : item.skillId,
     linkType: item.linkType,
     linkConfidence: item.linkConfidence,
+    evidenceDepth: item.evidenceDepth,
     quality: item.quality,
     date: item.date,
     url: item.url,

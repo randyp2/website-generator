@@ -95,8 +95,11 @@ public class ClaimVerificationStatusServiceImpl implements ClaimVerificationStat
         }
         boolean verified = links.stream().anyMatch(link -> {
             Evidence evidence = evidenceById.get(link.getEvidenceId());
-            return evidence != null && signalPolicy.isEligibleForLlmVerification(
-                    evidence.getProvider(), link.getLinkType(), link.getLinkConfidence());
+            BigDecimal reviewDepth = link.getEvidenceDepth() == null
+                    ? link.getLinkConfidence()
+                    : link.getEvidenceDepth();
+            return evidence != null && signalPolicy.isEligibleForReviewedStatus(
+                    evidence.getProvider(), link.getLinkType(), reviewDepth);
         });
         if (verified) {
             return "verified";

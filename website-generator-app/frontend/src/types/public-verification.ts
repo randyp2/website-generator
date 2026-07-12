@@ -56,6 +56,7 @@ export interface PublicClaimLinkedEvidenceDTO {
   capturedAt: string | null
   linkType: string
   linkConfidence: number | null
+  evidenceDepth: number | null
   reason: string | null
   sourceFile: string | null
 }
@@ -95,6 +96,7 @@ export interface PublicEvidenceLinkDTO {
   claimId: string
   linkType: string
   linkConfidence: number | null
+  evidenceDepth: number | null
   reason: string | null
   sourceFile: string | null
 }

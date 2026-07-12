@@ -34,7 +34,12 @@ const SCORING_RULES = [
   {
     title: "Reviewed Range",
     description:
-      "Connector-only claims are capped at 80. Reviewed evidence gradually unlocks the cap from 80 at 85% confidence to 100 at 95% confidence.",
+      "Connector-only claims are capped at 80. Reviewed evidence gradually unlocks the cap from 80 at 85% evidence depth to 100 at 95% evidence depth.",
+  },
+  {
+    title: "Match Versus Depth",
+    description:
+      "Match confidence controls whether an upload links to a claim. Evidence depth controls scoring strength and reviewed cap progression.",
   },
   {
     title: "Parser Confidence Is Diagnostic",

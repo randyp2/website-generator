@@ -2,6 +2,7 @@ export interface EvidenceLinkDTO {
   claimId: string
   linkType: string
   linkConfidence: number
+  evidenceDepth: number | null
   reason: string | null
   sourceFile: string | null
 }

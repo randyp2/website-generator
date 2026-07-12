@@ -3,13 +3,22 @@ package com.webgen.webgen_backend.resume_verification_service.ai;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.webgen.webgen_backend.verification.entity.ClaimEvidenceUpload;
+import com.webgen.webgen_backend.verification.entity.Claim;
+import com.webgen.webgen_backend.verification.entity.ClaimEvidenceLink;
+import com.webgen.webgen_backend.verification.entity.Evidence;
+import com.webgen.webgen_backend.profile.entity.Profile;
 import com.webgen.webgen_backend.verification.repository.ClaimEvidenceUploadRepository;
-import com.webgen.webgen_backend.verification.service.ai.AIVerificationServiceImpl;
+import com.webgen.webgen_backend.verification.repository.ClaimEvidenceLinkRepository;
+import com.webgen.webgen_backend.verification.repository.EvidenceRepository;
+import com.webgen.webgen_backend.verification.service.ai.AssetVerificationPromptBuilder;
+import com.webgen.webgen_backend.verification.service.ai.AssetVerificationResponseParser;
+import com.webgen.webgen_backend.verification.service.ai.AssetVerificationPersistenceService;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.lang.reflect.Proxy;
 import java.util.UUID;
+import java.util.Optional;
+import java.time.OffsetDateTime;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,37 +26,56 @@ import static org.assertj.core.api.Assertions.assertThat;
 class AIVerificationServiceImplTest {
 
     @Test
+    void persistsMatchConfidenceAndEvidenceDepthSeparately() {
+        ObjectMapper objectMapper = new ObjectMapper();
+        UUID profileId = UUID.randomUUID();
+        Profile profile = new Profile();
+        profile.setId(profileId);
+        Claim claim = Claim.builder().id(UUID.randomUUID()).profile(profile)
+                .claimType("skill").rawValue("React").source("manual").build();
+        ClaimEvidenceUpload upload = ClaimEvidenceUpload.builder().id(UUID.randomUUID())
+                .profile(profile).claimId(claim.getId()).originalFileName("portfolio.pdf")
+                .contentType("application/pdf").storageProvider("r2").storageBucket("bucket")
+                .storageKey("key").createdAt(OffsetDateTime.now())
+                .metadata(objectMapper.createObjectNode()).build();
+        AtomicReference<Evidence> savedEvidence = new AtomicReference<>();
+        AtomicReference<ClaimEvidenceLink> savedLink = new AtomicReference<>();
+        EvidenceRepository evidenceRepository = repositoryProxy(
+                EvidenceRepository.class, savedEvidence, "findByProfileIdAndProviderAndExternalId");
+        ClaimEvidenceLinkRepository linkRepository = repositoryProxy(
+                ClaimEvidenceLinkRepository.class, savedLink, "findByProfileIdAndClaimIdAndEvidenceId");
+        ClaimEvidenceUploadRepository uploadRepository = stubUploadRepository(new AtomicReference<>());
+        AssetVerificationResponseParser responseParser = new AssetVerificationResponseParser(objectMapper);
+        var parsed = responseParser.parse("""
+                {"matchConfidence":0.97,"evidenceDepth":0.32,"summary":"Relevant but shallow.",
+                 "evidenceStrength":"WEAK","shouldLink":true}
+                """);
+        AssetVerificationPersistenceService service = new AssetVerificationPersistenceService(
+                uploadRepository, evidenceRepository, linkRepository, objectMapper, noOpStatusService());
+
+        service.persistSuccess(profile, claim, upload,
+                AssetVerificationPromptBuilder.AssetFamily.DOCUMENT, parsed, "excerpt");
+
+        assertThat(savedLink.get().getLinkConfidence()).isEqualByComparingTo("0.970");
+        assertThat(savedLink.get().getEvidenceDepth()).isEqualByComparingTo("0.320");
+        assertThat(savedEvidence.get().getMetadata().path("aiMatchConfidence").asDouble()).isEqualTo(0.97);
+        assertThat(savedEvidence.get().getMetadata().path("aiEvidenceDepth").asDouble()).isEqualTo(0.32);
+    }
+
+    @Test
     void markUploadFailedPersistsFailedLifecycleStatus() {
         ObjectMapper objectMapper = new ObjectMapper();
         AtomicReference<ClaimEvidenceUpload> savedUpload = new AtomicReference<>();
         ClaimEvidenceUploadRepository uploadRepository = stubUploadRepository(savedUpload);
-        AIVerificationServiceImpl service = new AIVerificationServiceImpl(
-                null,
-                null,
-                uploadRepository,
-                null,
-                null,
-                objectMapper,
-                null,
-                null,
-                null,
-                new com.webgen.webgen_backend.verification.service.ClaimVerificationStatusService() {
-                    public void reconcileClaims(UUID profileId, java.util.Collection<UUID> claimIds) {}
-                    public void reconcileProfile(UUID profileId) {}
-                }
-        );
+        AssetVerificationPersistenceService service = new AssetVerificationPersistenceService(
+                uploadRepository, null, null, objectMapper, noOpStatusService());
         ClaimEvidenceUpload upload = ClaimEvidenceUpload.builder()
                 .id(UUID.randomUUID())
                 .status("completed")
                 .metadata(objectMapper.createObjectNode())
                 .build();
 
-        ReflectionTestUtils.invokeMethod(
-                service,
-                "markUploadFailed",
-                upload,
-                "Gemini verification failed"
-        );
+        service.persistFailure(upload, "Gemini verification failed");
 
         assertThat(upload.getStatus()).isEqualTo("failed");
         assertThat(upload.getAnalysisError()).isEqualTo("Gemini verification failed");
@@ -57,6 +85,32 @@ class AIVerificationServiceImplTest {
         assertThat(assetVerification.path("status").asText()).isEqualTo("failed");
         assertThat(assetVerification.path("error").asText()).isEqualTo("Gemini verification failed");
         assertThat(assetVerification.path("failedAt").asText()).isNotBlank();
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T, R> T repositoryProxy(
+            Class<T> repositoryType,
+            AtomicReference<R> saved,
+            String findMethod
+    ) {
+        return (T) Proxy.newProxyInstance(
+                repositoryType.getClassLoader(), new Class[]{repositoryType},
+                (proxy, method, args) -> {
+                    if (findMethod.equals(method.getName())) return Optional.empty();
+                    if ("save".equals(method.getName())) {
+                        R value = (R) args[0];
+                        saved.set(value);
+                        return value;
+                    }
+                    return handleObjectMethod(proxy, method.getName(), args);
+                });
+    }
+
+    private com.webgen.webgen_backend.verification.service.ClaimVerificationStatusService noOpStatusService() {
+        return new com.webgen.webgen_backend.verification.service.ClaimVerificationStatusService() {
+            public void reconcileClaims(UUID profileId, java.util.Collection<UUID> claimIds) {}
+            public void reconcileProfile(UUID profileId) {}
+        };
     }
 
     @SuppressWarnings("unchecked")

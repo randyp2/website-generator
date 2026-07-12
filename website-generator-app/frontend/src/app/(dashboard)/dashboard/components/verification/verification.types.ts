@@ -124,6 +124,7 @@ export interface EvidenceItem {
   quality: QualityFlag
   linkType: string | null
   linkConfidence: number | null
+  evidenceDepth: number | null
   linkReason: string | null
   sourceFile?: string | null
   metadata: Record<string, unknown> | null
@@ -209,7 +210,8 @@ export interface AssetVerificationSummarySelection {
   claimId: string
   uploadId: string
   originalFileName: string
-  confidence: number
+  matchConfidence: number
+  evidenceDepth: number
   summary: string
 }
 

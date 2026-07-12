@@ -263,12 +263,12 @@ public class SkillVerificationScoringKernel {
         int evidenceLinksUsed = evidenceLinks.size();
         int evidenceLinksUsedForScoring = matched ? evidenceLinksUsed : 0;
 
-        boolean llmVerified = evidenceNudgeCalculator.isLlmVerified(input);
-        BigDecimal reviewConfidence = evidenceNudgeCalculator.strongestReviewConfidence(input);
+        boolean reviewed = evidenceNudgeCalculator.isReviewed(input);
+        BigDecimal reviewEvidenceDepth = evidenceNudgeCalculator.strongestEvidenceDepth(input);
         int claimScoreCap = evidenceNudgeCalculator.claimScoreCap(input);
-        log.debug("[CLAIM SCORE][REVIEW CAP] claimId={} llmVerified={} reviewConfidence={} "
-                        + "cap=80+round(20*clamp((confidence-0.85)/0.10))={}",
-                input.claimId(), llmVerified, reviewConfidence, claimScoreCap);
+        log.debug("[CLAIM SCORE][REVIEW CAP] claimId={} reviewed={} evidenceDepth={} "
+                        + "cap=80+round(20*clamp((evidenceDepth-0.85)/0.10))={}",
+                input.claimId(), reviewed, reviewEvidenceDepth, claimScoreCap);
 
         // Source provenance is deliberately excluded. Recognition establishes a
         // neutral progress baseline; evidence is responsible for further lift.
@@ -382,9 +382,9 @@ public class SkillVerificationScoringKernel {
                     input.claimId(), finalClaimScore);
         }
         if (baselineScoreCapped || finalScoreCapped) {
-            log.debug("[CLAIM SCORE][CAP] claimId={} llmVerified={} claimScoreCap={} uncappedBaseline={} baselineScore={} uncappedFinal={} finalScore={} uncappedEvidenceContribution={} displayEvidenceContribution={}",
+            log.debug("[CLAIM SCORE][CAP] claimId={} reviewed={} claimScoreCap={} uncappedBaseline={} baselineScore={} uncappedFinal={} finalScore={} uncappedEvidenceContribution={} displayEvidenceContribution={}",
                     input.claimId(),
-                    llmVerified,
+                    reviewed,
                     claimScoreCap,
                     uncappedBaselineClaimScore,
                     baselineClaimScore,
