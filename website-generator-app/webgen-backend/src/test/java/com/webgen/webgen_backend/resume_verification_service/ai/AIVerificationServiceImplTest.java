@@ -13,6 +13,7 @@ import com.webgen.webgen_backend.verification.repository.EvidenceRepository;
 import com.webgen.webgen_backend.verification.service.ai.AssetVerificationPromptBuilder;
 import com.webgen.webgen_backend.verification.service.ai.AssetVerificationResponseParser;
 import com.webgen.webgen_backend.verification.service.ai.AssetVerificationPersistenceService;
+import com.webgen.webgen_backend.verification.service.shared.EvidenceGroupKeyFactory;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
@@ -37,7 +38,10 @@ class AIVerificationServiceImplTest {
                 .profile(profile).claimId(claim.getId()).originalFileName("portfolio.pdf")
                 .contentType("application/pdf").storageProvider("r2").storageBucket("bucket")
                 .storageKey("key").createdAt(OffsetDateTime.now())
-                .metadata(objectMapper.createObjectNode()).build();
+                .metadata(objectMapper.createObjectNode()
+                        .set("verifiedObject", objectMapper.createObjectNode()
+                                .put("eTag", "same-object")
+                                .put("contentLength", 42L))).build();
         AtomicReference<Evidence> savedEvidence = new AtomicReference<>();
         AtomicReference<ClaimEvidenceLink> savedLink = new AtomicReference<>();
         EvidenceRepository evidenceRepository = repositoryProxy(
@@ -51,7 +55,8 @@ class AIVerificationServiceImplTest {
                  "evidenceStrength":"WEAK","shouldLink":true}
                 """);
         AssetVerificationPersistenceService service = new AssetVerificationPersistenceService(
-                uploadRepository, evidenceRepository, linkRepository, objectMapper, noOpStatusService());
+                uploadRepository, evidenceRepository, linkRepository, objectMapper,
+                noOpStatusService(), new EvidenceGroupKeyFactory());
 
         service.persistSuccess(profile, claim, upload,
                 AssetVerificationPromptBuilder.AssetFamily.DOCUMENT, parsed, "excerpt");
@@ -60,6 +65,8 @@ class AIVerificationServiceImplTest {
         assertThat(savedLink.get().getEvidenceDepth()).isEqualByComparingTo("0.320");
         assertThat(savedEvidence.get().getMetadata().path("aiMatchConfidence").asDouble()).isEqualTo(0.97);
         assertThat(savedEvidence.get().getMetadata().path("aiEvidenceDepth").asDouble()).isEqualTo(0.32);
+        assertThat(savedEvidence.get().getEvidenceGroupKey())
+                .isEqualTo("manual_upload:etag:same-object:42");
     }
 
     @Test
@@ -68,7 +75,8 @@ class AIVerificationServiceImplTest {
         AtomicReference<ClaimEvidenceUpload> savedUpload = new AtomicReference<>();
         ClaimEvidenceUploadRepository uploadRepository = stubUploadRepository(savedUpload);
         AssetVerificationPersistenceService service = new AssetVerificationPersistenceService(
-                uploadRepository, null, null, objectMapper, noOpStatusService());
+                uploadRepository, null, null, objectMapper,
+                noOpStatusService(), new EvidenceGroupKeyFactory());
         ClaimEvidenceUpload upload = ClaimEvidenceUpload.builder()
                 .id(UUID.randomUUID())
                 .status("completed")

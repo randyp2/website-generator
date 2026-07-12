@@ -7,6 +7,7 @@ import com.webgen.webgen_backend.verification.entity.Skill;
 import com.webgen.webgen_backend.verification.repository.ClaimEvidenceLinkRepository;
 import com.webgen.webgen_backend.verification.repository.EvidenceRepository;
 import com.webgen.webgen_backend.verification.service.ClaimEvidenceScoringInputAssemblerService;
+import com.webgen.webgen_backend.verification.service.scoring.IndependentEvidenceSelector;
 import com.webgen.webgen_backend.verification.service.scoring.VerificationSignalPolicy;
 import com.webgen.webgen_backend.verification.service.scoring.model.EvidenceLinkSignal;
 import com.webgen.webgen_backend.verification.service.scoring.model.SkillClaimInput;
@@ -68,6 +69,7 @@ public class ClaimEvidenceScoringInputAssemblerServiceImpl
     private final ClaimEvidenceLinkRepository claimEvidenceLinkRepository;
     private final EvidenceRepository evidenceRepository;
     private final VerificationSignalPolicy verificationSignalPolicy;
+    private final IndependentEvidenceSelector independentEvidenceSelector;
 
     @Override
     public List<SkillClaimInput> assembleSkillClaimInputs(
@@ -111,14 +113,15 @@ public class ClaimEvidenceScoringInputAssemblerServiceImpl
 
         return skillClaims.stream()
                 .map(claim -> {
-                    List<EvidenceLinkSignal> evidenceSignals = linksByClaimId
+                    List<EvidenceLinkSignal> rankedSignals = linksByClaimId
                             .getOrDefault(claim.getId(), List.of())
                             .stream()
                             .map(link -> toEvidenceSignal(claim, link, evidenceById.get(link.getEvidenceId()), evaluationTime))
                             .filter(Objects::nonNull)
                             .sorted(this::compareSignals)
-                            .limit(TOP_K_PER_CLAIM)
                             .toList();
+                    List<EvidenceLinkSignal> evidenceSignals = independentEvidenceSelector.select(
+                            claim.getId(), rankedSignals, TOP_K_PER_CLAIM);
 
                     return toInput(
                             claim,
@@ -226,8 +229,16 @@ public class ClaimEvidenceScoringInputAssemblerServiceImpl
                 link.getReason(),
                 evidence.getTitle(),
                 evidence.getSourceUrl(),
-                evidence.getProvider()
+                evidence.getProvider(),
+                resolveEvidenceGroupKey(evidence)
         );
+    }
+
+    private String resolveEvidenceGroupKey(Evidence evidence) {
+        if (evidence.getEvidenceGroupKey() != null && !evidence.getEvidenceGroupKey().isBlank()) {
+            return evidence.getEvidenceGroupKey();
+        }
+        return evidence.getProvider() + ':' + evidence.getExternalId();
     }
 
     // Prefer event time when available; fallback to ingestion time for recency.

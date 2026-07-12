@@ -15,7 +15,8 @@ public class ClaimEvidenceUploadObjectVerifier {
 
     private final ClaimEvidenceUploadFilePolicy claimEvidenceUploadFilePolicy;
 
-    public void assertObjectIntegrity(
+    /** Validates the staged object and returns its storage-reported identity. */
+    public VerifiedObjectIdentity assertObjectIntegrity(
             S3Client s3Client,
             String bucket,
             String key,
@@ -42,6 +43,11 @@ public class ClaimEvidenceUploadObjectVerifier {
                     || !normalizedActualContentType.equals(expectedContentType)) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Uploaded object content type mismatch");
             }
+
+            return new VerifiedObjectIdentity(
+                    normalizeIdentity(headObjectResponse.checksumSHA256()),
+                    normalizeETag(headObjectResponse.eTag()),
+                    headObjectResponse.contentLength());
         } catch (S3Exception ex) {
             if (ex.statusCode() == HttpStatus.NOT_FOUND.value()) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Uploaded object not found");
@@ -52,4 +58,27 @@ public class ClaimEvidenceUploadObjectVerifier {
             );
         }
     }
+
+    private String normalizeIdentity(String value) {
+        return StringUtils.hasText(value) ? value.trim() : null;
+    }
+
+    private String normalizeETag(String value) {
+        String normalized = normalizeIdentity(value);
+        if (normalized == null) {
+            return null;
+        }
+        return normalized.length() >= 2
+                && normalized.startsWith("\"")
+                && normalized.endsWith("\"")
+                ? normalized.substring(1, normalized.length() - 1)
+                : normalized;
+    }
+
+    /** Storage identity captured from the same HEAD request used for validation. */
+    public record VerifiedObjectIdentity(
+            String checksumSha256,
+            String eTag,
+            Long contentLength
+    ) {}
 }

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubRepoResponse;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubUserResponse;
 import com.webgen.webgen_backend.verification.service.sync.model.EvidenceCandidate;
+import com.webgen.webgen_backend.verification.service.shared.EvidenceGroupKeyFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +22,7 @@ import static com.webgen.webgen_backend.verification.service.sync.VerificationMa
 public class GithubEvidenceCandidateMapper {
 
     private final ObjectMapper objectMapper;
+    private final EvidenceGroupKeyFactory evidenceGroupKeyFactory;
 
     public EvidenceCandidate fromProfile(
             GithubUserResponse profile,
@@ -44,6 +46,7 @@ public class GithubEvidenceCandidateMapper {
 
         return new EvidenceCandidate(
                 externalId,
+                evidenceGroupKeyFactory.forGithubProfile(profile.id(), externalId),
                 "profile",
                 title,
                 profile.bio(),
@@ -65,6 +68,17 @@ public class GithubEvidenceCandidateMapper {
         metadata.put("kind", "repository");
         metadata.put("full_name", repo.fullName());
         metadata.put("repo_name", repo.name());
+        if (repo.id() != null) {
+            metadata.put("repository_id", repo.id());
+        }
+        metadata.put("fork", repo.isFork());
+        GithubRepoResponse.RepositoryIdentity root = repo.source() != null
+                ? repo.source()
+                : repo.parent();
+        if (root != null && root.id() != null) {
+            metadata.put("root_repository_id", root.id());
+            metadata.put("root_repository_name", root.fullName());
+        }
         if (repo.description() != null) {
             metadata.put("description", repo.description());
         }
@@ -90,8 +104,10 @@ public class GithubEvidenceCandidateMapper {
                 .sorted(Map.Entry.comparingByKey())
                 .forEach(entry -> dependencySourcesNode.put(entry.getKey(), entry.getValue()));
 
+        String externalId = "repo:" + repo.fullName().toLowerCase(Locale.ROOT);
         return new EvidenceCandidate(
-                "repo:" + repo.fullName().toLowerCase(Locale.ROOT),
+                externalId,
+                evidenceGroupKeyFactory.forGithubRepository(repo, externalId),
                 "repository",
                 repo.fullName(),
                 repo.description(),

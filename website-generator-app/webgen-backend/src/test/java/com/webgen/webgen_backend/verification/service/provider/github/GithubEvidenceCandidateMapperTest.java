@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubRepoResponse;
 import com.webgen.webgen_backend.verification.service.sync.model.EvidenceCandidate;
+import com.webgen.webgen_backend.verification.service.shared.EvidenceGroupKeyFactory;
 import org.junit.jupiter.api.Test;
 
 import java.time.OffsetDateTime;
@@ -16,7 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class GithubEvidenceCandidateMapperTest {
 
-    private final GithubEvidenceCandidateMapper mapper = new GithubEvidenceCandidateMapper(new ObjectMapper());
+    private final GithubEvidenceCandidateMapper mapper = new GithubEvidenceCandidateMapper(
+            new ObjectMapper(), new EvidenceGroupKeyFactory());
 
     @Test
     void writesSortedDependenciesArrayAndSourceMap() {
@@ -48,5 +50,28 @@ class GithubEvidenceCandidateMapperTest {
         JsonNode sources = metadata.get("dependencySources");
         assertThat(sources.get("react").asText()).isEqualTo("frontend/package.json");
         assertThat(sources.get("postgres").asText()).isEqualTo("docker-compose.yml");
+    }
+
+    @Test
+    void groupsForkByRootRepositoryIdentity() {
+        GithubRepoResponse repo = new GithubRepoResponse(
+                22L,
+                "app-fork",
+                "octo/app-fork",
+                "fork",
+                "https://github.com/octo/app-fork",
+                "2026-01-01T00:00:00Z",
+                "Java",
+                List.of(),
+                "main",
+                true,
+                new GithubRepoResponse.RepositoryIdentity(11L, "source/app"),
+                new GithubRepoResponse.RepositoryIdentity(10L, "root/app"));
+
+        EvidenceCandidate candidate = mapper.fromRepository(
+                repo, Map.of(), OffsetDateTime.parse("2026-06-28T00:00:00Z"));
+
+        assertThat(candidate.evidenceGroupKey()).isEqualTo("github:repository:10");
+        assertThat(candidate.metadata().path("root_repository_id").asLong()).isEqualTo(10L);
     }
 }

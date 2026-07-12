@@ -106,17 +106,40 @@ imported source         = 50`}</code>
 reviewed strength  = evidence depth × signal weight × recency
 signal strength    = connector strength or reviewed strength
 
-effective evidence = Σ(signal strength × 0.75^rank)
+independent signals = strongest signal per evidence group
+effective evidence  = Σ(independent signal strength × 0.75^rank)
 support            = 1 - exp(-0.70 × effective evidence)
 boost progress     = support^1.35
 claim score        = 50 + (claim cap - 50) × boost progress`}</code>
           </pre>
           <p className="mt-4 leading-7 text-muted-foreground">
-            Signals are sorted strongest first, limited to ten per claim, and reduced
-            by rank so repeated evidence has diminishing value. Connector-only claims
-            are capped at 80. Qualifying AI-reviewed uploads currently unlock the
-            range above 80.
+            Signals are sorted strongest first. Correlated signals are collapsed to
+            the strongest member of each evidence group before the ten-signal limit
+            and rank decay are applied. Connector-only claims are capped at 80.
+            Qualifying AI-reviewed uploads currently unlock the range above 80.
           </p>
+
+          <h3 className="mt-8 text-lg font-semibold">Evidence independence</h3>
+          <p className="mt-4 leading-7 text-muted-foreground">
+            An evidence group represents one underlying source. Uploads with matching
+            storage fingerprints and GitHub forks with resolved lineage cannot create
+            multiple scoring positions for that source. Only the strongest signal in
+            the group is retained for a claim.
+          </p>
+          <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
+            <li>
+              Uploaded artifacts use the storage-reported SHA-256 checksum when
+              available, then the verified ETag, then the upload ID as a safe fallback.
+            </li>
+            <li>
+              GitHub repositories use the root repository numeric ID for resolved
+              forks, then the repository numeric ID, then the stable external ID.
+            </li>
+            <li>
+              Historical evidence keeps its provider and external ID, because old
+              uploads cannot be fingerprinted retroactively without reading them again.
+            </li>
+          </ul>
 
           <h3 className="mt-8 text-lg font-semibold">Gradual reviewed-evidence cap</h3>
           <pre className="mt-4 overflow-x-auto border border-border bg-muted/30 p-5 text-sm leading-7">
@@ -208,13 +231,14 @@ overall   = baseline + mean lift × sqrt(coverage)`}</code>
                 <li>Kept parser confidence as diagnostics with no score effect.</li>
                 <li>Replaced the hard AI cap jump with a gradual 80–100 unlock.</li>
                 <li>Separated artifact match confidence from demonstrated evidence depth.</li>
+                <li>Collapsed correlated evidence before top-K selection and rank decay.</li>
                 <li>Excluded rejected claims and left unresolved claims unscored.</li>
               </ul>
             </div>
             <div className="border border-border p-5">
               <h3 className="font-semibold">Still under review</h3>
               <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
-                <li>Evidence independence, GitHub authorship, and artifact depth need refinement.</li>
+                <li>GitHub authorship and semantic near-duplicate detection need refinement.</li>
                 <li>Signal weights have not yet been calibrated against reviewed data.</li>
               </ul>
             </div>

@@ -35,6 +35,7 @@ public class GithubApiClient {
     private static final String GITHUB_API_VERSION = "2022-11-28";
     private static final int GITHUB_REPOS_PER_PAGE = 100;
     private static final int MAX_GITHUB_REPO_PAGES = 5;
+    private static final int MAX_FORK_LINEAGE_LOOKUPS = 25;
 
     private final RestTemplate restTemplate = new RestTemplate();
 
@@ -125,6 +126,84 @@ public class GithubApiClient {
         }
 
         return results;
+    }
+
+    /**
+     * Resolves root repository identities for a bounded number of forks. GitHub's
+     * repository list omits parent and source lineage, while repository detail
+     * responses include it.
+     */
+    public List<GithubRepoResponse> enrichForkLineage(
+            String accessToken,
+            List<GithubRepoResponse> repositories
+    ) {
+        if (repositories == null || repositories.isEmpty()) {
+            return List.of();
+        }
+
+        List<GithubRepoResponse> enriched = new ArrayList<>(repositories.size());
+        int lookups = 0;
+        int resolved = 0;
+        for (GithubRepoResponse repository : repositories) {
+            boolean needsLineage = repository != null
+                    && repository.isFork()
+                    && repository.source() == null
+                    && repository.parent() == null
+                    && lookups < MAX_FORK_LINEAGE_LOOKUPS;
+            if (!needsLineage) {
+                enriched.add(repository);
+                continue;
+            }
+
+            lookups++;
+            GithubRepoResponse details = fetchRepositoryDetails(accessToken, repository);
+            enriched.add(details);
+            if (details.source() != null || details.parent() != null) {
+                resolved++;
+            }
+        }
+
+        log.info("github.fork_lineage repositories={} lookups={} resolved={} limit={}",
+                repositories.size(), lookups, resolved, MAX_FORK_LINEAGE_LOOKUPS);
+        return List.copyOf(enriched);
+    }
+
+    private GithubRepoResponse fetchRepositoryDetails(
+            String accessToken,
+            GithubRepoResponse fallback
+    ) {
+        if (fallback == null || isBlank(fallback.fullName()) || !fallback.fullName().contains("/")) {
+            return fallback;
+        }
+
+        String[] nameParts = fallback.fullName().split("/", 2);
+        String url = UriComponentsBuilder
+                .fromUriString("https://api.github.com/repos/{owner}/{repo}")
+                .buildAndExpand(nameParts[0], nameParts[1])
+                .toUriString();
+        try {
+            ResponseEntity<GithubRepoResponse> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    new HttpEntity<>(buildGithubApiHeaders(accessToken)),
+                    GithubRepoResponse.class);
+            return response.getBody() == null ? fallback : response.getBody();
+        } catch (RestClientResponseException exception) {
+            if (exception.getStatusCode() == HttpStatus.UNAUTHORIZED
+                    || exception.getStatusCode() == HttpStatus.FORBIDDEN) {
+                throw new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "GitHub fork lineage fetch unauthorized. Reconnect is required.",
+                        exception);
+            }
+            log.warn("github.fork_lineage.unavailable fullName={} status={}",
+                    fallback.fullName(), exception.getStatusCode().value());
+            return fallback;
+        } catch (RestClientException exception) {
+            log.warn("github.fork_lineage.unavailable fullName={} reason={}",
+                    fallback.fullName(), exception.getClass().getSimpleName());
+            return fallback;
+        }
     }
 
     /**

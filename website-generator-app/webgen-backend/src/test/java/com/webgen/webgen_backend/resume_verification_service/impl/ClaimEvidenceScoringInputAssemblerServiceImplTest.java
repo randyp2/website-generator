@@ -8,6 +8,7 @@ import com.webgen.webgen_backend.verification.service.scoring.model.EvidenceLink
 import com.webgen.webgen_backend.verification.service.scoring.model.SkillClaimInput;
 import com.webgen.webgen_backend.verification.service.impl.ClaimEvidenceScoringInputAssemblerServiceImpl;
 import com.webgen.webgen_backend.verification.service.scoring.VerificationSignalPolicy;
+import com.webgen.webgen_backend.verification.service.scoring.IndependentEvidenceSelector;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
@@ -43,7 +44,8 @@ class ClaimEvidenceScoringInputAssemblerServiceImplTest {
         ClaimEvidenceScoringInputAssemblerServiceImpl assembler = new ClaimEvidenceScoringInputAssemblerServiceImpl(
                 stubClaimEvidenceLinkRepository(links),
                 stubEvidenceRepository(evidenceRows),
-                new VerificationSignalPolicy()
+                new VerificationSignalPolicy(),
+                new IndependentEvidenceSelector()
         );
 
         List<SkillClaimInput> out = assembler.assembleSkillClaimInputs(
@@ -92,7 +94,8 @@ class ClaimEvidenceScoringInputAssemblerServiceImplTest {
         ClaimEvidenceScoringInputAssemblerServiceImpl assembler = new ClaimEvidenceScoringInputAssemblerServiceImpl(
                 stubClaimEvidenceLinkRepository(links),
                 stubEvidenceRepository(evidenceRows),
-                new VerificationSignalPolicy()
+                new VerificationSignalPolicy(),
+                new IndependentEvidenceSelector()
         );
 
         List<SkillClaimInput> out = assembler.assembleSkillClaimInputs(
@@ -130,7 +133,8 @@ class ClaimEvidenceScoringInputAssemblerServiceImplTest {
         ClaimEvidenceScoringInputAssemblerServiceImpl assembler = new ClaimEvidenceScoringInputAssemblerServiceImpl(
                 stubClaimEvidenceLinkRepository(List.of(link)),
                 stubEvidenceRepository(List.of(evidence)),
-                new VerificationSignalPolicy()
+                new VerificationSignalPolicy(),
+                new IndependentEvidenceSelector()
         );
 
         List<SkillClaimInput> out = assembler.assembleSkillClaimInputs(
@@ -166,7 +170,8 @@ class ClaimEvidenceScoringInputAssemblerServiceImplTest {
         ClaimEvidenceScoringInputAssemblerServiceImpl assembler = new ClaimEvidenceScoringInputAssemblerServiceImpl(
                 stubClaimEvidenceLinkRepository(List.of(link)),
                 stubEvidenceRepository(List.of(evidence)),
-                new VerificationSignalPolicy());
+                new VerificationSignalPolicy(),
+                new IndependentEvidenceSelector());
 
         EvidenceLinkSignal signal = assembler.assembleSkillClaimInputs(
                         profileId,
@@ -178,6 +183,47 @@ class ClaimEvidenceScoringInputAssemblerServiceImplTest {
         assertThat(signal.linkConfidence()).isEqualByComparingTo("0.97");
         assertThat(signal.evidenceDepth()).isEqualByComparingTo("0.32");
         assertThat(signal.decayedStrength()).isEqualByComparingTo("0.32000000");
+    }
+
+    @Test
+    void keepsOnlyStrongestSignalFromEachEvidenceGroupBeforeTopK() {
+        UUID profileId = UUID.randomUUID();
+        UUID claimId = UUID.randomUUID();
+        UUID skillId = UUID.randomUUID();
+        OffsetDateTime asOf = OffsetDateTime.parse("2026-04-16T00:00:00Z");
+        UUID strongId = new UUID(0L, 1L);
+        UUID duplicateId = new UUID(0L, 2L);
+        UUID independentId = new UUID(0L, 3L);
+
+        List<ClaimEvidenceLink> links = List.of(
+                buildLink(profileId, claimId, strongId, "dependency_match", "0.95"),
+                buildLink(profileId, claimId, duplicateId, "name_match", "0.90"),
+                buildLink(profileId, claimId, independentId, "topic_match", "0.80"));
+        Evidence strong = buildEvidence(profileId, strongId, asOf, asOf, "strong");
+        Evidence duplicate = buildEvidence(profileId, duplicateId, asOf, asOf, "duplicate");
+        Evidence independent = buildEvidence(profileId, independentId, asOf, asOf, "independent");
+        strong.setEvidenceGroupKey("manual_upload:etag:same-object");
+        duplicate.setEvidenceGroupKey("manual_upload:etag:same-object");
+        independent.setEvidenceGroupKey("github:repository:42");
+
+        ClaimEvidenceScoringInputAssemblerServiceImpl assembler =
+                new ClaimEvidenceScoringInputAssemblerServiceImpl(
+                        stubClaimEvidenceLinkRepository(links),
+                        stubEvidenceRepository(List.of(strong, duplicate, independent)),
+                        new VerificationSignalPolicy(),
+                        new IndependentEvidenceSelector());
+
+        List<EvidenceLinkSignal> signals = assembler.assembleSkillClaimInputs(
+                        profileId,
+                        List.of(buildClaim(profileId, claimId, skillId, "React")),
+                        Map.of(skillId, buildSkill(skillId, "React", "engineering", "1.0")),
+                        asOf)
+                .getFirst().evidenceLinks();
+
+        assertThat(signals).extracting(EvidenceLinkSignal::evidenceId)
+                .containsExactly(strongId, independentId);
+        assertThat(signals).extracting(EvidenceLinkSignal::evidenceGroupKey)
+                .containsExactly("manual_upload:etag:same-object", "github:repository:42");
     }
 
     @SuppressWarnings("unchecked")

@@ -339,7 +339,9 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
         // - profile metadata
         // - users repostiories
         GithubUserResponse profile = githubApiClient.fetchAuthenticatedUser(accessToken);
-        List<GithubRepoResponse> repositories = githubApiClient.fetchOwnedRepositories(accessToken);
+        List<GithubRepoResponse> repositories = githubApiClient.enrichForkLineage(
+                accessToken,
+                githubApiClient.fetchOwnedRepositories(accessToken));
         List<String> repositoryNames = repositories.stream()
                 .map(GithubRepoResponse::fullName)
                 .filter(name -> !isBlank(name))
@@ -443,6 +445,7 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
                         .profile(account.getProfile())
                         .provider(provider)
                         .externalId(candidate.externalId())
+                        .evidenceGroupKey(resolveEvidenceGroupKey(provider, candidate))
                         .evidenceType(candidate.evidenceType())
                         .title(candidate.title())
                         .description(candidate.description())
@@ -476,6 +479,12 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
             EvidenceCandidate candidate,
             OffsetDateTime now) {
         boolean changed = false;
+
+        String evidenceGroupKey = resolveEvidenceGroupKey(evidence.getProvider(), candidate);
+        if (!Objects.equals(evidence.getEvidenceGroupKey(), evidenceGroupKey)) {
+            evidence.setEvidenceGroupKey(evidenceGroupKey);
+            changed = true;
+        }
 
         if (!Objects.equals(evidence.getEvidenceType(), candidate.evidenceType())) {
             evidence.setEvidenceType(candidate.evidenceType());
@@ -511,6 +520,13 @@ public class ConnectionSyncServiceImpl implements ConnectionSyncService {
         }
 
         return changed;
+    }
+
+    private String resolveEvidenceGroupKey(String provider, EvidenceCandidate candidate) {
+        if (candidate.evidenceGroupKey() != null && !candidate.evidenceGroupKey().isBlank()) {
+            return candidate.evidenceGroupKey();
+        }
+        return provider + ':' + candidate.externalId();
     }
 
     /**

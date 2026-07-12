@@ -1,6 +1,8 @@
 package com.webgen.webgen_backend.verification.service.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.webgen.webgen_backend.profile.entity.Profile;
 import com.webgen.webgen_backend.shared.config.R2Properties;
 import com.webgen.webgen_backend.verification.dto.evidence.ClaimEvidenceUploadDTO;
@@ -149,9 +151,8 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
             UUID claimId,
             FinalizeClaimEvidenceUploadRequestDTO request
     ) {
-        System.out.println(">>> [ASSET-UPLOAD] finalize start | profileId=" + profileId
-                + " claimId=" + claimId
-                + " uploadId=" + (request == null ? null : request.getUploadId()));
+        log.info("Asset upload finalize started profileId={} claimId={} uploadId={}",
+                profileId, claimId, request == null ? null : request.getUploadId());
 
         //--- Validate finalize request and claim ownership
         validateFinalizeRequest(profileId, claimId, request);
@@ -171,25 +172,26 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
         claimEvidenceUploadFilePolicy.assertSupportedContentType(upload.getContentType());
 
         //--- Verify object integrity in storage before marking upload completed
-        claimEvidenceUploadObjectVerifier.assertObjectIntegrity(
-                s3Client,
-                upload.getStorageBucket(),
-                upload.getStorageKey(),
-                upload.getFileSizeBytes(),
-                upload.getContentType()
-        );
+        ClaimEvidenceUploadObjectVerifier.VerifiedObjectIdentity objectIdentity =
+                claimEvidenceUploadObjectVerifier.assertObjectIntegrity(
+                        s3Client,
+                        upload.getStorageBucket(),
+                        upload.getStorageKey(),
+                        upload.getFileSizeBytes(),
+                        upload.getContentType()
+                );
 
         //--- Transition lifecycle status and persist finalize metadata
         upload.setStatus(STATUS_QUEUED);
         upload.setAnalysisError(null);
-        upload.setMetadata(Optional.ofNullable(request.getMetadata()).orElseGet(objectMapper::createObjectNode));
+        upload.setMetadata(withVerifiedObjectIdentity(request.getMetadata(), objectIdentity));
         upload.setUpdatedAt(OffsetDateTime.now());
 
         ClaimEvidenceUpload saved = claimEvidenceUploadRepository.save(upload);
-        System.out.println(">>> [ASSET-UPLOAD] finalize persisted | uploadId=" + saved.getId()
-                + " status=" + saved.getStatus()
-                + " contentType=" + saved.getContentType()
-                + " fileSizeBytes=" + saved.getFileSizeBytes());
+        log.info("Asset upload finalize persisted uploadId={} status={} contentType={} "
+                        + "fileSizeBytes={} checksumPresent={} eTagPresent={}",
+                saved.getId(), saved.getStatus(), saved.getContentType(), saved.getFileSizeBytes(),
+                objectIdentity.checksumSha256() != null, objectIdentity.eTag() != null);
 
         //--- Enqueue asynchronous asset verification after successful finalize
         AssetVerificationEnqueueDTO enqueueDTO = AssetVerificationEnqueueDTO.builder()
@@ -209,6 +211,27 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
                 .upload(toDto(saved))
                 .jobId(jobId)
                 .build();
+    }
+
+    private ObjectNode withVerifiedObjectIdentity(
+            JsonNode requestMetadata,
+            ClaimEvidenceUploadObjectVerifier.VerifiedObjectIdentity identity
+    ) {
+        ObjectNode metadata = requestMetadata instanceof ObjectNode objectNode
+                ? objectNode.deepCopy()
+                : objectMapper.createObjectNode();
+        ObjectNode verifiedObject = objectMapper.createObjectNode();
+        if (identity.checksumSha256() != null) {
+            verifiedObject.put("checksumSha256", identity.checksumSha256());
+        }
+        if (identity.eTag() != null) {
+            verifiedObject.put("eTag", identity.eTag());
+        }
+        if (identity.contentLength() != null) {
+            verifiedObject.put("contentLength", identity.contentLength());
+        }
+        metadata.set("verifiedObject", verifiedObject);
+        return metadata;
     }
 
     @Override

@@ -12,6 +12,7 @@ import com.webgen.webgen_backend.verification.repository.ClaimEvidenceLinkReposi
 import com.webgen.webgen_backend.verification.repository.ClaimEvidenceUploadRepository;
 import com.webgen.webgen_backend.verification.repository.EvidenceRepository;
 import com.webgen.webgen_backend.verification.service.ClaimVerificationStatusService;
+import com.webgen.webgen_backend.verification.service.shared.EvidenceGroupKeyFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -40,6 +41,7 @@ public class AssetVerificationPersistenceService {
     private final ClaimEvidenceLinkRepository linkRepository;
     private final ObjectMapper objectMapper;
     private final ClaimVerificationStatusService statusService;
+    private final EvidenceGroupKeyFactory evidenceGroupKeyFactory;
 
     @Transactional
     public void persistSuccess(
@@ -90,6 +92,7 @@ public class AssetVerificationPersistenceService {
         double matchConfidence = bounded(parsed.result().getMatchConfidence());
         double evidenceDepth = bounded(parsed.result().getEvidenceDepth());
         evidence.setSourceUploadId(upload.getId());
+        evidence.setEvidenceGroupKey(evidenceGroupKeyFactory.forManualUpload(upload));
         evidence.setEvidenceType(EVIDENCE_TYPE);
         evidence.setTitle(upload.getOriginalFileName());
         evidence.setDescription(parsed.result().getSummary());
@@ -114,6 +117,9 @@ public class AssetVerificationPersistenceService {
         metadata.put("aiShouldLink", parsed.shouldLink());
         metadata.put("updatedAt", now.toString());
         evidence.setMetadata(metadata);
+        log.info("Asset evidence identity profileId={} claimId={} uploadId={} evidenceId={} groupKey={}",
+                profile.getId(), claim.getId(), upload.getId(), evidence.getId(),
+                evidence.getEvidenceGroupKey());
         return evidenceRepository.save(evidence);
     }
 
