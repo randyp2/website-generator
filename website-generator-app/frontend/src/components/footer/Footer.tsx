@@ -5,7 +5,7 @@ export default function Footer() {
     const links = [
         { label: "Support", href: "#" },
         { label: "Privacy", href: "/privacy" },
-        { label: "Terms", href: "#" },
+        { label: "Terms", href: "/terms" },
     ];
 
     return (
