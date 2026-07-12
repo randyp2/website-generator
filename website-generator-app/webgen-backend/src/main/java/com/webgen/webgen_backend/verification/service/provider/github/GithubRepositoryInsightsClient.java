@@ -18,6 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static com.webgen.webgen_backend.verification.service.sync.VerificationMatchTextHelper.isBlank;
@@ -32,13 +33,22 @@ public class GithubRepositoryInsightsClient {
     private static final int AUTHORSHIP_COMMIT_SAMPLE_SIZE = 5;
 
     private final RestTemplate restTemplate;
+    private final GithubCommitContributionAnalyzer contributionAnalyzer;
 
-    public GithubRepositoryInsightsClient() {
-        this(new RestTemplate());
+    public GithubRepositoryInsightsClient(GithubCommitContributionAnalyzer contributionAnalyzer) {
+        this(new RestTemplate(), contributionAnalyzer);
     }
 
     GithubRepositoryInsightsClient(RestTemplate restTemplate) {
+        this(restTemplate, new GithubCommitContributionAnalyzer());
+    }
+
+    GithubRepositoryInsightsClient(
+            RestTemplate restTemplate,
+            GithubCommitContributionAnalyzer contributionAnalyzer
+    ) {
         this.restTemplate = restTemplate;
+        this.contributionAnalyzer = contributionAnalyzer;
     }
 
     /** Resolves root identities for a bounded number of forks. */
@@ -101,8 +111,9 @@ public class GithubRepositoryInsightsClient {
                     new HttpEntity<>(buildGithubApiHeaders(accessToken)),
                     GithubCommitResponse[].class);
             GithubCommitResponse[] commits = response.getBody();
-            int commitCount = commits == null ? 0 : commits.length;
-            return GithubAuthorshipSignal.assessed(commitCount, repository.isFork());
+            return contributionAnalyzer.assess(
+                    commits == null ? List.of() : Arrays.asList(commits),
+                    repository.isFork());
         } catch (RestClientResponseException exception) {
             if (exception.getStatusCode() == HttpStatus.UNAUTHORIZED) {
                 throw new ResponseStatusException(
@@ -111,7 +122,7 @@ public class GithubRepositoryInsightsClient {
                         exception);
             }
             if (exception.getStatusCode() == HttpStatus.CONFLICT) {
-                return GithubAuthorshipSignal.assessed(0, repository.isFork());
+                return contributionAnalyzer.assess(List.of(), repository.isFork());
             }
             log.warn("github.authorship.unavailable fullName={} status={}",
                     repository.fullName(), exception.getStatusCode().value());

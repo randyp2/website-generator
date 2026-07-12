@@ -34,10 +34,13 @@ const evidenceDepthCaps = [
 ];
 
 const authorshipWeights = [
-  ["Five or more attributed commits", "1.00"],
-  ["Two to four attributed commits", "0.90"],
-  ["One attributed commit", "0.75"],
+  ["Five direct commits across multiple days", "1.00"],
+  ["Two or more direct commits across multiple days", "0.90"],
+  ["Multiple direct commits on one day", "0.85"],
+  ["One direct commit", "0.75"],
+  ["Merge-only activity, owned repository", "0.65"],
   ["No attributed commits, owned repository", "0.60"],
+  ["Merge-only activity, fork", "0.45"],
   ["No attributed commits, fork", "0.30"],
   ["GitHub data unavailable or scan limit reached", "1.00"],
 ];
@@ -45,8 +48,11 @@ const authorshipWeights = [
 const calibrationRows = [
   ["Three recognized claims, no evidence", "50", "Neutral baseline"],
   ["Untouched fork with dependency match", "53", "Small corroboration lift"],
-  ["Repository with one attributed commit", "58", "Authorship improves the signal"],
-  ["Active repository with five commits", "61", "Strong single repository"],
+  ["Owned repository with merge-only activity", "57", "Partial contribution credit"],
+  ["Repository with one direct commit", "58", "Authorship improves the signal"],
+  ["Several direct commits on one day", "59", "Concentrated direct contribution"],
+  ["Several direct commits across multiple days", "60", "Sustained direct contribution"],
+  ["Active repository with five direct commits", "61", "Strong single repository"],
   ["Authorship API unavailable", "61", "No outage penalty"],
   ["Two-year-old active repository", "55", "Gradual recency decay"],
   ["Three active repositories", "71", "Repeated independent usage"],
@@ -172,7 +178,8 @@ claim score        = 50 + (claim cap - 50) × boost progress`}</code>
             Repository evidence is multiplied by an authorship weight based on commits
             GitHub attributes to the connected account. The sync reads at most five
             matching commits for each of the thirty most recently updated repositories.
-            Uploads and non-repository evidence always use an authorship weight of 1.00.
+            It separates direct commits from merge commits and counts distinct direct
+            contribution days. Uploads and non-repository evidence use a weight of 1.00.
           </p>
           <div className="mt-4 overflow-x-auto border border-border">
             <table className="w-full border-collapse text-left text-sm">
@@ -196,7 +203,8 @@ claim score        = 50 + (claim cap - 50) × boost progress`}</code>
             API failures and scan limits never reduce a score. GitHub may report no
             matching commits when work uses an unlinked email or alternate identity,
             so zero-commit results use gradual floors instead of excluding a repository.
-            Commit count is an authorship signal, not a judgment of code quality.
+            AI-assisted commits are allowed. The model does not attempt to identify the
+            tools used to create code or infer authorship from commit messages.
           </p>
 
           <h3 className="mt-8 text-lg font-semibold">Gradual reviewed-evidence cap</h3>
@@ -325,7 +333,7 @@ overall   = baseline + mean lift × sqrt(coverage)`}</code>
                 <li>Replaced the hard AI cap jump with a gradual 80–100 unlock.</li>
                 <li>Separated artifact match confidence from demonstrated evidence depth.</li>
                 <li>Collapsed correlated evidence before top-K selection and rank decay.</li>
-                <li>Added contribution-sensitive weighting for GitHub repositories.</li>
+                <li>Weighted direct commits, merge activity, and contribution days separately.</li>
                 <li>Added deterministic calibration scenarios and scoring invariants.</li>
                 <li>Made repository topics, names, and descriptions discovery-only.</li>
                 <li>Excluded rejected claims and left unresolved claims unscored.</li>
@@ -334,7 +342,7 @@ overall   = baseline + mean lift × sqrt(coverage)`}</code>
             <div className="border border-border p-5">
               <h3 className="font-semibold">Still under review</h3>
               <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
-                <li>Semantic near-duplicate and commit-quality detection need refinement.</li>
+                <li>Semantic near-duplicate and changed-file quality detection need refinement.</li>
                 <li>Signal weights have not yet been calibrated against reviewed data.</li>
               </ul>
             </div>

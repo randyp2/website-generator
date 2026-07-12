@@ -81,10 +81,12 @@ public class GithubEvidenceSnapshotService {
             candidates.add(candidate);
             log.info("github.evidence_candidate fullName={} occurredAt={} capturedAt={} "
                             + "dependencyCount={} authorshipStatus={} authoredCommitCount={} "
+                            + "directCommitCount={} mergeCommitCount={} activeDayCount={} "
                             + "authorshipWeight={} authorshipReason={}",
                     repository.fullName(), candidate.occurredAt(), candidate.capturedAt(),
                     dependencySources.size(), authorship.status(), authorship.authoredCommitCount(),
-                    authorship.weight(), authorship.reason());
+                    authorship.directCommitCount(), authorship.mergeCommitCount(),
+                    authorship.activeDayCount(), authorship.weight(), authorship.reason());
         }
 
         return new ProviderSyncSnapshot(

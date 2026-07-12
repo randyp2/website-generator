@@ -108,6 +108,9 @@ public class GithubEvidenceCandidateMapper {
         ObjectNode authorshipNode = metadata.putObject("authorship");
         authorshipNode.put("status", resolvedAuthorship.status().name().toLowerCase(Locale.ROOT));
         authorshipNode.put("authoredCommitCount", resolvedAuthorship.authoredCommitCount());
+        authorshipNode.put("directCommitCount", resolvedAuthorship.directCommitCount());
+        authorshipNode.put("mergeCommitCount", resolvedAuthorship.mergeCommitCount());
+        authorshipNode.put("activeDayCount", resolvedAuthorship.activeDayCount());
         authorshipNode.put("weight", resolvedAuthorship.weight());
         authorshipNode.put("reason", resolvedAuthorship.reason());
 

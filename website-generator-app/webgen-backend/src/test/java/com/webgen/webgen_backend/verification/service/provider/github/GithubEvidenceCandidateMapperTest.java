@@ -91,7 +91,11 @@ class GithubEvidenceCandidateMapperTest {
         JsonNode authorship = candidate.metadata().path("authorship");
         assertThat(authorship.path("status").asText()).isEqualTo("confirmed");
         assertThat(authorship.path("authoredCommitCount").asInt()).isEqualTo(2);
+        assertThat(authorship.path("directCommitCount").asInt()).isEqualTo(2);
+        assertThat(authorship.path("mergeCommitCount").asInt()).isZero();
+        assertThat(authorship.path("activeDayCount").asInt()).isEqualTo(2);
         assertThat(authorship.path("weight").decimalValue()).isEqualByComparingTo("0.90");
-        assertThat(authorship.path("reason").asText()).isEqualTo("multiple_authored_commits");
+        assertThat(authorship.path("reason").asText())
+                .isEqualTo("multiple_direct_commits_across_multiple_days");
     }
 }

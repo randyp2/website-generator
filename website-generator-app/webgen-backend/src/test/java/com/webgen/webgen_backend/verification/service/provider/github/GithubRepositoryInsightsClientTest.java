@@ -25,7 +25,14 @@ class GithubRepositoryInsightsClientTest {
         server.expect(once(), requestTo(
                         "https://api.github.com/repos/octo/app/commits?author=octocat&per_page=5"))
                 .andExpect(method(HttpMethod.GET))
-                .andRespond(withSuccess("[{\"sha\":\"one\"},{\"sha\":\"two\"}]", MediaType.APPLICATION_JSON));
+                .andRespond(withSuccess("""
+                        [
+                          {"sha":"one","commit":{"author":{"date":"2026-07-10T12:00:00Z"}},
+                           "parents":[{"sha":"parent-one"}]},
+                          {"sha":"two","commit":{"author":{"date":"2026-07-11T12:00:00Z"}},
+                           "parents":[{"sha":"parent-two"}]}
+                        ]
+                        """, MediaType.APPLICATION_JSON));
         GithubRepositoryInsightsClient client = new GithubRepositoryInsightsClient(restTemplate);
 
         GithubAuthorshipSignal signal = client.assessAuthorship(
@@ -33,6 +40,9 @@ class GithubRepositoryInsightsClientTest {
 
         assertThat(signal.status()).isEqualTo(GithubAuthorshipSignal.Status.CONFIRMED);
         assertThat(signal.authoredCommitCount()).isEqualTo(2);
+        assertThat(signal.directCommitCount()).isEqualTo(2);
+        assertThat(signal.mergeCommitCount()).isZero();
+        assertThat(signal.activeDayCount()).isEqualTo(2);
         assertThat(signal.weight()).isEqualByComparingTo("0.90");
         server.verify();
     }

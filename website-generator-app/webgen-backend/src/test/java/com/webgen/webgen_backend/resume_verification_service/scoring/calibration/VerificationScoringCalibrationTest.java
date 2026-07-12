@@ -24,8 +24,14 @@ class VerificationScoringCalibrationTest {
 
         assertThat(score(results, "claims_only_builder")).isEqualTo(50);
         assertThat(score(results, "untouched_fork"))
+                .isLessThan(score(results, "merge_only_repository"));
+        assertThat(score(results, "merge_only_repository"))
                 .isLessThan(score(results, "one_commit_repository"));
         assertThat(score(results, "one_commit_repository"))
+                .isLessThan(score(results, "same_day_direct_commits"));
+        assertThat(score(results, "same_day_direct_commits"))
+                .isLessThanOrEqualTo(score(results, "multi_day_direct_commits"));
+        assertThat(score(results, "multi_day_direct_commits"))
                 .isLessThan(score(results, "active_repository"));
         assertThat(score(results, "authorship_api_unavailable"))
                 .isEqualTo(score(results, "active_repository"));
@@ -50,8 +56,14 @@ class VerificationScoringCalibrationTest {
                         claim("React"), claim("Java"), claim("PostgreSQL")),
                 scenario("untouched_fork", "Fresh dependency match on an untouched fork",
                         claim("React", github("fork", "fork-root", "dependency_match", "0.90", "0.30", 0))),
+                scenario("merge_only_repository", "Fresh dependency match with merge-only activity",
+                        claim("React", github("merge only", "repo-merge", "dependency_match", "0.90", "0.65", 0))),
                 scenario("one_commit_repository", "Fresh dependency match with one attributed commit",
                         claim("React", github("one commit", "repo-one", "dependency_match", "0.90", "0.75", 0))),
+                scenario("same_day_direct_commits", "Several direct commits on one day",
+                        claim("React", github("same day", "repo-same-day", "dependency_match", "0.90", "0.85", 0))),
+                scenario("multi_day_direct_commits", "Several direct commits across multiple days",
+                        claim("React", github("multi day", "repo-multi-day", "dependency_match", "0.90", "0.90", 0))),
                 scenario("active_repository", "Fresh dependency match with five attributed commits",
                         claim("React", github("active repo", "repo-active", "dependency_match", "0.90", "1.00", 0))),
                 scenario("authorship_api_unavailable", "Active match with neutral API fallback",
