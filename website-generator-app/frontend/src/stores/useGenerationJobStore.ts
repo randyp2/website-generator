@@ -1,5 +1,9 @@
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
+import {
+    persist,
+    createJSONStorage,
+    type StateStorage,
+} from "zustand/middleware";
 
 /** Which pipeline produced the job. */
 export type GenerationJobKind = "generate" | "refine";
@@ -28,6 +32,20 @@ const STORE_KEY = "generation-job-store";
 let hasAttemptedJobStoreRecovery = false;
 
 /**
+ * No-op storage used on the server, where real Web Storage is unavailable.
+ *
+ * We must key the guard off `window`, not `typeof localStorage`: recent Node
+ * runtimes inject a global `localStorage` (via `--localstorage-file`) that is
+ * present but non-functional, so a `typeof localStorage` check would still
+ * hand persist a broken store whose `getItem` throws.
+ */
+const noopStorage: StateStorage = {
+    getItem: () => null,
+    setItem: () => {},
+    removeItem: () => {},
+};
+
+/**
  * Tracks the currently running generation/refine job.
  *
  * Persisted to localStorage (unlike the sessionStorage portfolio store) so
@@ -50,7 +68,18 @@ export const useGenerationJobStore = create<GenerationJobState>()(
         }),
         {
             name: STORE_KEY,
-            storage: createJSONStorage(() => localStorage),
+            storage: createJSONStorage(() =>
+                typeof window !== "undefined"
+                    ? window.localStorage
+                    : noopStorage,
+            ),
+            // Note: we deliberately do NOT set skipHydration. Several callers
+            // read this store synchronously at mount (return to an in-flight
+            // job, re-attach to a running generation to avoid paying twice), so
+            // it must be hydrated by first render on the client. SSR is covered
+            // by noopStorage above; the one component that renders from this
+            // store during SSR (the sidebar "busy" dot) gates on
+            // useStoreHydration to avoid a hydration mismatch.
             // Jobs are short-lived: discard any older schema instead of
             // loading a stale shape. Bump `version` when ActiveGenerationJob
             // changes shape.
@@ -59,9 +88,10 @@ export const useGenerationJobStore = create<GenerationJobState>()(
                 version === 1 ? persistedState : undefined,
             // Corrupt persisted state would silently disable job tracking:
             // recover ONCE by dropping the bad entry and rehydrating with
-            // defaults; a second failure would loop. Deferred because the
-            // first hydrate runs synchronously during store creation, before
-            // the store const is initialized.
+            // defaults; a second failure would loop. The initial hydrate runs
+            // synchronously at store creation; on the server it hits
+            // noopStorage (never errors), so this recovery path only executes
+            // client-side where window.localStorage is present.
             onRehydrateStorage: () => (_state, error) => {
                 if (!error) return;
                 console.error(
@@ -70,7 +100,7 @@ export const useGenerationJobStore = create<GenerationJobState>()(
                 );
                 if (hasAttemptedJobStoreRecovery) return;
                 hasAttemptedJobStoreRecovery = true;
-                localStorage.removeItem(STORE_KEY);
+                window.localStorage.removeItem(STORE_KEY);
                 setTimeout(() => {
                     void useGenerationJobStore.persist.rehydrate();
                 }, 0);

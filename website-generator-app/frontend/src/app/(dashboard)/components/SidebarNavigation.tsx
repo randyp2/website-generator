@@ -29,6 +29,7 @@ import BrandWordmark from "@/components/branding/BrandWordmark";
 import useMyProfilePath from "@/hooks/useMyProfilePath";
 import { usePortfolioListQuery } from "../dashboard/hooks/usePortfolioListQuery";
 import { useGenerationJobStore } from "@/stores/useGenerationJobStore";
+import { useStoreHydration } from "@/hooks/useStoreHydration";
 
 interface NavItem {
     id: string;
@@ -79,7 +80,11 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
     const { theme, setTheme } = useTheme();
     const { data: portfolios = [] } = usePortfolioListQuery(user?.id);
     const portfoliosCount = portfolios.length;
+    // Gate on hydration so the server render (no persisted job) and the first
+    // client render agree; the busy dot appears once the store has hydrated.
+    const jobStoreHydrated = useStoreHydration(useGenerationJobStore);
     const activeJob = useGenerationJobStore((state) => state.activeJob);
+    const hasActiveJob = jobStoreHydrated && activeJob !== null;
     const [showProfileMenu, setShowProfileMenu] = useState<boolean>(false);
     const [showThemeModal, setShowThemeModal] = useState<boolean>(false);
     const currentTheme =
@@ -108,7 +113,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
             label: "Create New",
             icon: MdOutlineCreate,
             path: "/dashboard/create",
-            busy: activeJob !== null,
+            busy: hasActiveJob,
         },
         {
             id: "publish",
