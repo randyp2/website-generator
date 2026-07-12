@@ -69,9 +69,12 @@ public class ClaimVerificationStatusServiceImpl implements ClaimVerificationStat
         for (Claim claim : claims) {
             String next = deriveStatus(claim, linksByClaim.getOrDefault(claim.getId(), List.of()), evidenceById);
             if (!Objects.equals(claim.getStatus(), next)) {
-                log.info("Claim verification status changed profileId={} claimId={} prior={} next={} activeLinks={}",
+                long scoringLinks = linksByClaim.getOrDefault(claim.getId(), List.of()).stream()
+                        .filter(link -> signalPolicy.isScoringEligibleLinkType(link.getLinkType()))
+                        .count();
+                log.info("Claim verification status changed profileId={} claimId={} prior={} next={} scoringLinks={}",
                         profileId, claim.getId(), claim.getStatus(), next,
-                        linksByClaim.getOrDefault(claim.getId(), List.of()).size());
+                        scoringLinks);
                 claim.setStatus(next);
                 claim.setUpdatedAt(now);
                 changed++;
@@ -104,8 +107,10 @@ public class ClaimVerificationStatusServiceImpl implements ClaimVerificationStat
         if (verified) {
             return "verified";
         }
-        boolean corroborated = links.stream().anyMatch(link -> link.getLinkConfidence() != null
-                && link.getLinkConfidence().compareTo(MIN_CORROBORATION_CONFIDENCE) >= 0);
+        boolean corroborated = links.stream().anyMatch(link ->
+                signalPolicy.isScoringEligibleLinkType(link.getLinkType())
+                        && link.getLinkConfidence() != null
+                        && link.getLinkConfidence().compareTo(MIN_CORROBORATION_CONFIDENCE) >= 0);
         return corroborated ? "corroborated" : "needs_evidence";
     }
 

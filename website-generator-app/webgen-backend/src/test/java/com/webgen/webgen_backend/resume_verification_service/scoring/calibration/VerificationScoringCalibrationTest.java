@@ -31,8 +31,8 @@ class VerificationScoringCalibrationTest {
                 .isEqualTo(score(results, "active_repository"));
         assertThat(score(results, "older_active_repository"))
                 .isBetween(50, score(results, "active_repository") - 1);
-        assertThat(score(results, "five_weak_repositories"))
-                .isLessThan(score(results, "strong_reviewed_artifact"));
+        assertThat(score(results, "five_description_matches"))
+                .isEqualTo(score(results, "claims_only_builder"));
         assertThat(score(results, "duplicate_reviewed_upload"))
                 .isEqualTo(score(results, "strong_reviewed_artifact"));
         assertThat(score(results, "broad_profile_sparse_evidence"))
@@ -61,7 +61,7 @@ class VerificationScoringCalibrationTest {
                                 github("active 3", "active-3", "dependency_match", "0.90", "1.00", 0))),
                 scenario("strong_reviewed_artifact", "Fresh reviewed artifact with 0.95 evidence depth",
                         claim("React", upload("reviewed", "upload-strong", "0.97", "0.95", 0))),
-                scenario("five_weak_repositories", "Five independent description matches",
+                scenario("five_description_matches", "Five independent description matches",
                         claim("React",
                                 github("weak 1", "weak-1", "description_match", "0.60", "0.60", 0),
                                 github("weak 2", "weak-2", "description_match", "0.60", "0.60", 0),

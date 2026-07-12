@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Single source of truth for how much to trust each type of evidence signal,
@@ -34,6 +35,9 @@ public class VerificationSignalPolicy {
      * decided what its signals are worth.
      */
     private static final BigDecimal DEFAULT_LINK_TYPE_WEIGHT = new BigDecimal("0.50");
+
+    /** Link types retained for discovery provenance but excluded from verification. */
+    private static final Set<String> DISCOVERY_ONLY_LINK_TYPES = Set.of("description_match");
 
     /**
      * How much to trust each link type when calculating evidence strength.
@@ -108,20 +112,16 @@ public class VerificationSignalPolicy {
             Map.entry("name_match", new BigDecimal("0.72")),
 
             /*
-             * DESCRIPTION MATCH — 0.58
+             * DESCRIPTION MATCH: DISCOVERY ONLY
              *
              * The skill appears in the repository's written description:
              * "A web app built with Java and Spring Boot".
              *
-             * Descriptions are free-form text — anyone can write anything
-             * without it having any relationship to the actual code. This is
-             * a weaker corroborating signal. Useful when combined with other
-             * matches, but not strong enough to stand alone as proof of usage.
-             *
-             * Lower weight (0.58): a 0.85 confidence description match
-             * contributes 0.85 × 0.58 = 0.49 — roughly half a dependency match.
+             * Descriptions are free-form text and are useful for associating a
+             * repository with a claim. They do not independently prove usage,
+             * so the link remains available as provenance but contributes zero.
              */
-            Map.entry("description_match", new BigDecimal("0.58")),
+            Map.entry("description_match", BigDecimal.ZERO),
 
             /*
              * LANGUAGE + TEXT MATCH — 0.48
@@ -232,6 +232,15 @@ public class VerificationSignalPolicy {
                 linkType.trim().toLowerCase(Locale.ROOT),
                 DEFAULT_LINK_TYPE_WEIGHT
         );
+    }
+
+    /** Returns whether a persisted discovery link may affect verification progress. */
+    public boolean isScoringEligibleLinkType(String linkType) {
+        if (linkType == null || linkType.isBlank()) {
+            return true;
+        }
+        return !DISCOVERY_ONLY_LINK_TYPES.contains(
+                linkType.trim().toLowerCase(Locale.ROOT));
     }
 
     /**

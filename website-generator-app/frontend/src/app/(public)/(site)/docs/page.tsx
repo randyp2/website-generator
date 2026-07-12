@@ -20,7 +20,7 @@ const signalWeights = [
   ["AI document match", "1.00"],
   ["Repository topic", "0.85"],
   ["Repository name", "0.72"],
-  ["Repository description", "0.58"],
+  ["Repository description", "Discovery only"],
   ["Language plus text", "0.48"],
 ];
 
@@ -51,7 +51,7 @@ const calibrationRows = [
   ["Two-year-old active repository", "55", "Gradual recency decay"],
   ["Three active repositories", "71", "Repeated independent usage"],
   ["One reviewed artifact at 0.95 depth", "69", "Strong reviewed evidence"],
-  ["Five weak repository descriptions", "58", "Weak signals accumulate slowly"],
+  ["Five repository descriptions", "50", "Descriptions add no verification lift"],
   ["Same reviewed upload submitted twice", "69", "Duplicate adds no score"],
   ["Five reviewed artifacts at 0.95 depth", "91", "Expert-range evidence"],
   ["Four claims, only one evidenced", "56", "Coverage dampens profile lift"],
@@ -260,6 +260,11 @@ claim cap       = 80 + round(20 × review progress)`}</code>
               </tbody>
             </table>
           </div>
+          <p className="mt-4 leading-7 text-muted-foreground">
+            Repository descriptions can help associate a repository with a skill claim,
+            but they are user-written discovery metadata. Description-only links remain
+            visible as provenance and do not affect score, evidence counts, or claim status.
+          </p>
         </section>
 
         <section>
@@ -319,6 +324,7 @@ overall   = baseline + mean lift × sqrt(coverage)`}</code>
                 <li>Collapsed correlated evidence before top-K selection and rank decay.</li>
                 <li>Added contribution-sensitive weighting for GitHub repositories.</li>
                 <li>Added deterministic calibration scenarios and scoring invariants.</li>
+                <li>Made repository descriptions discovery-only instead of score-bearing.</li>
                 <li>Excluded rejected claims and left unresolved claims unscored.</li>
               </ul>
             </div>

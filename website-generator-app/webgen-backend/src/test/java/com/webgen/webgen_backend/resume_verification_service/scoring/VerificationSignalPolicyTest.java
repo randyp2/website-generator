@@ -32,4 +32,11 @@ class VerificationSignalPolicyTest {
         assertThat(policy.isEligibleForReviewedStatus(
                 "github", "dependency_match", BigDecimal.ONE)).isFalse();
     }
+
+    @Test
+    void repositoryDescriptionsRemainDiscoveryOnly() {
+        assertThat(policy.isScoringEligibleLinkType("description_match")).isFalse();
+        assertThat(policy.linkTypeWeight("description_match")).isEqualByComparingTo("0");
+        assertThat(policy.isScoringEligibleLinkType("dependency_match")).isTrue();
+    }
 }

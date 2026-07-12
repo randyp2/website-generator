@@ -132,15 +132,16 @@ public class ClaimEvidenceMatcher {
         if (!isBlank(primaryLanguage)
                 && termSet.terms().contains(primaryLanguage)
                 && best.matched()) {
-            best = maxMatch(
-                    best,
-                    buildMatch(
-                            "language_plus_text_match",
-                            BigDecimal.valueOf(0.55),
-                            "Language matched with supporting repository signal",
-                            primaryLanguage,
-                            "language",
-                            null));
+            ClaimEvidenceMatchResult languageMatch = buildMatch(
+                    "language_plus_text_match",
+                    BigDecimal.valueOf(0.55),
+                    "Language matched with supporting repository signal",
+                    primaryLanguage,
+                    "language",
+                    null);
+            best = "description_match".equals(best.linkType())
+                    ? languageMatch
+                    : maxMatch(best, languageMatch);
         }
 
         return best;

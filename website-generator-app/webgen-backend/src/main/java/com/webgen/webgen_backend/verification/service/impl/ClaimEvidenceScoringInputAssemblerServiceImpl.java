@@ -167,6 +167,12 @@ public class ClaimEvidenceScoringInputAssemblerServiceImpl
         }
 
         String normalizedLinkType = normalizeLinkType(link.getLinkType());
+        if (!verificationSignalPolicy.isScoringEligibleLinkType(normalizedLinkType)) {
+            log.debug("[EvidenceInput][DiscoveryOnly] claimId={} evidenceId={} linkType={} "
+                            + "excludedFromScoring=true",
+                    claim == null ? null : claim.getId(), evidence.getId(), normalizedLinkType);
+            return null;
+        }
         BigDecimal linkTypeWeight = verificationSignalPolicy.linkTypeWeight(normalizedLinkType);
         BigDecimal boundedMatchConfidence = clamp01(link.getLinkConfidence());
         BigDecimal boundedEvidenceDepth = link.getEvidenceDepth() == null

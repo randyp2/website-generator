@@ -258,6 +258,34 @@ class ClaimEvidenceScoringInputAssemblerServiceImplTest {
         assertThat(signal.decayedStrength()).isEqualByComparingTo("0.30000000");
     }
 
+    @Test
+    void excludesDescriptionMatchesFromScoringInputs() {
+        UUID profileId = UUID.randomUUID();
+        UUID claimId = UUID.randomUUID();
+        UUID skillId = UUID.randomUUID();
+        UUID evidenceId = UUID.randomUUID();
+        OffsetDateTime asOf = OffsetDateTime.parse("2026-04-16T00:00:00Z");
+        ClaimEvidenceLink link = buildLink(
+                profileId, claimId, evidenceId, "description_match", "0.90");
+        Evidence evidence = buildEvidence(profileId, evidenceId, asOf, asOf, "description");
+
+        ClaimEvidenceScoringInputAssemblerServiceImpl assembler =
+                new ClaimEvidenceScoringInputAssemblerServiceImpl(
+                        stubClaimEvidenceLinkRepository(List.of(link)),
+                        stubEvidenceRepository(List.of(evidence)),
+                        new VerificationSignalPolicy(),
+                        new IndependentEvidenceSelector());
+
+        List<EvidenceLinkSignal> signals = assembler.assembleSkillClaimInputs(
+                        profileId,
+                        List.of(buildClaim(profileId, claimId, skillId, "React")),
+                        Map.of(skillId, buildSkill(skillId, "React", "engineering", "1.0")),
+                        asOf)
+                .getFirst().evidenceLinks();
+
+        assertThat(signals).isEmpty();
+    }
+
     @SuppressWarnings("unchecked")
     private ClaimEvidenceLinkRepository stubClaimEvidenceLinkRepository(List<ClaimEvidenceLink> links) {
         return (ClaimEvidenceLinkRepository) Proxy.newProxyInstance(
