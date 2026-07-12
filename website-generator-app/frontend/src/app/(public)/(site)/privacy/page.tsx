@@ -131,13 +131,9 @@ const sections: Section[] = [
         heading: "9. Your rights",
         body: [
             "Depending on where you live, you may have the right to access, correct, export, or delete your personal data, and to object to or restrict certain processing. You can delete individual portfolios, resumes, uploads, and connected accounts directly in the app.",
-            // TODO(launch): this statement describes self-serve account
-            // deletion as live. The delete-account action is not wired up yet
-            // (no full account-deletion endpoint exists). Wire it before launch
-            // so this claim is truthful, per the enforceable-promise risk.
-            "You can permanently delete your account and all associated data at any time from your account settings. When you do, we delete your personal data except for limited records we are legally required to retain, such as billing records. You can also contact us at " +
+            "To access or delete your entire account and associated data, contact us at " +
                 CONTACT_EMAIL +
-                " to make an access or deletion request; we will verify your identity and respond within 30 days. You will not be discriminated against for exercising these rights.",
+                ". We will verify your identity and respond within 30 days. When we delete your account, we remove your personal data except for limited records we are legally required to retain, such as billing records. You will not be discriminated against for exercising these rights.",
         ],
     },
     {

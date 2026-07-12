@@ -26,6 +26,10 @@ public record GithubTreeResponse(
             @JsonProperty("path")
             String path,
             @JsonProperty("type")
-            String type
+            String type,
+            @JsonProperty("sha")
+            String sha,
+            @JsonProperty("size")
+            Long size
     ) {}
 }

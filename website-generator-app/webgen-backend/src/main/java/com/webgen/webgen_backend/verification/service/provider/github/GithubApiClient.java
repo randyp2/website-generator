@@ -130,16 +130,16 @@ public class GithubApiClient {
     /**
      * Fetches a repository's full file listing in a single call via the Git Trees
      * API (GET /repos/{owner}/{repo}/git/trees/{ref}?recursive=1), returning the
-     * flat list of file (blob) paths. This replaces directory-by-directory
-     * traversal for locating files of interest.
+     * flat list of file (blob) entries. This replaces directory-by-directory
+     * traversal and preserves size and blob identity for bounded file selection.
      *
      * For very large repositories GitHub may truncate the tree; that case is
      * logged and the partial listing is returned rather than failing the sync.
      *
      * @param ref branch name or commit/tree SHA to read the tree at
-     * @return repo-root-relative file paths, or an empty list if unavailable
+     * @return repo-root-relative blob entries, or an empty list if unavailable
      */
-    public List<String> fetchRepositoryTree(
+    public List<GithubTreeResponse.Entry> fetchRepositoryTreeEntries(
             String accessToken,
             String owner,
             String repo,
@@ -173,8 +173,7 @@ public class GithubApiClient {
 
             return body.tree().stream()
                     .filter(entry -> entry != null && "blob".equals(entry.type()))
-                    .map(GithubTreeResponse.Entry::path)
-                    .filter(path -> !isBlank(path))
+                    .filter(entry -> !isBlank(entry.path()))
                     .toList();
         } catch (RestClientResponseException exception) {
             if (exception.getStatusCode() == HttpStatus.UNAUTHORIZED
@@ -188,6 +187,18 @@ public class GithubApiClient {
         } catch (RestClientException exception) {
             return List.of();
         }
+    }
+
+    /** Returns repository-relative blob paths for callers that do not need metadata. */
+    public List<String> fetchRepositoryTree(
+            String accessToken,
+            String owner,
+            String repo,
+            String ref
+    ) {
+        return fetchRepositoryTreeEntries(accessToken, owner, repo, ref).stream()
+                .map(GithubTreeResponse.Entry::path)
+                .toList();
     }
 
     public String fetchTextFile(

@@ -45,6 +45,10 @@ class VerificationScoringCalibrationTest {
                 .isEqualTo(score(results, "claims_only_builder"));
         assertThat(score(results, "duplicate_reviewed_upload"))
                 .isEqualTo(score(results, "strong_reviewed_artifact"));
+        assertThat(score(results, "semantic_duplicate_repositories"))
+                .isEqualTo(score(results, "active_repository"));
+        assertThat(score(results, "two_independent_repositories"))
+                .isGreaterThan(score(results, "semantic_duplicate_repositories"));
         assertThat(score(results, "broad_profile_sparse_evidence"))
                 .isLessThan(score(results, "active_repository"));
         assertThat(score(results, "expert_reviewed_portfolio")).isGreaterThan(80);
@@ -75,6 +79,14 @@ class VerificationScoringCalibrationTest {
                                 github("active 1", "active-1", "dependency_match", "0.90", "1.00", 0),
                                 github("active 2", "active-2", "dependency_match", "0.90", "1.00", 0),
                                 github("active 3", "active-3", "dependency_match", "0.90", "1.00", 0))),
+                scenario("semantic_duplicate_repositories", "Same project copied into two repositories",
+                        claim("React",
+                                github("copy 1", "semantic-family", "dependency_match", "0.90", "1.00", 0),
+                                github("copy 2", "semantic-family", "dependency_match", "0.90", "1.00", 0))),
+                scenario("two_independent_repositories", "Two independent active repositories",
+                        claim("React",
+                                github("independent 1", "independent-1", "dependency_match", "0.90", "1.00", 0),
+                                github("independent 2", "independent-2", "dependency_match", "0.90", "1.00", 0))),
                 scenario("strong_reviewed_artifact", "Fresh reviewed artifact with 0.95 evidence depth",
                         claim("React", upload("reviewed", "upload-strong", "0.97", "0.95", 0))),
                 scenario("five_description_matches", "Five independent description matches",

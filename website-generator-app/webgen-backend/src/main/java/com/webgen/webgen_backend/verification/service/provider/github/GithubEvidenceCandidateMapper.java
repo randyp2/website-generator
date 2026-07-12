@@ -3,6 +3,7 @@ package com.webgen.webgen_backend.verification.service.provider.github;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.webgen.webgen_backend.verification.service.fingerprint.ArtifactSemanticFingerprint;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubAuthorshipSignal;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubRepoResponse;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubUserResponse;
@@ -65,6 +66,7 @@ public class GithubEvidenceCandidateMapper {
                 repo,
                 dependencySources,
                 GithubAuthorshipSignal.unavailable("not_assessed"),
+                null,
                 capturedAt);
     }
 
@@ -72,6 +74,15 @@ public class GithubEvidenceCandidateMapper {
             GithubRepoResponse repo,
             Map<String, String> dependencySources,
             GithubAuthorshipSignal authorship,
+            OffsetDateTime capturedAt) {
+        return fromRepository(repo, dependencySources, authorship, null, capturedAt);
+    }
+
+    public EvidenceCandidate fromRepository(
+            GithubRepoResponse repo,
+            Map<String, String> dependencySources,
+            GithubAuthorshipSignal authorship,
+            ArtifactSemanticFingerprint fingerprint,
             OffsetDateTime capturedAt) {
         if (repo == null || isBlank(repo.fullName())) {
             return null;
@@ -129,6 +140,8 @@ public class GithubEvidenceCandidateMapper {
                 .sorted(Map.Entry.comparingByKey())
                 .forEach(entry -> dependencySourcesNode.put(entry.getKey(), entry.getValue()));
 
+        writeSemanticFingerprint(metadata, fingerprint);
+
         String externalId = "repo:" + repo.fullName().toLowerCase(Locale.ROOT);
         return new EvidenceCandidate(
                 externalId,
@@ -140,6 +153,26 @@ public class GithubEvidenceCandidateMapper {
                 parseOffsetDateTimeOrNull(repo.pushedAt()),
                 capturedAt,
                 metadata);
+    }
+
+    private void writeSemanticFingerprint(
+            ObjectNode metadata,
+            ArtifactSemanticFingerprint fingerprint
+    ) {
+        if (fingerprint == null) {
+            return;
+        }
+        ObjectNode fingerprintNode = metadata.putObject("semanticFingerprint");
+        fingerprintNode.put("algorithmVersion", fingerprint.algorithmVersion());
+        fingerprintNode.put("exactContentHash", fingerprint.exactContentHash());
+        fingerprintNode.put("eligibleFileCount", fingerprint.eligibleFileCount());
+        fingerprintNode.put("sampledFileCount", fingerprint.sampledFileCount());
+        fingerprintNode.put("tokenCount", fingerprint.tokenCount());
+        fingerprintNode.put("shingleCount", fingerprint.shingleCount());
+        ArrayNode sketch = fingerprintNode.putArray("sketch");
+        fingerprint.sketch().forEach(sketch::add);
+        ArrayNode sampledPaths = fingerprintNode.putArray("sampledPaths");
+        fingerprint.sampledPaths().forEach(sampledPaths::add);
     }
 
     private OffsetDateTime parseOffsetDateTimeOrNull(String value) {

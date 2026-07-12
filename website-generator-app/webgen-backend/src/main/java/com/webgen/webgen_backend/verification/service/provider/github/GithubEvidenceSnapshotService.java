@@ -1,7 +1,9 @@
 package com.webgen.webgen_backend.verification.service.provider.github;
 
+import com.webgen.webgen_backend.verification.service.fingerprint.ArtifactSemanticFingerprint;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubAuthorshipSignal;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubRepoResponse;
+import com.webgen.webgen_backend.verification.service.provider.github.model.GithubRepositoryScanResult;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubUserResponse;
 import com.webgen.webgen_backend.verification.service.sync.model.EvidenceCandidate;
 import com.webgen.webgen_backend.verification.service.sync.model.ProviderSyncSnapshot;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -24,11 +27,13 @@ public class GithubEvidenceSnapshotService {
 
     private static final int MAX_REPOS_WITH_PACKAGE_SCAN = 30;
     private static final int MAX_REPOS_WITH_AUTHORSHIP_SCAN = 30;
+    private static final int MAX_REPOS_WITH_FINGERPRINT_SCAN = 15;
 
     private final GithubApiClient githubApiClient;
     private final GithubEvidenceCandidateMapper candidateMapper;
     private final GithubRepositoryInsightsClient repositoryInsightsClient;
     private final GithubRepositorySignalScanner repositorySignalScanner;
+    private final GithubSemanticEvidenceGrouper semanticEvidenceGrouper;
 
     /** Fetches profile and repository evidence with bounded supplemental API calls. */
     public ProviderSyncSnapshot fetch(String accessToken, OffsetDateTime capturedAt) {
@@ -43,21 +48,28 @@ public class GithubEvidenceSnapshotService {
 
         List<EvidenceCandidate> candidates = new ArrayList<>();
         candidates.add(candidateMapper.fromProfile(profile, capturedAt));
+        Map<String, ArtifactSemanticFingerprint> fingerprintsByExternalId = new LinkedHashMap<>();
 
         int dependencyScans = 0;
         int authorshipScans = 0;
+        int fingerprintScans = 0;
         for (GithubRepoResponse repository : repositories) {
             if (repository == null || isBlank(repository.fullName())) {
                 continue;
             }
 
-            Map<String, String> dependencySources = Map.of();
+            GithubRepositoryScanResult repositoryScan = GithubRepositoryScanResult.empty();
             if (dependencyScans < MAX_REPOS_WITH_PACKAGE_SCAN) {
-                dependencySources = repositorySignalScanner.scanRepository(
+                boolean includeFingerprint = fingerprintScans < MAX_REPOS_WITH_FINGERPRINT_SCAN;
+                repositoryScan = repositorySignalScanner.scanRepository(
                         accessToken,
                         repository.fullName(),
-                        repository.defaultBranch());
+                        repository.defaultBranch(),
+                        includeFingerprint);
                 dependencyScans++;
+                if (includeFingerprint) {
+                    fingerprintScans++;
+                }
             }
 
             GithubAuthorshipSignal authorship;
@@ -71,26 +83,40 @@ public class GithubEvidenceSnapshotService {
 
             EvidenceCandidate candidate = candidateMapper.fromRepository(
                     repository,
-                    dependencySources,
+                    repositoryScan.dependencySources(),
                     authorship,
+                    repositoryScan.semanticFingerprint(),
                     capturedAt);
             if (candidate == null) {
                 continue;
             }
 
             candidates.add(candidate);
+            if (repositoryScan.semanticFingerprint() != null) {
+                fingerprintsByExternalId.put(
+                        candidate.externalId(), repositoryScan.semanticFingerprint());
+            }
             log.info("github.evidence_candidate fullName={} occurredAt={} capturedAt={} "
                             + "dependencyCount={} authorshipStatus={} authoredCommitCount={} "
                             + "directCommitCount={} mergeCommitCount={} activeDayCount={} "
-                            + "authorshipWeight={} authorshipReason={}",
+                            + "authorshipWeight={} authorshipReason={} fingerprinted={}",
                     repository.fullName(), candidate.occurredAt(), candidate.capturedAt(),
-                    dependencySources.size(), authorship.status(), authorship.authoredCommitCount(),
+                    repositoryScan.dependencySources().size(), authorship.status(),
+                    authorship.authoredCommitCount(),
                     authorship.directCommitCount(), authorship.mergeCommitCount(),
-                    authorship.activeDayCount(), authorship.weight(), authorship.reason());
+                    authorship.activeDayCount(), authorship.weight(), authorship.reason(),
+                    repositoryScan.semanticFingerprint() != null);
         }
 
+        List<EvidenceCandidate> groupedCandidates = semanticEvidenceGrouper.group(
+                candidates, fingerprintsByExternalId);
+        log.info("github.semantic_scan repositories={} fingerprintAttempts={} fingerprints={} "
+                        + "scanLimit={}",
+                repositories.size(), fingerprintScans, fingerprintsByExternalId.size(),
+                MAX_REPOS_WITH_FINGERPRINT_SCAN);
+
         return new ProviderSyncSnapshot(
-                candidates,
+                groupedCandidates,
                 repositoryNames,
                 dependencyScans,
                 profile.login(),

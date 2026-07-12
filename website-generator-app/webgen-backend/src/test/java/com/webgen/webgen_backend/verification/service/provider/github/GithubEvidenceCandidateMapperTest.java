@@ -2,6 +2,7 @@ package com.webgen.webgen_backend.verification.service.provider.github;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.webgen.webgen_backend.verification.service.fingerprint.ArtifactSemanticFingerprint;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubRepoResponse;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubAuthorshipSignal;
 import com.webgen.webgen_backend.verification.service.sync.model.EvidenceCandidate;
@@ -97,5 +98,36 @@ class GithubEvidenceCandidateMapperTest {
         assertThat(authorship.path("weight").decimalValue()).isEqualByComparingTo("0.90");
         assertThat(authorship.path("reason").asText())
                 .isEqualTo("multiple_direct_commits_across_multiple_days");
+    }
+
+    @Test
+    void persistsVersionedSemanticFingerprintProvenance() {
+        GithubRepoResponse repo = new GithubRepoResponse(
+                "app", "octo/app", "demo", "https://github.com/octo/app",
+                "2026-01-01T00:00:00Z", "Java", List.of(), "main");
+        ArtifactSemanticFingerprint fingerprint = new ArtifactSemanticFingerprint(
+                1,
+                "exact-hash",
+                List.of("0011", "0022"),
+                8,
+                2,
+                300,
+                240,
+                List.of("src/App.java", "src/User.java"));
+
+        EvidenceCandidate candidate = mapper.fromRepository(
+                repo,
+                Map.of(),
+                GithubAuthorshipSignal.assessed(2, false),
+                fingerprint,
+                OffsetDateTime.parse("2026-06-28T00:00:00Z"));
+
+        JsonNode persisted = candidate.metadata().path("semanticFingerprint");
+        assertThat(persisted.path("algorithmVersion").asInt()).isEqualTo(1);
+        assertThat(persisted.path("exactContentHash").asText()).isEqualTo("exact-hash");
+        assertThat(persisted.path("eligibleFileCount").asInt()).isEqualTo(8);
+        assertThat(persisted.path("sampledFileCount").asInt()).isEqualTo(2);
+        assertThat(persisted.path("sketch")).hasSize(2);
+        assertThat(persisted.path("sampledPaths")).hasSize(2);
     }
 }

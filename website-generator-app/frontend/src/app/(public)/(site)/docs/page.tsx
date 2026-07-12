@@ -56,6 +56,8 @@ const calibrationRows = [
   ["Authorship API unavailable", "61", "No outage penalty"],
   ["Two-year-old active repository", "55", "Gradual recency decay"],
   ["Three active repositories", "71", "Repeated independent usage"],
+  ["Same project copied into two repositories", "61", "Copy adds no score"],
+  ["Two independent active repositories", "67", "Independent work adds support"],
   ["One reviewed artifact at 0.95 depth", "69", "Strong reviewed evidence"],
   ["Five repository descriptions", "50", "Descriptions add no verification lift"],
   ["Five repository name matches", "50", "Names add no verification lift"],
@@ -154,9 +156,10 @@ claim score        = 50 + (claim cap - 50) × boost progress`}</code>
           <h3 className="mt-8 text-lg font-semibold">Evidence independence</h3>
           <p className="mt-4 leading-7 text-muted-foreground">
             An evidence group represents one underlying source. Uploads with matching
-            storage fingerprints and GitHub forks with resolved lineage cannot create
-            multiple scoring positions for that source. Only the strongest signal in
-            the group is retained for a claim.
+            storage fingerprints, GitHub forks with resolved lineage, and repositories
+            with highly overlapping sampled source cannot create multiple scoring
+            positions for that source. Only the strongest signal in the group is
+            retained for a claim.
           </p>
           <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
             <li>
@@ -166,6 +169,35 @@ claim score        = 50 + (claim cap - 50) × boost progress`}</code>
             <li>
               GitHub repositories use the root repository numeric ID for resolved
               forks, then the repository numeric ID, then the stable external ID.
+            </li>
+            <li>
+              Semantic comparison is limited to the fifteen most recently updated
+              repositories during a sync. Each repository contributes at most eight
+              eligible files, with a 200 KB per-file limit and a 600 KB known-size
+              sampling budget.
+            </li>
+            <li>
+              Eligible inputs include source code, tests, database migrations, and
+              important build configuration. Documentation, lock files, dependencies,
+              generated output, caches, binaries, and media are excluded.
+            </li>
+            <li>
+              Selected files are tokenized into five-token shingles. SHA-256 hashes
+              produce a deterministic 128-entry bottom-k sketch. Formatting, line
+              endings, file order, and file renames do not create extra credit. Only
+              hashes, counts, and sampled paths are stored with evidence, not another
+              copy of the sampled source.
+            </li>
+            <li>
+              A repository needs at least forty distinct shingles and at least 90%
+              estimated overlap with every independent source group already in the
+              cluster. This complete-link rule prevents a chain of loosely related
+              projects from being collapsed through one intermediate repository.
+            </li>
+            <li>
+              Similarity grouping changes evidence independence only. It does not
+              label a user or repository as fraudulent, and unavailable fingerprint
+              data never creates a duplicate classification.
             </li>
             <li>
               Historical evidence keeps its provider and external ID, because old
@@ -333,6 +365,7 @@ overall   = baseline + mean lift × sqrt(coverage)`}</code>
                 <li>Replaced the hard AI cap jump with a gradual 80–100 unlock.</li>
                 <li>Separated artifact match confidence from demonstrated evidence depth.</li>
                 <li>Collapsed correlated evidence before top-K selection and rank decay.</li>
+                <li>Collapsed high-confidence semantic repository copies conservatively.</li>
                 <li>Weighted direct commits, merge activity, and contribution days separately.</li>
                 <li>Added deterministic calibration scenarios and scoring invariants.</li>
                 <li>Made repository topics, names, and descriptions discovery-only.</li>
@@ -342,7 +375,8 @@ overall   = baseline + mean lift × sqrt(coverage)`}</code>
             <div className="border border-border p-5">
               <h3 className="font-semibold">Still under review</h3>
               <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
-                <li>Semantic near-duplicate and changed-file quality detection need refinement.</li>
+                <li>Changed-file quality and incremental derivative credit need refinement.</li>
+                <li>Semantic thresholds need calibration against reviewed repository pairs.</li>
                 <li>Signal weights have not yet been calibrated against reviewed data.</li>
               </ul>
             </div>
