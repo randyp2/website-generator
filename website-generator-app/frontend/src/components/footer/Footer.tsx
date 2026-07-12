@@ -1,9 +1,10 @@
+import Link from "next/link";
 import BrandWordmark from "@/components/branding/BrandWordmark";
 
 export default function Footer() {
     const links = [
         { label: "Support", href: "#" },
-        { label: "Privacy", href: "#" },
+        { label: "Privacy", href: "/privacy" },
         { label: "Terms", href: "#" },
     ];
 
@@ -23,15 +24,29 @@ export default function Footer() {
                     </div>
 
                     <div className="flex flex-wrap gap-5 text-sm font-medium">
-                        {links.map((link) => (
-                            <a
-                                key={link.label}
-                                href={link.href}
-                                className="text-sidebar-foreground/70 transition-colors hover:text-sidebar-foreground"
-                            >
-                                {link.label}
-                            </a>
-                        ))}
+                        {links.map((link) => {
+                            const className =
+                                "text-sidebar-foreground/70 transition-colors hover:text-sidebar-foreground";
+                            // Internal routes use Link for client-side nav;
+                            // placeholder ("#") links stay plain anchors.
+                            return link.href.startsWith("/") ? (
+                                <Link
+                                    key={link.label}
+                                    href={link.href}
+                                    className={className}
+                                >
+                                    {link.label}
+                                </Link>
+                            ) : (
+                                <a
+                                    key={link.label}
+                                    href={link.href}
+                                    className={className}
+                                >
+                                    {link.label}
+                                </a>
+                            );
+                        })}
                     </div>
                 </div>
 
