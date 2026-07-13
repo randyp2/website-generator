@@ -2,6 +2,7 @@ package com.webgen.webgen_backend.resume_verification_service.scoring.calibratio
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.verification.service.fingerprint.ArtifactSemanticFingerprintGenerator;
+import com.webgen.webgen_backend.verification.service.provider.github.GithubRepositorySampleSelector;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 
@@ -20,6 +21,8 @@ class RepositoryPairCalibrationEvaluationTest {
             "/verification/repository-pair-calibration.json";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final GithubRepositorySampleSelector sampleSelector =
+            new GithubRepositorySampleSelector();
     private final RepositoryPairCalibrationEvaluator evaluator =
             new RepositoryPairCalibrationEvaluator();
 
@@ -40,6 +43,9 @@ class RepositoryPairCalibrationEvaluationTest {
                         evaluation.reviewedPair().reviewNotes()));
 
         assertThat(report.evaluations()).hasSize(dataset.pairs().size());
+        assertThat(report.exactMatches()).isGreaterThanOrEqualTo(27);
+        assertThat(report.falseDuplicates()).isZero();
+        assertThat(report.falseIndependents()).isLessThanOrEqualTo(1);
         assertThat(report.evaluations())
                 .filteredOn(evaluation -> evaluation.reviewedPair().expectedRelationship()
                         == RepositoryPairCalibrationDataset.Relationship.DUPLICATE)
@@ -74,11 +80,11 @@ class RepositoryPairCalibrationEvaluationTest {
     }
 
     private void assertDatasetIntegrity(RepositoryPairCalibrationDataset dataset) {
-        assertThat(dataset.datasetVersion()).isEqualTo(1);
+        assertThat(dataset.datasetVersion()).isEqualTo(2);
         assertThat(dataset.fingerprintAlgorithmVersion())
                 .isEqualTo(ArtifactSemanticFingerprintGenerator.ALGORITHM_VERSION);
-        assertThat(dataset.snapshots()).hasSizeGreaterThanOrEqualTo(6);
-        assertThat(dataset.pairs()).hasSizeGreaterThanOrEqualTo(8);
+        assertThat(dataset.snapshots()).hasSizeGreaterThanOrEqualTo(16);
+        assertThat(dataset.pairs()).hasSizeGreaterThanOrEqualTo(20);
 
         Set<String> snapshotIds = new HashSet<>();
         dataset.snapshots().forEach(snapshot -> {
@@ -88,6 +94,15 @@ class RepositoryPairCalibrationEvaluationTest {
             assertThat(snapshot.repositoryUrl()).endsWith(snapshot.revision());
             assertThat(snapshot.fingerprint()).isNotNull();
             assertThat(snapshot.fingerprint().isComparable()).isTrue();
+            if (snapshot.minimumSampledSourceAreas() != null) {
+                long sampledSourceAreas = snapshot.fingerprint().sampledPaths().stream()
+                        .map(sampleSelector::sourceArea)
+                        .distinct()
+                        .count();
+                assertThat(sampledSourceAreas)
+                        .as("sampled source areas for %s", snapshot.id())
+                        .isGreaterThanOrEqualTo(snapshot.minimumSampledSourceAreas());
+            }
         });
         dataset.pairs().forEach(pair -> {
             assertThat(snapshotIds).contains(pair.leftSnapshotId(), pair.rightSnapshotId());

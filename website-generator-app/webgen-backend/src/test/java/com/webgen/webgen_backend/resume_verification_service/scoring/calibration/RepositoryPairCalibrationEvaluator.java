@@ -44,7 +44,11 @@ final class RepositoryPairCalibrationEvaluator {
                 snapshotsById, pair.rightSnapshotId());
         double sharedContent = similarity.compare(left.fingerprint(), right.fingerprint());
         RepositoryPairCalibrationDataset.Relationship predicted = classify(
-                pair.sharedLineageGroup(), left.fingerprint(), right.fingerprint(), sharedContent);
+                pair.sameRepositoryIdentity(),
+                pair.sharedLineageGroup(),
+                left.fingerprint(),
+                right.fingerprint(),
+                sharedContent);
         BigDecimal additionalWeight = additionalWeight(
                 predicted, sharedContent, pair.sharedLineageGroup());
         int resultingScore = scorePair(pair.id(), predicted, additionalWeight);
@@ -69,11 +73,15 @@ final class RepositoryPairCalibrationEvaluator {
     }
 
     private RepositoryPairCalibrationDataset.Relationship classify(
+            boolean sameRepositoryIdentity,
             boolean sharedLineageGroup,
             ArtifactSemanticFingerprint left,
             ArtifactSemanticFingerprint right,
             double sharedContent
     ) {
+        if (sameRepositoryIdentity) {
+            return RepositoryPairCalibrationDataset.Relationship.DUPLICATE;
+        }
         if (left == null || right == null || !left.isComparable() || !right.isComparable()) {
             return RepositoryPairCalibrationDataset.Relationship.INSUFFICIENT;
         }
@@ -156,6 +164,7 @@ final class RepositoryPairCalibrationEvaluator {
             return "|" + reviewedPair.id()
                     + "|" + reviewedPair.expectedRelationship()
                     + "|" + predictedRelationship
+                    + "|" + (reviewedPair.sameRepositoryIdentity() ? "yes" : "no")
                     + "|" + (reviewedPair.sharedLineageGroup() ? "yes" : "no")
                     + "|" + String.format(Locale.ROOT, "%.3f", sharedContentEstimate)
                     + "|" + additionalIndependenceWeight
@@ -194,8 +203,8 @@ final class RepositoryPairCalibrationEvaluator {
 
         String formatReport() {
             StringBuilder report = new StringBuilder("\n[REPOSITORY PAIR CALIBRATION]\n")
-                    .append("| Pair | Expected | Predicted | Lineage | Shared | Added weight | Score | Match |\n")
-                    .append("|---|---|---|---|---:|---:|---:|---|\n");
+                    .append("| Pair | Expected | Predicted | Identity | Lineage | Shared | Added weight | Score | Match |\n")
+                    .append("|---|---|---|---|---|---:|---:|---:|---|\n");
             evaluations.forEach(evaluation -> report.append(evaluation.formatRow()).append('\n'));
             return report.append("exactMatches=").append(exactMatches)
                     .append('/').append(evaluations.size())

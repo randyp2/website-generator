@@ -17,6 +17,7 @@ class GithubRepositoryFingerprintBuilderTest {
     private final GithubRepositoryFingerprintBuilder builder =
             new GithubRepositoryFingerprintBuilder(
                     new GithubRepositoryFilePolicy(),
+                    new GithubRepositorySampleSelector(),
                     new ArtifactSemanticFingerprintGenerator());
 
     @Test
@@ -43,6 +44,50 @@ class GithubRepositoryFingerprintBuilderTest {
 
         assertThat(fingerprint.sampledFileCount()).isEqualTo(5);
         assertThat(fingerprint.sampledPaths()).hasSize(5);
+    }
+
+    @Test
+    void balancesSamplesAcrossMonorepositorySourceAreas() {
+        Map<String, String> content = new LinkedHashMap<>();
+        IntStream.range(0, 8).forEach(index -> content.put(
+                "packages/dominant/src/Large" + index + ".ts", variedSource(index)));
+        content.put("packages/accounts/src/Account.ts", variedSource(20));
+        content.put("packages/billing/src/Billing.ts", variedSource(21));
+        content.put("apps/web/src/App.tsx", variedSource(22));
+        content.put("apps/admin/src/Admin.tsx", variedSource(23));
+        List<GithubTreeResponse.Entry> tree = content.keySet().stream()
+                .map(path -> entry(path, path.contains("dominant") ? 70_000L : 20_000L))
+                .toList();
+
+        ArtifactSemanticFingerprint fingerprint = builder.build(tree, content::get);
+
+        assertThat(fingerprint.sampledPaths())
+                .anyMatch(path -> path.startsWith("packages/accounts/"))
+                .anyMatch(path -> path.startsWith("packages/billing/"))
+                .anyMatch(path -> path.startsWith("apps/web/"))
+                .anyMatch(path -> path.startsWith("apps/admin/"));
+    }
+
+    @Test
+    void samplesMirroredGitBlobsOnlyOnce() {
+        Map<String, String> content = new LinkedHashMap<>();
+        content.put("guava/src/Shared.java", variedSource(30));
+        content.put("android/guava/Shared.java", variedSource(30));
+        IntStream.range(0, 7).forEach(index -> content.put(
+                "module" + index + "/src/Unique" + index + ".java", variedSource(index)));
+        List<GithubTreeResponse.Entry> tree = content.keySet().stream()
+                .map(path -> new GithubTreeResponse.Entry(
+                        path,
+                        "blob",
+                        path.endsWith("Shared.java") ? "shared-blob" : "sha-" + path,
+                        20_000L))
+                .toList();
+
+        ArtifactSemanticFingerprint fingerprint = builder.build(tree, content::get);
+
+        assertThat(fingerprint.sampledPaths())
+                .filteredOn(path -> path.endsWith("Shared.java"))
+                .hasSize(1);
     }
 
     private Map<String, String> sourceFiles(int count) {

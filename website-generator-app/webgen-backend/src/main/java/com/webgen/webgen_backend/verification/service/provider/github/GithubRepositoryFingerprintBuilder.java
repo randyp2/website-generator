@@ -4,23 +4,25 @@ import com.webgen.webgen_backend.verification.service.fingerprint.ArtifactSemant
 import com.webgen.webgen_backend.verification.service.fingerprint.ArtifactSemanticFingerprintGenerator;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubTreeResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 
 /** Builds production repository fingerprints from a bounded source-file sample. */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class GithubRepositoryFingerprintBuilder {
 
     public static final int MAX_FILES = 8;
     public static final long MAX_TOTAL_BYTES = 600_000L;
 
     private final GithubRepositoryFilePolicy filePolicy;
+    private final GithubRepositorySampleSelector sampleSelector;
     private final ArtifactSemanticFingerprintGenerator fingerprintGenerator;
 
     /** Reads only selected paths through the supplied content loader. */
@@ -39,37 +41,27 @@ public class GithubRepositoryFingerprintBuilder {
                         .reversed()
                         .thenComparing(GithubTreeResponse.Entry::path))
                 .toList();
+        List<GithubTreeResponse.Entry> selected = sampleSelector.select(eligible);
         List<ArtifactSemanticFingerprintGenerator.SourceDocument> documents = new ArrayList<>();
-        for (GithubTreeResponse.Entry entry : selectWithinBudget(eligible)) {
+        for (GithubTreeResponse.Entry entry : selected) {
             String content = contentLoader.apply(entry.path());
             if (content != null && !content.isBlank()) {
                 documents.add(new ArtifactSemanticFingerprintGenerator.SourceDocument(
                         entry.path(), content));
             }
         }
+        log.info("github.fingerprint_sample eligibleFiles={} selectedFiles={} "
+                        + "selectedSourceAreas={} selectedBytes={} paths={}",
+                eligible.size(),
+                selected.size(),
+                selected.stream().map(entry -> sampleSelector.sourceArea(entry.path()))
+                        .distinct().count(),
+                selected.stream().mapToLong(this::sizeOrZero).sum(),
+                selected.stream().map(GithubTreeResponse.Entry::path).toList());
         return fingerprintGenerator.generate(eligible.size(), documents).orElse(null);
     }
 
-    private List<GithubTreeResponse.Entry> selectWithinBudget(
-            List<GithubTreeResponse.Entry> eligible
-    ) {
-        List<GithubTreeResponse.Entry> selected = new ArrayList<>();
-        long selectedBytes = 0L;
-        for (GithubTreeResponse.Entry entry : eligible) {
-            long size = sizeOrZero(entry);
-            if (selected.size() >= MAX_FILES) {
-                break;
-            }
-            if (!selected.isEmpty() && selectedBytes + size > MAX_TOTAL_BYTES) {
-                continue;
-            }
-            selected.add(entry);
-            selectedBytes += size;
-        }
-        return List.copyOf(selected);
-    }
-
     private long sizeOrZero(GithubTreeResponse.Entry entry) {
-        return Optional.ofNullable(entry.size()).orElse(0L);
+        return entry.size() == null ? 0L : entry.size();
     }
 }

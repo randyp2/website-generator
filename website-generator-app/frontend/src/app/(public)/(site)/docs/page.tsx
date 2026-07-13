@@ -73,13 +73,15 @@ const calibrationRows = [
 
 const repositoryPairCalibrationRows = [
   ["Exact snapshot control", "1.000", "Duplicate", "Duplicate", "61"],
-  ["Same repository across revisions", "0.953", "Duplicate", "Duplicate", "61"],
+  ["Same repository across revisions", "0.938", "Duplicate", "Duplicate by identity", "61"],
   ["Documented JavaFX derivative", "0.367", "Derivative", "Independent", "67"],
-  ["Maintained TON fork", "0.438", "Derivative", "Derivative at 0.85 credit", "67"],
-  ["Independent TON projects", "0.000", "Independent", "Independent", "67"],
-  ["Independent Java Spring projects", "0.047", "Independent", "Independent", "67"],
+  ["Maintained TON fork", "0.273", "Derivative", "Derivative at 0.85 credit", "67"],
+  ["Turborepo across revisions", "0.836", "Duplicate", "Duplicate by identity", "61"],
+  ["Independent Python frameworks", "0.000", "Independent", "Independent", "67"],
+  ["Independent Java projects", "0.000", "Independent", "Independent", "67"],
+  ["Independent JS tooling", "0.016", "Independent", "Independent", "67"],
+  ["Independent app templates", "0.023", "Independent", "Independent", "67"],
   ["Cross-language projects", "0.000", "Independent", "Independent", "67"],
-  ["Second exact snapshot control", "1.000", "Duplicate", "Duplicate", "61"],
 ];
 
 export default function VerificationDocsPage() {
@@ -190,13 +192,16 @@ claim score        = 50 + (claim cap - 50) × boost progress`}</code>
             <li>
               Semantic comparison is limited to the fifteen most recently updated
               repositories during a sync. Each repository contributes at most eight
-              eligible files, with a 200 KB per-file limit and a 600 KB known-size
-              sampling budget.
+              eligible files across distinct two-level source areas, with a 200 KB
+              per-file limit and a 600 KB known-size sampling budget. Unused slots are
+              filled by the strongest remaining source candidates.
             </li>
             <li>
               Eligible inputs include source code, tests, database migrations, and
               important build configuration. Documentation, lock files, dependencies,
-              generated output, caches, binaries, and media are excluded.
+              generated output, CI metadata, editor configuration, caches, binaries,
+              and media are excluded. Identical Git blobs mirrored within one
+              repository can occupy only one sample position.
             </li>
             <li>
               Selected files are tokenized into five-token shingles. SHA-256 hashes
@@ -406,10 +411,12 @@ overall   = baseline + mean lift × sqrt(coverage)`}</code>
         <section>
           <h2 className="text-2xl font-semibold">Real repository-pair evaluation</h2>
           <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
-            The offline evaluation corpus contains seven immutable public repository
-            snapshots and eight manually reviewed pairs. Git tracks repository URLs,
-            commit SHAs, labels, and versioned fingerprint sketches only. No public
-            source checkout is stored in this application repository.
+            The offline evaluation corpus contains eighteen immutable public repository
+            snapshots and twenty-eight manually reviewed pairs. It covers Java, Python,
+            JavaScript, TypeScript, Rust, mixed-language templates, large monorepositories,
+            exact controls, nearby revisions, derivatives, forks, and independent work.
+            Git tracks repository URLs, commit SHAs, labels, and versioned fingerprint
+            sketches only. No public source checkout is stored in this application repository.
           </p>
           <div className="mt-6 overflow-x-auto border border-border">
             <table className="w-full border-collapse text-left text-sm">
@@ -442,12 +449,14 @@ overall   = baseline + mean lift × sqrt(coverage)`}</code>
             </table>
           </div>
           <p className="mt-4 leading-7 text-muted-foreground">
-            Seven of eight reviewed pairs now match the current scoring behavior. Exact
-            copies and unrelated controls separate cleanly, and the maintained lineage
-            fork receives 0.85 independence weight instead of being collapsed. The
-            remaining review case shows that a heavily restructured derivative can fall
-            below the 60% content threshold. Production similarity thresholds remain
-            unchanged while the reviewed corpus is expanded.
+            Twenty-seven of twenty-eight reviewed pairs match the current scoring
+            behavior, with zero false duplicate classifications. Exact copies, nearby
+            revisions, unrelated controls, templates, and large monorepositories
+            separate safely. The maintained lineage fork receives 0.85 independence
+            weight instead of being collapsed. The remaining review case is a heavily
+            restructured derivative below the 60% content threshold, so it receives full
+            credit rather than risking an unfair reduction. These results support freezing
+            the current similarity thresholds for the MVP.
           </p>
         </section>
 
@@ -470,6 +479,8 @@ overall   = baseline + mean lift × sqrt(coverage)`}</code>
                 <li>Weighted direct commits, merge activity, and contribution days separately.</li>
                 <li>Added deterministic calibration scenarios and scoring invariants.</li>
                 <li>Added an offline reviewed public repository-pair evaluation corpus.</li>
+                <li>Expanded calibration to eighteen snapshots and twenty-eight reviewed pairs.</li>
+                <li>Validated balanced sampling across large public monorepositories.</li>
                 <li>Made repository topics, names, and descriptions discovery-only.</li>
                 <li>Excluded rejected claims and left unresolved claims unscored.</li>
               </ul>
@@ -477,9 +488,8 @@ overall   = baseline + mean lift × sqrt(coverage)`}</code>
             <div className="border border-border p-5">
               <h3 className="font-semibold">Still under review</h3>
               <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
-                <li>The reviewed repository-pair corpus needs broader language coverage.</li>
-                <li>Fingerprint sample coverage needs validation on large monorepositories.</li>
                 <li>Signal weights have not yet been calibrated against reviewed data.</li>
+                <li>Post-MVP monitoring should compare score distributions with real user outcomes.</li>
               </ul>
             </div>
           </div>

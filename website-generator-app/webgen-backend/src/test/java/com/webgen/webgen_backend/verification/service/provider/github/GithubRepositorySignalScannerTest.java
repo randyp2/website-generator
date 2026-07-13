@@ -115,6 +115,7 @@ class GithubRepositorySignalScannerTest {
                 parser,
                 new GithubRepositoryFingerprintBuilder(
                         new GithubRepositoryFilePolicy(),
+                        new GithubRepositorySampleSelector(),
                         new ArtifactSemanticFingerprintGenerator()));
     }
 

@@ -5,6 +5,7 @@ import com.webgen.webgen_backend.verification.service.fingerprint.ArtifactSemant
 import com.webgen.webgen_backend.verification.service.fingerprint.ArtifactSemanticFingerprintGenerator;
 import com.webgen.webgen_backend.verification.service.provider.github.GithubRepositoryFilePolicy;
 import com.webgen.webgen_backend.verification.service.provider.github.GithubRepositoryFingerprintBuilder;
+import com.webgen.webgen_backend.verification.service.provider.github.GithubRepositorySampleSelector;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubTreeResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
@@ -14,6 +15,9 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,9 +32,11 @@ class RepositoryPairCalibrationFixtureCollectorTest {
             "src/test/resources/verification/repository-pair-calibration.json");
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final GithubRepositoryFilePolicy filePolicy = new GithubRepositoryFilePolicy();
     private final GithubRepositoryFingerprintBuilder fingerprintBuilder =
             new GithubRepositoryFingerprintBuilder(
-                    new GithubRepositoryFilePolicy(),
+                    filePolicy,
+                    new GithubRepositorySampleSelector(),
                     new ArtifactSemanticFingerprintGenerator());
 
     @Test
@@ -82,6 +88,7 @@ class RepositoryPairCalibrationFixtureCollectorTest {
                 source.repositoryUrl(),
                 source.revision(),
                 source.reviewRole(),
+                source.minimumSampledSourceAreas(),
                 fingerprint);
     }
 
@@ -100,10 +107,26 @@ class RepositoryPairCalibrationFixtureCollectorTest {
     private GithubTreeResponse.Entry toTreeEntry(Path repositoryRoot, Path path) {
         try {
             String relativePath = repositoryRoot.relativize(path).toString().replace('\\', '/');
+            long size = Files.size(path);
+            GithubTreeResponse.Entry entry = new GithubTreeResponse.Entry(
+                    relativePath, "blob", null, size);
+            if (!filePolicy.isEligible(entry)) {
+                return entry;
+            }
             return new GithubTreeResponse.Entry(
-                    relativePath, "blob", null, Files.size(path));
+                    relativePath, "blob", gitBlobSha(Files.readAllBytes(path)), size);
         } catch (IOException exception) {
             throw new IllegalStateException("Unable to inspect calibration file: " + path, exception);
+        }
+    }
+
+    private String gitBlobSha(byte[] content) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-1");
+            digest.update(("blob " + content.length + '\0').getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest.digest(content));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-1 is unavailable", exception);
         }
     }
 

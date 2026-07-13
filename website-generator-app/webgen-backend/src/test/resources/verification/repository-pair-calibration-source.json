@@ -1,6 +1,6 @@
 {
-  "datasetVersion": 1,
-  "fingerprintAlgorithmVersion": 1,
+  "datasetVersion": 2,
+  "fingerprintAlgorithmVersion": 2,
   "capturedAt": "2026-07-12",
   "snapshots": [
     {
@@ -51,6 +51,91 @@
       "repositoryUrl": "https://github.com/ton-org/blueprint/tree/5da9654b3c607b0769eb98ebdfa3ee80c6bbc51e",
       "revision": "5da9654b3c607b0769eb98ebdfa3ee80c6bbc51e",
       "reviewRole": "Independent TypeScript project in the same TON ecosystem"
+    },
+    {
+      "id": "turborepo-current",
+      "localDirectory": "turborepo",
+      "repositoryUrl": "https://github.com/vercel/turborepo/tree/ed1724965d854cd9c2f8b71a0fa826ec786be161",
+      "revision": "ed1724965d854cd9c2f8b71a0fa826ec786be161",
+      "reviewRole": "Current mixed Rust and TypeScript monorepository snapshot",
+      "minimumSampledSourceAreas": 6
+    },
+    {
+      "id": "turborepo-older",
+      "localDirectory": "turborepo-older",
+      "repositoryUrl": "https://github.com/vercel/turborepo/tree/a549baa4d9b3aef355740394bd5ac7afc8e56edb",
+      "revision": "a549baa4d9b3aef355740394bd5ac7afc8e56edb",
+      "reviewRole": "Same monorepository thirty commits earlier",
+      "minimumSampledSourceAreas": 6
+    },
+    {
+      "id": "pnpm-current",
+      "localDirectory": "pnpm",
+      "repositoryUrl": "https://github.com/pnpm/pnpm/tree/b45c85a5fcb11f1867497405d39c36d04f1cbb2e",
+      "revision": "b45c85a5fcb11f1867497405d39c36d04f1cbb2e",
+      "reviewRole": "TypeScript and Rust package manager monorepository",
+      "minimumSampledSourceAreas": 6
+    },
+    {
+      "id": "spring-framework-current",
+      "localDirectory": "spring-framework",
+      "repositoryUrl": "https://github.com/spring-projects/spring-framework/tree/9024d5ffbd47172826d3257b492e9192467e98e6",
+      "revision": "9024d5ffbd47172826d3257b492e9192467e98e6",
+      "reviewRole": "Large multi-module Java framework repository",
+      "minimumSampledSourceAreas": 6
+    },
+    {
+      "id": "django-current",
+      "localDirectory": "django",
+      "repositoryUrl": "https://github.com/django/django/tree/65a9f14196c338d70889bd54753370606b3fb4eb",
+      "revision": "65a9f14196c338d70889bd54753370606b3fb4eb",
+      "reviewRole": "Independent Python web framework"
+    },
+    {
+      "id": "flask-current",
+      "localDirectory": "flask",
+      "repositoryUrl": "https://github.com/pallets/flask/tree/36e4a824f340fdee7ed50937ba8e7f6bc7d17f81",
+      "revision": "36e4a824f340fdee7ed50937ba8e7f6bc7d17f81",
+      "reviewRole": "Independent Python web framework"
+    },
+    {
+      "id": "fastapi-current",
+      "localDirectory": "fastapi",
+      "repositoryUrl": "https://github.com/fastapi/fastapi/tree/7cb06f360dd44efac059848df1a9beee7643b018",
+      "revision": "7cb06f360dd44efac059848df1a9beee7643b018",
+      "reviewRole": "Independent Python API framework"
+    },
+    {
+      "id": "react-current",
+      "localDirectory": "react",
+      "repositoryUrl": "https://github.com/facebook/react/tree/c0c39a6b3907eaab35f43074949e2957a2a734c1",
+      "revision": "c0c39a6b3907eaab35f43074949e2957a2a734c1",
+      "reviewRole": "Large JavaScript package monorepository",
+      "minimumSampledSourceAreas": 6
+    },
+    {
+      "id": "guava-current",
+      "localDirectory": "guava",
+      "repositoryUrl": "https://github.com/google/guava/tree/486837d756e6d48864620e91b0761467e2abe744",
+      "revision": "486837d756e6d48864620e91b0761467e2abe744",
+      "reviewRole": "Multi-module Java library with mirrored Android sources",
+      "minimumSampledSourceAreas": 5
+    },
+    {
+      "id": "full-stack-fastapi-template",
+      "localDirectory": "full-stack-fastapi-template",
+      "repositoryUrl": "https://github.com/fastapi/full-stack-fastapi-template/tree/4cd0d9e51aebd1af6f82d91ad0df4c9e41f4dea2",
+      "revision": "4cd0d9e51aebd1af6f82d91ad0df4c9e41f4dea2",
+      "reviewRole": "Official mixed Python and TypeScript application template",
+      "minimumSampledSourceAreas": 5
+    },
+    {
+      "id": "nextjs-fastapi-template",
+      "localDirectory": "nextjs-fastapi-template",
+      "repositoryUrl": "https://github.com/vintasoftware/nextjs-fastapi-template/tree/62b67456e8f01760970455282282ecaa393fbd38",
+      "revision": "62b67456e8f01760970455282282ecaa393fbd38",
+      "reviewRole": "Independent mixed Python and TypeScript application template",
+      "minimumSampledSourceAreas": 5
     }
   ],
   "pairs": [
@@ -58,6 +143,7 @@
       "id": "exact-snapshot-control",
       "leftSnapshotId": "spring-petclinic-current",
       "rightSnapshotId": "spring-petclinic-current",
+      "sameRepositoryIdentity": true,
       "sharedLineageGroup": true,
       "expectedRelationship": "DUPLICATE",
       "reviewNotes": "Exact immutable snapshot control"
@@ -66,6 +152,7 @@
       "id": "same-project-evolution",
       "leftSnapshotId": "spring-petclinic-current",
       "rightSnapshotId": "spring-petclinic-older",
+      "sameRepositoryIdentity": true,
       "sharedLineageGroup": true,
       "expectedRelationship": "DUPLICATE",
       "reviewNotes": "The same repository identity updates one evidence row across revisions"
@@ -114,9 +201,176 @@
       "id": "second-exact-control",
       "leftSnapshotId": "javafx-source",
       "rightSnapshotId": "javafx-source",
+      "sameRepositoryIdentity": true,
       "sharedLineageGroup": true,
       "expectedRelationship": "DUPLICATE",
       "reviewNotes": "Second exact immutable snapshot control"
+    },
+    {
+      "id": "turborepo-evolution",
+      "leftSnapshotId": "turborepo-current",
+      "rightSnapshotId": "turborepo-older",
+      "sameRepositoryIdentity": true,
+      "sharedLineageGroup": true,
+      "expectedRelationship": "DUPLICATE",
+      "reviewNotes": "Same monorepository identity across nearby revisions"
+    },
+    {
+      "id": "turborepo-exact-control",
+      "leftSnapshotId": "turborepo-current",
+      "rightSnapshotId": "turborepo-current",
+      "sameRepositoryIdentity": true,
+      "sharedLineageGroup": true,
+      "expectedRelationship": "DUPLICATE",
+      "reviewNotes": "Exact mixed-language monorepository control"
+    },
+    {
+      "id": "flask-exact-control",
+      "leftSnapshotId": "flask-current",
+      "rightSnapshotId": "flask-current",
+      "sameRepositoryIdentity": true,
+      "sharedLineageGroup": true,
+      "expectedRelationship": "DUPLICATE",
+      "reviewNotes": "Exact Python repository control"
+    },
+    {
+      "id": "django-exact-control",
+      "leftSnapshotId": "django-current",
+      "rightSnapshotId": "django-current",
+      "sameRepositoryIdentity": true,
+      "sharedLineageGroup": true,
+      "expectedRelationship": "DUPLICATE",
+      "reviewNotes": "Second exact Python repository control"
+    },
+    {
+      "id": "python-frameworks-independent",
+      "leftSnapshotId": "flask-current",
+      "rightSnapshotId": "django-current",
+      "sharedLineageGroup": false,
+      "expectedRelationship": "INDEPENDENT",
+      "reviewNotes": "Separate Python web frameworks with independent implementations"
+    },
+    {
+      "id": "python-api-frameworks-independent",
+      "leftSnapshotId": "fastapi-current",
+      "rightSnapshotId": "flask-current",
+      "sharedLineageGroup": false,
+      "expectedRelationship": "INDEPENDENT",
+      "reviewNotes": "Separate Python API and web framework implementations"
+    },
+    {
+      "id": "django-fastapi-independent",
+      "leftSnapshotId": "django-current",
+      "rightSnapshotId": "fastapi-current",
+      "sharedLineageGroup": false,
+      "expectedRelationship": "INDEPENDENT",
+      "reviewNotes": "Separate Python frameworks in the same language ecosystem"
+    },
+    {
+      "id": "spring-framework-example-independent",
+      "leftSnapshotId": "spring-framework-current",
+      "rightSnapshotId": "spring-petclinic-current",
+      "sharedLineageGroup": false,
+      "expectedRelationship": "INDEPENDENT",
+      "reviewNotes": "Framework implementation and an application built with it are independent work"
+    },
+    {
+      "id": "java-libraries-independent",
+      "leftSnapshotId": "guava-current",
+      "rightSnapshotId": "spring-framework-current",
+      "sharedLineageGroup": false,
+      "expectedRelationship": "INDEPENDENT",
+      "reviewNotes": "Independent large Java library and framework repositories"
+    },
+    {
+      "id": "javascript-build-ui-independent",
+      "leftSnapshotId": "turborepo-current",
+      "rightSnapshotId": "react-current",
+      "sharedLineageGroup": false,
+      "expectedRelationship": "INDEPENDENT",
+      "reviewNotes": "Independent JavaScript build tooling and UI library monorepositories"
+    },
+    {
+      "id": "javascript-tooling-independent",
+      "leftSnapshotId": "pnpm-current",
+      "rightSnapshotId": "turborepo-current",
+      "sharedLineageGroup": false,
+      "expectedRelationship": "INDEPENDENT",
+      "reviewNotes": "Independent package manager and build system repositories"
+    },
+    {
+      "id": "application-templates-independent",
+      "leftSnapshotId": "full-stack-fastapi-template",
+      "rightSnapshotId": "nextjs-fastapi-template",
+      "sharedLineageGroup": false,
+      "expectedRelationship": "INDEPENDENT",
+      "reviewNotes": "Independent application templates using similar Python and TypeScript stacks"
+    },
+    {
+      "id": "framework-template-independent",
+      "leftSnapshotId": "fastapi-current",
+      "rightSnapshotId": "full-stack-fastapi-template",
+      "sharedLineageGroup": false,
+      "expectedRelationship": "INDEPENDENT",
+      "reviewNotes": "Framework implementation and application template are distinct projects"
+    },
+    {
+      "id": "template-exact-control",
+      "leftSnapshotId": "full-stack-fastapi-template",
+      "rightSnapshotId": "full-stack-fastapi-template",
+      "sameRepositoryIdentity": true,
+      "sharedLineageGroup": true,
+      "expectedRelationship": "DUPLICATE",
+      "reviewNotes": "Exact mixed-language template control"
+    },
+    {
+      "id": "guava-exact-control",
+      "leftSnapshotId": "guava-current",
+      "rightSnapshotId": "guava-current",
+      "sameRepositoryIdentity": true,
+      "sharedLineageGroup": true,
+      "expectedRelationship": "DUPLICATE",
+      "reviewNotes": "Exact multi-module Java repository control"
+    },
+    {
+      "id": "python-java-independent",
+      "leftSnapshotId": "django-current",
+      "rightSnapshotId": "guava-current",
+      "sharedLineageGroup": false,
+      "expectedRelationship": "INDEPENDENT",
+      "reviewNotes": "Cross-language independent framework and library repositories"
+    },
+    {
+      "id": "python-typescript-independent",
+      "leftSnapshotId": "flask-current",
+      "rightSnapshotId": "pnpm-current",
+      "sharedLineageGroup": false,
+      "expectedRelationship": "INDEPENDENT",
+      "reviewNotes": "Cross-language independent Python and TypeScript repositories"
+    },
+    {
+      "id": "ton-package-manager-independent",
+      "leftSnapshotId": "ton-blueprint",
+      "rightSnapshotId": "pnpm-current",
+      "sharedLineageGroup": false,
+      "expectedRelationship": "INDEPENDENT",
+      "reviewNotes": "Independent projects sharing the TypeScript ecosystem"
+    },
+    {
+      "id": "javafx-guava-independent",
+      "leftSnapshotId": "javafx-source",
+      "rightSnapshotId": "guava-current",
+      "sharedLineageGroup": false,
+      "expectedRelationship": "INDEPENDENT",
+      "reviewNotes": "Independent Java application and utility library repositories"
+    },
+    {
+      "id": "react-pnpm-independent",
+      "leftSnapshotId": "react-current",
+      "rightSnapshotId": "pnpm-current",
+      "sharedLineageGroup": false,
+      "expectedRelationship": "INDEPENDENT",
+      "reviewNotes": "Independent JavaScript UI and package manager monorepositories"
     }
   ]
 }

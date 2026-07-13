@@ -23,9 +23,9 @@ public class GithubRepositoryFilePolicy {
             "cargo.toml", "pyproject.toml", "requirements.txt", "docker-compose.yml",
             "docker-compose.yaml");
     private static final Set<String> EXCLUDED_DIRECTORY_NAMES = Set.of(
-            ".git", ".next", ".nuxt", ".output", ".gradle", ".idea", ".vscode",
-            "build", "coverage", "dist", "generated", "node_modules", "out",
-            "target", "vendor");
+            ".devcontainer", ".git", ".github", ".next", ".nuxt", ".output",
+            ".gradle", ".idea", ".vscode", "build", "coverage", "dist", "docs",
+            "documentation", "generated", "node_modules", "out", "target", "vendor");
 
     public boolean isEligible(GithubTreeResponse.Entry entry) {
         if (entry == null || !"blob".equals(entry.type()) || isBlank(entry.path())) {

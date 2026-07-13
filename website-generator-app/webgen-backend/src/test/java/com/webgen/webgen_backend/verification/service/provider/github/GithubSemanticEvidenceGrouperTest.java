@@ -36,7 +36,8 @@ class GithubSemanticEvidenceGrouperTest {
 
         assertThat(grouped).extracting(EvidenceCandidate::evidenceGroupKey)
                 .containsOnly(grouped.getFirst().evidenceGroupKey());
-        assertThat(grouped.getFirst().evidenceGroupKey()).startsWith("github:semantic:v1:");
+        assertThat(grouped.getFirst().evidenceGroupKey()).startsWith(
+                "github:semantic:v" + ArtifactSemanticFingerprintGenerator.ALGORITHM_VERSION + ':');
         assertThat(grouped).allSatisfy(candidate -> {
             assertThat(candidate.metadata().path("semanticSimilarityGroup")
                     .path("effect").asText()).isEqualTo("strongest_evidence_only");

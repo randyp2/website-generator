@@ -16,6 +16,7 @@ record RepositoryPairCalibrationSourceManifest(
             String localDirectory,
             String repositoryUrl,
             String revision,
-            String reviewRole
+            String reviewRole,
+            Integer minimumSampledSourceAreas
     ) {}
 }

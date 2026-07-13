@@ -18,6 +18,7 @@ record RepositoryPairCalibrationDataset(
             String repositoryUrl,
             String revision,
             String reviewRole,
+            Integer minimumSampledSourceAreas,
             ArtifactSemanticFingerprint fingerprint
     ) {}
 
@@ -25,6 +26,7 @@ record RepositoryPairCalibrationDataset(
             String id,
             String leftSnapshotId,
             String rightSnapshotId,
+            boolean sameRepositoryIdentity,
             boolean sharedLineageGroup,
             Relationship expectedRelationship,
             String reviewNotes

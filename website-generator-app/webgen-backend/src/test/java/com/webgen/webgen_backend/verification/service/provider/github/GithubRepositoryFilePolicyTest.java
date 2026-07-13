@@ -21,6 +21,8 @@ class GithubRepositoryFilePolicyTest {
         assertThat(policy.isEligible(entry("README.md", 2_000L))).isFalse();
         assertThat(policy.isEligible(entry("node_modules/lib/index.js", 2_000L))).isFalse();
         assertThat(policy.isEligible(entry("src/generated/Client.java", 2_000L))).isFalse();
+        assertThat(policy.isEligible(entry("docs/conf.py", 2_000L))).isFalse();
+        assertThat(policy.isEligible(entry(".github/workflows/test.yml", 2_000L))).isFalse();
         assertThat(policy.isEligible(entry("src/App.java", 200_001L))).isFalse();
     }
 

@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
 @Component
 public class ArtifactSemanticFingerprintGenerator {
 
-    public static final int ALGORITHM_VERSION = 1;
+    public static final int ALGORITHM_VERSION = 2;
     private static final int SHINGLE_SIZE = 5;
     private static final int MAX_SKETCH_SIZE = 128;
     private static final int SKETCH_HASH_LENGTH = 16;
