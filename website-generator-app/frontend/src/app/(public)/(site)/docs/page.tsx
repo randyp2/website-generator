@@ -153,7 +153,9 @@ imported source         = 50`}</code>
             alias. Unresolved claims remain visible but do not receive a baseline or
             evidence lift until the dictionary recognizes them. The versioned skill
             catalog is maintained in JSON and applied through immutable database
-            migrations so new aliases can also repair existing unresolved claims.
+            migrations so new aliases can also repair existing unresolved claims. The
+            current catalog recognizes common AWS service abbreviations, Supabase,
+            Flyway, RAG pipelines, and LLM API integration terms.
           </p>
         </section>
 

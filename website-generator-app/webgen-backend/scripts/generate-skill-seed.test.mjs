@@ -16,8 +16,34 @@ test("validates the tracked catalog as the source of truth", () => {
   const input = JSON.parse(readFileSync(join(ROOT, "seed", "skills.v1.json"), "utf8"));
   const catalog = normalizeCatalog(input);
 
-  assert.equal(catalog.version, "1.0");
+  assert.equal(catalog.version, "1.1");
   assert.ok(catalog.skills.length > 100);
+});
+
+test("tracks canonical mappings for previously unresolved verification claims", () => {
+  const input = JSON.parse(readFileSync(join(ROOT, "seed", "skills.v1.json"), "utf8"));
+  const catalog = normalizeCatalog(input);
+  const canonicalByTerm = new Map();
+
+  catalog.skills.forEach((skill) => {
+    canonicalByTerm.set(skill.name.toLowerCase(), skill.name);
+    skill.aliases.forEach((alias) => canonicalByTerm.set(alias.toLowerCase(), skill.name));
+  });
+
+  assert.deepEqual(
+    ["EC2", "ECS", "S3", "ALB", "Supabase", "Flyway", "RAG pipelines", "LLM APIs"]
+      .map((term) => canonicalByTerm.get(term.toLowerCase())),
+    [
+      "Amazon EC2",
+      "Amazon ECS",
+      "Amazon S3",
+      "AWS Application Load Balancer",
+      "Supabase",
+      "Flyway",
+      "Retrieval-Augmented Generation",
+      "LLM API Integration",
+    ],
+  );
 });
 
 test("rejects case-insensitive collisions between names and aliases", () => {
