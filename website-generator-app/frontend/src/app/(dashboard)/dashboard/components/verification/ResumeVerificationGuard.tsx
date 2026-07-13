@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
 import ResumePreviewCard from "./ResumePreviewCard";
@@ -127,13 +128,28 @@ const ResumeVerificationGuard = ({
                         <button
                             key={tab.id}
                             onClick={() => setActiveTabAndTrack(tab.id)}
-                            className={`pb-3 text-sm font-medium transition-colors hover:cursor-pointer ${
+                            className={`relative pb-3 text-sm font-medium transition-colors hover:cursor-pointer ${
                                 isActive
-                                    ? "border-b-2 border-primary text-foreground"
+                                    ? "text-foreground"
                                     : "text-muted-foreground hover:text-foreground"
                             }`}
                         >
                             {tab.label}
+                            {isActive && (
+                                // Single shared indicator: framer-motion slides
+                                // and resizes it to the active tab instead of
+                                // re-rendering an underline per button.
+                                <motion.span
+                                    layoutId="verification-subtab-underline"
+                                    aria-hidden
+                                    className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary"
+                                    transition={{
+                                        type: "spring",
+                                        stiffness: 420,
+                                        damping: 34,
+                                    }}
+                                />
+                            )}
                         </button>
                     );
                 })}
