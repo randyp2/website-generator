@@ -57,6 +57,9 @@ const calibrationRows = [
   ["Two-year-old active repository", "55", "Gradual recency decay"],
   ["Three active repositories", "71", "Repeated independent usage"],
   ["Same project copied into two repositories", "61", "Copy adds no score"],
+  ["Primary plus a small derivative", "64", "Quantity adds gradual credit"],
+  ["Primary plus a meaningful derivative", "64", "Novel work adds partial credit"],
+  ["Primary plus a substantial derivative", "66", "Mostly distinct work approaches full credit"],
   ["Two independent active repositories", "67", "Independent work adds support"],
   ["One reviewed artifact at 0.95 depth", "69", "Strong reviewed evidence"],
   ["Five repository descriptions", "50", "Descriptions add no verification lift"],
@@ -136,7 +139,7 @@ imported source         = 50`}</code>
         <section>
           <h2 className="text-2xl font-semibold">How evidence adds progress</h2>
           <pre className="mt-5 overflow-x-auto border border-border bg-muted/30 p-5 text-sm leading-7">
-            <code>{`connector strength = link confidence × signal weight × authorship × recency
+            <code>{`connector strength = link confidence × signal weight × authorship × independence × recency
 reviewed strength  = evidence depth × signal weight × recency
 signal strength    = connector strength or reviewed strength
 
@@ -204,6 +207,33 @@ claim score        = 50 + (claim cap - 50) × boost progress`}</code>
               uploads cannot be fingerprinted retroactively without reading them again.
             </li>
           </ul>
+
+          <h3 className="mt-8 text-lg font-semibold">Derivative repository credit</h3>
+          <p className="mt-4 leading-7 text-muted-foreground">
+            Similarity is not treated as a code-quality judgment. It only estimates
+            how independently another repository supports the same skill. Meaningful
+            quantity still counts, so derivatives remain separate evidence positions
+            and receive gradual credit for their estimated novel source content.
+          </p>
+          <pre className="mt-5 overflow-x-auto border border-border bg-muted/30 p-5 text-sm leading-7">
+            <code>{`shared content ≤ 60%  → independence weight 1.00
+shared content 65%   → independence weight 0.875
+shared content 70%   → independence weight 0.75
+shared content 80%   → independence weight 0.50
+shared content 85%   → independence weight 0.375
+shared content ≥ 90% → same evidence group, no duplicate position
+
+between 60% and 90%:
+weight = 0.25 + 0.75 × ((0.90 - shared content) / 0.30)`}</code>
+          </pre>
+          <p className="mt-4 leading-7 text-muted-foreground">
+            Within a related family, the repository with the largest sampled token
+            count is selected as the primary, followed by authorship and recency as
+            tie-breakers. Other repositories are compared directly with that primary,
+            preventing similarity chains from reducing unrelated work. Formatting,
+            renames, generated output, dependency folders, documentation, and lock-file
+            changes do not manufacture novelty credit.
+          </p>
 
           <h3 className="mt-8 text-lg font-semibold">GitHub authorship</h3>
           <p className="mt-4 leading-7 text-muted-foreground">
@@ -366,6 +396,7 @@ overall   = baseline + mean lift × sqrt(coverage)`}</code>
                 <li>Separated artifact match confidence from demonstrated evidence depth.</li>
                 <li>Collapsed correlated evidence before top-K selection and rank decay.</li>
                 <li>Collapsed high-confidence semantic repository copies conservatively.</li>
+                <li>Added gradual novelty credit for meaningful derivative repositories.</li>
                 <li>Weighted direct commits, merge activity, and contribution days separately.</li>
                 <li>Added deterministic calibration scenarios and scoring invariants.</li>
                 <li>Made repository topics, names, and descriptions discovery-only.</li>
@@ -375,8 +406,8 @@ overall   = baseline + mean lift × sqrt(coverage)`}</code>
             <div className="border border-border p-5">
               <h3 className="font-semibold">Still under review</h3>
               <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
-                <li>Changed-file quality and incremental derivative credit need refinement.</li>
                 <li>Semantic thresholds need calibration against reviewed repository pairs.</li>
+                <li>Fingerprint sample coverage needs validation on large monorepositories.</li>
                 <li>Signal weights have not yet been calibrated against reviewed data.</li>
               </ul>
             </div>

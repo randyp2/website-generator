@@ -34,6 +34,7 @@ public class GithubEvidenceSnapshotService {
     private final GithubRepositoryInsightsClient repositoryInsightsClient;
     private final GithubRepositorySignalScanner repositorySignalScanner;
     private final GithubSemanticEvidenceGrouper semanticEvidenceGrouper;
+    private final GithubDerivativeCreditAssigner derivativeCreditAssigner;
 
     /** Fetches profile and repository evidence with bounded supplemental API calls. */
     public ProviderSyncSnapshot fetch(String accessToken, OffsetDateTime capturedAt) {
@@ -110,13 +111,15 @@ public class GithubEvidenceSnapshotService {
 
         List<EvidenceCandidate> groupedCandidates = semanticEvidenceGrouper.group(
                 candidates, fingerprintsByExternalId);
+        List<EvidenceCandidate> weightedCandidates = derivativeCreditAssigner.assign(
+                groupedCandidates, fingerprintsByExternalId);
         log.info("github.semantic_scan repositories={} fingerprintAttempts={} fingerprints={} "
                         + "scanLimit={}",
                 repositories.size(), fingerprintScans, fingerprintsByExternalId.size(),
                 MAX_REPOS_WITH_FINGERPRINT_SCAN);
 
         return new ProviderSyncSnapshot(
-                groupedCandidates,
+                weightedCandidates,
                 repositoryNames,
                 dependencyScans,
                 profile.login(),

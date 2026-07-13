@@ -113,6 +113,8 @@ final class ScoringCalibrationHarness {
         ObjectNode metadata = JsonNodeFactory.instance.objectNode();
         if ("github".equals(spec.provider())) {
             metadata.putObject("authorship").put("weight", spec.authorshipWeight());
+            metadata.putObject("repositoryIndependence")
+                    .put("weight", spec.independenceWeight());
         }
         OffsetDateTime occurredAt = AS_OF.minusDays(spec.ageDays());
         return Evidence.builder()
@@ -219,6 +221,7 @@ final class ScoringCalibrationHarness {
             BigDecimal matchConfidence,
             BigDecimal evidenceDepth,
             BigDecimal authorshipWeight,
+            BigDecimal independenceWeight,
             int ageDays
     ) {}
 

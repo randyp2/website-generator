@@ -47,6 +47,14 @@ class VerificationScoringCalibrationTest {
                 .isEqualTo(score(results, "strong_reviewed_artifact"));
         assertThat(score(results, "semantic_duplicate_repositories"))
                 .isEqualTo(score(results, "active_repository"));
+        assertThat(score(results, "small_derivative_repository"))
+                .isGreaterThan(score(results, "active_repository"));
+        assertThat(score(results, "small_derivative_repository"))
+                .isLessThanOrEqualTo(score(results, "meaningful_derivative_repository"));
+        assertThat(score(results, "meaningful_derivative_repository"))
+                .isLessThanOrEqualTo(score(results, "substantial_derivative_repository"));
+        assertThat(score(results, "substantial_derivative_repository"))
+                .isLessThan(score(results, "two_independent_repositories"));
         assertThat(score(results, "two_independent_repositories"))
                 .isGreaterThan(score(results, "semantic_duplicate_repositories"));
         assertThat(score(results, "broad_profile_sparse_evidence"))
@@ -83,6 +91,18 @@ class VerificationScoringCalibrationTest {
                         claim("React",
                                 github("copy 1", "semantic-family", "dependency_match", "0.90", "1.00", 0),
                                 github("copy 2", "semantic-family", "dependency_match", "0.90", "1.00", 0))),
+                scenario("small_derivative_repository", "Primary plus a small meaningful derivative",
+                        claim("React",
+                                github("primary", "small-primary", "dependency_match", "0.90", "1.00", 0),
+                                githubDerivative("small derivative", "small-derivative", "0.3750"))),
+                scenario("meaningful_derivative_repository", "Primary plus a meaningful derivative",
+                        claim("React",
+                                github("primary", "meaningful-primary", "dependency_match", "0.90", "1.00", 0),
+                                githubDerivative("meaningful derivative", "meaningful-derivative", "0.5000"))),
+                scenario("substantial_derivative_repository", "Primary plus a substantially distinct derivative",
+                        claim("React",
+                                github("primary", "substantial-primary", "dependency_match", "0.90", "1.00", 0),
+                                githubDerivative("substantial derivative", "substantial-derivative", "0.7500"))),
                 scenario("two_independent_repositories", "Two independent active repositories",
                         claim("React",
                                 github("independent 1", "independent-1", "dependency_match", "0.90", "1.00", 0),
@@ -152,7 +172,18 @@ class VerificationScoringCalibrationTest {
     ) {
         return new ScoringCalibrationHarness.EvidenceSpec(
                 label, "github", "repository", "github:" + group, linkType,
-                decimal(confidence), null, decimal(authorshipWeight), ageDays);
+                decimal(confidence), null, decimal(authorshipWeight), BigDecimal.ONE, ageDays);
+    }
+
+    private ScoringCalibrationHarness.EvidenceSpec githubDerivative(
+            String label,
+            String group,
+            String independenceWeight
+    ) {
+        return new ScoringCalibrationHarness.EvidenceSpec(
+                label, "github", "repository", "github:" + group, "dependency_match",
+                new BigDecimal("0.90"), null, BigDecimal.ONE,
+                decimal(independenceWeight), 0);
     }
 
     private ScoringCalibrationHarness.EvidenceSpec upload(
@@ -165,7 +196,7 @@ class VerificationScoringCalibrationTest {
         return new ScoringCalibrationHarness.EvidenceSpec(
                 label, "manual_upload", "user_uploaded_asset", "upload:" + group,
                 "llm_document_match", decimal(matchConfidence), decimal(evidenceDepth),
-                BigDecimal.ONE, ageDays);
+                BigDecimal.ONE, BigDecimal.ONE, ageDays);
     }
 
     private BigDecimal decimal(String value) {

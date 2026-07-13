@@ -259,6 +259,38 @@ class ClaimEvidenceScoringInputAssemblerServiceImplTest {
     }
 
     @Test
+    void appliesRepositoryIndependenceWeightSeparatelyFromAuthorship() {
+        UUID profileId = UUID.randomUUID();
+        UUID claimId = UUID.randomUUID();
+        UUID skillId = UUID.randomUUID();
+        UUID evidenceId = UUID.randomUUID();
+        OffsetDateTime asOf = OffsetDateTime.parse("2026-04-16T00:00:00Z");
+        ClaimEvidenceLink link = buildLink(
+                profileId, claimId, evidenceId, "dependency_match", "1.0");
+        Evidence evidence = buildEvidence(profileId, evidenceId, asOf, asOf, "derivative");
+        ObjectNode metadata = com.fasterxml.jackson.databind.node.JsonNodeFactory.instance.objectNode();
+        metadata.putObject("authorship").put("weight", new BigDecimal("0.80"));
+        metadata.putObject("repositoryIndependence").put("weight", new BigDecimal("0.50"));
+        evidence.setMetadata(metadata);
+
+        ClaimEvidenceScoringInputAssemblerServiceImpl assembler =
+                new ClaimEvidenceScoringInputAssemblerServiceImpl(
+                        stubClaimEvidenceLinkRepository(List.of(link)),
+                        stubEvidenceRepository(List.of(evidence)),
+                        new VerificationSignalPolicy(),
+                        new IndependentEvidenceSelector());
+
+        EvidenceLinkSignal signal = assembler.assembleSkillClaimInputs(
+                        profileId,
+                        List.of(buildClaim(profileId, claimId, skillId, "React")),
+                        Map.of(skillId, buildSkill(skillId, "React", "engineering", "1.0")),
+                        asOf)
+                .getFirst().evidenceLinks().getFirst();
+
+        assertThat(signal.decayedStrength()).isEqualByComparingTo("0.40000000");
+    }
+
+    @Test
     void excludesMetadataOnlyMatchesFromScoringInputs() {
         UUID profileId = UUID.randomUUID();
         UUID claimId = UUID.randomUUID();
