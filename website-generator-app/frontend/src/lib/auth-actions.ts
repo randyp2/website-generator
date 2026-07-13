@@ -42,6 +42,15 @@ export async function login(formData: FormData) {
 export async function signup(formData: FormData) {
   const supabase = await createServerSupabaseClient();
 
+  // Enforce Terms consent server-side: the client gates the submit button, but
+  // that is only UX and can be bypassed. Refuse to create an account unless the
+  // consent flag is present, and record which version was accepted.
+  const termsAccepted = formData.get("terms_accepted") === "true";
+  if (!termsAccepted) {
+    redirect("/error");
+  }
+  const termsVersion = formData.get("terms_version") as string | null;
+
   // type-casting here for convenience
   // in practice, you should validate your inputs
   const firstName = formData.get("first-name") as string;
@@ -53,12 +62,15 @@ export async function signup(formData: FormData) {
       data: {
         full_name: `${firstName + " " + lastName}`,
         email: formData.get("email") as string,
+        terms_accepted: true,
+        terms_version: termsVersion,
+        terms_accepted_at: new Date().toISOString(),
       },
     },
   };
 
-  const { error } = await supabase.auth.signUp(data); // Call supabase auth with data 
-  
+  const { error } = await supabase.auth.signUp(data); // Call supabase auth with data
+
   if (error) {
     redirect("/error");
   }

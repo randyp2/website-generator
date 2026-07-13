@@ -36,7 +36,7 @@ export const TermsAgreementCheckbox = ({
                 aria-label="I agree to the Terms of Use and Privacy Policy"
                 onClick={() => onCheckedChange(!checked)}
                 className={cn(
-                    "relative mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-[6px] border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+                    "relative mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-[6px] border transition-colors hover:cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
                     checked
                         ? "border-[#cc7d23]"
                         : "border-input bg-background",
@@ -77,7 +77,7 @@ export const TermsAgreementCheckbox = ({
 
             <span
                 onClick={() => onCheckedChange(!checked)}
-                className="cursor-pointer select-none text-xs leading-relaxed text-muted-foreground"
+                className="select-none text-xs leading-relaxed text-muted-foreground hover:cursor-pointer"
             >
                 I agree to the{" "}
                 <a

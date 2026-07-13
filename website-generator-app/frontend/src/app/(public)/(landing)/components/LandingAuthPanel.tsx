@@ -17,10 +17,15 @@ import {
 import { FcGoogle } from "react-icons/fc";
 
 import BrandWordmark from "@/components/branding/BrandWordmark";
+import { TermsAgreementCheckbox } from "@/components/auth/TermsAgreementCheckbox";
 import { cn } from "@/lib/utils";
 import { login, signup, signInWithGoogle } from "@/lib/auth-actions";
 
 type Mode = "login" | "signup";
+
+// Bump when the Terms/Privacy content materially changes so we can tell which
+// version a user accepted at sign-up. Kept in sync with the auth modal.
+const TERMS_VERSION = "2026-07-12";
 
 type AuthInputProps = {
     name: string;
@@ -34,6 +39,7 @@ type SubmitButtonProps = {
     label: string;
     pendingLabel: string;
     icon: ReactNode;
+    disabled?: boolean;
 };
 
 const panelStats = [
@@ -115,13 +121,14 @@ const SubmitButton = ({
     label,
     pendingLabel,
     icon,
+    disabled = false,
 }: SubmitButtonProps): JSX.Element => {
     const { pending } = useFormStatus();
 
     return (
         <button
             type="submit"
-            disabled={pending}
+            disabled={pending || disabled}
             className="mt-2 flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-70"
         >
             {pending ? pendingLabel : label}
@@ -165,7 +172,13 @@ const LoginFields = (): JSX.Element => (
     </form>
 );
 
-const SignupFields = (): JSX.Element => (
+const SignupFields = ({
+    agreedToTerms,
+    onAgreedChange,
+}: {
+    agreedToTerms: boolean;
+    onAgreedChange: (checked: boolean) => void;
+}): JSX.Element => (
     <form action={signup} className="space-y-3.5">
         <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
@@ -207,10 +220,26 @@ const SignupFields = (): JSX.Element => (
             />
         </div>
 
+        <TermsAgreementCheckbox
+            checked={agreedToTerms}
+            onCheckedChange={onAgreedChange}
+            className="pt-1"
+        />
+
+        {/* Carry consent into the server action so signup() can enforce and
+            record it server-side. */}
+        <input
+            type="hidden"
+            name="terms_accepted"
+            value={agreedToTerms ? "true" : "false"}
+        />
+        <input type="hidden" name="terms_version" value={TERMS_VERSION} />
+
         <SubmitButton
             label="Create account"
             pendingLabel="Creating account..."
             icon={<UserPlus className="h-4 w-4" />}
+            disabled={!agreedToTerms}
         />
     </form>
 );
@@ -221,6 +250,7 @@ const LandingAuthPanel = ({
     backAction?: ReactNode;
 }): JSX.Element => {
     const [mode, setMode] = useState<Mode>("login");
+    const [agreedToTerms, setAgreedToTerms] = useState<boolean>(false);
     const [isVisible, setIsVisible] = useState<boolean>(false);
     const { resolvedTheme, setTheme } = useTheme();
     const mounted = useSyncExternalStore(
@@ -343,7 +373,14 @@ const LandingAuthPanel = ({
                 </div>
 
                 <div className="space-y-6">
-                    {mode === "login" ? <LoginFields /> : <SignupFields />}
+                    {mode === "login" ? (
+                        <LoginFields />
+                    ) : (
+                        <SignupFields
+                            agreedToTerms={agreedToTerms}
+                            onAgreedChange={setAgreedToTerms}
+                        />
+                    )}
 
                     <div className="flex items-center gap-4">
                         <div className="h-px flex-1 bg-border" />
@@ -356,7 +393,8 @@ const LandingAuthPanel = ({
                     <form action={signInWithGoogle}>
                         <button
                             type="submit"
-                            className="flex w-full items-center justify-center gap-3 rounded-md border border-border bg-card px-4 py-3.5 text-sm font-medium text-foreground transition-colors hover:bg-muted hover:cursor-pointer"
+                            disabled={mode === "signup" && !agreedToTerms}
+                            className="flex w-full items-center justify-center gap-3 rounded-md border border-border bg-card px-4 py-3.5 text-sm font-medium text-foreground transition-colors hover:bg-muted hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             <FcGoogle className="h-5 w-5" />
                             Continue with Google
