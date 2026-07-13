@@ -6,6 +6,16 @@ import { usePathname } from "next/navigation";
 export default function DashboardMotionWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
+  // The page-transition key drives a remount-and-fade on navigation. Sections
+  // that own a persistent sub-navigation (e.g. the settings tabs, whose sliding
+  // underline lives in a shared layout) must collapse to a single key, so
+  // switching sub-tabs swaps only the content instead of remounting the whole
+  // subtree (which would tear down the sub-nav and kill its animation).
+  const persistentSections = ["/dashboard/settings"];
+  const transitionKey =
+    persistentSections.find((section) => pathname.startsWith(section)) ??
+    pathname;
+
   // Pages that need full width without max-width constraint
   const fullWidthPages = ["/dashboard/create/refine"];
   const isFullWidth = fullWidthPages.some((page) => pathname.includes(page));
@@ -25,7 +35,7 @@ export default function DashboardMotionWrapper({ children }: { children: React.R
 
   return (
     <motion.div
-      key={pathname}
+      key={transitionKey}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}

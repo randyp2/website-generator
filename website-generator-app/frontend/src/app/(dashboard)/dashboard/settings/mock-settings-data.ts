@@ -50,13 +50,13 @@ export interface SettingsBillingMock {
 }
 
 export const SETTINGS_PROFILE_MOCK: SettingsProfileMock = {
-    fullName: "Riley Pahang",
-    username: "rileypahang",
-    email: "riley@example.com",
+    fullName: "John Doe",
+    username: "johndoe",
+    email: "johndoe@example.com",
     bio: "Product designer and frontend engineer building conversion-focused portfolio sites.",
     timezone: "America/Los_Angeles",
     joinedDateLabel: "Joined April 2026",
-    publicProfilePath: "/rileypahang",
+    publicProfilePath: "/johndoe",
 };
 
 export const SETTINGS_SECURITY_MOCK: SettingsSecurityMock = {
