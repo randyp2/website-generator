@@ -1,7 +1,6 @@
 package com.webgen.webgen_backend.verification.service.provider.github;
 
 import com.webgen.webgen_backend.verification.service.fingerprint.ArtifactSemanticFingerprint;
-import com.webgen.webgen_backend.verification.service.fingerprint.ArtifactSemanticFingerprintGenerator;
 import com.webgen.webgen_backend.verification.service.provider.github.manifest.ManifestDependencyParser;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubRepositoryScanResult;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubTreeResponse;
@@ -13,12 +12,9 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static com.webgen.webgen_backend.verification.service.sync.VerificationMatchTextHelper.isBlank;
 
@@ -30,13 +26,9 @@ public class GithubRepositorySignalScanner {
     // Upper bound on manifests fetched per repo, so a large monorepo with many
     // manifests cannot trigger an unbounded number of content fetches.
     private static final int MAX_MANIFESTS_PER_REPO = 10;
-    private static final int MAX_FINGERPRINT_FILES_PER_REPO = 8;
-    private static final long MAX_FINGERPRINT_BYTES_PER_REPO = 600_000L;
-
     private final GithubApiClient githubApiClient;
     private final ManifestDependencyParser manifestDependencyParser;
-    private final GithubRepositoryFilePolicy repositoryFilePolicy;
-    private final ArtifactSemanticFingerprintGenerator fingerprintGenerator;
+    private final GithubRepositoryFingerprintBuilder fingerprintBuilder;
 
     /**
      * Scans a repository for dependency/build signals. Locates every parseable
@@ -77,7 +69,8 @@ public class GithubRepositorySignalScanner {
         }
 
         ArtifactSemanticFingerprint fingerprint = includeFingerprint
-                ? buildFingerprint(accessToken, owner, repo, defaultBranch, tree, contentByPath)
+                ? fingerprintBuilder.build(tree, path -> fetchTextContent(
+                        accessToken, owner, repo, defaultBranch, path, contentByPath))
                 : null;
         log.info(
                 "connection.sync.repo_scan fullName={} manifests={} signals={} "
@@ -92,54 +85,6 @@ public class GithubRepositorySignalScanner {
                 fingerprint == null ? 0 : fingerprint.shingleCount());
 
         return new GithubRepositoryScanResult(sourcesByToken, fingerprint);
-    }
-
-    private ArtifactSemanticFingerprint buildFingerprint(
-            String accessToken,
-            String owner,
-            String repo,
-            String defaultBranch,
-            List<GithubTreeResponse.Entry> tree,
-            Map<String, String> contentByPath
-    ) {
-        List<GithubTreeResponse.Entry> eligible = tree.stream()
-                .filter(repositoryFilePolicy::isEligible)
-                .sorted(Comparator
-                        .comparingLong(this::sizeOrZero)
-                        .reversed()
-                        .thenComparing(GithubTreeResponse.Entry::path))
-                .toList();
-        List<GithubTreeResponse.Entry> selected = selectWithinBudget(eligible);
-        List<ArtifactSemanticFingerprintGenerator.SourceDocument> documents = new ArrayList<>();
-        for (GithubTreeResponse.Entry entry : selected) {
-            String content = fetchTextContent(
-                    accessToken, owner, repo, defaultBranch, entry.path(), contentByPath);
-            if (content != null && !content.isBlank()) {
-                documents.add(new ArtifactSemanticFingerprintGenerator.SourceDocument(
-                        entry.path(), content));
-            }
-        }
-        return fingerprintGenerator.generate(eligible.size(), documents).orElse(null);
-    }
-
-    private List<GithubTreeResponse.Entry> selectWithinBudget(
-            List<GithubTreeResponse.Entry> eligible
-    ) {
-        List<GithubTreeResponse.Entry> selected = new ArrayList<>();
-        long selectedBytes = 0L;
-        for (GithubTreeResponse.Entry entry : eligible) {
-            long size = sizeOrZero(entry);
-            if (selected.size() >= MAX_FINGERPRINT_FILES_PER_REPO) {
-                break;
-            }
-            if (!selected.isEmpty() && size > 0
-                    && selectedBytes + size > MAX_FINGERPRINT_BYTES_PER_REPO) {
-                continue;
-            }
-            selected.add(entry);
-            selectedBytes += size;
-        }
-        return List.copyOf(selected);
     }
 
     private String fetchTextContent(
@@ -170,10 +115,6 @@ public class GithubRepositorySignalScanner {
         } catch (RestClientException | IllegalArgumentException exception) {
             return null;
         }
-    }
-
-    private long sizeOrZero(GithubTreeResponse.Entry entry) {
-        return Optional.ofNullable(entry.size()).orElse(0L);
     }
 
     private String fileName(String path) {

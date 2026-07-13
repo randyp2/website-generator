@@ -113,8 +113,9 @@ class GithubRepositorySignalScannerTest {
         return new GithubRepositorySignalScanner(
                 client,
                 parser,
-                new GithubRepositoryFilePolicy(),
-                new ArtifactSemanticFingerprintGenerator());
+                new GithubRepositoryFingerprintBuilder(
+                        new GithubRepositoryFilePolicy(),
+                        new ArtifactSemanticFingerprintGenerator()));
     }
 
     private static final class StubGithubApiClient extends GithubApiClient {

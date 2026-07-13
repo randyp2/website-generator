@@ -1,5 +1,7 @@
 package com.webgen.webgen_backend.verification.service.fingerprint;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -29,6 +31,7 @@ public record ArtifactSemanticFingerprint(
     }
 
     /** A minimum content floor prevents small scaffolds from being grouped. */
+    @JsonIgnore
     public boolean isComparable() {
         return sampledFileCount > 0 && shingleCount >= 40 && !sketch.isEmpty();
     }

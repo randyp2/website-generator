@@ -47,7 +47,7 @@ const panelStats = [
 ] as const;
 
 const inputClassName =
-    "w-full rounded-md border border-border bg-muted/80 px-4 py-3.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all focus:border-primary/70 focus:bg-card focus:ring-4 focus:ring-primary/10";
+    "w-full rounded-md border border-border bg-muted/80 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all focus:border-primary/70 focus:bg-card focus:ring-4 focus:ring-primary/10";
 
 const AuthInput = ({
     name,
@@ -110,7 +110,7 @@ const SubmitButton = ({
         <button
             type="submit"
             disabled={pending}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-3.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-70"
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-70"
         >
             {pending ? pendingLabel : label}
             {!pending && icon}
@@ -119,7 +119,7 @@ const SubmitButton = ({
 };
 
 const LoginFields = (): JSX.Element => (
-    <form action={login} className="space-y-4">
+    <form action={login} className="space-y-3.5">
         <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">Email Address</label>
             <AuthInput
@@ -154,7 +154,7 @@ const LoginFields = (): JSX.Element => (
 );
 
 const SignupFields = (): JSX.Element => (
-    <form action={signup} className="space-y-4">
+    <form action={signup} className="space-y-3.5">
         <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">First Name</label>
@@ -234,7 +234,7 @@ const LandingAuthPanel = ({
                     : "translate-y-4 opacity-0"
             }`}
         >
-            <div className="relative space-y-8 text-card-foreground">
+            <div className="relative space-y-6 text-card-foreground">
                 <div className="flex flex-col items-end gap-3">
                     <div className="flex w-full items-center justify-between">
                         {backAction ?? <div />}
@@ -321,7 +321,7 @@ const LandingAuthPanel = ({
                     {panelStats.map((stat) => (
                         <div key={stat.value} className="py-1">
                             <p className="text-sm leading-6 text-muted-foreground">
-                                <span className="float-left mr-3 bg-linear-to-r from-[#fbbf24] via-[#f59e0b] to-[#b45309] bg-clip-text text-4xl font-semibold leading-none text-transparent sm:text-5xl">
+                                <span className="float-left mr-3 bg-linear-to-r from-[#fbbf24] via-[#f59e0b] to-[#b45309] bg-clip-text text-4xl font-semibold leading-none text-transparent">
                                     {stat.value}
                                 </span>
                                 {stat.copy}

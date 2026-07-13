@@ -4,6 +4,7 @@ import com.webgen.webgen_backend.verification.service.provider.github.model.Gith
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubCommitResponse;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubRepoResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -35,6 +36,7 @@ public class GithubRepositoryInsightsClient {
     private final RestTemplate restTemplate;
     private final GithubCommitContributionAnalyzer contributionAnalyzer;
 
+    @Autowired
     public GithubRepositoryInsightsClient(GithubCommitContributionAnalyzer contributionAnalyzer) {
         this(new RestTemplate(), contributionAnalyzer);
     }

@@ -70,6 +70,17 @@ const calibrationRows = [
   ["Four claims, only one evidenced", "56", "Coverage dampens profile lift"],
 ];
 
+const repositoryPairCalibrationRows = [
+  ["Exact snapshot control", "1.000", "Duplicate", "Duplicate", "61"],
+  ["Same repository across revisions", "0.953", "Duplicate", "Duplicate", "61"],
+  ["Documented JavaFX derivative", "0.367", "Derivative", "Independent", "67"],
+  ["Maintained TON fork", "0.438", "Derivative", "Duplicate by lineage", "61"],
+  ["Independent TON projects", "0.000", "Independent", "Independent", "67"],
+  ["Independent Java Spring projects", "0.047", "Independent", "Independent", "67"],
+  ["Cross-language projects", "0.000", "Independent", "Independent", "67"],
+  ["Second exact snapshot control", "1.000", "Duplicate", "Duplicate", "61"],
+];
+
 export default function VerificationDocsPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -383,6 +394,54 @@ overall   = baseline + mean lift × sqrt(coverage)`}</code>
         </section>
 
         <section>
+          <h2 className="text-2xl font-semibold">Real repository-pair evaluation</h2>
+          <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
+            The offline evaluation corpus contains seven immutable public repository
+            snapshots and eight manually reviewed pairs. Git tracks repository URLs,
+            commit SHAs, labels, and versioned fingerprint sketches only. No public
+            source checkout is stored in this application repository.
+          </p>
+          <div className="mt-6 overflow-x-auto border border-border">
+            <table className="w-full border-collapse text-left text-sm">
+              <thead className="bg-muted/40">
+                <tr>
+                  <th className="border-b border-border px-4 py-3 font-medium">Pair</th>
+                  <th className="border-b border-border px-4 py-3 font-medium">Shared</th>
+                  <th className="border-b border-border px-4 py-3 font-medium">Reviewed</th>
+                  <th className="border-b border-border px-4 py-3 font-medium">Current model</th>
+                  <th className="border-b border-border px-4 py-3 font-medium">Score</th>
+                </tr>
+              </thead>
+              <tbody>
+                {repositoryPairCalibrationRows.map(([
+                  pair,
+                  shared,
+                  reviewed,
+                  predicted,
+                  score,
+                ]) => (
+                  <tr key={pair} className="border-b border-border last:border-0">
+                    <td className="px-4 py-3 text-muted-foreground">{pair}</td>
+                    <td className="px-4 py-3 font-mono">{shared}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{reviewed}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{predicted}</td>
+                    <td className="px-4 py-3 font-mono">{score}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-4 leading-7 text-muted-foreground">
+            Six of eight reviewed pairs matched the current scoring behavior. Exact
+            copies and unrelated controls separated cleanly. The two review cases show
+            that a heavily restructured derivative can fall below the 60% content
+            threshold, while resolved fork lineage can remain too strict after a fork
+            develops meaningful independent work. These findings are recorded for
+            review and have not silently changed production thresholds.
+          </p>
+        </section>
+
+        <section>
           <h2 className="text-2xl font-semibold">Reform status</h2>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <div className="border border-border p-5">
@@ -399,6 +458,7 @@ overall   = baseline + mean lift × sqrt(coverage)`}</code>
                 <li>Added gradual novelty credit for meaningful derivative repositories.</li>
                 <li>Weighted direct commits, merge activity, and contribution days separately.</li>
                 <li>Added deterministic calibration scenarios and scoring invariants.</li>
+                <li>Added an offline reviewed public repository-pair evaluation corpus.</li>
                 <li>Made repository topics, names, and descriptions discovery-only.</li>
                 <li>Excluded rejected claims and left unresolved claims unscored.</li>
               </ul>
@@ -406,7 +466,8 @@ overall   = baseline + mean lift × sqrt(coverage)`}</code>
             <div className="border border-border p-5">
               <h3 className="font-semibold">Still under review</h3>
               <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
-                <li>Semantic thresholds need calibration against reviewed repository pairs.</li>
+                <li>The reviewed repository-pair corpus needs broader language coverage.</li>
+                <li>Meaningfully diverged forks need a less rigid lineage policy.</li>
                 <li>Fingerprint sample coverage needs validation on large monorepositories.</li>
                 <li>Signal weights have not yet been calibrated against reviewed data.</li>
               </ul>

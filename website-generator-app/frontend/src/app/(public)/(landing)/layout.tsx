@@ -20,15 +20,18 @@ export default async function LandingLayout({
     const email = user?.email ?? "";
     const avatar: string | null = user?.user_metadata?.avatar_url ?? null;
 
+    // On xl the row is a fixed viewport-height container that clips its own
+    // overflow, so each pane scrolls independently instead of moving the page.
+    // Below xl it is a single scrolling column.
     return (
-        <div className="flex min-h-screen">
-            {/* Left: landing page content (scrollable) */}
-            <main className="hidden xl:block xl:w-[60%]">
+        <div className="flex min-h-screen xl:h-screen xl:overflow-hidden">
+            {/* Left: landing page content (independent scroll) */}
+            <main className="hidden xl:block xl:h-screen xl:w-[60%] xl:overflow-y-auto">
                 {children}
             </main>
 
-            {/* Right: auth panel (sticky) */}
-            <aside className="flex w-full overflow-y-auto items-start justify-center bg-background px-6 pb-8 sm:px-8 lg:px-12 xl:sticky xl:top-0 xl:h-screen xl:w-[40%] xl:border-l xl:border-border">
+            {/* Right: auth panel (independent scroll) */}
+            <aside className="flex w-full items-start justify-center overflow-y-auto bg-background px-6 pb-8 sm:px-8 lg:px-12 xl:h-screen xl:w-[40%] xl:border-l xl:border-border">
                 {isLoggedIn ? (
                     <LandingAuthSwitcher
                         username={username}
@@ -36,7 +39,7 @@ export default async function LandingLayout({
                         avatar={avatar}
                     />
                 ) : (
-                    <div className="pt-10 xl:pt-12">
+                    <div className="pt-6 xl:pt-8">
                         <LandingAuthPanel />
                     </div>
                 )}

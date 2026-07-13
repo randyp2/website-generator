@@ -1,0 +1,168 @@
+{
+  "datasetVersion" : 1,
+  "fingerprintAlgorithmVersion" : 1,
+  "capturedAt" : "2026-07-12",
+  "snapshots" : [ {
+    "id" : "spring-petclinic-current",
+    "repositoryUrl" : "https://github.com/spring-projects/spring-petclinic/tree/51045d1648dad955df586150c1a1a6e22ef400c2",
+    "revision" : "51045d1648dad955df586150c1a1a6e22ef400c2",
+    "reviewRole" : "Current Java Spring application snapshot",
+    "fingerprint" : {
+      "algorithmVersion" : 1,
+      "exactContentHash" : "e083bdaec71a6e29e5cddf3557339a71a052afdb2a9c629a289020935e85c57e",
+      "sketch" : [ "0000dd21c792ae40", "000c52d5a5e9fdd9", "000f0b664383b8b7", "00117faad1572149", "00227baa6c1e464d", "002c6d8529b59fd0", "00348d43f1c6e7bc", "003d03c50ed5e91d", "004d56954128c9e1", "004f81ea7e3f8566", "005d668dff465470", "0060dec982706be3", "00687d4649eee4f3", "006fb74307f9c9d9", "00720b4878362ade", "0083d3e2871889bf", "00905ce2deb3babb", "0092af4e9c1d0c28", "009de477d2b8f617", "00afcdb27f8fc11c", "00b064c61a8f712d", "00c04265fab6e354", "00c66170ba966739", "00ca0738bd1f6630", "00cad18d5512b9e9", "00cf26486bd1535d", "00e6309076554455", "00f672624d4ced3c", "01016152e5577b99", "01045cfc3131ee8c", "010ee97fb53b1c18", "010f3367d78294a5", "011424062efb2b8e", "0126b56d51332c4f", "01282da4fec2533e", "012ad3b5644c5e34", "01373cc8a7f9d41f", "01432f079fb2de99", "01448e9a23ef5745", "01486d75a0755d68", "01512a486b3d46d4", "0158b257a38a4998", "015c09e21baae64a", "016922f9da1eb214", "016e79cfa22bdcdd", "017299f1cd241089", "0176068d45546af2", "018b864aa357b9d6", "018f089efc73b660", "01990a21f432e107", "01997c01d15b8873", "019afaa122251d4b", "01a4ef3c0b7f626f", "01ba25afd4e56ed4", "01db31a752fb19ee", "01e0a8ffed2d6b94", "01fac18103d9eddd", "021475abd989e579", "02259ca9c3684778", "022ff3461375408c", "023489fd5eed8a93", "0235ee369d42493f", "024ab546d54fcd64", "024aba152d31664f", "024bdd2b14f90a0b", "024cc0b1073002ed", "024f1acabbe447e6", "02511bf6f7ee460d", "02537343238893f7", "0263bac578f73121", "026c91177d1d86d7", "026c93d278c9c26e", "027f4cc0603f69b2", "027f73b87a72f6c8", "028163df83107c3d", "028ee4d3b7370fa5", "0290e979f68e4aa4", "0299b7dfadd2c7bb", "029dbf76cc78eaf6", "029f6085bceb2c9b", "029fd4894710ac99", "02a21c381efafcb6", "02b9f06f7c9d7452", "02bcb23a59b70d29", "02c202f0a739cfd4", "02c9c43f1df96495", "02d08ae1125e236f", "02e96bf7b44469c1", "02eca4a42dc83333", "02f52322e60bb5b3", "03009354016f0e5b", "030375d791243bf5", "030bc64056a73df4", "0311807061a0feb2", "031bf57455dc58eb", "032316ed3fe77193", "032733f52767824a", "0339fe6a021536f8", "034ad776145964b6", "035c3e349d1b8df8", "0381f68e16945c9a", "0385968b033f5b0b", "038a04764270dff7", "038abb941c10b62d", "039048ebb7037e1d", "03933b8074f41978", "039e982cfffe3b57", "03a443300fa546f7", "03aa1ab66144c65f", "03b02b1a4f21cf04", "03b1fe2f2aced357", "03c270ec55820b25", "03c52a6d2bd0811c", "03c6c038f0294a0a", "03ca518c2369ae37", "03d44b245728ce05", "03dbd153217efef2", "03e90f531ec9aca1", "04018e3fb9917eb0", "040b28c590e8e745", "041e87ccf618a7f5", "042205e2c9a56aa7", "0428480fe31973aa", "04344d8e257b2a7b", "043afb1755147910", "0448a9c2fe9524bb", "0448da3662b69237", "0450a6db98fe2334" ],
+      "eligibleFileCount" : 85,
+      "sampledFileCount" : 8,
+      "tokenCount" : 15785,
+      "shingleCount" : 7415,
+      "sampledPaths" : [ "pom.xml", "src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java", "src/main/java/org/springframework/samples/petclinic/owner/PetController.java", "src/main/resources/db/postgres/data.sql", "src/test/java/org/springframework/samples/petclinic/PostgresIntegrationTests.java", "src/test/java/org/springframework/samples/petclinic/owner/OwnerControllerTests.java", "src/test/java/org/springframework/samples/petclinic/owner/PetControllerTests.java", "src/test/java/org/springframework/samples/petclinic/service/ClinicServiceTests.java" ]
+    }
+  }, {
+    "id" : "spring-petclinic-older",
+    "repositoryUrl" : "https://github.com/spring-projects/spring-petclinic/tree/5149abbc90a6710fdb5e8aa0d0530b093e4a80cd",
+    "revision" : "5149abbc90a6710fdb5e8aa0d0530b093e4a80cd",
+    "reviewRole" : "Same application twenty commits earlier",
+    "fingerprint" : {
+      "algorithmVersion" : 1,
+      "exactContentHash" : "4632e98779b0d33cab08621f6c33942afc19e66ad756adf0c0a53dc10dce6ae8",
+      "sketch" : [ "0000dd21c792ae40", "000c52d5a5e9fdd9", "000f0b664383b8b7", "00117faad1572149", "00227baa6c1e464d", "002c6d8529b59fd0", "003d03c50ed5e91d", "004d56954128c9e1", "004f81ea7e3f8566", "005d668dff465470", "0060dec982706be3", "00687d4649eee4f3", "006fb74307f9c9d9", "00720b4878362ade", "0083d3e2871889bf", "00905ce2deb3babb", "0092af4e9c1d0c28", "009de477d2b8f617", "00afcdb27f8fc11c", "00b064c61a8f712d", "00c04265fab6e354", "00c66170ba966739", "00cad18d5512b9e9", "00cf26486bd1535d", "00d0716ba6a2bd1a", "00e6309076554455", "00f672624d4ced3c", "01016152e5577b99", "01045cfc3131ee8c", "010ee97fb53b1c18", "010f3367d78294a5", "011424062efb2b8e", "0126b56d51332c4f", "01282da4fec2533e", "012ad3b5644c5e34", "01373cc8a7f9d41f", "01432f079fb2de99", "01486d75a0755d68", "01512a486b3d46d4", "0158b257a38a4998", "015c09e21baae64a", "016922f9da1eb214", "016e79cfa22bdcdd", "017299f1cd241089", "0176068d45546af2", "018b864aa357b9d6", "018f089efc73b660", "01990a21f432e107", "01997c01d15b8873", "019afaa122251d4b", "01a4ef3c0b7f626f", "01ba25afd4e56ed4", "01db31a752fb19ee", "01e0a8ffed2d6b94", "01fac18103d9eddd", "021475abd989e579", "02259ca9c3684778", "022ff3461375408c", "023489fd5eed8a93", "0235ee369d42493f", "024ab546d54fcd64", "024aba152d31664f", "024bdd2b14f90a0b", "024cc0b1073002ed", "024f1acabbe447e6", "02511bf6f7ee460d", "02537343238893f7", "0263bac578f73121", "026c91177d1d86d7", "026c93d278c9c26e", "027f4cc0603f69b2", "027f73b87a72f6c8", "028163df83107c3d", "028ee4d3b7370fa5", "0290e979f68e4aa4", "0299b7dfadd2c7bb", "029dbf76cc78eaf6", "029f6085bceb2c9b", "029fd4894710ac99", "02a21c381efafcb6", "02b9f06f7c9d7452", "02bcb23a59b70d29", "02c202f0a739cfd4", "02c9c43f1df96495", "02d08ae1125e236f", "02e96bf7b44469c1", "02eca4a42dc83333", "02f52322e60bb5b3", "03009354016f0e5b", "030375d791243bf5", "030bc64056a73df4", "0311807061a0feb2", "0314f29f449100ff", "031bf57455dc58eb", "032316ed3fe77193", "032733f52767824a", "0339fe6a021536f8", "034ad776145964b6", "035c3e349d1b8df8", "0381f68e16945c9a", "0385968b033f5b0b", "038a04764270dff7", "038abb941c10b62d", "039048ebb7037e1d", "03933b8074f41978", "039e982cfffe3b57", "03a443300fa546f7", "03aa1ab66144c65f", "03b02b1a4f21cf04", "03b1fe2f2aced357", "03c270ec55820b25", "03c52a6d2bd0811c", "03c6c038f0294a0a", "03ca518c2369ae37", "03d44b245728ce05", "03dbd153217efef2", "03e90f531ec9aca1", "03f6d2c95ac37393", "04018e3fb9917eb0", "040b28c590e8e745", "041e87ccf618a7f5", "042205e2c9a56aa7", "0428480fe31973aa", "04344d8e257b2a7b", "043afb1755147910", "0448a9c2fe9524bb", "0448da3662b69237", "0450a6db98fe2334" ],
+      "eligibleFileCount" : 84,
+      "sampledFileCount" : 8,
+      "tokenCount" : 15212,
+      "shingleCount" : 7319,
+      "sampledPaths" : [ "pom.xml", "src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java", "src/main/java/org/springframework/samples/petclinic/owner/PetController.java", "src/main/resources/db/postgres/data.sql", "src/test/java/org/springframework/samples/petclinic/PostgresIntegrationTests.java", "src/test/java/org/springframework/samples/petclinic/owner/OwnerControllerTests.java", "src/test/java/org/springframework/samples/petclinic/owner/PetControllerTests.java", "src/test/java/org/springframework/samples/petclinic/service/ClinicServiceTests.java" ]
+    }
+  }, {
+    "id" : "javafx-source",
+    "repositoryUrl" : "https://github.com/RamAlapure/JavaFXSpringBootApp/tree/7f5594aa7e7edd5f38de3323249a9b8aabe2496e",
+    "revision" : "7f5594aa7e7edd5f38de3323249a9b8aabe2496e",
+    "reviewRole" : "Original JavaFX Spring Boot example",
+    "fingerprint" : {
+      "algorithmVersion" : 1,
+      "exactContentHash" : "a6dece8b00e43f309fa3c10b4680d412349f095ecaf96170435c0e00ddf444a1",
+      "sketch" : [ "000c52d5a5e9fdd9", "001acaf9d4d9a9aa", "002239586576a104", "0028fe8aed070139", "004566c746ea9e99", "0048f194fcd9d524", "0058f565b392077b", "00905ce2deb3babb", "00a73e1d957b39a8", "00b30b2b020ddcbc", "00c18b73fd27c43e", "00dbb0d62d00d74a", "00dc6e627c503e3c", "00de3f78e73c82da", "00f12c52b4837196", "01342ec78e68c665", "013c0bf7da0c7e3f", "014e4e88c766ac0e", "01512a486b3d46d4", "016d0c77d9c1886b", "0179dc09e175e1d7", "018d7b19287631e3", "018f55a93e0a71a3", "01990a21f432e107", "01a000fc55987e55", "01ba81a724576dd7", "01bb2815b194ef8d", "01c15bba67a8021c", "01c6874e17d767be", "01ce70750324ee0c", "01fb58cc0e72d321", "02021390509aedea", "0219b408c6f24566", "0247ce85ef0592ad", "024bca908ec1e407", "024bdd2b14f90a0b", "025f8d35dd8ebc9e", "026e1cd5d4f3904a", "0293ae3d5809553c", "0299b7dfadd2c7bb", "02abf842a6a4b5ca", "02b02f1104414212", "02bc4f835a07aa8d", "02ca1e4898ee2c63", "02e0d1d22c72604d", "02e8ad7f78fa3324", "03162152bbec3089", "031861b039aed865", "03349d7a50b9c24f", "0346888bd0867986", "0353ace4c852caf2", "036184558bcafb86", "03b07b9c7ed1cb6b", "03b6a14a2a38dec0", "03c9d1b7171aad94", "03d2bc4de8cb9a92", "0416de469893dd91", "043afb1755147910", "0441a9270fdc6a36", "0471118a80eef840", "047385ae9594362c", "0485f6e79cedcbf6", "048dddf0265ee259", "049875dc76a118e8", "04c585e6af82e9e3", "04e8186c9d070dd5", "0520cf9814e6ae30", "0544996e0db58704", "0557e9b8fb0528d7", "0569f1b8a5fdd142", "0582a7668eba8082", "05b9c997fed95ac1", "05baaa7dcbf2bbf6", "05c04f72abf2b1ad", "05eba2edfe3e456b", "05fc1a4af6cedca7", "060e87d448005f5c", "061dd24d2afe6ea1", "0632936bcb4c242b", "063c1a9a8a9357dd", "0642a38c4ce70536", "0658fbbc353d4ad1", "06606f9055a1fff1", "0665e68998272b6d", "066925a113352343", "06a69a99f40fac73", "06a991bb01e4317e", "06b30824ab36c915", "06c4f0ca717cb4f9", "06c6733643b2ebd7", "06f855db1b40ac0a", "06fe20b219b1ef71", "070420daa69c3e16", "07094384f3e168e2", "070f1c381cef28d5", "0713819c0e7e6234", "072dd0cad424dd45", "0732a54b2d87243b", "073cec5746da238a", "074fabd4db262c4f", "0751d890854776df", "076a4e30acf119fa", "079e90a398d87f50", "07add155f1fac208", "07bd904ccac0abe0", "07d6992c52fe93f1", "07db06a5fcbbe45e", "0810f141d7e53648", "0816564ab7beaa92", "082907e688119270", "0849fc01b374fa48", "084c3e7c9fbd0dc3", "086a2b6190660c1a", "0899b28a8516589a", "08a5179f48ab3169", "08a874c1eb488f3f", "08a9d959f2bad31e", "08ad35eb1b709a76", "08ae7d7b8928a22b", "08be05fec41af50c", "08be48c60b74971e", "08cf745584b84b9f", "08f01bdeae198d00", "0912471983e73e29", "091f740dd4051770", "09519b7c1d38dad7", "09574eb326365eb8", "097ca24505ff628d" ],
+      "eligibleFileCount" : 15,
+      "sampledFileCount" : 8,
+      "tokenCount" : 5164,
+      "shingleCount" : 3838,
+      "sampledPaths" : [ "pom.xml", "src/main/java/com/codetreatise/Main.java", "src/main/java/com/codetreatise/bean/User.java", "src/main/java/com/codetreatise/config/AppJavaConfig.java", "src/main/java/com/codetreatise/config/StageManager.java", "src/main/java/com/codetreatise/controller/LoginController.java", "src/main/java/com/codetreatise/controller/UserController.java", "src/main/java/com/codetreatise/service/impl/UserServiceImpl.java" ]
+    }
+  }, {
+    "id" : "javafx-derivative",
+    "repositoryUrl" : "https://github.com/JinyKafe/JavaFX_CRUD_Application/tree/6f931e86efcd2604b8db7af9a4f15f26e65c51e3",
+    "revision" : "6f931e86efcd2604b8db7af9a4f15f26e65c51e3",
+    "reviewRole" : "Documented derivative with CRUD functionality and modernization",
+    "fingerprint" : {
+      "algorithmVersion" : 1,
+      "exactContentHash" : "bc939ff407a6f6f027001b07b4ee5e112ec8718968d82e13926112509a0ce6ac",
+      "sketch" : [ "000c52d5a5e9fdd9", "001acaf9d4d9a9aa", "0028fe8aed070139", "004566c746ea9e99", "005dfd56cdb73fc7", "008d8423a9c1ace5", "00905ce2deb3babb", "00b2c9fefaf276f5", "00b30b2b020ddcbc", "00bf5bb9cde8f3f5", "00d79cf0569b37ef", "00dc6e627c503e3c", "00f12c52b4837196", "00f230371e305042", "0118481b2644018a", "01342ec78e68c665", "013c0bf7da0c7e3f", "0148a9dd82962bae", "01512a486b3d46d4", "016d0c77d9c1886b", "01873516018dbba8", "018ad700fa8b3cb9", "018f55a93e0a71a3", "01990a21f432e107", "01a000fc55987e55", "01ba81a724576dd7", "02021390509aedea", "02038d6ee5320649", "021591caa345e61e", "0247ce85ef0592ad", "024bca908ec1e407", "024bdd2b14f90a0b", "025f8d35dd8ebc9e", "026e1cd5d4f3904a", "02988e11db49cb93", "0299b7dfadd2c7bb", "02a36ac73c633602", "02a57b0dd1ef28fc", "02abf842a6a4b5ca", "02ad97d3a8de966f", "02ca1e4898ee2c63", "02d646e52cdd2062", "02e0d1d22c72604d", "02e8ad7f78fa3324", "02f323dc6ea77502", "0318280b238611c0", "031861b039aed865", "032410abdf5494e0", "03341d4f72461de6", "03349d7a50b9c24f", "0354b3f16cba94eb", "035d8bbd64de96ce", "036184558bcafb86", "03620c3a129f28ad", "0376b41d39836d21", "03bdd6fdd515db9d", "03d2bc4de8cb9a92", "03dd7a8fb9a100ea", "03fb07ce963e989d", "03fe3b08dad4c11c", "04075205d678e5eb", "043afb1755147910", "0441a9270fdc6a36", "0471118a80eef840", "047385ae9594362c", "0485f6e79cedcbf6", "04c7039252f47dff", "04de157d194e531a", "04e8186c9d070dd5", "04fed0b3a18bc43f", "0505d014b2dcff73", "05112e552183a01f", "052146880769c452", "05399174220d294a", "0544996e0db58704", "0557e9b8fb0528d7", "05ab3b4cfd9ffa70", "05d10b92b62f7115", "05e41354bbf4158a", "05eba2edfe3e456b", "05fb9fc82ce901d4", "05fc1a4af6cedca7", "060e87d448005f5c", "061dd24d2afe6ea1", "063c1a9a8a9357dd", "063c5ab82cb314a6", "06565a5bcbab1073", "06606f9055a1fff1", "0665e68998272b6d", "066925a113352343", "06b30824ab36c915", "06c4f0ca717cb4f9", "06c6733643b2ebd7", "06edd0dd93f57329", "06f82a4a97baf626", "06f855db1b40ac0a", "0736ef8f005d94e8", "073cec5746da238a", "0751d890854776df", "076310badee5e339", "076a4e30acf119fa", "079a44ba6dc3bf36", "07db06a5fcbbe45e", "0810f141d7e53648", "0816564ab7beaa92", "084c3e7c9fbd0dc3", "086b1bc913d93630", "087c6bf7906c7f8e", "08a9d959f2bad31e", "08b26d0ab6bbe677", "08b3bbc279858a7d", "08be48c60b74971e", "08cf745584b84b9f", "08eb52654d466b85", "08ec6b9305dcfb68", "08f01bdeae198d00", "08fdbfa316a0b3d2", "090bd11f8298dd5b", "091f740dd4051770", "09509ba65a9cf71a", "09519b7c1d38dad7", "09574eb326365eb8", "0961358615f7a38d", "097b01d0486a2083", "09954532fa849686", "09b2860e36875dc4", "09cffd8bf274a541", "09f4c8a77b620bd1" ],
+      "eligibleFileCount" : 23,
+      "sampledFileCount" : 8,
+      "tokenCount" : 4943,
+      "shingleCount" : 3725,
+      "sampledPaths" : [ "pom.xml", "src/main/java/com/codetreatise/MainApp.java", "src/main/java/com/codetreatise/SpringbootJavaFxApplication.java", "src/main/java/com/codetreatise/model/User.java", "src/main/java/com/codetreatise/view/StageManager.java", "src/main/java/com/codetreatise/view/main/center/UserListPane.java", "src/main/java/com/codetreatise/view/main/left/UserDetailPane.java", "src/main/java/com/codetreatise/view/main/left/UserDetailPaneManager.java" ]
+    }
+  }, {
+    "id" : "ton-core-source",
+    "repositoryUrl" : "https://github.com/ton-core/ton-core/tree/e0ed819973daf0484dfbacd0c30a0dcfe4714f8d",
+    "revision" : "e0ed819973daf0484dfbacd0c30a0dcfe4714f8d",
+    "reviewRole" : "Original TypeScript TON core library",
+    "fingerprint" : {
+      "algorithmVersion" : 1,
+      "exactContentHash" : "05dbd5c6556282dd6b56c9eda087ec44112725f89cd0b4c3c535e83ecc160ffb",
+      "sketch" : [ "000ce44861138268", "0015cf592c3f5609", "00164a7adb9c8336", "001bb2420cc2bce1", "0020589eefb761bc", "002239d65c083634", "0027fbaad527929b", "002cc144a950e31c", "002e450f14ac6fce", "002f1f29f6d6ed69", "003560010c2faa12", "0037f7522df56d17", "003d4a37aeb946f5", "00596d00b3eae409", "005f348c19836666", "006be478bf26a418", "007053a7c37a6ab4", "0073c900143224c2", "0074b4ea4d2e1ea4", "007c6180910b6cab", "00801317f4ee9c56", "008a15301206b4a8", "008f05974a3d892b", "0090da0358d62961", "0091911c1737a2ad", "00935a1b8f484607", "009636288be5a769", "00970d2e744534da", "009c52a13590c488", "00a22f6b79e367ac", "00b5a25e70de4cc1", "00bc31da9213cd00", "00c7d37577035036", "00c868b5e6f1eaca", "00cf4a93c2d41eba", "00d55d8df6d6f127", "00d587bb1aa4b652", "00dd67c6a3d9db88", "00df1b6a5f4597ad", "00e06d982c11992f", "00e4fc331cd9972f", "00e6348516fe1f0c", "00ef56966fb54e95", "00efe2fabbdf6f17", "00f093c0403cfa4b", "00f5cbe4600686d2", "00fcd607272e73fb", "0100f1a8b0464545", "0100f274b66a56c5", "010d3c38a5d56072", "010e7e120bccf863", "01176d47a580e423", "011af83fdfa35212", "012bdf5bb11ec09f", "01417a62ab1f7112", "014193479d2f7930", "01432f309f9ec7fd", "0143717c6e9d85db", "014718322390cce9", "015d4d74450a4db1", "0160140400886da5", "0175a3afea446332", "0175b7865e1c831d", "017a06250b332130", "017aeefd92d19ad6", "017c5db2d4f7698a", "01833e7ebf7b7f60", "018419387d8532f2", "01868774990fcf1f", "018a74c7efa4a90a", "0191947e84121105", "0196df96ac8052fd", "01a50bcdb4455495", "01a66578a4ddfe30", "01b7f334a3b0e1e2", "01ba81a724576dd7", "01c2e84b98b0fc5c", "01c2ed6108300b11", "01c2fe48dd156eb5", "01cc8de1c46e2db7", "01cd944e44a4e199", "01d0ab87b5ed3646", "01dcb86e63c806b1", "01dee363541b18f7", "01e05eeeb7abf2f1", "01e3c7a8dca6b02f", "01f826bfba2ce435", "01f9de1c8ef40045", "01fdf49a681f9e8c", "020a674d206a0ebf", "020cb105cf965870", "020de6daf318f7b0", "02264dc61faab0cb", "022c627e34369211", "022ce328e77132ab", "0239172f433891df", "023e1f8fbfa42422", "0241f942c83723e1", "024431934f9cb9b7", "024b7c863375a6cc", "024bdd2b14f90a0b", "02580e86322b0505", "02637c636b9fa2f1", "026686a2f2638e51", "026fb5507de99298", "027a6f082789de83", "027b546c88b437ec", "02846e22c69f5bd6", "0291218e44c6fb68", "02a681749c973fed", "02be64fe19d958ad", "02d2c9f0438d1fb5", "02d5f1d0d091ddb1", "02db9ad0caf38a2f", "02e310a3e8d77855", "02e6045360312f16", "02f84f48d79f6631", "0304225402cee849", "0304a37a31a4e724", "0306aeda0415f55b", "0307e6d4dc500768", "030f323a9623dfb7", "030f8c85dad97346", "03129b03b7b6b135", "031c93ac5204142b", "03215dc87723a36a", "0323fbfd6cea0299", "03259a745a49ce94" ],
+      "eligibleFileCount" : 123,
+      "sampledFileCount" : 8,
+      "tokenCount" : 22042,
+      "shingleCount" : 11443,
+      "sampledPaths" : [ "src/boc/BitBuilder.spec.ts", "src/boc/BitReader.ts", "src/boc/Builder.ts", "src/boc/Slice.ts", "src/boc/cell/serialization.spec.ts", "src/boc/cell/serialization.ts", "src/dict/Dictionary.ts", "src/types/TransactionDescription.ts" ]
+    }
+  }, {
+    "id" : "ton-core-fork",
+    "repositoryUrl" : "https://github.com/ton-org/ton-core/tree/5aa5d6deb7f68b488563ca92c713c525605b7d5d",
+    "revision" : "5aa5d6deb7f68b488563ca92c713c525605b7d5d",
+    "reviewRole" : "Maintained organization fork of TON core",
+    "fingerprint" : {
+      "algorithmVersion" : 1,
+      "exactContentHash" : "681a1aabfeb9c91849d9cc4453ed2be711cc62db4d04986ce557a6761497469f",
+      "sketch" : [ "000aff721b0f3ae1", "000ce44861138268", "001bb2420cc2bce1", "001e6542558792ce", "0020589eefb761bc", "0021a36088df2cbb", "002e450f14ac6fce", "0037f7522df56d17", "00596d00b3eae409", "006a43eb6d6e1602", "006be478bf26a418", "006f2e376e488084", "007053a7c37a6ab4", "0073c900143224c2", "007c6180910b6cab", "00801317f4ee9c56", "008f05974a3d892b", "00935a1b8f484607", "00956fc9a3eb43cc", "00970d2e744534da", "009c52a13590c488", "009e6f6af252426c", "00a22f6b79e367ac", "00ae68784292d71b", "00bc31da9213cd00", "00c3f2a419c3cc5e", "00c7d37577035036", "00cf4a93c2d41eba", "00d55d8df6d6f127", "00dc1fb6e7a0befe", "00df1b6a5f4597ad", "00e06d982c11992f", "00e4fc331cd9972f", "00e615893444f5cc", "00e7720fa2b9dfec", "00e800c141962db2", "00e8ca79c46b3739", "00ef56966fb54e95", "00efe2fabbdf6f17", "00f093c0403cfa4b", "00f5cbe4600686d2", "010012ce2355a8d8", "0100f1a8b0464545", "0100f274b66a56c5", "0106687398fb12e6", "0108996730c716f1", "010d3c38a5d56072", "011c40de4bb0b3a2", "01222dca3c898efa", "01299b8a94939e01", "01329552cb1f4934", "014050882cd7a11a", "014193479d2f7930", "01432f309f9ec7fd", "0143717c6e9d85db", "0143810ed47e59c7", "014718322390cce9", "01714b39d5bcb498", "0175b7865e1c831d", "017740952a251eba", "01795a3248c32f55", "017a06250b332130", "017c5db2d4f7698a", "017fcc055e3af160", "01833e7ebf7b7f60", "018419387d8532f2", "01868774990fcf1f", "018aa02735f2187a", "018e89a83b479a0f", "0196df96ac8052fd", "019d6187281fb880", "01a50bcdb4455495", "01a66578a4ddfe30", "01baae7ebecb9386", "01bb8c85310f4775", "01c2e84b98b0fc5c", "01c2ed6108300b11", "01c2fe48dd156eb5", "01cc8de1c46e2db7", "01cd944e44a4e199", "01d0ab87b5ed3646", "01dcb86e63c806b1", "01dee363541b18f7", "01e14e040b462362", "01f826bfba2ce435", "01f9de1c8ef40045", "01fdf49a681f9e8c", "01ff4cdd51dc4cc8", "0202dafcefc1821a", "020a674d206a0ebf", "020de6daf318f7b0", "0210ef750b3011f0", "021bd28d894e07c5", "021fd38edc07c76d", "02264dc61faab0cb", "02291631a39d1f0c", "022c627e34369211", "022f1a423c15531a", "023075510a2ae679", "0237744746583d7f", "0239172f433891df", "023e1f8fbfa42422", "024b59fe30026554", "024b7c863375a6cc", "024bdd2b14f90a0b", "02519a509e680c08", "0252b413ff32e97b", "02580e86322b0505", "025e6c6733a5d044", "026686a2f2638e51", "026754aa63489bc1", "027a6f082789de83", "027b3a16d542999d", "027b546c88b437ec", "028e36d31b381bea", "0293789f7018c96e", "02b68c14b65702e2", "02be64fe19d958ad", "02c0f3ae17330db3", "02d115d80b6fcb0e", "02d2c9f0438d1fb5", "02db9ad0caf38a2f", "02e310a3e8d77855", "02e53b3cfe95a3cd", "0304225402cee849", "0304a37a31a4e724", "0307e6d4dc500768", "030f323a9623dfb7" ],
+      "eligibleFileCount" : 135,
+      "sampledFileCount" : 8,
+      "tokenCount" : 23514,
+      "shingleCount" : 11505,
+      "sampledPaths" : [ "src/boc/BitBuilder.spec.ts", "src/boc/BitReader.ts", "src/boc/Builder.ts", "src/boc/Slice.ts", "src/boc/cell/serialization.spec.ts", "src/dict/Dictionary.ts", "src/types/OutList.spec.ts", "src/types/TransactionDescription.ts" ]
+    }
+  }, {
+    "id" : "ton-blueprint",
+    "repositoryUrl" : "https://github.com/ton-org/blueprint/tree/5da9654b3c607b0769eb98ebdfa3ee80c6bbc51e",
+    "revision" : "5da9654b3c607b0769eb98ebdfa3ee80c6bbc51e",
+    "reviewRole" : "Independent TypeScript project in the same TON ecosystem",
+    "fingerprint" : {
+      "algorithmVersion" : 1,
+      "exactContentHash" : "e2741326284eba99c8df043d6d6b13f9b57c629f9ffc92b6dcd138e07cd512b3",
+      "sketch" : [ "00042ccdb424856f", "000b10dec91760d5", "0015313efa54a011", "0015dcf70e258f68", "001887e97d9ee502", "0019e3a62f94c64e", "001b529f30dfc8ae", "0024214ec8fe6c88", "0038cb38d31e385f", "003a6981b7d8fdaa", "0044d1b0ca07f39d", "004ae09720171061", "004d1338627c9516", "0050a70f0b7174be", "005102ade6dbf3f6", "0054e0e9018529e5", "005e74d05fcb0d4c", "006380746b127812", "0064aee011baa1f7", "006efa6174cb162d", "007057bdace5cbe3", "0077781c1a7653d4", "0078f74599ba4d94", "00790671b410aa17", "00818a6f74c8e3fd", "008b10c6452f2933", "008ebdd19789090c", "00911fc82d717a25", "00a79d82f3f7769b", "00ad4f3dfda3e81b", "00af5cebdf25de02", "00b09eb66bd1c83d", "00b3cc8785f8d122", "00b6f3bfda7a6051", "00bba30f9005e534", "00c0ff1670788598", "00c8efe18fe0cc77", "00d2df0d0e0cc81d", "00d3c3279c99c37e", "00dab56988e15004", "00db876090d8f4d7", "00df9b8f21af436d", "00e625423ca93282", "00eb274aa512fe7e", "00f23f4241b707bc", "00f3698f27264bb7", "00f6d462658103ca", "00f7b4928a6251f4", "00f7f57ef2235f98", "00facc1658ab59eb", "0101f69b99027694", "010cf33672b96b45", "0112a32e07403646", "0115f42e32a90538", "011901de42133e1c", "01233fb45cf159c3", "0126e03f23628fe9", "012a7d56458d02a2", "012e077fe156655b", "0133b4910a14f7b2", "01388bc52a05c55f", "0139def370255342", "014cc971ea82289d", "014e30966891f61a", "0153ec830b99f3bf", "015405f922099a4a", "015501e267107c3f", "015ecadbae823b96", "016050d298afcf2b", "0163f437a5f0b290", "0171029555e34455", "0177a653452e396e", "017a62a49e3203b6", "017c30ef4caaa026", "017e5627c1a0eb97", "017f365055cdf5d6", "01800d9d80afab1d", "0184a0d0e46c3e0d", "018a74c7efa4a90a", "018c21c07318638c", "018f54f0703f88f6", "01933324f856825a", "019556403a3476ef", "019868ea040355fe", "019e34e0de24a16f", "01adb1e18696ee55", "01ae21b9859ea5fb", "01b0ad797cc18f16", "01b2c834761e54f7", "01b9e496fb02ac7a", "01ba81a724576dd7", "01ca79fdfe86ab39", "01d83f60c1c36349", "01dd1a4824529616", "01e6b8d62fb7ac89", "01eb64f700e59832", "01ec7e864c9a8166", "0202213fcde530b4", "0203e2f0bb19eef2", "02129bb48bc0e171", "0215ae2d9d0eddd2", "02167729175f8c11", "021687e95ed2d024", "0216e57d228078ae", "022f685556cc9e3d", "02377a7828180555", "0239172f433891df", "023f6d28ed3c4c4e", "023fb07f7422826c", "02459edbbf5bcf2c", "024bdd2b14f90a0b", "024cdf31af76b0c7", "02609695bbd32ca6", "0265684bc8021f91", "0274d46484f5e1cc", "0275d159ff863445", "02773365288dd06f", "0281aa25f4894cac", "028d439da8a2b7fd", "0292691820cc2c40", "029687a0a330055f", "0296d6406ae1b2f1", "02999d36eaeed69d", "02999d6b6edf279f", "029e67ec45ea9c40", "02a02a9f1ea8a44b", "02a7e4d0e8b034c0", "02ada30fc593f97a" ],
+      "eligibleFileCount" : 80,
+      "sampledFileCount" : 8,
+      "tokenCount" : 16962,
+      "shingleCount" : 12721,
+      "sampledPaths" : [ "src/cli/constants.ts", "src/cli/convert.ts", "src/cli/create.ts", "src/cli/verify.ts", "src/compile/compile.ts", "src/network/NetworkProvider.ts", "src/network/createNetworkProvider.ts", "src/network/send/MnemonicProvider.ts" ]
+    }
+  } ],
+  "pairs" : [ {
+    "id" : "exact-snapshot-control",
+    "leftSnapshotId" : "spring-petclinic-current",
+    "rightSnapshotId" : "spring-petclinic-current",
+    "sharedLineageGroup" : true,
+    "expectedRelationship" : "DUPLICATE",
+    "reviewNotes" : "Exact immutable snapshot control"
+  }, {
+    "id" : "same-project-evolution",
+    "leftSnapshotId" : "spring-petclinic-current",
+    "rightSnapshotId" : "spring-petclinic-older",
+    "sharedLineageGroup" : true,
+    "expectedRelationship" : "DUPLICATE",
+    "reviewNotes" : "The same repository identity updates one evidence row across revisions"
+  }, {
+    "id" : "documented-javafx-derivative",
+    "leftSnapshotId" : "javafx-source",
+    "rightSnapshotId" : "javafx-derivative",
+    "sharedLineageGroup" : false,
+    "expectedRelationship" : "DERIVATIVE",
+    "reviewNotes" : "Derivative attribution is documented by the downstream repository"
+  }, {
+    "id" : "maintained-ton-fork",
+    "leftSnapshotId" : "ton-core-source",
+    "rightSnapshotId" : "ton-core-fork",
+    "sharedLineageGroup" : true,
+    "expectedRelationship" : "DERIVATIVE",
+    "reviewNotes" : "GitHub identifies the organization repository as a maintained fork"
+  }, {
+    "id" : "same-ecosystem-independent",
+    "leftSnapshotId" : "ton-core-fork",
+    "rightSnapshotId" : "ton-blueprint",
+    "sharedLineageGroup" : false,
+    "expectedRelationship" : "INDEPENDENT",
+    "reviewNotes" : "Separate projects in the same TypeScript and TON ecosystem"
+  }, {
+    "id" : "same-framework-independent",
+    "leftSnapshotId" : "spring-petclinic-current",
+    "rightSnapshotId" : "javafx-source",
+    "sharedLineageGroup" : false,
+    "expectedRelationship" : "INDEPENDENT",
+    "reviewNotes" : "Separate Java Spring applications with different functionality"
+  }, {
+    "id" : "cross-language-independent",
+    "leftSnapshotId" : "spring-petclinic-current",
+    "rightSnapshotId" : "ton-core-fork",
+    "sharedLineageGroup" : false,
+    "expectedRelationship" : "INDEPENDENT",
+    "reviewNotes" : "Unrelated Java and TypeScript projects"
+  }, {
+    "id" : "second-exact-control",
+    "leftSnapshotId" : "javafx-source",
+    "rightSnapshotId" : "javafx-source",
+    "sharedLineageGroup" : true,
+    "expectedRelationship" : "DUPLICATE",
+    "reviewNotes" : "Second exact immutable snapshot control"
+  } ]
+}

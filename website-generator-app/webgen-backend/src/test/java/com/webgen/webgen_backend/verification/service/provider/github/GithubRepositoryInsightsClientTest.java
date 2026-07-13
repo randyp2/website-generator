@@ -3,6 +3,7 @@ package com.webgen.webgen_backend.verification.service.provider.github;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubAuthorshipSignal;
 import com.webgen.webgen_backend.verification.service.provider.github.model.GithubRepoResponse;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
@@ -17,6 +18,16 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 class GithubRepositoryInsightsClientTest {
+
+    @Test
+    void createsClientThroughSpringConstructorInjection() {
+        try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
+            context.register(GithubCommitContributionAnalyzer.class, GithubRepositoryInsightsClient.class);
+            context.refresh();
+
+            assertThat(context.getBean(GithubRepositoryInsightsClient.class)).isNotNull();
+        }
+    }
 
     @Test
     void assessesAuthorshipFromBoundedAttributedCommitResponse() {

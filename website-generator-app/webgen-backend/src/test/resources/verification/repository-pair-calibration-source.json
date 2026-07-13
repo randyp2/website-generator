@@ -1,0 +1,122 @@
+{
+  "datasetVersion": 1,
+  "fingerprintAlgorithmVersion": 1,
+  "capturedAt": "2026-07-12",
+  "snapshots": [
+    {
+      "id": "spring-petclinic-current",
+      "localDirectory": "spring-petclinic",
+      "repositoryUrl": "https://github.com/spring-projects/spring-petclinic/tree/51045d1648dad955df586150c1a1a6e22ef400c2",
+      "revision": "51045d1648dad955df586150c1a1a6e22ef400c2",
+      "reviewRole": "Current Java Spring application snapshot"
+    },
+    {
+      "id": "spring-petclinic-older",
+      "localDirectory": "spring-petclinic-older",
+      "repositoryUrl": "https://github.com/spring-projects/spring-petclinic/tree/5149abbc90a6710fdb5e8aa0d0530b093e4a80cd",
+      "revision": "5149abbc90a6710fdb5e8aa0d0530b093e4a80cd",
+      "reviewRole": "Same application twenty commits earlier"
+    },
+    {
+      "id": "javafx-source",
+      "localDirectory": "javafx-source",
+      "repositoryUrl": "https://github.com/RamAlapure/JavaFXSpringBootApp/tree/7f5594aa7e7edd5f38de3323249a9b8aabe2496e",
+      "revision": "7f5594aa7e7edd5f38de3323249a9b8aabe2496e",
+      "reviewRole": "Original JavaFX Spring Boot example"
+    },
+    {
+      "id": "javafx-derivative",
+      "localDirectory": "javafx-derivative",
+      "repositoryUrl": "https://github.com/JinyKafe/JavaFX_CRUD_Application/tree/6f931e86efcd2604b8db7af9a4f15f26e65c51e3",
+      "revision": "6f931e86efcd2604b8db7af9a4f15f26e65c51e3",
+      "reviewRole": "Documented derivative with CRUD functionality and modernization"
+    },
+    {
+      "id": "ton-core-source",
+      "localDirectory": "ton-core-source",
+      "repositoryUrl": "https://github.com/ton-core/ton-core/tree/e0ed819973daf0484dfbacd0c30a0dcfe4714f8d",
+      "revision": "e0ed819973daf0484dfbacd0c30a0dcfe4714f8d",
+      "reviewRole": "Original TypeScript TON core library"
+    },
+    {
+      "id": "ton-core-fork",
+      "localDirectory": "ton-core-fork",
+      "repositoryUrl": "https://github.com/ton-org/ton-core/tree/5aa5d6deb7f68b488563ca92c713c525605b7d5d",
+      "revision": "5aa5d6deb7f68b488563ca92c713c525605b7d5d",
+      "reviewRole": "Maintained organization fork of TON core"
+    },
+    {
+      "id": "ton-blueprint",
+      "localDirectory": "ton-blueprint",
+      "repositoryUrl": "https://github.com/ton-org/blueprint/tree/5da9654b3c607b0769eb98ebdfa3ee80c6bbc51e",
+      "revision": "5da9654b3c607b0769eb98ebdfa3ee80c6bbc51e",
+      "reviewRole": "Independent TypeScript project in the same TON ecosystem"
+    }
+  ],
+  "pairs": [
+    {
+      "id": "exact-snapshot-control",
+      "leftSnapshotId": "spring-petclinic-current",
+      "rightSnapshotId": "spring-petclinic-current",
+      "sharedLineageGroup": true,
+      "expectedRelationship": "DUPLICATE",
+      "reviewNotes": "Exact immutable snapshot control"
+    },
+    {
+      "id": "same-project-evolution",
+      "leftSnapshotId": "spring-petclinic-current",
+      "rightSnapshotId": "spring-petclinic-older",
+      "sharedLineageGroup": true,
+      "expectedRelationship": "DUPLICATE",
+      "reviewNotes": "The same repository identity updates one evidence row across revisions"
+    },
+    {
+      "id": "documented-javafx-derivative",
+      "leftSnapshotId": "javafx-source",
+      "rightSnapshotId": "javafx-derivative",
+      "sharedLineageGroup": false,
+      "expectedRelationship": "DERIVATIVE",
+      "reviewNotes": "Derivative attribution is documented by the downstream repository"
+    },
+    {
+      "id": "maintained-ton-fork",
+      "leftSnapshotId": "ton-core-source",
+      "rightSnapshotId": "ton-core-fork",
+      "sharedLineageGroup": true,
+      "expectedRelationship": "DERIVATIVE",
+      "reviewNotes": "GitHub identifies the organization repository as a maintained fork"
+    },
+    {
+      "id": "same-ecosystem-independent",
+      "leftSnapshotId": "ton-core-fork",
+      "rightSnapshotId": "ton-blueprint",
+      "sharedLineageGroup": false,
+      "expectedRelationship": "INDEPENDENT",
+      "reviewNotes": "Separate projects in the same TypeScript and TON ecosystem"
+    },
+    {
+      "id": "same-framework-independent",
+      "leftSnapshotId": "spring-petclinic-current",
+      "rightSnapshotId": "javafx-source",
+      "sharedLineageGroup": false,
+      "expectedRelationship": "INDEPENDENT",
+      "reviewNotes": "Separate Java Spring applications with different functionality"
+    },
+    {
+      "id": "cross-language-independent",
+      "leftSnapshotId": "spring-petclinic-current",
+      "rightSnapshotId": "ton-core-fork",
+      "sharedLineageGroup": false,
+      "expectedRelationship": "INDEPENDENT",
+      "reviewNotes": "Unrelated Java and TypeScript projects"
+    },
+    {
+      "id": "second-exact-control",
+      "leftSnapshotId": "javafx-source",
+      "rightSnapshotId": "javafx-source",
+      "sharedLineageGroup": true,
+      "expectedRelationship": "DUPLICATE",
+      "reviewNotes": "Second exact immutable snapshot control"
+    }
+  ]
+}

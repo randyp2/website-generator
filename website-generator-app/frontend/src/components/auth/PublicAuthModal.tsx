@@ -27,6 +27,14 @@ type Mode = "login" | "signup";
 // version a user accepted at sign-up.
 const TERMS_VERSION = "2026-07-12";
 
+// Underline-only inputs specific to this modal (distinct from the landing
+// page's boxed inputs). The bottom line turns brand orange on focus.
+const inputClassName =
+    "h-10 w-full rounded-none border-b border-input bg-transparent px-0 text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-[#cc7d23]";
+
+const labelClassName =
+    "block text-xs font-medium text-muted-foreground";
+
 const REASON_COPY: Record<
     AuthModalReason,
     { title: string; description: string; cta: string }
@@ -267,10 +275,10 @@ export const PublicAuthModal = ({
                             size="sm"
                             variant="ghost"
                             className={cn(
-                                "relative z-10 h-8 w-24 rounded-full text-xs",
+                                "relative z-10 h-8 w-24 rounded-full text-xs transition-colors hover:bg-transparent",
                                 mode === "signup"
-                                    ? "text-white"
-                                    : "text-muted-foreground",
+                                    ? "text-white hover:text-white"
+                                    : "text-muted-foreground hover:text-foreground",
                             )}
                             onClick={() => onModeChange("signup")}
                         >
@@ -281,10 +289,10 @@ export const PublicAuthModal = ({
                             size="sm"
                             variant="ghost"
                             className={cn(
-                                "relative z-10 h-8 w-24 rounded-full text-xs",
+                                "relative z-10 h-8 w-24 rounded-full text-xs transition-colors hover:bg-transparent",
                                 mode === "login"
-                                    ? "text-white"
-                                    : "text-muted-foreground",
+                                    ? "text-white hover:text-white"
+                                    : "text-muted-foreground hover:text-foreground",
                             )}
                             onClick={() => onModeChange("login")}
                         >
@@ -296,58 +304,91 @@ export const PublicAuthModal = ({
                 <form className="space-y-3" onSubmit={handleAuthSubmit}>
                     {mode === "signup" ? (
                         <div className="grid grid-cols-2 gap-3">
-                            <input
-                                type="text"
-                                placeholder="First name"
-                                autoComplete="given-name"
-                                required
-                                value={firstName}
-                                onChange={(event) =>
-                                    setFirstName(event.target.value)
-                                }
-                                className="h-10 rounded-md border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/40"
-                            />
-                            <input
-                                type="text"
-                                placeholder="Last name"
-                                autoComplete="family-name"
-                                required
-                                value={lastName}
-                                onChange={(event) =>
-                                    setLastName(event.target.value)
-                                }
-                                className="h-10 rounded-md border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/40"
-                            />
+                            <div className="space-y-1">
+                                <label
+                                    htmlFor="auth-first-name"
+                                    className={labelClassName}
+                                >
+                                    First name
+                                </label>
+                                <input
+                                    id="auth-first-name"
+                                    type="text"
+                                    placeholder="John"
+                                    autoComplete="given-name"
+                                    required
+                                    value={firstName}
+                                    onChange={(event) =>
+                                        setFirstName(event.target.value)
+                                    }
+                                    className={inputClassName}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label
+                                    htmlFor="auth-last-name"
+                                    className={labelClassName}
+                                >
+                                    Last name
+                                </label>
+                                <input
+                                    id="auth-last-name"
+                                    type="text"
+                                    placeholder="Doe"
+                                    autoComplete="family-name"
+                                    required
+                                    value={lastName}
+                                    onChange={(event) =>
+                                        setLastName(event.target.value)
+                                    }
+                                    className={inputClassName}
+                                />
+                            </div>
                         </div>
                     ) : null}
 
-                    <input
-                        type="email"
-                        placeholder="you@example.com"
-                        autoComplete="email"
-                        required
-                        value={email}
-                        onChange={(event) => setEmail(event.target.value)}
-                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/40"
-                    />
+                    <div className="space-y-1">
+                        <label htmlFor="auth-email" className={labelClassName}>
+                            Email
+                        </label>
+                        <input
+                            id="auth-email"
+                            type="email"
+                            placeholder="johndoe@example.com"
+                            autoComplete="email"
+                            required
+                            value={email}
+                            onChange={(event) => setEmail(event.target.value)}
+                            className={inputClassName}
+                        />
+                    </div>
 
-                    <input
-                        type="password"
-                        placeholder={
-                            mode === "signup"
-                                ? "Create a password"
-                                : "Enter your password"
-                        }
-                        autoComplete={
-                            mode === "signup"
-                                ? "new-password"
-                                : "current-password"
-                        }
-                        required
-                        value={password}
-                        onChange={(event) => setPassword(event.target.value)}
-                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/40"
-                    />
+                    <div className="space-y-1">
+                        <label
+                            htmlFor="auth-password"
+                            className={labelClassName}
+                        >
+                            Password
+                        </label>
+                        <input
+                            id="auth-password"
+                            type="password"
+                            placeholder={
+                                mode === "signup"
+                                    ? "At least 8 characters"
+                                    : "Enter your password"
+                            }
+                            autoComplete={
+                                mode === "signup"
+                                    ? "new-password"
+                                    : "current-password"
+                            }
+                            required
+                            value={password}
+                            onChange={(event) => setPassword(event.target.value)}
+                            className={inputClassName}
+                        />
+                    </div>
 
                     {mode === "signup" ? (
                         <TermsAgreementCheckbox
