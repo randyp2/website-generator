@@ -148,6 +148,13 @@ imported source         = 50`}</code>
             baseline. A resume and an imported profile are still self-asserted sources,
             so neither receives verification credit before evidence exists.
           </p>
+          <p className="mt-4 leading-7 text-muted-foreground">
+            Before scoring, extracted wording must match a canonical skill name or
+            alias. Unresolved claims remain visible but do not receive a baseline or
+            evidence lift until the dictionary recognizes them. The versioned skill
+            catalog is maintained in JSON and applied through immutable database
+            migrations so new aliases can also repair existing unresolved claims.
+          </p>
         </section>
 
         <section>

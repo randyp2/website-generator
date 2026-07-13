@@ -4,7 +4,7 @@
   "description": "JSX validation script for webgen-backend",
   "private": true,
   "scripts": {
-    "test": "node validate-jsx.test.js"
+    "test": "node --test validate-jsx.test.js generate-skill-seed.test.mjs"
   },
   "dependencies": {
     "@babel/core": "^7.23.0",
