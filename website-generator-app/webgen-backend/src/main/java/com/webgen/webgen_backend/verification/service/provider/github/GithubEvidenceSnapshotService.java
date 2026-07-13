@@ -33,6 +33,7 @@ public class GithubEvidenceSnapshotService {
     private final GithubEvidenceCandidateMapper candidateMapper;
     private final GithubRepositoryInsightsClient repositoryInsightsClient;
     private final GithubRepositorySignalScanner repositorySignalScanner;
+    private final GithubLineageFallbackGrouper lineageFallbackGrouper;
     private final GithubSemanticEvidenceGrouper semanticEvidenceGrouper;
     private final GithubDerivativeCreditAssigner derivativeCreditAssigner;
 
@@ -109,8 +110,10 @@ public class GithubEvidenceSnapshotService {
                     repositoryScan.semanticFingerprint() != null);
         }
 
-        List<EvidenceCandidate> groupedCandidates = semanticEvidenceGrouper.group(
+        List<EvidenceCandidate> lineageAwareCandidates = lineageFallbackGrouper.group(
                 candidates, fingerprintsByExternalId);
+        List<EvidenceCandidate> groupedCandidates = semanticEvidenceGrouper.group(
+                lineageAwareCandidates, fingerprintsByExternalId);
         List<EvidenceCandidate> weightedCandidates = derivativeCreditAssigner.assign(
                 groupedCandidates, fingerprintsByExternalId);
         log.info("github.semantic_scan repositories={} fingerprintAttempts={} fingerprints={} "

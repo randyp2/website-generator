@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /** Assigns partial evidence credit to repositories derived from a stronger primary. */
 @Slf4j
@@ -77,9 +78,7 @@ public class GithubDerivativeCreditAssigner {
         List<DerivativeFamily> families = new ArrayList<>();
         for (SourceGroup sourceGroup : sourceGroups) {
             DerivativeFamily relatedFamily = families.stream()
-                    .filter(family -> family.similarityToPrimary(
-                            sourceGroup, fingerprintSimilarity)
-                            >= GithubRepositoryNoveltyPolicy.DERIVATIVE_SIMILARITY_THRESHOLD)
+                    .filter(family -> family.isRelated(sourceGroup, fingerprintSimilarity))
                     .findFirst()
                     .orElse(null);
             if (relatedFamily == null) {
@@ -102,31 +101,39 @@ public class GithubDerivativeCreditAssigner {
             putAssignment(assignments, family.primary, new IndependenceAssignment(
                     family.primary.groupKey,
                     "primary",
+                    false,
                     estimate(0.0d),
                     estimate(1.0d),
                     BigDecimal.ONE));
             for (SourceGroup derivative : family.derivatives) {
                 double sharedContent = family.similarityToPrimary(
                         derivative, fingerprintSimilarity);
+                boolean sharedLineage = family.sharesLineageWith(derivative);
                 BigDecimal sharedContentEstimate = estimate(sharedContent);
                 BigDecimal novelContentEstimate = BigDecimal.ONE
                         .subtract(sharedContentEstimate)
                         .setScale(ESTIMATE_SCALE, RoundingMode.HALF_UP);
-                BigDecimal weight = noveltyPolicy.independenceWeight(sharedContent);
+                BigDecimal contentWeight = noveltyPolicy.independenceWeight(sharedContent);
+                BigDecimal weight = sharedLineage
+                        ? noveltyPolicy.lineageIndependenceWeight(sharedContent)
+                        : contentWeight;
                 putAssignment(assignments, derivative, new IndependenceAssignment(
                         family.primary.groupKey,
-                        "derivative",
+                        sharedLineage ? "lineage_derivative" : "derivative",
+                        sharedLineage,
                         sharedContentEstimate,
                         novelContentEstimate,
                         weight));
                 log.info("github.derivative_credit primaryGroup={} derivativeGroup={} "
-                                + "sharedContent={} novelContent={} minimumCredit={} "
-                                + "independenceWeight={}",
+                                + "sharedLineage={} sharedContent={} novelContent={} "
+                                + "contentWeight={} lineageCreditCap={} independenceWeight={}",
                         family.primary.groupKey,
                         derivative.groupKey,
+                        sharedLineage,
                         sharedContentEstimate,
                         novelContentEstimate,
-                        GithubRepositoryNoveltyPolicy.MINIMUM_DERIVATIVE_CREDIT,
+                        contentWeight,
+                        GithubRepositoryNoveltyPolicy.MAXIMUM_LINEAGE_CREDIT,
                         weight);
             }
         }
@@ -151,9 +158,10 @@ public class GithubDerivativeCreditAssigner {
         }
         ObjectNode metadata = objectNode.deepCopy();
         ObjectNode independence = metadata.putObject("repositoryIndependence");
-        independence.put("algorithmVersion", 1);
+        independence.put("algorithmVersion", 2);
         independence.put("classification", assignment.classification());
         independence.put("primaryGroupKey", assignment.primaryGroupKey());
+        independence.put("sharedLineage", assignment.sharedLineage());
         independence.put("sharedContentEstimate", assignment.sharedContentEstimate());
         independence.put("novelContentEstimate", assignment.novelContentEstimate());
         independence.put("derivativeThreshold",
@@ -162,6 +170,8 @@ public class GithubDerivativeCreditAssigner {
                 GithubRepositoryNoveltyPolicy.DUPLICATE_SIMILARITY_THRESHOLD);
         independence.put("minimumDerivativeCredit",
                 GithubRepositoryNoveltyPolicy.MINIMUM_DERIVATIVE_CREDIT);
+        independence.put("maximumLineageCredit",
+                GithubRepositoryNoveltyPolicy.MAXIMUM_LINEAGE_CREDIT);
         independence.put("weight", assignment.weight());
         independence.put("effect", "evidence_strength_multiplier");
         return new EvidenceCandidate(
@@ -208,6 +218,20 @@ public class GithubDerivativeCreditAssigner {
                     .orElse(null);
         }
 
+        private boolean sharesLineageWith(SourceGroup other) {
+            Set<Long> ownLineage = lineageRepositoryIds();
+            return !ownLineage.isEmpty()
+                    && other.lineageRepositoryIds().stream().anyMatch(ownLineage::contains);
+        }
+
+        private Set<Long> lineageRepositoryIds() {
+            return members.stream()
+                    .map(member -> GithubRepositoryLineageIdentity.resolve(
+                            member.candidate.metadata()))
+                    .filter(id -> id != null)
+                    .collect(java.util.stream.Collectors.toUnmodifiableSet());
+        }
+
         private static BigDecimal authorshipWeight(JsonNode metadata) {
             JsonNode weight = metadata == null ? null : metadata.path("authorship").path("weight");
             return weight != null && weight.isNumber() ? weight.decimalValue() : BigDecimal.ONE;
@@ -220,6 +244,19 @@ public class GithubDerivativeCreditAssigner {
 
         private DerivativeFamily(SourceGroup primary) {
             this.primary = primary;
+        }
+
+        private boolean isRelated(
+                SourceGroup candidate,
+                ArtifactFingerprintSimilarity similarity
+        ) {
+            return sharesLineageWith(candidate)
+                    || similarityToPrimary(candidate, similarity)
+                    >= GithubRepositoryNoveltyPolicy.DERIVATIVE_SIMILARITY_THRESHOLD;
+        }
+
+        private boolean sharesLineageWith(SourceGroup candidate) {
+            return primary.sharesLineageWith(candidate);
         }
 
         private double similarityToPrimary(
@@ -240,6 +277,7 @@ public class GithubDerivativeCreditAssigner {
     private record IndependenceAssignment(
             String primaryGroupKey,
             String classification,
+            boolean sharedLineage,
             BigDecimal sharedContentEstimate,
             BigDecimal novelContentEstimate,
             BigDecimal weight

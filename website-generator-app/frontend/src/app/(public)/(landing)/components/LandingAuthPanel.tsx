@@ -17,6 +17,7 @@ import {
 import { FcGoogle } from "react-icons/fc";
 
 import BrandWordmark from "@/components/branding/BrandWordmark";
+import { cn } from "@/lib/utils";
 import { login, signup, signInWithGoogle } from "@/lib/auth-actions";
 
 type Mode = "login" | "signup";
@@ -46,8 +47,15 @@ const panelStats = [
     },
 ] as const;
 
+// Underline-only input. The static bottom border stays muted; the orange
+// streak lives on the sibling span below and animates in on focus.
 const inputClassName =
-    "w-full rounded-md border border-border bg-muted/80 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all focus:border-primary/70 focus:bg-card focus:ring-4 focus:ring-primary/10";
+    "peer h-11 w-full rounded-none border-b border-input bg-transparent px-0 text-sm text-foreground placeholder:text-muted-foreground/60 outline-none";
+
+// Orange underline that streaks across on focus. Pure CSS: a scaleX transform
+// from the left edge, driven by the input's focus state via peer-focus. No JS.
+const underlineClassName =
+    "pointer-events-none absolute inset-x-0 bottom-0 h-0.5 origin-left scale-x-0 bg-[#cc7d23] transition-transform duration-500 ease-out peer-focus:scale-x-100";
 
 const AuthInput = ({
     name,
@@ -56,14 +64,17 @@ const AuthInput = ({
     autoComplete,
     required = true,
 }: AuthInputProps): JSX.Element => (
-    <input
-        type={type}
-        name={name}
-        placeholder={placeholder}
-        autoComplete={autoComplete}
-        required={required}
-        className={inputClassName}
-    />
+    <div className="relative">
+        <input
+            type={type}
+            name={name}
+            placeholder={placeholder}
+            autoComplete={autoComplete}
+            required={required}
+            className={inputClassName}
+        />
+        <span aria-hidden="true" className={underlineClassName} />
+    </div>
 );
 
 const PasswordField = ({
@@ -81,12 +92,13 @@ const PasswordField = ({
                 placeholder={placeholder}
                 autoComplete={autoComplete}
                 required
-                className={`${inputClassName} pr-12`}
+                className={cn(inputClassName, "pr-10")}
             />
+            <span aria-hidden="true" className={underlineClassName} />
             <button
                 type="button"
                 onClick={() => setShowPassword((currentValue) => !currentValue)}
-                className="absolute inset-y-0 right-0 flex items-center pr-4 text-muted-foreground transition-colors hover:text-foreground hover:cursor-pointer"
+                className="absolute inset-y-0 right-0 flex items-center pr-1 text-muted-foreground transition-colors hover:text-foreground hover:cursor-pointer"
                 aria-label={showPassword ? "Hide password" : "Show password"}
             >
                 {showPassword ? (

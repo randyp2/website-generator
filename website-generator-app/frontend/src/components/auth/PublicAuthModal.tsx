@@ -27,10 +27,15 @@ type Mode = "login" | "signup";
 // version a user accepted at sign-up.
 const TERMS_VERSION = "2026-07-12";
 
-// Underline-only inputs specific to this modal (distinct from the landing
-// page's boxed inputs). The bottom line turns brand orange on focus.
+// Underline-only inputs. The static bottom border stays muted; the orange
+// streak lives on the sibling span and animates in on focus.
 const inputClassName =
-    "h-10 w-full rounded-none border-b border-input bg-transparent px-0 text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-[#cc7d23]";
+    "peer h-10 w-full rounded-none border-b border-input bg-transparent px-0 text-sm outline-none placeholder:text-muted-foreground/60";
+
+// Orange underline that streaks across on focus. Pure CSS: a scaleX transform
+// from the left edge, driven by the input's focus state via peer-focus. No JS.
+const underlineClassName =
+    "pointer-events-none absolute inset-x-0 bottom-0 h-0.5 origin-left scale-x-0 bg-[#cc7d23] transition-transform duration-500 ease-out peer-focus:scale-x-100";
 
 const labelClassName =
     "block text-xs font-medium text-muted-foreground";
@@ -311,18 +316,24 @@ export const PublicAuthModal = ({
                                 >
                                     First name
                                 </label>
-                                <input
-                                    id="auth-first-name"
-                                    type="text"
-                                    placeholder="John"
-                                    autoComplete="given-name"
-                                    required
-                                    value={firstName}
-                                    onChange={(event) =>
-                                        setFirstName(event.target.value)
-                                    }
-                                    className={inputClassName}
-                                />
+                                <div className="relative">
+                                    <input
+                                        id="auth-first-name"
+                                        type="text"
+                                        placeholder="John"
+                                        autoComplete="given-name"
+                                        required
+                                        value={firstName}
+                                        onChange={(event) =>
+                                            setFirstName(event.target.value)
+                                        }
+                                        className={inputClassName}
+                                    />
+                                    <span
+                                        aria-hidden="true"
+                                        className={underlineClassName}
+                                    />
+                                </div>
                             </div>
                             <div className="space-y-1">
                                 <label
@@ -331,18 +342,24 @@ export const PublicAuthModal = ({
                                 >
                                     Last name
                                 </label>
-                                <input
-                                    id="auth-last-name"
-                                    type="text"
-                                    placeholder="Doe"
-                                    autoComplete="family-name"
-                                    required
-                                    value={lastName}
-                                    onChange={(event) =>
-                                        setLastName(event.target.value)
-                                    }
-                                    className={inputClassName}
-                                />
+                                <div className="relative">
+                                    <input
+                                        id="auth-last-name"
+                                        type="text"
+                                        placeholder="Doe"
+                                        autoComplete="family-name"
+                                        required
+                                        value={lastName}
+                                        onChange={(event) =>
+                                            setLastName(event.target.value)
+                                        }
+                                        className={inputClassName}
+                                    />
+                                    <span
+                                        aria-hidden="true"
+                                        className={underlineClassName}
+                                    />
+                                </div>
                             </div>
                         </div>
                     ) : null}
@@ -351,16 +368,24 @@ export const PublicAuthModal = ({
                         <label htmlFor="auth-email" className={labelClassName}>
                             Email
                         </label>
-                        <input
-                            id="auth-email"
-                            type="email"
-                            placeholder="johndoe@example.com"
-                            autoComplete="email"
-                            required
-                            value={email}
-                            onChange={(event) => setEmail(event.target.value)}
-                            className={inputClassName}
-                        />
+                        <div className="relative">
+                            <input
+                                id="auth-email"
+                                type="email"
+                                placeholder="johndoe@example.com"
+                                autoComplete="email"
+                                required
+                                value={email}
+                                onChange={(event) =>
+                                    setEmail(event.target.value)
+                                }
+                                className={inputClassName}
+                            />
+                            <span
+                                aria-hidden="true"
+                                className={underlineClassName}
+                            />
+                        </div>
                     </div>
 
                     <div className="space-y-1">
@@ -370,24 +395,32 @@ export const PublicAuthModal = ({
                         >
                             Password
                         </label>
-                        <input
-                            id="auth-password"
-                            type="password"
-                            placeholder={
-                                mode === "signup"
-                                    ? "At least 8 characters"
-                                    : "Enter your password"
-                            }
-                            autoComplete={
-                                mode === "signup"
-                                    ? "new-password"
-                                    : "current-password"
-                            }
-                            required
-                            value={password}
-                            onChange={(event) => setPassword(event.target.value)}
-                            className={inputClassName}
-                        />
+                        <div className="relative">
+                            <input
+                                id="auth-password"
+                                type="password"
+                                placeholder={
+                                    mode === "signup"
+                                        ? "At least 8 characters"
+                                        : "Enter your password"
+                                }
+                                autoComplete={
+                                    mode === "signup"
+                                        ? "new-password"
+                                        : "current-password"
+                                }
+                                required
+                                value={password}
+                                onChange={(event) =>
+                                    setPassword(event.target.value)
+                                }
+                                className={inputClassName}
+                            />
+                            <span
+                                aria-hidden="true"
+                                className={underlineClassName}
+                            />
+                        </div>
                     </div>
 
                     {mode === "signup" ? (

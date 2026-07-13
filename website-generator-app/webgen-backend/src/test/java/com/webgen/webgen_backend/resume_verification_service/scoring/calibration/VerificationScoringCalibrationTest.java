@@ -55,6 +55,9 @@ class VerificationScoringCalibrationTest {
                 .isLessThanOrEqualTo(score(results, "substantial_derivative_repository"));
         assertThat(score(results, "substantial_derivative_repository"))
                 .isLessThan(score(results, "two_independent_repositories"));
+        assertThat(score(results, "diverged_lineage_fork"))
+                .isGreaterThanOrEqualTo(score(results, "substantial_derivative_repository"))
+                .isLessThanOrEqualTo(score(results, "two_independent_repositories"));
         assertThat(score(results, "two_independent_repositories"))
                 .isGreaterThan(score(results, "semantic_duplicate_repositories"));
         assertThat(score(results, "broad_profile_sparse_evidence"))
@@ -103,6 +106,10 @@ class VerificationScoringCalibrationTest {
                         claim("React",
                                 github("primary", "substantial-primary", "dependency_match", "0.90", "1.00", 0),
                                 githubDerivative("substantial derivative", "substantial-derivative", "0.7500"))),
+                scenario("diverged_lineage_fork", "Primary plus a diverged lineage fork",
+                        claim("React",
+                                github("primary", "lineage-primary", "dependency_match", "0.90", "1.00", 0),
+                                githubDerivative("diverged fork", "lineage-fork", "0.8500"))),
                 scenario("two_independent_repositories", "Two independent active repositories",
                         claim("React",
                                 github("independent 1", "independent-1", "dependency_match", "0.90", "1.00", 0),

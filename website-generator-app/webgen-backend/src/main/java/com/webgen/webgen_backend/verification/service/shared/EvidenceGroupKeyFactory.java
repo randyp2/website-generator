@@ -37,6 +37,17 @@ public class EvidenceGroupKeyFactory {
         return fallback("github", externalId);
     }
 
+    /** Returns the physical repository identity when source comparison is available. */
+    public String forGithubRepositoryInstance(
+            GithubRepoResponse repository,
+            String externalId
+    ) {
+        if (repository != null && repository.id() != null) {
+            return "github:repository:" + repository.id();
+        }
+        return fallback("github", externalId);
+    }
+
     public String forManualUpload(ClaimEvidenceUpload upload) {
         if (upload == null) {
             return fallback("manual_upload", null);

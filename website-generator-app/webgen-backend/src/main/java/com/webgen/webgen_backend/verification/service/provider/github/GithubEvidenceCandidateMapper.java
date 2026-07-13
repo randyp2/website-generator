@@ -143,9 +143,12 @@ public class GithubEvidenceCandidateMapper {
         writeSemanticFingerprint(metadata, fingerprint);
 
         String externalId = "repo:" + repo.fullName().toLowerCase(Locale.ROOT);
+        String evidenceGroupKey = fingerprint != null && fingerprint.isComparable()
+                ? evidenceGroupKeyFactory.forGithubRepositoryInstance(repo, externalId)
+                : evidenceGroupKeyFactory.forGithubRepository(repo, externalId);
         return new EvidenceCandidate(
                 externalId,
-                evidenceGroupKeyFactory.forGithubRepository(repo, externalId),
+                evidenceGroupKey,
                 "repository",
                 repo.fullName(),
                 repo.description(),

@@ -12,6 +12,7 @@ public class GithubRepositoryNoveltyPolicy {
     public static final double DERIVATIVE_SIMILARITY_THRESHOLD = 0.60d;
     public static final double DUPLICATE_SIMILARITY_THRESHOLD = 0.90d;
     public static final BigDecimal MINIMUM_DERIVATIVE_CREDIT = new BigDecimal("0.25");
+    public static final BigDecimal MAXIMUM_LINEAGE_CREDIT = new BigDecimal("0.85");
     private static final BigDecimal FULL_CREDIT = BigDecimal.ONE;
     private static final int WEIGHT_SCALE = 4;
 
@@ -33,6 +34,16 @@ public class GithubRepositoryNoveltyPolicy {
                 .multiply(BigDecimal.valueOf(remainingNovelty));
         return MINIMUM_DERIVATIVE_CREDIT
                 .add(variableCredit)
+                .setScale(WEIGHT_SCALE, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Keeps resolved lineage as a conservative correlation prior while allowing
+     * meaningfully diverged forks to contribute substantial independent evidence.
+     */
+    public BigDecimal lineageIndependenceWeight(double sharedContentEstimate) {
+        return independenceWeight(sharedContentEstimate)
+                .min(MAXIMUM_LINEAGE_CREDIT)
                 .setScale(WEIGHT_SCALE, RoundingMode.HALF_UP);
     }
 }

@@ -60,6 +60,7 @@ const calibrationRows = [
   ["Primary plus a small derivative", "64", "Quantity adds gradual credit"],
   ["Primary plus a meaningful derivative", "64", "Novel work adds partial credit"],
   ["Primary plus a substantial derivative", "66", "Mostly distinct work approaches full credit"],
+  ["Primary plus a diverged lineage fork", "67", "Fork adds 0.85 independence weight"],
   ["Two independent active repositories", "67", "Independent work adds support"],
   ["One reviewed artifact at 0.95 depth", "69", "Strong reviewed evidence"],
   ["Five repository descriptions", "50", "Descriptions add no verification lift"],
@@ -74,7 +75,7 @@ const repositoryPairCalibrationRows = [
   ["Exact snapshot control", "1.000", "Duplicate", "Duplicate", "61"],
   ["Same repository across revisions", "0.953", "Duplicate", "Duplicate", "61"],
   ["Documented JavaFX derivative", "0.367", "Derivative", "Independent", "67"],
-  ["Maintained TON fork", "0.438", "Derivative", "Duplicate by lineage", "61"],
+  ["Maintained TON fork", "0.438", "Derivative", "Derivative at 0.85 credit", "67"],
   ["Independent TON projects", "0.000", "Independent", "Independent", "67"],
   ["Independent Java Spring projects", "0.047", "Independent", "Independent", "67"],
   ["Cross-language projects", "0.000", "Independent", "Independent", "67"],
@@ -170,10 +171,11 @@ claim score        = 50 + (claim cap - 50) × boost progress`}</code>
           <h3 className="mt-8 text-lg font-semibold">Evidence independence</h3>
           <p className="mt-4 leading-7 text-muted-foreground">
             An evidence group represents one underlying source. Uploads with matching
-            storage fingerprints, GitHub forks with resolved lineage, and repositories
-            with highly overlapping sampled source cannot create multiple scoring
-            positions for that source. Only the strongest signal in the group is
-            retained for a claim.
+            storage fingerprints and repositories with highly overlapping sampled
+            source cannot create multiple scoring positions for that source. Resolved
+            GitHub lineage remains a correlation signal, but a meaningfully diverged
+            fork can receive gradual independent credit. Only the strongest signal in
+            a collapsed group is retained for a claim.
           </p>
           <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
             <li>
@@ -181,8 +183,9 @@ claim score        = 50 + (claim cap - 50) × boost progress`}</code>
               available, then the verified ETag, then the upload ID as a safe fallback.
             </li>
             <li>
-              GitHub repositories use the root repository numeric ID for resolved
-              forks, then the repository numeric ID, then the stable external ID.
+              Comparable GitHub repositories keep their own numeric ID so content
+              divergence can be measured. When a reliable fingerprint is unavailable,
+              resolved forks conservatively fall back to the root repository ID.
             </li>
             <li>
               Semantic comparison is limited to the fifteen most recently updated
@@ -235,7 +238,10 @@ shared content 85%   → independence weight 0.375
 shared content ≥ 90% → same evidence group, no duplicate position
 
 between 60% and 90%:
-weight = 0.25 + 0.75 × ((0.90 - shared content) / 0.30)`}</code>
+weight = 0.25 + 0.75 × ((0.90 - shared content) / 0.30)
+
+resolved lineage fork:
+weight = min(content-based weight, 0.85)`}</code>
           </pre>
           <p className="mt-4 leading-7 text-muted-foreground">
             Within a related family, the repository with the largest sampled token
@@ -243,7 +249,11 @@ weight = 0.25 + 0.75 × ((0.90 - shared content) / 0.30)`}</code>
             tie-breakers. Other repositories are compared directly with that primary,
             preventing similarity chains from reducing unrelated work. Formatting,
             renames, generated output, dependency folders, documentation, and lock-file
-            changes do not manufacture novelty credit.
+            changes do not manufacture novelty credit. Resolved lineage is treated as
+            a conservative prior rather than permanent duplication. Comparable forks
+            below 90% similarity remain separate, but their independence weight cannot
+            exceed 0.85. Without a comparable fingerprint, the root lineage group is
+            retained as the safe fallback.
           </p>
 
           <h3 className="mt-8 text-lg font-semibold">GitHub authorship</h3>
@@ -432,12 +442,12 @@ overall   = baseline + mean lift × sqrt(coverage)`}</code>
             </table>
           </div>
           <p className="mt-4 leading-7 text-muted-foreground">
-            Six of eight reviewed pairs matched the current scoring behavior. Exact
-            copies and unrelated controls separated cleanly. The two review cases show
-            that a heavily restructured derivative can fall below the 60% content
-            threshold, while resolved fork lineage can remain too strict after a fork
-            develops meaningful independent work. These findings are recorded for
-            review and have not silently changed production thresholds.
+            Seven of eight reviewed pairs now match the current scoring behavior. Exact
+            copies and unrelated controls separate cleanly, and the maintained lineage
+            fork receives 0.85 independence weight instead of being collapsed. The
+            remaining review case shows that a heavily restructured derivative can fall
+            below the 60% content threshold. Production similarity thresholds remain
+            unchanged while the reviewed corpus is expanded.
           </p>
         </section>
 
@@ -456,6 +466,7 @@ overall   = baseline + mean lift × sqrt(coverage)`}</code>
                 <li>Collapsed correlated evidence before top-K selection and rank decay.</li>
                 <li>Collapsed high-confidence semantic repository copies conservatively.</li>
                 <li>Added gradual novelty credit for meaningful derivative repositories.</li>
+                <li>Added conservative gradual credit for meaningfully diverged forks.</li>
                 <li>Weighted direct commits, merge activity, and contribution days separately.</li>
                 <li>Added deterministic calibration scenarios and scoring invariants.</li>
                 <li>Added an offline reviewed public repository-pair evaluation corpus.</li>
@@ -467,7 +478,6 @@ overall   = baseline + mean lift × sqrt(coverage)`}</code>
               <h3 className="font-semibold">Still under review</h3>
               <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
                 <li>The reviewed repository-pair corpus needs broader language coverage.</li>
-                <li>Meaningfully diverged forks need a less rigid lineage policy.</li>
                 <li>Fingerprint sample coverage needs validation on large monorepositories.</li>
                 <li>Signal weights have not yet been calibrated against reviewed data.</li>
               </ul>

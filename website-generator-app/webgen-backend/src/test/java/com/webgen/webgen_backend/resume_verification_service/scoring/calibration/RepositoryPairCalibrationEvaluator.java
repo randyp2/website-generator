@@ -45,7 +45,8 @@ final class RepositoryPairCalibrationEvaluator {
         double sharedContent = similarity.compare(left.fingerprint(), right.fingerprint());
         RepositoryPairCalibrationDataset.Relationship predicted = classify(
                 pair.sharedLineageGroup(), left.fingerprint(), right.fingerprint(), sharedContent);
-        BigDecimal additionalWeight = additionalWeight(predicted, sharedContent);
+        BigDecimal additionalWeight = additionalWeight(
+                predicted, sharedContent, pair.sharedLineageGroup());
         int resultingScore = scorePair(pair.id(), predicted, additionalWeight);
         return new PairEvaluation(
                 pair,
@@ -73,16 +74,14 @@ final class RepositoryPairCalibrationEvaluator {
             ArtifactSemanticFingerprint right,
             double sharedContent
     ) {
-        if (sharedLineageGroup) {
-            return RepositoryPairCalibrationDataset.Relationship.DUPLICATE;
-        }
         if (left == null || right == null || !left.isComparable() || !right.isComparable()) {
             return RepositoryPairCalibrationDataset.Relationship.INSUFFICIENT;
         }
         if (sharedContent >= GithubRepositoryNoveltyPolicy.DUPLICATE_SIMILARITY_THRESHOLD) {
             return RepositoryPairCalibrationDataset.Relationship.DUPLICATE;
         }
-        if (sharedContent >= GithubRepositoryNoveltyPolicy.DERIVATIVE_SIMILARITY_THRESHOLD) {
+        if (sharedLineageGroup
+                || sharedContent >= GithubRepositoryNoveltyPolicy.DERIVATIVE_SIMILARITY_THRESHOLD) {
             return RepositoryPairCalibrationDataset.Relationship.DERIVATIVE;
         }
         return RepositoryPairCalibrationDataset.Relationship.INDEPENDENT;
@@ -90,11 +89,14 @@ final class RepositoryPairCalibrationEvaluator {
 
     private BigDecimal additionalWeight(
             RepositoryPairCalibrationDataset.Relationship predicted,
-            double sharedContent
+            double sharedContent,
+            boolean sharedLineageGroup
     ) {
         return switch (predicted) {
             case DUPLICATE -> BigDecimal.ZERO;
-            case DERIVATIVE -> noveltyPolicy.independenceWeight(sharedContent);
+            case DERIVATIVE -> sharedLineageGroup
+                    ? noveltyPolicy.lineageIndependenceWeight(sharedContent)
+                    : noveltyPolicy.independenceWeight(sharedContent);
             case INDEPENDENT, INSUFFICIENT -> BigDecimal.ONE;
         };
     }

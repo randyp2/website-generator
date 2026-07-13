@@ -78,6 +78,36 @@ class GithubEvidenceCandidateMapperTest {
     }
 
     @Test
+    void preservesComparableForkIdentityForGradualLineageCredit() {
+        GithubRepoResponse repo = new GithubRepoResponse(
+                22L,
+                "app-fork",
+                "octo/app-fork",
+                "fork",
+                "https://github.com/octo/app-fork",
+                "2026-01-01T00:00:00Z",
+                "Java",
+                List.of(),
+                "main",
+                true,
+                new GithubRepoResponse.RepositoryIdentity(11L, "source/app"),
+                new GithubRepoResponse.RepositoryIdentity(10L, "root/app"));
+        ArtifactSemanticFingerprint fingerprint = new ArtifactSemanticFingerprint(
+                1, "fork-hash", List.of("0011", "0022"),
+                8, 2, 300, 240, List.of("src/App.java"));
+
+        EvidenceCandidate candidate = mapper.fromRepository(
+                repo,
+                Map.of(),
+                GithubAuthorshipSignal.assessed(2, true),
+                fingerprint,
+                OffsetDateTime.parse("2026-06-28T00:00:00Z"));
+
+        assertThat(candidate.evidenceGroupKey()).isEqualTo("github:repository:22");
+        assertThat(candidate.metadata().path("root_repository_id").asLong()).isEqualTo(10L);
+    }
+
+    @Test
     void persistsAuthorshipProvenanceForScoring() {
         GithubRepoResponse repo = new GithubRepoResponse(
                 "app", "octo/app", "demo", "https://github.com/octo/app",

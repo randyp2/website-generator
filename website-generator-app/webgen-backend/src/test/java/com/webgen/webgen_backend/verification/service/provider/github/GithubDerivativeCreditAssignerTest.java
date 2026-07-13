@@ -3,6 +3,9 @@ package com.webgen.webgen_backend.verification.service.provider.github;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.verification.service.fingerprint.ArtifactFingerprintSimilarity;
 import com.webgen.webgen_backend.verification.service.fingerprint.ArtifactSemanticFingerprint;
+import com.webgen.webgen_backend.verification.service.provider.github.model.GithubAuthorshipSignal;
+import com.webgen.webgen_backend.verification.service.provider.github.model.GithubRepoResponse;
+import com.webgen.webgen_backend.verification.service.shared.EvidenceGroupKeyFactory;
 import com.webgen.webgen_backend.verification.service.sync.model.EvidenceCandidate;
 import org.junit.jupiter.api.Test;
 
@@ -72,6 +75,43 @@ class GithubDerivativeCreditAssignerTest {
     }
 
     @Test
+    void givesDivergedForkGradualCreditInsteadOfCollapsingItsLineage() {
+        GithubEvidenceCandidateMapper mapper = new GithubEvidenceCandidateMapper(
+                objectMapper, new EvidenceGroupKeyFactory());
+        ArtifactSemanticFingerprint primaryFingerprint = fingerprint(100, 1_000, "primary");
+        ArtifactSemanticFingerprint forkFingerprint = fingerprint(44, 800, "fork");
+        EvidenceCandidate primary = mapper.fromRepository(
+                repository(1L, "ton-org/ton", null), Map.of(),
+                GithubAuthorshipSignal.assessed(5, false), primaryFingerprint, CAPTURED_AT);
+        EvidenceCandidate fork = mapper.fromRepository(
+                repository(2L, "ton-org/maintained-fork", 1L), Map.of(),
+                GithubAuthorshipSignal.assessed(5, true), forkFingerprint, CAPTURED_AT);
+        Map<String, ArtifactSemanticFingerprint> fingerprints = Map.of(
+                primary.externalId(), primaryFingerprint,
+                fork.externalId(), forkFingerprint);
+        GithubSemanticEvidenceGrouper grouper = new GithubSemanticEvidenceGrouper(
+                new ArtifactFingerprintSimilarity());
+
+        List<EvidenceCandidate> assigned = assigner.assign(
+                grouper.group(List.of(primary, fork), fingerprints),
+                fingerprints);
+        Map<String, EvidenceCandidate> byId = assigned.stream()
+                .collect(Collectors.toMap(EvidenceCandidate::externalId, Function.identity()));
+
+        assertThat(byId.get(fork.externalId()).evidenceGroupKey())
+                .isEqualTo("github:repository:2");
+        assertThat(byId.get(fork.externalId()).metadata()
+                .path("repositoryIndependence").path("classification").asText())
+                .isEqualTo("lineage_derivative");
+        assertThat(byId.get(fork.externalId()).metadata()
+                .path("repositoryIndependence").path("sharedContentEstimate").asDouble())
+                .isEqualTo(0.44d);
+        assertThat(byId.get(fork.externalId()).metadata()
+                .path("repositoryIndependence").path("weight").decimalValue())
+                .isEqualByComparingTo("0.8500");
+    }
+
+    @Test
     void selectsRepositoryWithMoreMeaningfulTokensAsPrimary() {
         EvidenceCandidate larger = candidate("repo:octo/larger", "github:repository:1");
         EvidenceCandidate smaller = candidate("repo:octo/smaller", "github:repository:2");
@@ -124,6 +164,16 @@ class GithubDerivativeCreditAssignerTest {
         return new EvidenceCandidate(
                 externalId, groupKey, "repository", externalId, null, null,
                 CAPTURED_AT, CAPTURED_AT, objectMapper.createObjectNode());
+    }
+
+    private GithubRepoResponse repository(Long id, String fullName, Long rootId) {
+        GithubRepoResponse.RepositoryIdentity root = rootId == null
+                ? null
+                : new GithubRepoResponse.RepositoryIdentity(rootId, "ton-org/ton");
+        return new GithubRepoResponse(
+                id, fullName.substring(fullName.indexOf('/') + 1), fullName, null,
+                "https://github.com/" + fullName, "2026-07-12T00:00:00Z",
+                "TypeScript", List.of(), "main", root != null, null, root);
     }
 
     private ArtifactSemanticFingerprint fingerprint(

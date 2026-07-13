@@ -52,6 +52,16 @@ class RepositoryPairCalibrationEvaluationTest {
                         .isNotEqualTo(RepositoryPairCalibrationDataset.Relationship.DUPLICATE));
         assertThat(report.evaluations()).allSatisfy(evaluation ->
                 assertThat(evaluation.resultingScore()).isBetween(61, 67));
+        assertThat(report.evaluations())
+                .filteredOn(evaluation -> evaluation.reviewedPair().id()
+                        .equals("maintained-ton-fork"))
+                .singleElement()
+                .satisfies(evaluation -> {
+                    assertThat(evaluation.predictedRelationship())
+                            .isEqualTo(RepositoryPairCalibrationDataset.Relationship.DERIVATIVE);
+                    assertThat(evaluation.additionalIndependenceWeight())
+                            .isEqualByComparingTo("0.8500");
+                });
     }
 
     private RepositoryPairCalibrationDataset loadDataset() throws IOException {

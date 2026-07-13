@@ -22,4 +22,11 @@ class GithubRepositoryNoveltyPolicyTest {
         assertThat(policy.independenceWeight(0.85d)).isEqualByComparingTo("0.3750");
         assertThat(policy.independenceWeight(0.90d)).isEqualByComparingTo("0.2500");
     }
+
+    @Test
+    void keepsDivergedForkCreditSubstantialButConservative() {
+        assertThat(policy.lineageIndependenceWeight(0.44d)).isEqualByComparingTo("0.8500");
+        assertThat(policy.lineageIndependenceWeight(0.70d)).isEqualByComparingTo("0.7500");
+        assertThat(policy.lineageIndependenceWeight(0.85d)).isEqualByComparingTo("0.3750");
+    }
 }
