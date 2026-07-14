@@ -1,4 +1,4 @@
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 const SUPABASE_OAUTH_CODE_EXCHANGE_PATHS = new Set<string>([
@@ -21,8 +21,8 @@ const shouldExchangeSupabaseOAuthCode = (pathname: string): boolean =>
  * @returns
  */
 export const updateSession = async (request: NextRequest) => {
-    // Let request continue normally
-    const response = NextResponse.next({
+    // Mutable so the cookie writer can rebuild it with the refreshed request.
+    let response = NextResponse.next({
         request: { headers: request.headers },
     });
 
@@ -32,16 +32,24 @@ export const updateSession = async (request: NextRequest) => {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
             cookies: {
-                get(name: string) {
-                    // Read cookies from incoming request
-                    return request.cookies.get(name)?.value;
+                getAll() {
+                    return request.cookies.getAll();
                 },
-                set(name: string, value: string, options: CookieOptions) {
-                    // Save cookies onto response
-                    response.cookies.set({ name, value, ...options });
-                },
-                remove(name: string, options: CookieOptions) {
-                    response.cookies.set({ name, value: "", ...options });
+                setAll(cookiesToSet) {
+                    // When Supabase refreshes an expired token it writes the new
+                    // cookies here. Apply them to BOTH the request (so the route
+                    // handler in this same request reads the fresh token) and the
+                    // response (so the browser persists it). Updating only the
+                    // response would refresh the token for the *next* request
+                    // while this one still forwards the stale, expired token to
+                    // the backend, which rejects it with a 403.
+                    cookiesToSet.forEach(({ name, value }) =>
+                        request.cookies.set(name, value),
+                    );
+                    response = NextResponse.next({ request });
+                    cookiesToSet.forEach(({ name, value, options }) =>
+                        response.cookies.set(name, value, options),
+                    );
                 },
             },
         },
