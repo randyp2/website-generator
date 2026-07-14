@@ -21,6 +21,7 @@ import {
     buildSiteVerificationSnippet,
     findSiteVerificationFramework,
     SITE_VERIFICATION_FRAMEWORKS,
+    SITE_VERIFICATION_META_NAME,
     type SiteVerificationFramework,
 } from "../../lib/siteVerificationFrameworks";
 
@@ -34,7 +35,7 @@ const FRAMEWORK_ICONS: Record<SiteVerificationFramework, IconType> = {
 
 const codeLineColor = (line: string, frameworkColor: string): string => {
     const trimmedLine = line.trimStart();
-    if (line.includes("webgen-site-verification")) return "#f2cc60";
+    if (line.includes(SITE_VERIFICATION_META_NAME)) return "#f2cc60";
     if (trimmedLine.startsWith("<")) return frameworkColor;
     if (/^(import|export|return)/.test(trimmedLine)) return "#ff7b72";
     return "#c9d1d9";

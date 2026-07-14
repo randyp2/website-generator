@@ -104,7 +104,7 @@ class SiteOwnershipVerificationControllerTest {
                 .canonicalOrigin("https://example.com")
                 .method(SiteVerificationMethod.HTML_META)
                 .status(SiteVerificationStatus.PENDING)
-                .verificationTag("<meta name=\"webgen-site-verification\" content=\"token\">")
+                .verificationTag("<meta name=\"portrn-site-verification\" content=\"token\">")
                 .challengeExpiresAt(OffsetDateTime.now().plusHours(24))
                 .build();
     }

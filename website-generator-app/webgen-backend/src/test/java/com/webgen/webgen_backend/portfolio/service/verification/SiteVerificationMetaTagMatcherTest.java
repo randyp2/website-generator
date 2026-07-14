@@ -14,7 +14,7 @@ class SiteVerificationMetaTagMatcherTest {
         String html = """
                 <!doctype html>
                 <html><head>
-                <meta content="wg_v1_expected" name="WEBGEN-SITE-VERIFICATION">
+                <meta content="wg_v1_expected" name="PORTRN-SITE-VERIFICATION">
                 <title>Portfolio
                 </head><body></body></html>
                 """;
@@ -26,7 +26,7 @@ class SiteVerificationMetaTagMatcherTest {
     void rejectsDifferentToken() {
         String html = """
                 <html><head>
-                <meta name="webgen-site-verification" content="wg_v1_other">
+                <meta name="portrn-site-verification" content="wg_v1_other">
                 </head></html>
                 """;
 

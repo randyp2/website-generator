@@ -12,7 +12,7 @@ const challengePayload = {
     method: "HTML_META",
     status: "PENDING",
     verificationTag:
-        "<meta name=\"webgen-site-verification\" content=\"wg_v1_token\">",
+        "<meta name=\"portrn-site-verification\" content=\"wg_v1_token\">",
     challengeExpiresAt: "2026-07-14T20:00:00Z",
     verifiedAt: null,
 };

@@ -39,7 +39,7 @@ class SiteOwnershipVerificationServiceTest {
         assertThat(result.getMethod()).isEqualTo(SiteVerificationMethod.HTML_META);
         assertThat(result.getStatus()).isEqualTo(SiteVerificationStatus.PENDING);
         assertThat(result.getVerificationTag()).matches(
-                "<meta name=\"webgen-site-verification\" content=\"wg_v1_[A-Za-z0-9_-]{43}\">"
+                "<meta name=\"portrn-site-verification\" content=\"wg_v1_[A-Za-z0-9_-]{43}\">"
         );
         assertThat(result.getChallengeExpiresAt()).isAfter(before);
         assertThat(fixture.saveCount).isEqualTo(1);

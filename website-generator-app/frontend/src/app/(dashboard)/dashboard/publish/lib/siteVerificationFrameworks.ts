@@ -1,3 +1,6 @@
+/** Public meta name recognized by PortRN's site ownership verifier. */
+export const SITE_VERIFICATION_META_NAME = "portrn-site-verification";
+
 export const SITE_VERIFICATION_FRAMEWORKS = [
     {
         id: "html",

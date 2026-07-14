@@ -49,7 +49,7 @@ class SiteVerificationPageClientTest {
 
         assertThat(html).isEqualTo("<html><head></head></html>");
         assertThat(httpClient.lastRequest.headers().firstValue("User-Agent"))
-                .contains("Webgen-Site-Verifier/1.0");
+                .contains("PortRN-Site-Verifier/1.0");
     }
 
     @Test

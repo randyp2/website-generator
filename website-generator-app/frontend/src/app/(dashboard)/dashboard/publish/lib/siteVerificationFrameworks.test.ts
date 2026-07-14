@@ -11,34 +11,34 @@ describe("site verification framework guidance", () => {
     it("makes the backend meta tag portable across HTML and JSX", () => {
         expect(
             makePortableVerificationTag(
-                '<meta name="webgen-site-verification" content="wg_v1_token">',
+                '<meta name="portrn-site-verification" content="wg_v1_token">',
             ),
         ).toBe(
-            '<meta name="webgen-site-verification" content="wg_v1_token" />',
+            '<meta name="portrn-site-verification" content="wg_v1_token" />',
         );
     });
 
     it("does not add a second slash to a portable tag", () => {
         expect(
             makePortableVerificationTag(
-                '<meta name="webgen-site-verification" content="wg_v1_token" />',
+                '<meta name="portrn-site-verification" content="wg_v1_token" />',
             ),
         ).toBe(
-            '<meta name="webgen-site-verification" content="wg_v1_token" />',
+            '<meta name="portrn-site-verification" content="wg_v1_token" />',
         );
     });
 
     it("builds a realistic React entry file containing the tag", () => {
         const snippet = buildSiteVerificationSnippet(
             "react",
-            '<meta name="webgen-site-verification" content="token">',
+            '<meta name="portrn-site-verification" content="token">',
         );
 
         expect(snippet).toContain("<!doctype html>");
         expect(snippet).toContain('<div id="root"></div>');
         expect(snippet).toContain('src="/src/main.tsx"');
         expect(snippet).toContain(
-            '<meta name="webgen-site-verification" content="token" />',
+            '<meta name="portrn-site-verification" content="token" />',
         );
     });
 
@@ -47,9 +47,9 @@ describe("site verification framework guidance", () => {
             expect(
                 buildSiteVerificationSnippet(
                     framework.id,
-                    '<meta name="webgen-site-verification" content="token">',
+                    '<meta name="portrn-site-verification" content="token">',
                 ),
-            ).toContain("webgen-site-verification");
+            ).toContain("portrn-site-verification");
         }
     });
 

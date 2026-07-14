@@ -11,9 +11,6 @@ import java.security.MessageDigest;
 @Component
 public class SiteVerificationMetaTagMatcher {
 
-    private static final String VERIFICATION_META_NAME =
-            "webgen-site-verification";
-
     /** Returns true when any verification meta element contains the exact token. */
     public boolean containsToken(String html, String expectedToken) {
         if (html == null || html.isBlank()
@@ -21,7 +18,7 @@ public class SiteVerificationMetaTagMatcher {
             return false;
         }
         for (Element element : Jsoup.parse(html).select("meta[name]")) {
-            if (VERIFICATION_META_NAME.equalsIgnoreCase(
+            if (SiteVerificationProtocol.META_NAME.equalsIgnoreCase(
                     element.attr("name").trim()
             ) && tokensMatch(expectedToken, element.attr("content"))) {
                 return true;

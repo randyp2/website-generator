@@ -72,7 +72,7 @@ public class SiteVerificationPageClient {
         HttpRequest request = HttpRequest.newBuilder(uri)
                 .timeout(REQUEST_TIMEOUT)
                 .header("Accept", "text/html, application/xhtml+xml;q=0.9")
-                .header("User-Agent", "Webgen-Site-Verifier/1.0")
+                .header("User-Agent", SiteVerificationProtocol.USER_AGENT)
                 .GET()
                 .build();
         try {
