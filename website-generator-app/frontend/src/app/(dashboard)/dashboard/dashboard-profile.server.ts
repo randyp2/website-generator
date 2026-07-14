@@ -70,12 +70,23 @@ export const getDashboardProfileState =
         }
 
         const profile = await fetchDashboardProfile(session.access_token);
-        const hasUsername =
-            typeof profile?.username === "string" &&
-            profile.username.trim().length > 0;
-        const onboardingComplete = profile?.onboardingComplete === true;
 
-        if (!profile || !onboardingComplete || !hasUsername) {
+        // A failed profile load must NOT be treated as "onboarding incomplete".
+        // Doing so redirects to /onboarding, which for a completed user
+        // redirects straight back here — an infinite loop. Surface it to the
+        // dashboard error boundary instead; Retry re-runs this after the
+        // middleware has refreshed the session cookie.
+        if (!profile) {
+            throw new Error("We couldn't load your profile.");
+        }
+
+        const hasUsername =
+            typeof profile.username === "string" &&
+            profile.username.trim().length > 0;
+        const onboardingComplete = profile.onboardingComplete === true;
+
+        // Only redirect once we've positively determined onboarding is unfinished.
+        if (!onboardingComplete || !hasUsername) {
             redirect("/onboarding");
         }
 
