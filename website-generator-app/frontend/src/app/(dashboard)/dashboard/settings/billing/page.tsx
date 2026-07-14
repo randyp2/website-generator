@@ -269,19 +269,19 @@ const BillingSettingsPage = () => {
                 ) : null}
             </div>
 
-            <div className="grid w-full gap-4 md:grid-cols-2">
+            <div className="grid w-full gap-1 md:grid-cols-2">
                 {BILLING_SHORTCUTS.map((item) => {
                     const Icon = item.icon;
                     const content = (
                         <>
-                            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-black/8 text-foreground/70 dark:bg-white/10">
-                                <Icon className="h-6 w-6" />
+                            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-lg text-foreground/60 transition-colors group-hover:text-primary">
+                                <Icon className="h-7 w-7" />
                             </div>
-                            <div className="min-w-0 space-y-1">
-                                <h3 className="text-base font-semibold tracking-tight">
+                            <div className="min-w-0 space-y-0.5">
+                                <h3 className="text-lg font-semibold tracking-tight">
                                     {item.title}
                                 </h3>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-sm text-muted-foreground">
                                     {item.description}
                                 </p>
                             </div>
@@ -293,7 +293,7 @@ const BillingSettingsPage = () => {
                             <Link
                                 key={item.title}
                                 href={item.href}
-                                className="group flex items-center gap-4 rounded-xl border border-border bg-card/60 p-4 transition-colors hover:border-primary/40 hover:bg-muted/40 hover:text-primary"
+                                className="group flex items-center gap-4 rounded-lg p-3 transition-colors hover:bg-muted/40 hover:text-primary"
                             >
                                 {content}
                             </Link>
@@ -304,7 +304,7 @@ const BillingSettingsPage = () => {
                         <button
                             key={item.title}
                             type="button"
-                            className="group flex w-full items-center gap-4 rounded-xl border border-border bg-card/60 p-4 text-left transition-colors hover:cursor-pointer hover:border-primary/40 hover:bg-muted/40 hover:text-primary"
+                            className="group flex w-full items-center gap-4 rounded-lg p-3 text-left transition-colors hover:cursor-pointer hover:bg-muted/40 hover:text-primary"
                         >
                             {content}
                         </button>
