@@ -48,7 +48,7 @@ const BILLING_SHORTCUTS = [
         title: "Pricing",
         description: "View pricing and FAQs",
         icon: BarChart3,
-        href: "/dashboard/billing",
+        href: "/pricing",
     },
 ] as const;
 
