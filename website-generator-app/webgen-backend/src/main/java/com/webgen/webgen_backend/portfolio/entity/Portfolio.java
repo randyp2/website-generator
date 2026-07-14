@@ -74,4 +74,7 @@ public class Portfolio {
 
     @Column(name = "external_url")
     private String externalUrl;
+
+    @Column(name = "site_verification_id")
+    private UUID siteVerificationId;
 }
