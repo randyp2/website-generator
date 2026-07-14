@@ -58,9 +58,7 @@ public class SiteOwnershipVerificationService {
                 .orElse(null);
 
         if (isReusable(verification, now)) {
-            log.info(
-                    "site.verification.challenge.reused verificationId={} userId={} origin={} status={}",
-                    verification.getId(), userId, siteUrl.origin(), verification.getStatus());
+            logChallenge("reused", verification);
             return toDto(verification);
         }
 
@@ -71,9 +69,7 @@ public class SiteOwnershipVerificationService {
                 method,
                 now);
         SiteOwnershipVerification saved = repository.save(pending);
-        log.info(
-                "site.verification.challenge.issued verificationId={} userId={} origin={} expiresAt={}",
-                saved.getId(), userId, siteUrl.origin(), saved.getChallengeExpiresAt());
+        logChallenge("issued", saved);
         return toDto(saved);
     }
 
@@ -130,5 +126,15 @@ public class SiteOwnershipVerificationService {
                 .challengeExpiresAt(verification.getChallengeExpiresAt())
                 .verifiedAt(verification.getVerifiedAt())
                 .build();
+    }
+
+    private void logChallenge(String action, SiteOwnershipVerification verification) {
+        log.info(
+                "site.verification.challenge action={} verificationId={} userId={} origin={} status={}",
+                action,
+                verification.getId(),
+                verification.getUserId(),
+                verification.getCanonicalOrigin(),
+                verification.getStatus());
     }
 }

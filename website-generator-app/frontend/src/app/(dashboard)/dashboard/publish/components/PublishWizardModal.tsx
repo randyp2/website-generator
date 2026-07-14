@@ -8,18 +8,29 @@ import { Button } from "@/components/ui/button";
 import { buildPortfolioUrl } from "@/lib/public-env";
 import type { Portfolio } from "@/types/portfolio";
 
+import { useSiteOwnershipChallenge } from "../hooks/useSiteOwnershipChallenge";
 import { StepIndicator, type WizardStepDef } from "./wizard/StepIndicator";
 import { StepPick, type PublishSource } from "./wizard/StepPick";
 import { StepSlug } from "./wizard/StepSlug";
 import { StepDetails } from "./wizard/StepDetails";
 import { StepPreview } from "./wizard/StepPreview";
 import { StepPublish, type PublishActionState } from "./wizard/StepPublish";
+import { StepVerify } from "./wizard/StepVerify";
 
 const SLUG_REGEX = /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/;
-const URL_REGEX = /^https?:\/\/[^\s/$.?#].[^\s]*$/i;
+const URL_REGEX = /^https:\/\/[^\s/$.?#].[^\s]*$/i;
 
-const STEPS: WizardStepDef[] = [
+const GENERATED_STEPS: WizardStepDef[] = [
     { key: "pick", label: "Pick" },
+    { key: "slug", label: "Slug" },
+    { key: "details", label: "Details" },
+    { key: "preview", label: "Preview" },
+    { key: "publish", label: "Publish" },
+];
+
+const EXTERNAL_STEPS: WizardStepDef[] = [
+    { key: "pick", label: "Pick" },
+    { key: "verify", label: "Verify" },
     { key: "slug", label: "Slug" },
     { key: "details", label: "Details" },
     { key: "preview", label: "Preview" },
@@ -72,6 +83,7 @@ export const PublishWizardModal = ({
     const [publishedSlug, setPublishedSlug] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
     const slugCheckTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const siteChallenge = useSiteOwnershipChallenge();
 
     const selectedPortfolio = useMemo(
         () => drafts.find((p) => String(p.id) === selectedPortfolioId) ?? null,
@@ -84,17 +96,21 @@ export const PublishWizardModal = ({
         selectedPortfolio?.slug && selectedPortfolio.slug === slugInput,
     );
     const slugReady = slugIsValid && (slugAvailable === true || isUnchanged);
+    const steps = source === "external" ? EXTERNAL_STEPS : GENERATED_STEPS;
+    const currentStepKey = steps[currentStep]?.key ?? "pick";
 
     const canAdvance = (() => {
-        switch (currentStep) {
-            case 0:
+        switch (currentStepKey) {
+            case "pick":
                 return source === "generated"
                     ? Boolean(selectedPortfolioId)
-                    : externalUrlReady;
-            case 1:
+                    : externalUrlReady && siteChallenge.status !== "loading";
+            case "verify":
+                return siteChallenge.challenge?.status === "VERIFIED";
+            case "slug":
                 return slugReady;
-            case 2:
-            case 3:
+            case "details":
+            case "preview":
                 return true;
             default:
                 return false;
@@ -135,6 +151,7 @@ export const PublishWizardModal = ({
 
     const handleSelectPortfolio = (portfolioId: string) => {
         setSource("generated");
+        siteChallenge.reset();
         setSelectedPortfolioId(portfolioId);
         const next = drafts.find((p) => String(p.id) === portfolioId);
         setDescriptionInput(next?.description ?? "");
@@ -150,6 +167,7 @@ export const PublishWizardModal = ({
     const handleSourceChange = (nextSource: PublishSource) => {
         setSource(nextSource);
         setPublishError(null);
+        siteChallenge.reset();
         if (nextSource === "generated") {
             return;
         }
@@ -159,10 +177,20 @@ export const PublishWizardModal = ({
         setSlugAvailable(null);
     };
 
-    const goNext = () => {
+    const handleExternalUrlChange = (value: string) => {
+        setExternalUrl(value);
+        setPublishError(null);
+        siteChallenge.reset();
+    };
+
+    const goNext = async () => {
         if (!canAdvance) return;
+        if (currentStepKey === "pick" && source === "external") {
+            const challenge = await siteChallenge.createChallenge(externalUrl);
+            if (!challenge) return;
+        }
         setDirection(1);
-        setCurrentStep((s) => Math.min(s + 1, STEPS.length - 1));
+        setCurrentStep((step) => Math.min(step + 1, steps.length - 1));
     };
 
     const goBack = () => {
@@ -182,6 +210,14 @@ export const PublishWizardModal = ({
         if (isExternalSource && !externalUrlReady) {
             setPublishState("error");
             setPublishError("Please provide a valid external URL.");
+            return;
+        }
+        if (
+            isExternalSource &&
+            siteChallenge.challenge?.status !== "VERIFIED"
+        ) {
+            setPublishState("error");
+            setPublishError("Website ownership verification is required.");
             return;
         }
 
@@ -270,9 +306,15 @@ export const PublishWizardModal = ({
         setTimeout(() => setCopied(false), 2000);
     };
 
-    const isLastStep = currentStep === STEPS.length - 1;
+    const isLastStep = currentStep === steps.length - 1;
     const isPublishLocked =
         publishState === "loading" || publishState === "success";
+    const isChallengeLoading = siteChallenge.status === "loading";
+    const nextButtonLabel = isChallengeLoading
+        ? "Creating tag..."
+        : currentStepKey === "verify" && !canAdvance
+          ? "Awaiting verification"
+          : "Next";
     const selectedLabel = selectedPortfolio
         ? selectedPortfolio.title
         : source === "external" && externalUrl.trim()
@@ -302,7 +344,7 @@ export const PublishWizardModal = ({
                                 Publish portfolio
                             </h2>
                             <p className="mt-1 text-sm text-muted-foreground">
-                                Step {currentStep + 1} of {STEPS.length}
+                                Step {currentStep + 1} of {steps.length}
                                 {selectedLabel ? ` · ${selectedLabel}` : ""}
                             </p>
                         </div>
@@ -320,7 +362,7 @@ export const PublishWizardModal = ({
                     {/* Step indicator */}
                     <div className="border-b border-border px-8 py-5">
                         <StepIndicator
-                            steps={STEPS}
+                            steps={steps}
                             currentStep={currentStep}
                             onJumpTo={jumpTo}
                         />
@@ -330,7 +372,7 @@ export const PublishWizardModal = ({
                     <div className="relative flex min-h-[360px] px-8 py-6">
                         <AnimatePresence mode="wait" custom={direction}>
                             <motion.div
-                                key={STEPS[currentStep].key}
+                                key={currentStepKey}
                                 custom={direction}
                                 initial={{ opacity: 0, x: direction * 24 }}
                                 animate={{ opacity: 1, x: 0 }}
@@ -338,20 +380,35 @@ export const PublishWizardModal = ({
                                 transition={{ duration: 0.18, ease: "easeOut" }}
                                 className="w-full"
                             >
-                                {currentStep === 0 && (
-                                    <StepPick
-                                        drafts={drafts}
-                                        source={source}
-                                        externalUrl={externalUrl}
-                                        selectedPortfolioId={
-                                            selectedPortfolioId
-                                        }
-                                        onExternalUrlChange={setExternalUrl}
-                                        onSelect={handleSelectPortfolio}
-                                        onSourceChange={handleSourceChange}
-                                    />
+                                {currentStepKey === "pick" && (
+                                    <div>
+                                        <StepPick
+                                            drafts={drafts}
+                                            source={source}
+                                            externalUrl={externalUrl}
+                                            selectedPortfolioId={
+                                                selectedPortfolioId
+                                            }
+                                            onExternalUrlChange={
+                                                handleExternalUrlChange
+                                            }
+                                            onSelect={handleSelectPortfolio}
+                                            onSourceChange={handleSourceChange}
+                                        />
+                                        {siteChallenge.error && (
+                                            <p className="mt-3 text-xs text-red-400">
+                                                {siteChallenge.error}
+                                            </p>
+                                        )}
+                                    </div>
                                 )}
-                                {currentStep === 1 && (
+                                {currentStepKey === "verify" &&
+                                    siteChallenge.challenge && (
+                                        <StepVerify
+                                            challenge={siteChallenge.challenge}
+                                        />
+                                    )}
+                                {currentStepKey === "slug" && (
                                     <StepSlug
                                         ownerName={ownerName}
                                         slugInput={slugInput}
@@ -362,13 +419,13 @@ export const PublishWizardModal = ({
                                         onChange={handleSlugChange}
                                     />
                                 )}
-                                {currentStep === 2 && (
+                                {currentStepKey === "details" && (
                                     <StepDetails
                                         descriptionInput={descriptionInput}
                                         onChange={setDescriptionInput}
                                     />
                                 )}
-                                {currentStep === 3 && (
+                                {currentStepKey === "preview" && (
                                     <StepPreview
                                         source={source}
                                         externalUrl={externalUrl}
@@ -379,7 +436,7 @@ export const PublishWizardModal = ({
                                         ownerAvatarUrl={ownerAvatarUrl}
                                     />
                                 )}
-                                {currentStep === 4 && (
+                                {currentStepKey === "publish" && (
                                     <StepPublish
                                         source={source}
                                         state={publishState}
@@ -412,12 +469,14 @@ export const PublishWizardModal = ({
                         {!isLastStep ? (
                             <Button
                                 type="button"
-                                onClick={goNext}
-                                disabled={!canAdvance}
+                                onClick={() => void goNext()}
+                                disabled={!canAdvance || isChallengeLoading}
                                 className="gap-2"
                             >
-                                Next
-                                <FiArrowRight className="h-4 w-4" />
+                                {nextButtonLabel}
+                                {!isChallengeLoading && currentStepKey !== "verify" && (
+                                    <FiArrowRight className="h-4 w-4" />
+                                )}
                             </Button>
                         ) : (
                             <Button
