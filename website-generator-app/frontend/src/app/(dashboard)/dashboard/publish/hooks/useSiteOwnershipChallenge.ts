@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
     createSiteOwnershipChallenge,
     type SiteOwnershipChallenge,
+    verifySiteOwnershipChallenge,
 } from "../lib/siteOwnershipVerification";
 
 type ChallengeRequestStatus = "idle" | "loading" | "success" | "error";
@@ -23,41 +24,70 @@ export const useSiteOwnershipChallenge = () => {
         setError(null);
     }, []);
 
-    const createChallenge = useCallback(async (
-        externalUrl: string,
-    ): Promise<SiteOwnershipChallenge | null> => {
-        activeRequest.current?.abort();
-        const controller = new AbortController();
-        activeRequest.current = controller;
-        setStatus("loading");
-        setError(null);
+    const executeRequest = useCallback(
+        async (
+            request: (signal: AbortSignal) => Promise<SiteOwnershipChallenge>,
+            fallbackMessage: string,
+        ): Promise<SiteOwnershipChallenge | null> => {
+            activeRequest.current?.abort();
+            const controller = new AbortController();
+            activeRequest.current = controller;
+            setStatus("loading");
+            setError(null);
 
-        try {
-            const result = await createSiteOwnershipChallenge(
-                externalUrl,
-                controller.signal,
-            );
-            if (activeRequest.current !== controller) return null;
-            setChallenge(result);
-            setStatus("success");
-            return result;
-        } catch (requestError) {
-            if (requestError instanceof Error && requestError.name === "AbortError") {
+            try {
+                const result = await request(controller.signal);
+                if (activeRequest.current !== controller) return null;
+                setChallenge(result);
+                setStatus("success");
+                return result;
+            } catch (requestError) {
+                if (
+                    requestError instanceof Error &&
+                    requestError.name === "AbortError"
+                ) {
+                    return null;
+                }
+                if (activeRequest.current === controller) {
+                    setStatus("error");
+                    setError(
+                        requestError instanceof Error
+                            ? requestError.message
+                            : fallbackMessage,
+                    );
+                }
                 return null;
+            } finally {
+                if (activeRequest.current === controller) {
+                    activeRequest.current = null;
+                }
             }
-            if (activeRequest.current === controller) {
-                setStatus("error");
-                setError(
-                    requestError instanceof Error
-                        ? requestError.message
-                        : "Unable to create website verification challenge",
-                );
-            }
-            return null;
-        } finally {
-            if (activeRequest.current === controller) activeRequest.current = null;
-        }
-    }, []);
+        },
+        [],
+    );
+
+    const createChallenge = useCallback(
+        (externalUrl: string): Promise<SiteOwnershipChallenge | null> =>
+            executeRequest(
+                (signal) => createSiteOwnershipChallenge(externalUrl, signal),
+                "Unable to create website verification challenge",
+            ),
+        [executeRequest],
+    );
+
+    const verifyChallenge = useCallback(
+        (): Promise<SiteOwnershipChallenge | null> => {
+            if (!challenge) return Promise.resolve(null);
+            return executeRequest(
+                (signal) => verifySiteOwnershipChallenge(
+                    challenge.verificationId,
+                    signal,
+                ),
+                "Unable to verify the deployed website",
+            );
+        },
+        [challenge, executeRequest],
+    );
 
     useEffect(() => () => activeRequest.current?.abort(), []);
 
@@ -66,6 +96,7 @@ export const useSiteOwnershipChallenge = () => {
         status,
         error,
         createChallenge,
+        verifyChallenge,
         reset,
     };
 };

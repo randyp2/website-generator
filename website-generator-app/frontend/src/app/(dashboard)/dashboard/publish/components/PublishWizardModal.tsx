@@ -184,6 +184,13 @@ export const PublishWizardModal = ({
     };
 
     const goNext = async () => {
+        if (
+            currentStepKey === "verify" &&
+            siteChallenge.challenge?.status !== "VERIFIED"
+        ) {
+            await siteChallenge.verifyChallenge();
+            return;
+        }
         if (!canAdvance) return;
         if (currentStepKey === "pick" && source === "external") {
             const challenge = await siteChallenge.createChallenge(externalUrl);
@@ -310,11 +317,20 @@ export const PublishWizardModal = ({
     const isPublishLocked =
         publishState === "loading" || publishState === "success";
     const isChallengeLoading = siteChallenge.status === "loading";
-    const nextButtonLabel = isChallengeLoading
-        ? "Creating tag..."
-        : currentStepKey === "verify" && !canAdvance
-          ? "Awaiting verification"
-          : "Next";
+    const nextButtonLabel = (() => {
+        if (isChallengeLoading) {
+            return currentStepKey === "verify"
+                ? "Checking website..."
+                : "Creating tag...";
+        }
+        if (currentStepKey === "verify" && !canAdvance) {
+            return "Check verification";
+        }
+        return "Next";
+    })();
+    const nextButtonDisabled = currentStepKey === "verify"
+        ? isChallengeLoading || !siteChallenge.challenge
+        : !canAdvance || isChallengeLoading;
     const selectedLabel = selectedPortfolio
         ? selectedPortfolio.title
         : source === "external" && externalUrl.trim()
@@ -335,7 +351,9 @@ export const PublishWizardModal = ({
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.96, opacity: 0 }}
                     onClick={(e) => e.stopPropagation()}
-                    className="w-full max-w-4xl overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
+                    className={`w-full overflow-hidden rounded-2xl border border-border bg-card shadow-2xl transition-[max-width] duration-200 ${
+                        currentStepKey === "verify" ? "max-w-6xl" : "max-w-4xl"
+                    }`}
                 >
                     {/* Header */}
                     <div className="flex items-start justify-between gap-3 border-b border-border px-8 py-5">
@@ -406,6 +424,7 @@ export const PublishWizardModal = ({
                                     siteChallenge.challenge && (
                                         <StepVerify
                                             challenge={siteChallenge.challenge}
+                                            error={siteChallenge.error}
                                         />
                                     )}
                                 {currentStepKey === "slug" && (
@@ -470,7 +489,7 @@ export const PublishWizardModal = ({
                             <Button
                                 type="button"
                                 onClick={() => void goNext()}
-                                disabled={!canAdvance || isChallengeLoading}
+                                disabled={nextButtonDisabled}
                                 className="gap-2"
                             >
                                 {nextButtonLabel}

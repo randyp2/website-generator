@@ -43,7 +43,10 @@ const parseChallenge = (value: unknown): SiteOwnershipChallenge => {
     };
 };
 
-const readErrorMessage = async (response: Response): Promise<string> => {
+const readErrorMessage = async (
+    response: Response,
+    fallbackMessage: string,
+): Promise<string> => {
     const payload: unknown = await response.json().catch(() => null);
     if (isRecord(payload)) {
         if (typeof payload.error === "string" && payload.error.trim()) {
@@ -53,7 +56,7 @@ const readErrorMessage = async (response: Response): Promise<string> => {
             return payload.detail;
         }
     }
-    return "Unable to create website verification challenge";
+    return fallbackMessage;
 };
 
 /** Creates or reuses the ownership challenge for an external website. */
@@ -67,6 +70,32 @@ export const createSiteOwnershipChallenge = async (
         body: JSON.stringify({ externalUrl }),
         signal,
     });
-    if (!response.ok) throw new Error(await readErrorMessage(response));
+    if (!response.ok) {
+        throw new Error(await readErrorMessage(
+            response,
+            "Unable to create website verification challenge",
+        ));
+    }
+    return parseChallenge(await response.json());
+};
+
+/** Checks the deployed page for the stored ownership challenge. */
+export const verifySiteOwnershipChallenge = async (
+    verificationId: string,
+    signal?: AbortSignal,
+): Promise<SiteOwnershipChallenge> => {
+    const response = await fetch(
+        `/api/portfolio/site-verifications/${encodeURIComponent(verificationId)}/verify`,
+        {
+            method: "POST",
+            signal,
+        },
+    );
+    if (!response.ok) {
+        throw new Error(await readErrorMessage(
+            response,
+            "Unable to verify the deployed website",
+        ));
+    }
     return parseChallenge(await response.json());
 };

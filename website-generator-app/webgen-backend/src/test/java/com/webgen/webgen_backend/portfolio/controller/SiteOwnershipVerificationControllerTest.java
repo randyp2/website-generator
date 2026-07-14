@@ -4,6 +4,7 @@ import com.webgen.webgen_backend.portfolio.dto.verification.CreateSiteOwnershipV
 import com.webgen.webgen_backend.portfolio.dto.verification.SiteOwnershipVerificationDTO;
 import com.webgen.webgen_backend.portfolio.model.verification.SiteVerificationMethod;
 import com.webgen.webgen_backend.portfolio.model.verification.SiteVerificationStatus;
+import com.webgen.webgen_backend.portfolio.service.verification.SiteOwnershipVerificationCheckService;
 import com.webgen.webgen_backend.portfolio.service.verification.SiteOwnershipVerificationService;
 import com.webgen.webgen_backend.shared.ratelimit.RateLimitProperties;
 import com.webgen.webgen_backend.shared.ratelimit.RateLimiterService;
@@ -34,9 +35,14 @@ class SiteOwnershipVerificationControllerTest {
     void createsChallengeForAuthenticatedUser() throws Exception {
         UUID userId = UUID.randomUUID();
         RecordingService service = new RecordingService(response());
+        RecordingCheckService checkService = new RecordingCheckService(response());
         RecordingRateLimiter rateLimiter = new RecordingRateLimiter();
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new SiteOwnershipVerificationController(service, rateLimiter)
+                new SiteOwnershipVerificationController(
+                        service,
+                        checkService,
+                        rateLimiter
+                )
         ).build();
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(userId.toString(), null)
@@ -51,6 +57,43 @@ class SiteOwnershipVerificationControllerTest {
 
         assertThat(service.userId).isEqualTo(userId);
         assertThat(service.externalUrl).isEqualTo("https://example.com");
+        assertThat(rateLimiter.policyName)
+                .isEqualTo("site-verification-challenge");
+        assertThat(rateLimiter.callerKey).isEqualTo(userId.toString());
+    }
+
+    @Test
+    void verifiesChallengeForAuthenticatedUser() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID verificationId = UUID.randomUUID();
+        RecordingService service = new RecordingService(response());
+        RecordingRateLimiter rateLimiter = new RecordingRateLimiter();
+        SiteOwnershipVerificationDTO verified = response();
+        verified.setStatus(SiteVerificationStatus.VERIFIED);
+        verified.setVerifiedAt(OffsetDateTime.now());
+        RecordingCheckService checkService =
+                new RecordingCheckService(verified);
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
+                new SiteOwnershipVerificationController(
+                        service,
+                        checkService,
+                        rateLimiter
+                )
+        ).build();
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(userId.toString(), null)
+        );
+
+        mockMvc.perform(post(
+                        "/api/v1/portfolio/site-verifications/{verificationId}/verify",
+                        verificationId
+                ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("VERIFIED"));
+
+        assertThat(checkService.userId).isEqualTo(userId);
+        assertThat(checkService.verificationId).isEqualTo(verificationId);
+        assertThat(rateLimiter.policyName).isEqualTo("site-verification-check");
         assertThat(rateLimiter.callerKey).isEqualTo(userId.toString());
     }
 
@@ -66,13 +109,35 @@ class SiteOwnershipVerificationControllerTest {
                 .build();
     }
 
+    private static final class RecordingCheckService
+            extends SiteOwnershipVerificationCheckService {
+        private final SiteOwnershipVerificationDTO response;
+        private UUID userId;
+        private UUID verificationId;
+
+        private RecordingCheckService(SiteOwnershipVerificationDTO response) {
+            super(null, null, null, null);
+            this.response = response;
+        }
+
+        @Override
+        public SiteOwnershipVerificationDTO verify(
+                UUID userId,
+                UUID verificationId
+        ) {
+            this.userId = userId;
+            this.verificationId = verificationId;
+            return response;
+        }
+    }
+
     private static final class RecordingService extends SiteOwnershipVerificationService {
         private final SiteOwnershipVerificationDTO response;
         private UUID userId;
         private String externalUrl;
 
         private RecordingService(SiteOwnershipVerificationDTO response) {
-            super(null, null, null);
+            super(null, null, null, null);
             this.response = response;
         }
 
@@ -88,6 +153,7 @@ class SiteOwnershipVerificationControllerTest {
     }
 
     private static final class RecordingRateLimiter extends RateLimiterService {
+        private String policyName;
         private String callerKey;
 
         private RecordingRateLimiter() {
@@ -96,7 +162,7 @@ class SiteOwnershipVerificationControllerTest {
 
         @Override
         public void check(String policyName, String callerKey) {
-            assertThat(policyName).isEqualTo("site-verification-challenge");
+            this.policyName = policyName;
             this.callerKey = callerKey;
         }
 

@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { createSiteOwnershipChallenge } from "./siteOwnershipVerification";
+import {
+    createSiteOwnershipChallenge,
+    verifySiteOwnershipChallenge,
+} from "./siteOwnershipVerification";
 
 const challengePayload = {
     verificationId: "verification-1",
@@ -65,5 +68,55 @@ describe("createSiteOwnershipChallenge", () => {
 
         await expect(createSiteOwnershipChallenge("https://example.com"))
             .rejects.toThrow("Invalid verification response");
+    });
+});
+
+describe("verifySiteOwnershipChallenge", () => {
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    it("checks the deployed website through the verification proxy", async () => {
+        const verificationId = "123e4567-e89b-42d3-a456-426614174000";
+        const verifiedPayload = {
+            ...challengePayload,
+            verificationId,
+            status: "VERIFIED",
+            verifiedAt: "2026-07-13T23:00:00Z",
+        };
+        const fetchMock = vi.fn().mockResolvedValue(new Response(
+            JSON.stringify(verifiedPayload),
+            {
+                status: 200,
+                headers: { "Content-Type": "application/json" },
+            },
+        ));
+        vi.stubGlobal("fetch", fetchMock);
+
+        const result = await verifySiteOwnershipChallenge(verificationId);
+
+        expect(result).toEqual(verifiedPayload);
+        expect(fetchMock).toHaveBeenCalledWith(
+            `/api/portfolio/site-verifications/${verificationId}/verify`,
+            expect.objectContaining({ method: "POST" }),
+        );
+    });
+
+    it("surfaces a missing deployed tag", async () => {
+        vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(
+            JSON.stringify({
+                detail: "Verification tag was not found in the deployed page source",
+            }),
+            {
+                status: 422,
+                headers: { "Content-Type": "application/json" },
+            },
+        )));
+
+        await expect(verifySiteOwnershipChallenge(
+            "123e4567-e89b-42d3-a456-426614174000",
+        )).rejects.toThrow(
+            "Verification tag was not found in the deployed page source",
+        );
     });
 });

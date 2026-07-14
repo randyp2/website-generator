@@ -48,6 +48,13 @@
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
 
+        <!-- Tolerant HTML parsing for external site ownership verification -->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.22.2</version>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

@@ -27,11 +27,10 @@ import java.util.UUID;
 public class SiteOwnershipVerificationService {
 
     private static final Duration CHALLENGE_TTL = Duration.ofHours(24);
-    private static final String META_TAG_TEMPLATE = "<meta name=\"webgen-site-verification\" content=\"%s\">";
-
     private final SiteOwnershipVerificationRepository repository;
     private final SiteVerificationUrlCanonicalizer urlCanonicalizer;
     private final SiteVerificationTokenGenerator tokenGenerator;
+    private final SiteOwnershipVerificationDtoMapper dtoMapper;
 
     /**
      * Creates, reuses, or refreshes a challenge for the authenticated user and URL.
@@ -59,7 +58,7 @@ public class SiteOwnershipVerificationService {
 
         if (isReusable(verification, now)) {
             logChallenge("reused", verification);
-            return toDto(verification);
+            return dtoMapper.toDto(verification);
         }
 
         SiteOwnershipVerification pending = preparePending(
@@ -70,7 +69,7 @@ public class SiteOwnershipVerificationService {
                 now);
         SiteOwnershipVerification saved = repository.save(pending);
         logChallenge("issued", saved);
-        return toDto(saved);
+        return dtoMapper.toDto(saved);
     }
 
     private CanonicalSiteUrl canonicalize(String externalUrl) {
@@ -113,19 +112,6 @@ public class SiteOwnershipVerificationService {
         verification.setChallengeExpiresAt(now.plus(CHALLENGE_TTL));
         verification.setVerifiedAt(null);
         return verification;
-    }
-
-    private SiteOwnershipVerificationDTO toDto(SiteOwnershipVerification verification) {
-        return SiteOwnershipVerificationDTO.builder()
-                .verificationId(verification.getId())
-                .verificationUrl(verification.getVerificationUrl())
-                .canonicalOrigin(verification.getCanonicalOrigin())
-                .method(verification.getMethod())
-                .status(verification.getStatus())
-                .verificationTag(META_TAG_TEMPLATE.formatted(verification.getChallengeToken()))
-                .challengeExpiresAt(verification.getChallengeExpiresAt())
-                .verifiedAt(verification.getVerifiedAt())
-                .build();
     }
 
     private void logChallenge(String action, SiteOwnershipVerification verification) {

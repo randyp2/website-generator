@@ -128,7 +128,8 @@ class SiteOwnershipVerificationServiceTest {
             return new SiteOwnershipVerificationService(
                     repository(),
                     new SiteVerificationUrlCanonicalizer(),
-                    new SiteVerificationTokenGenerator()
+                    new SiteVerificationTokenGenerator(),
+                    new SiteOwnershipVerificationDtoMapper()
             );
         }
 
