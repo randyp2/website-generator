@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 
 import java.util.Locale;
+import java.util.UUID;
 
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -32,6 +33,7 @@ public class PublishRequestDTO {
     private SourceType sourceType = SourceType.GENERATED;
     private String title;
     private String externalUrl;
+    private UUID siteVerificationId;
     private String description;
     private String slug;
 }

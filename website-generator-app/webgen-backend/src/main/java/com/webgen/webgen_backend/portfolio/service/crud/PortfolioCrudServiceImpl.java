@@ -15,6 +15,7 @@ import com.webgen.webgen_backend.portfolio.mapper.PortfolioMapper;
 import com.webgen.webgen_backend.resume.mapper.ResumeMapper;
 import com.webgen.webgen_backend.portfolio.service.crud.PortfolioCrudService;
 import com.webgen.webgen_backend.portfolio.service.job.ScreenshotMessage;
+import com.webgen.webgen_backend.portfolio.service.verification.SiteOwnershipPublishGuard;
 import com.webgen.webgen_backend.portfolio.service.version.VersionSnapshotReader;
 import com.webgen.webgen_backend.portfolio.repository.AssetRepository;
 import com.webgen.webgen_backend.portfolio.repository.GeneratedVersionRepository;
@@ -62,6 +63,7 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
     private final RabbitTemplate rabbitTemplate;
     private final ObjectMapper objectMapper;
     private final VersionSnapshotReader versionSnapshotReader;
+    private final SiteOwnershipPublishGuard siteOwnershipPublishGuard;
 
     private static final int MAX_PORTFOLIO_DESCRIPTION_LENGTH = 1000;
 
@@ -507,6 +509,11 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         }
+        UUID siteVerificationId = siteOwnershipPublishGuard.requireVerified(
+                userId,
+                request.getSiteVerificationId(),
+                normalizedExternalUrl
+        );
 
         String requestedTitle = request.getTitle() != null ? request.getTitle().trim() : "";
         String title = requestedTitle.isBlank() ? "External Portfolio" : requestedTitle;
@@ -527,6 +534,7 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         portfolio.setDescription(normalizeDescription(request.getDescription()));
         portfolio.setSourceType(PublishRequestDTO.SourceType.EXTERNAL.name());
         portfolio.setExternalUrl(normalizedExternalUrl);
+        portfolio.setSiteVerificationId(siteVerificationId);
 
         OffsetDateTime now = OffsetDateTime.now();
         portfolio.setCreatedAt(now);

@@ -1,26 +1,10 @@
-import { getBackendUrl } from "@/lib/server-env";
-import { createServerSupabaseClient } from "@/utils/supabase/server";
-import { NextResponse } from "next/server";
+import { proxyBackendRequest } from "@/lib/api/backendProxy";
 
 export const POST = async (req: Request) => {
-    const supabase = await createServerSupabaseClient();
-    const {
-        data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const body = await req.json().catch(() => ({}));
-    const backendUrl = getBackendUrl();
-
-    const res: Response = await fetch(`${backendUrl}/api/v1/portfolio/publish`, {
+    const proxyRequest = new Request(req.url, {
         method: "POST",
-        headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             portfolioId:
                 typeof body?.portfolioId === "string" ? body.portfolioId : null,
@@ -29,19 +13,19 @@ export const POST = async (req: Request) => {
             title: typeof body?.title === "string" ? body.title : null,
             externalUrl:
                 typeof body?.externalUrl === "string" ? body.externalUrl : null,
+            siteVerificationId:
+                typeof body?.siteVerificationId === "string"
+                    ? body.siteVerificationId
+                    : null,
             slug: typeof body?.slug === "string" ? body.slug : null,
             description:
                 typeof body?.description === "string" ? body.description : null,
         }),
     });
 
-    if (!res.ok) {
-        const errorText = await res.text();
-        return NextResponse.json(
-            { error: errorText || "Failed to publish portfolio" },
-            { status: res.status },
-        );
-    }
-
-    return NextResponse.json(await res.json());
+    return proxyBackendRequest("/api/v1/portfolio/publish", {
+        method: "POST",
+        request: proxyRequest,
+        authenticated: true,
+    });
 };
