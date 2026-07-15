@@ -12,6 +12,7 @@ import {
     SiteVerificationCodeBlock,
     SiteVerificationFrameworkPicker,
 } from "./SiteVerificationInstallGuide";
+import { HighlightedCode } from "./CodeHighlight";
 import { StepConnector } from "./StepConnector";
 import { StepMarker } from "./StepMarker";
 
@@ -90,8 +91,8 @@ export const StepVerify = ({ challenge }: StepVerifyProps) => {
                         ref={tagRef}
                         className="flex items-start gap-3 rounded-lg border border-border bg-muted px-3 py-3"
                     >
-                        <code className="min-w-0 flex-1 break-all text-xs leading-5 text-primary">
-                            {portableTag}
+                        <code className="min-w-0 flex-1 break-all text-xs leading-5">
+                            <HighlightedCode line={portableTag} />
                         </code>
                         <button
                             type="button"

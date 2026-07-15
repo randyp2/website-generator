@@ -21,7 +21,9 @@ export const SITE_VERIFICATION_FRAMEWORKS = [
         label: "Next.js",
         fileName: "app/layout.tsx",
         note: "Place the head element in your root App Router layout.",
-        accentColor: "#f8fafc",
+        // Next.js is monochrome; follow the theme text color so the "N" stays
+        // visible on both light and dark surfaces.
+        accentColor: "currentColor",
     },
     {
         id: "vue",

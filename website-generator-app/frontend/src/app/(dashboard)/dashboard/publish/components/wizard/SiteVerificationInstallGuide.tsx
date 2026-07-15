@@ -2,13 +2,8 @@
 
 import type { IconType } from "react-icons";
 import { FiCheck, FiChevronDown, FiInfo } from "react-icons/fi";
-import {
-    SiAngular,
-    SiHtml5,
-    SiNextdotjs,
-    SiReact,
-    SiVuedotjs,
-} from "react-icons/si";
+import { SiAngular, SiHtml5, SiReact, SiVuedotjs } from "react-icons/si";
+import { TbBrandNextjs } from "react-icons/tb";
 
 import {
     DropdownMenu,
@@ -21,31 +16,16 @@ import {
     buildSiteVerificationSnippet,
     findSiteVerificationFramework,
     SITE_VERIFICATION_FRAMEWORKS,
-    SITE_VERIFICATION_META_NAME,
     type SiteVerificationFramework,
 } from "../../lib/siteVerificationFrameworks";
+import { HighlightedCode } from "./CodeHighlight";
 
 const FRAMEWORK_ICONS: Record<SiteVerificationFramework, IconType> = {
     html: SiHtml5,
     react: SiReact,
-    nextjs: SiNextdotjs,
+    nextjs: TbBrandNextjs,
     vue: SiVuedotjs,
     angular: SiAngular,
-};
-
-/** Theme-aware syntax color per line, legible on both light and dark surfaces. */
-const codeLineClass = (line: string): string => {
-    const trimmedLine = line.trimStart();
-    if (line.includes(SITE_VERIFICATION_META_NAME)) {
-        return "font-semibold text-primary";
-    }
-    if (trimmedLine.startsWith("<")) {
-        return "text-sky-600 dark:text-sky-300";
-    }
-    if (/^(import|export|return)/.test(trimmedLine)) {
-        return "text-rose-600 dark:text-rose-400";
-    }
-    return "text-foreground/80";
 };
 
 interface FrameworkPickerProps {
@@ -148,8 +128,12 @@ export const SiteVerificationCodeBlock = ({
                                 <span className="mr-4 w-5 shrink-0 select-none text-right text-muted-foreground/40">
                                     {index + 1}
                                 </span>
-                                <span className={codeLineClass(line)}>
-                                    {line || " "}
+                                <span>
+                                    {line ? (
+                                        <HighlightedCode line={line} />
+                                    ) : (
+                                        " "
+                                    )}
                                 </span>
                             </span>
                         ))}
