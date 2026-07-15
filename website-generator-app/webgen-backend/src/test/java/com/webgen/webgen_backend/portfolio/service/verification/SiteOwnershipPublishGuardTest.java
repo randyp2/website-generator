@@ -2,6 +2,7 @@ package com.webgen.webgen_backend.portfolio.service.verification;
 
 import com.webgen.webgen_backend.portfolio.entity.SiteOwnershipVerification;
 import com.webgen.webgen_backend.portfolio.model.verification.SiteVerificationStatus;
+import com.webgen.webgen_backend.portfolio.model.screenshot.SitePreviewStatus;
 import com.webgen.webgen_backend.portfolio.repository.SiteOwnershipVerificationRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -32,13 +33,16 @@ class SiteOwnershipPublishGuardTest {
         SiteOwnershipVerification verification = verified(userId);
         repository.stored = verification;
 
-        UUID result = guard.requireVerified(
+        verification.setPreviewUrl("https://cdn.example/external.png");
+        verification.setPreviewStatus(SitePreviewStatus.READY);
+        VerifiedSiteOwnership result = guard.requireVerified(
                 userId,
                 verification.getId(),
                 "https://8.8.8.8:443/work/../portfolio#about"
         );
 
-        assertThat(result).isEqualTo(verification.getId());
+        assertThat(result.verificationId()).isEqualTo(verification.getId());
+        assertThat(result.previewUrl()).isEqualTo(verification.getPreviewUrl());
     }
 
     @Test

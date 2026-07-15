@@ -17,6 +17,7 @@ import type { Portfolio } from "@/types/portfolio";
 
 import { useSiteOwnershipChallenge } from "../hooks/useSiteOwnershipChallenge";
 import { useGeneratedPortfolioPreview } from "../hooks/useGeneratedPortfolioPreview";
+import { useExternalPortfolioPreview } from "../hooks/useExternalPortfolioPreview";
 import { StepIndicator, type WizardStepDef } from "./wizard/StepIndicator";
 import { StepPick, type PublishSource } from "./wizard/StepPick";
 import { StepSlug } from "./wizard/StepSlug";
@@ -136,6 +137,14 @@ export const PublishWizardModal = ({
             : null,
         source === "generated" &&
             ["details", "preview", "publish"].includes(currentStepKey),
+    );
+    const externalPreview = useExternalPortfolioPreview(
+        source === "external" && isVerified && siteChallenge.challenge
+            ? siteChallenge.challenge.verificationId
+            : null,
+        source === "external" &&
+            isVerified &&
+            ["slug", "details", "preview", "publish"].includes(currentStepKey),
     );
 
     const canAdvance = (() => {
@@ -531,6 +540,18 @@ export const PublishWizardModal = ({
                                         }
                                         generatedPreviewError={
                                             generatedPreview.error
+                                        }
+                                        externalPreviewUrl={
+                                            externalPreview.previewUrl
+                                        }
+                                        externalPreviewState={
+                                            externalPreview.state
+                                        }
+                                        externalPreviewError={
+                                            externalPreview.error
+                                        }
+                                        onExternalPreviewRetry={
+                                            externalPreview.retry
                                         }
                                     />
                                 )}

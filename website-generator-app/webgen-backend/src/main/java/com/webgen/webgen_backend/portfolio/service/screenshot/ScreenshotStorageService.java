@@ -37,6 +37,12 @@ public class ScreenshotStorageService {
         return upload(storagePath, pngBytes);
     }
 
+    /** Uploads a pre-publication external preview under its verification id. */
+    public String uploadSiteVerificationPreview(String verificationId, byte[] pngBytes) {
+        String storagePath = "screenshots/site-verifications/" + verificationId + "/preview.png";
+        return upload(storagePath, pngBytes);
+    }
+
     private String upload(String storagePath, byte[] pngBytes) {
 
         // Upload via Supabase Storage Rest API

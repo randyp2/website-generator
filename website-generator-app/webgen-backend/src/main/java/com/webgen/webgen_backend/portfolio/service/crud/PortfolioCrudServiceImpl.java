@@ -16,6 +16,7 @@ import com.webgen.webgen_backend.resume.mapper.ResumeMapper;
 import com.webgen.webgen_backend.portfolio.service.crud.PortfolioCrudService;
 import com.webgen.webgen_backend.portfolio.service.job.ScreenshotMessage;
 import com.webgen.webgen_backend.portfolio.service.verification.SiteOwnershipPublishGuard;
+import com.webgen.webgen_backend.portfolio.service.verification.VerifiedSiteOwnership;
 import com.webgen.webgen_backend.portfolio.service.version.VersionSnapshotReader;
 import com.webgen.webgen_backend.portfolio.repository.AssetRepository;
 import com.webgen.webgen_backend.portfolio.repository.GeneratedVersionRepository;
@@ -509,7 +510,7 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         }
-        UUID siteVerificationId = siteOwnershipPublishGuard.requireVerified(
+        VerifiedSiteOwnership siteOwnership = siteOwnershipPublishGuard.requireVerified(
                 userId,
                 request.getSiteVerificationId(),
                 normalizedExternalUrl
@@ -534,7 +535,8 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         portfolio.setDescription(normalizeDescription(request.getDescription()));
         portfolio.setSourceType(PublishRequestDTO.SourceType.EXTERNAL.name());
         portfolio.setExternalUrl(normalizedExternalUrl);
-        portfolio.setSiteVerificationId(siteVerificationId);
+        portfolio.setSiteVerificationId(siteOwnership.verificationId());
+        portfolio.setScreenshotUrl(siteOwnership.previewUrl());
 
         OffsetDateTime now = OffsetDateTime.now();
         portfolio.setCreatedAt(now);
@@ -543,9 +545,12 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         // Save external portfolio as a new row
         Portfolio saved = portfolioRepository.save(portfolio);
 
-        // Queue screenshot message
-        // - For external publish we use targetUrl to capture remote website
-        queueScreenshotJob(saved.getId(), saved.getSlug(), saved.getExternalUrl(), null);
+        // A completed pre-publication capture is reused immediately. Publishing
+        // remains non-blocking when it is absent, with the existing portfolio
+        // capture acting as the fallback.
+        if (saved.getScreenshotUrl() == null || saved.getScreenshotUrl().isBlank()) {
+            queueScreenshotJob(saved.getId(), saved.getSlug(), saved.getExternalUrl(), null);
+        }
 
         return buildPublishResponse(saved, PublishRequestDTO.SourceType.EXTERNAL);
     }
@@ -599,13 +604,11 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
      * @param targetUrl external url for capture, null when using internal slug route
      */
     private void queueScreenshotJob(UUID portfolioId, String slug, String targetUrl, UUID publishedVersionId) {
-        ScreenshotMessage screenshotMsg = new ScreenshotMessage(
-                UUID.randomUUID().toString(),
+        ScreenshotMessage screenshotMsg = ScreenshotMessage.forPortfolio(
                 portfolioId.toString(),
                 slug,
                 targetUrl,
-                publishedVersionId != null ? publishedVersionId.toString() : null,
-                null
+                publishedVersionId != null ? publishedVersionId.toString() : null
         );
 
         rabbitTemplate.convertAndSend(

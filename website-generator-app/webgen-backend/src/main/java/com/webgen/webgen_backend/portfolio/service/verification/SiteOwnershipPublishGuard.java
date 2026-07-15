@@ -3,6 +3,7 @@ package com.webgen.webgen_backend.portfolio.service.verification;
 import com.webgen.webgen_backend.portfolio.entity.SiteOwnershipVerification;
 import com.webgen.webgen_backend.portfolio.model.verification.CanonicalSiteUrl;
 import com.webgen.webgen_backend.portfolio.model.verification.SiteVerificationStatus;
+import com.webgen.webgen_backend.portfolio.model.screenshot.SitePreviewStatus;
 import com.webgen.webgen_backend.portfolio.repository.SiteOwnershipVerificationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,9 +25,9 @@ public class SiteOwnershipPublishGuard {
     /**
      * Requires a user-owned, completed challenge bound to the exact published URL.
      *
-     * @return the verification identifier safe to persist on the portfolio
+     * @return verified ownership data safe to persist on the portfolio
      */
-    public UUID requireVerified(
+    public VerifiedSiteOwnership requireVerified(
             UUID userId,
             UUID verificationId,
             String externalUrl
@@ -74,7 +75,12 @@ public class SiteOwnershipPublishGuard {
                 userId,
                 publishedUrl.verificationUrl()
         );
-        return verification.getId();
+        return new VerifiedSiteOwnership(
+                verification.getId(),
+                verification.getPreviewStatus() == SitePreviewStatus.READY
+                        ? verification.getPreviewUrl()
+                        : null
+        );
     }
 
     private CanonicalSiteUrl canonicalize(String externalUrl) {

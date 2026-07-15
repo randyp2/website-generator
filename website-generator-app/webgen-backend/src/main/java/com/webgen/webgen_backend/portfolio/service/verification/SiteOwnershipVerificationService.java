@@ -6,6 +6,7 @@ import com.webgen.webgen_backend.portfolio.entity.SiteOwnershipVerification;
 import com.webgen.webgen_backend.portfolio.model.verification.CanonicalSiteUrl;
 import com.webgen.webgen_backend.portfolio.model.verification.SiteVerificationMethod;
 import com.webgen.webgen_backend.portfolio.model.verification.SiteVerificationStatus;
+import com.webgen.webgen_backend.portfolio.model.screenshot.SitePreviewStatus;
 import com.webgen.webgen_backend.portfolio.repository.SiteOwnershipVerificationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -111,6 +112,9 @@ public class SiteOwnershipVerificationService {
         verification.setStatus(SiteVerificationStatus.PENDING);
         verification.setChallengeExpiresAt(now.plus(CHALLENGE_TTL));
         verification.setVerifiedAt(null);
+        verification.setPreviewUrl(null);
+        verification.setPreviewStatus(SitePreviewStatus.NOT_REQUESTED);
+        verification.setPreviewCapturedAt(null);
         return verification;
     }
 

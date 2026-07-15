@@ -1,7 +1,7 @@
 "use client";
 
 import type { IconType } from "react-icons";
-import { FiCheck, FiChevronDown } from "react-icons/fi";
+import { FiCheck, FiChevronDown, FiInfo } from "react-icons/fi";
 import {
     SiAngular,
     SiHtml5,
@@ -130,33 +130,38 @@ export const SiteVerificationCodeBlock = ({
     ).split("\n");
 
     return (
-        <div className="overflow-hidden rounded-lg border border-border bg-muted">
-            <div className="flex items-center gap-2 border-b border-border bg-card px-3 py-2">
-                <FrameworkIcon
-                    className="size-3.5"
-                    style={{ color: frameworkGuide.accentColor }}
-                />
-                <span className="font-mono text-[11px] text-muted-foreground">
-                    {frameworkGuide.fileName}
-                </span>
+        <div className="space-y-2">
+            <div className="overflow-hidden rounded-lg border border-border bg-muted">
+                <div className="flex items-center gap-2 border-b border-border bg-card px-3 py-2">
+                    <FrameworkIcon
+                        className="size-3.5"
+                        style={{ color: frameworkGuide.accentColor }}
+                    />
+                    <span className="font-mono text-[11px] text-muted-foreground">
+                        {frameworkGuide.fileName}
+                    </span>
+                </div>
+                <pre className="max-h-56 overflow-auto p-4 text-xs leading-6 [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/40 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar]:w-2">
+                    <code>
+                        {snippetLines.map((line, index) => (
+                            <span key={`${index}-${line}`} className="flex">
+                                <span className="mr-4 w-5 shrink-0 select-none text-right text-muted-foreground/40">
+                                    {index + 1}
+                                </span>
+                                <span className={codeLineClass(line)}>
+                                    {line || " "}
+                                </span>
+                            </span>
+                        ))}
+                    </code>
+                </pre>
             </div>
-            <pre className="max-h-56 overflow-auto p-4 text-xs leading-6 [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/40 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar]:w-2">
-                <code>
-                    {snippetLines.map((line, index) => (
-                        <span key={`${index}-${line}`} className="flex">
-                            <span className="mr-4 w-5 shrink-0 select-none text-right text-muted-foreground/40">
-                                {index + 1}
-                            </span>
-                            <span className={codeLineClass(line)}>
-                                {line || " "}
-                            </span>
-                        </span>
-                    ))}
-                </code>
-            </pre>
-            <p className="border-t border-border bg-card px-4 py-2 text-[11px] leading-4 text-muted-foreground">
-                {frameworkGuide.note} The tag must appear in the deployed page
-                source.
+            <p className="flex items-start gap-1.5 px-1 text-[11px] leading-4 text-muted-foreground">
+                <FiInfo className="mt-0.5 size-3.5 shrink-0" />
+                <span>
+                    {frameworkGuide.note} The tag must appear in the deployed
+                    page source.
+                </span>
             </p>
         </div>
     );

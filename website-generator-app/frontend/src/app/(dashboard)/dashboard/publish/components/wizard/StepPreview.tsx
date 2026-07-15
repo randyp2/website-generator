@@ -1,11 +1,8 @@
 "use client"
 
 import {
-  AlertCircle,
   Eye,
   Heart,
-  Info,
-  LoaderCircle,
   Lock,
   MessageCircle,
 } from "lucide-react"
@@ -21,7 +18,8 @@ import {
 } from "@/app/(public)/(site)/explore/components/explore.utils"
 
 import type { Portfolio } from "@/types/portfolio"
-import type { GeneratedPreviewState } from "../../hooks/useGeneratedPortfolioPreview"
+import type { PreviewScreenshotState } from "../../hooks/usePreviewScreenshot"
+import { PreviewCaptureNotice } from "./PreviewCaptureNotice"
 import type { PublishSource } from "./StepPick"
 
 const DEFAULT_PREVIEW_IMAGE =
@@ -38,8 +36,12 @@ interface StepPreviewProps {
   ownerName: string
   ownerAvatarUrl: string | null
   generatedPreviewUrl: string | null
-  generatedPreviewState: GeneratedPreviewState
+  generatedPreviewState: PreviewScreenshotState
   generatedPreviewError: string | null
+  externalPreviewUrl: string | null
+  externalPreviewState: PreviewScreenshotState
+  externalPreviewError: string | null
+  onExternalPreviewRetry: () => void
 }
 
 export const StepPreview = ({
@@ -53,19 +55,23 @@ export const StepPreview = ({
   generatedPreviewUrl,
   generatedPreviewState,
   generatedPreviewError,
+  externalPreviewUrl,
+  externalPreviewState,
+  externalPreviewError,
+  onExternalPreviewRetry,
 }: StepPreviewProps) => {
   const isExternal = source === "external"
   const portfolioTitle = isExternal
     ? "External Portfolio"
     : portfolio?.title ?? "Untitled Portfolio"
   const previewSrc = isExternal
-    ? portfolio?.screenshot_url ?? DEFAULT_PREVIEW_IMAGE
+    ? externalPreviewUrl ?? DEFAULT_PREVIEW_IMAGE
     : generatedPreviewUrl ?? DEFAULT_PREVIEW_IMAGE
   const usingPlaceholder = isExternal
-    ? !portfolio?.screenshot_url
+    ? !externalPreviewUrl
     : !generatedPreviewUrl
-  const isGeneratingPreview = !isExternal
-    && (generatedPreviewState === "requesting" || generatedPreviewState === "processing")
+  const previewState = isExternal ? externalPreviewState : generatedPreviewState
+  const previewError = isExternal ? externalPreviewError : generatedPreviewError
   const browserUrl = isExternal
     ? externalUrl || "https://yourportfolio.com"
     : buildPortfolioUrl(slug || "your-slug", ownerName)
@@ -99,33 +105,13 @@ export const StepPreview = ({
         </p>
       </div>
 
-      {isGeneratingPreview && (
-        <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
-          <LoaderCircle className="mt-0.5 size-3.5 shrink-0 animate-spin text-primary" />
-          <p>
-            Capturing the active generated version now. This preview will update
-            automatically when the background worker finishes.
-          </p>
-        </div>
-      )}
-
-      {!isExternal && generatedPreviewState === "error" && (
-        <div className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
-          <AlertCircle className="mt-0.5 size-3.5 shrink-0" />
-          <p>{generatedPreviewError ?? "The generated preview could not be captured."}</p>
-        </div>
-      )}
-
-      {usingPlaceholder && !isGeneratingPreview && generatedPreviewState !== "error" && (
-        <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-          <Info className="mt-0.5 size-3.5 shrink-0 text-primary" />
-          <p>
-            {isExternal
-              ? "The image below is a placeholder. A screenshot of your site will be captured and uploaded automatically once you publish."
-              : "The image below is a placeholder while your generated portfolio preview starts."}
-          </p>
-        </div>
-      )}
+      <PreviewCaptureNotice
+        state={previewState}
+        error={previewError}
+        external={isExternal}
+        usingPlaceholder={usingPlaceholder}
+        onRetry={onExternalPreviewRetry}
+      />
 
       <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
         {/* Browser frame */}
@@ -155,7 +141,7 @@ export const StepPreview = ({
           />
         </div>
 
-        {/* Explore card mock — mirrors ExploreCard on /explore */}
+        {/* Explore card mock mirrors ExploreCard on /explore */}
         <div className="space-y-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
             /explore card

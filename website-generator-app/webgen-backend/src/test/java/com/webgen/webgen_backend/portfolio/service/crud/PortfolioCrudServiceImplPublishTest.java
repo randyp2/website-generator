@@ -8,6 +8,7 @@ import com.webgen.webgen_backend.portfolio.entity.SiteOwnershipVerification;
 import com.webgen.webgen_backend.portfolio.mapper.AssetMapper;
 import com.webgen.webgen_backend.portfolio.mapper.PortfolioMapper;
 import com.webgen.webgen_backend.portfolio.model.verification.SiteVerificationStatus;
+import com.webgen.webgen_backend.portfolio.model.screenshot.SitePreviewStatus;
 import com.webgen.webgen_backend.portfolio.repository.AssetRepository;
 import com.webgen.webgen_backend.portfolio.repository.GeneratedVersionRepository;
 import com.webgen.webgen_backend.portfolio.repository.PortfolioRepository;
@@ -43,9 +44,11 @@ class PortfolioCrudServiceImplPublishTest {
                 verificationRepository(verification),
                 new SiteVerificationUrlCanonicalizer()
         );
+        RecordingRabbitTemplate rabbitTemplate = new RecordingRabbitTemplate();
         PortfolioCrudServiceImpl service = service(
                 portfolioRepository.proxy(),
-                publishGuard
+                publishGuard,
+                rabbitTemplate
         );
         PublishRequestDTO request = new PublishRequestDTO();
         request.setSourceType(PublishRequestDTO.SourceType.EXTERNAL);
@@ -60,12 +63,44 @@ class PortfolioCrudServiceImplPublishTest {
         assertThat(saved.getSiteVerificationId())
                 .isEqualTo(verification.getId());
         assertThat(saved.getExternalUrl()).isEqualTo(EXTERNAL_URL);
+        assertThat(saved.getScreenshotUrl()).isEqualTo(verification.getPreviewUrl());
         assertThat(result.getPortfolioId()).isEqualTo(saved.getId().toString());
+        assertThat(rabbitTemplate.calls).isZero();
+    }
+
+    @Test
+    void queuesFallbackCaptureWhenVerifiedPreviewIsNotReady() {
+        UUID userId = UUID.randomUUID();
+        SiteOwnershipVerification verification = verified(userId);
+        verification.setPreviewStatus(SitePreviewStatus.CAPTURING);
+        verification.setPreviewUrl(null);
+        verification.setPreviewCapturedAt(null);
+        PortfolioRepositoryFixture portfolioRepository = new PortfolioRepositoryFixture();
+        RecordingRabbitTemplate rabbitTemplate = new RecordingRabbitTemplate();
+        PortfolioCrudServiceImpl service = service(
+                portfolioRepository.proxy(),
+                new SiteOwnershipPublishGuard(
+                        verificationRepository(verification),
+                        new SiteVerificationUrlCanonicalizer()
+                ),
+                rabbitTemplate
+        );
+        PublishRequestDTO request = new PublishRequestDTO();
+        request.setSourceType(PublishRequestDTO.SourceType.EXTERNAL);
+        request.setExternalUrl(EXTERNAL_URL);
+        request.setSiteVerificationId(verification.getId());
+        request.setSlug("capture-pending");
+
+        service.publishPortfolio(userId, request);
+
+        assertThat(portfolioRepository.saved.getScreenshotUrl()).isNull();
+        assertThat(rabbitTemplate.calls).isOne();
     }
 
     private PortfolioCrudServiceImpl service(
             PortfolioRepository portfolioRepository,
-            SiteOwnershipPublishGuard publishGuard
+            SiteOwnershipPublishGuard publishGuard,
+            RabbitTemplate rabbitTemplate
     ) {
         ObjectMapper objectMapper = new ObjectMapper();
         return new PortfolioCrudServiceImpl(
@@ -78,7 +113,7 @@ class PortfolioCrudServiceImplPublishTest {
                 unused(PortfolioMapper.class),
                 unused(ResumeMapper.class),
                 unused(AssetMapper.class),
-                new NoOpRabbitTemplate(),
+                rabbitTemplate,
                 objectMapper,
                 new VersionSnapshotReader(objectMapper),
                 publishGuard
@@ -95,6 +130,9 @@ class PortfolioCrudServiceImplPublishTest {
                 .status(SiteVerificationStatus.VERIFIED)
                 .challengeExpiresAt(OffsetDateTime.now().plusHours(1))
                 .verifiedAt(OffsetDateTime.now())
+                .previewUrl("https://cdn.example/external-preview.png")
+                .previewStatus(SitePreviewStatus.READY)
+                .previewCapturedAt(OffsetDateTime.now())
                 .build();
     }
 
@@ -162,14 +200,16 @@ class PortfolioCrudServiceImplPublishTest {
         }
     }
 
-    private static final class NoOpRabbitTemplate extends RabbitTemplate {
+    private static final class RecordingRabbitTemplate extends RabbitTemplate {
+        private int calls;
+
         @Override
         public void convertAndSend(
                 String exchange,
                 String routingKey,
                 Object message
         ) {
-            // Publishing the message is outside this service wiring test.
+            calls++;
         }
     }
 }

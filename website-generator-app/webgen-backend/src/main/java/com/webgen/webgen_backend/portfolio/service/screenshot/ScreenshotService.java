@@ -9,8 +9,10 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class ScreenshotService {
 
     @Value("${webgen.screenshot.base-url:http://localhost:3000}")
@@ -86,7 +88,7 @@ public class ScreenshotService {
     }
 
     private byte[] captureScreenshotInternal(String url, boolean externalCapture) {
-        System.out.println(">>> [SCREENSHOT] Navigating to: " + url);
+        log.info("Navigating screenshot browser to url={}", url);
 
         // Create isolated browser context
         try (BrowserContext context = browser.newContext(
@@ -128,7 +130,7 @@ public class ScreenshotService {
                 return;
             }
 
-            System.err.println(">>> [SCREENSHOT] Blocked unsafe request URL: " + requestUrl);
+            log.warn("Blocked unsafe screenshot request url={}", requestUrl);
             route.abort();
         });
     }

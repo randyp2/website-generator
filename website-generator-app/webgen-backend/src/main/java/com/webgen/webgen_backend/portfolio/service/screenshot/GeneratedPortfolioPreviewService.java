@@ -34,12 +34,8 @@ public class GeneratedPortfolioPreviewService {
             return response(context, GeneratedPreviewResponseDTO.Status.READY);
         }
 
-        ScreenshotMessage message = new ScreenshotMessage(
-                UUID.randomUUID().toString(),
+        ScreenshotMessage message = ScreenshotMessage.forGeneratedVersion(
                 portfolioId.toString(),
-                null,
-                null,
-                null,
                 context.version().getId().toString()
         );
         rabbitTemplate.convertAndSend(

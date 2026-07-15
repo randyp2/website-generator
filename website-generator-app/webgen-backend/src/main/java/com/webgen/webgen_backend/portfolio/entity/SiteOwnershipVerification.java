@@ -2,6 +2,7 @@ package com.webgen.webgen_backend.portfolio.entity;
 
 import com.webgen.webgen_backend.portfolio.model.verification.SiteVerificationMethod;
 import com.webgen.webgen_backend.portfolio.model.verification.SiteVerificationStatus;
+import com.webgen.webgen_backend.portfolio.model.screenshot.SitePreviewStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -79,6 +80,17 @@ public class SiteOwnershipVerification {
 
     @Column(name = "verified_at")
     private OffsetDateTime verifiedAt;
+
+    @Column(name = "preview_url")
+    private String previewUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "preview_status", nullable = false, length = 32)
+    @Builder.Default
+    private SitePreviewStatus previewStatus = SitePreviewStatus.NOT_REQUESTED;
+
+    @Column(name = "preview_captured_at")
+    private OffsetDateTime previewCapturedAt;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
