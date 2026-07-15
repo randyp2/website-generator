@@ -604,7 +604,8 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
                 portfolioId.toString(),
                 slug,
                 targetUrl,
-                publishedVersionId != null ? publishedVersionId.toString() : null
+                publishedVersionId != null ? publishedVersionId.toString() : null,
+                null
         );
 
         rabbitTemplate.convertAndSend(

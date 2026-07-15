@@ -64,6 +64,27 @@ public class ScreenshotService {
         return captureScreenshotInternal(normalizedExternalUrl, true);
     }
 
+    /**
+     * Renders a standalone generated portfolio document and captures its
+     * initial viewport without exposing the draft on a public route.
+     */
+    public byte[] captureHtml(String html) {
+        try (BrowserContext context = browser.newContext(
+                new Browser.NewContextOptions().setViewportSize(1280, 800)
+        )) {
+            blockUnsafeNetworkRequests(context);
+            Page page = context.newPage();
+            page.setContent(html, new Page.SetContentOptions()
+                    .setWaitUntil(WaitUntilState.NETWORKIDLE)
+                    .setTimeout(30000));
+            page.waitForLoadState(LoadState.LOAD, new Page.WaitForLoadStateOptions().setTimeout(15000));
+            page.waitForTimeout(3000);
+            return page.screenshot(new Page.ScreenshotOptions()
+                    .setFullPage(false)
+                    .setType(ScreenshotType.PNG));
+        }
+    }
+
     private byte[] captureScreenshotInternal(String url, boolean externalCapture) {
         System.out.println(">>> [SCREENSHOT] Navigating to: " + url);
 
@@ -72,17 +93,7 @@ public class ScreenshotService {
                 new Browser.NewContextOptions().setViewportSize(1280, 800)
         )) {
             if (externalCapture) {
-                // Block non-public network requests for external captures.
-                context.route("**/*", route -> {
-                    String requestUrl = route.request().url();
-                    if (ExternalUrlSafetyValidator.isSafeRequestUrl(requestUrl)) {
-                        route.resume();
-                        return;
-                    }
-
-                    System.err.println(">>> [SCREENSHOT] Blocked unsafe request URL: " + requestUrl);
-                    route.abort();
-                });
+                blockUnsafeNetworkRequests(context);
             }
 
             // Load page until network requests stop - MAX WAIT = 30 seconds
@@ -107,6 +118,19 @@ public class ScreenshotService {
                     .setType(ScreenshotType.PNG));
 
         }
+    }
+
+    private void blockUnsafeNetworkRequests(BrowserContext context) {
+        context.route("**/*", route -> {
+            String requestUrl = route.request().url();
+            if (ExternalUrlSafetyValidator.isSafeRequestUrl(requestUrl)) {
+                route.resume();
+                return;
+            }
+
+            System.err.println(">>> [SCREENSHOT] Blocked unsafe request URL: " + requestUrl);
+            route.abort();
+        });
     }
 
 }

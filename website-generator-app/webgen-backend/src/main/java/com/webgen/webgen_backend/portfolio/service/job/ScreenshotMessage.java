@@ -19,4 +19,10 @@ public class ScreenshotMessage {
      * the check (external portfolios, which have no versions).
      */
     private String publishedVersionId;
+    /**
+     * Active generated version captured before publication. When present, the
+     * worker renders the immutable version snapshot and stores a version-scoped
+     * preview instead of updating the portfolio's published screenshot.
+     */
+    private String generatedVersionId;
 }

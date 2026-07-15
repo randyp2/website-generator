@@ -28,6 +28,16 @@ public class ScreenshotStorageService {
      */
     public String uploadScreenshot(String portfolioId, byte[] pngBytes) {
         String storagePath = "screenshots/" + portfolioId + "/preview.png";
+        return upload(storagePath, pngBytes);
+    }
+
+    /** Uploads an immutable generated version preview to a version-scoped path. */
+    public String uploadVersionPreview(String portfolioId, String versionId, byte[] pngBytes) {
+        String storagePath = "screenshots/" + portfolioId + "/versions/" + versionId + ".png";
+        return upload(storagePath, pngBytes);
+    }
+
+    private String upload(String storagePath, byte[] pngBytes) {
 
         // Upload via Supabase Storage Rest API
         String uploadUrl = supabaseUrl + "/storage/v1/object/" + BUCKET + "/" + storagePath;

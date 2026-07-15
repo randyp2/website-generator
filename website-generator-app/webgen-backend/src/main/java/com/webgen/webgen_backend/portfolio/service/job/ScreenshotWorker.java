@@ -5,6 +5,7 @@ import com.webgen.webgen_backend.shared.config.RabbitMQConfig;
 import com.webgen.webgen_backend.portfolio.entity.Portfolio;
 import com.webgen.webgen_backend.portfolio.service.screenshot.ScreenshotService;
 import com.webgen.webgen_backend.portfolio.service.screenshot.ScreenshotStorageService;
+import com.webgen.webgen_backend.portfolio.service.screenshot.GeneratedPreviewScreenshotProcessor;
 import com.webgen.webgen_backend.portfolio.repository.PortfolioRepository;
 import com.webgen.webgen_backend.shared.util.ExternalUrlSafetyValidator;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,7 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -23,6 +25,7 @@ public class ScreenshotWorker {
     private final ScreenshotService screenshotService;
     private final ScreenshotStorageService screenshotStorageService;
     private final PortfolioRepository portfolioRepository;
+    private final GeneratedPreviewScreenshotProcessor generatedPreviewProcessor;
 
     @RabbitListener(queues = RabbitMQConfig.SCREENSHOT_QUEUE, ackMode = "MANUAL")
     public void handleScreenshot(
@@ -31,14 +34,20 @@ public class ScreenshotWorker {
             @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag
     ) throws IOException {
         try {
-            System.out.println(">>> [SCREENSHOT] Worker received message — slug: " + msg.getSlug()
+            System.out.println(">>> [SCREENSHOT] Worker received message: slug=" + msg.getSlug()
                     + " | portfolioId: " + msg.getPortfolioId()
                     + " | jobId: " + msg.getJobId());
+
+            if (StringUtils.hasText(msg.getGeneratedVersionId())) {
+                generatedPreviewProcessor.process(msg);
+                channel.basicAck(deliveryTag, false);
+                return;
+            }
 
             // --- Skip stale jobs before the expensive capture: when versions
             // are switched rapidly, only the job for the current pin runs
             if (isStaleForPin(msg)) {
-                System.out.println(">>> [SCREENSHOT] Skipping stale job (pin moved on) — jobId: " + msg.getJobId());
+                System.out.println(">>> [SCREENSHOT] Skipping stale job (pin moved on): jobId=" + msg.getJobId());
                 channel.basicAck(deliveryTag, false);
                 return;
             }
@@ -55,18 +64,18 @@ public class ScreenshotWorker {
             byte[] pngBytes = (targetUrl != null && !targetUrl.isBlank())
                     ? screenshotService.captureScreenshotByUrl(targetUrl)
                     : screenshotService.captureScreenshot(msg.getSlug());
-            System.out.println(">>> [SCREENSHOT] Screenshot captured — size: " + pngBytes.length + " bytes");
+            System.out.println(">>> [SCREENSHOT] Screenshot captured: size=" + pngBytes.length + " bytes");
 
             // --- Upload to storage
             System.out.println(">>> [SCREENSHOT] Uploading to storage...");
             String screenshotUrl = screenshotStorageService.uploadScreenshot(msg.getPortfolioId(), pngBytes);
-            System.out.println(">>> [SCREENSHOT] Uploaded — url: " + screenshotUrl);
+            System.out.println(">>> [SCREENSHOT] Uploaded: url=" + screenshotUrl);
 
             // --- Persist url to DB, unless the pin moved while we were
             // capturing: a concurrent job for the new pin owns the screenshot,
             // and saving here could overwrite it with a stale image
             if (isStaleForPin(msg)) {
-                System.out.println(">>> [SCREENSHOT] Discarding capture (pin moved during capture) — jobId: "
+                System.out.println(">>> [SCREENSHOT] Discarding capture (pin moved during capture): jobId="
                         + msg.getJobId());
                 channel.basicAck(deliveryTag, false);
                 return;

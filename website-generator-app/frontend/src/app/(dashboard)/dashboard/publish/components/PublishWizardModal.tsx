@@ -16,6 +16,7 @@ import { buildPortfolioUrl } from "@/lib/public-env";
 import type { Portfolio } from "@/types/portfolio";
 
 import { useSiteOwnershipChallenge } from "../hooks/useSiteOwnershipChallenge";
+import { useGeneratedPortfolioPreview } from "../hooks/useGeneratedPortfolioPreview";
 import { StepIndicator, type WizardStepDef } from "./wizard/StepIndicator";
 import { StepPick, type PublishSource } from "./wizard/StepPick";
 import { StepSlug } from "./wizard/StepSlug";
@@ -129,6 +130,13 @@ export const PublishWizardModal = ({
     const steps = source === "external" ? EXTERNAL_STEPS : GENERATED_STEPS;
     const currentStepKey = steps[currentStep]?.key ?? "pick";
     const isVerified = siteChallenge.challenge?.status === "VERIFIED";
+    const generatedPreview = useGeneratedPortfolioPreview(
+        source === "generated" && selectedPortfolio
+            ? String(selectedPortfolio.id)
+            : null,
+        source === "generated" &&
+            ["details", "preview", "publish"].includes(currentStepKey),
+    );
 
     const canAdvance = (() => {
         switch (currentStepKey) {
@@ -515,6 +523,15 @@ export const PublishWizardModal = ({
                                         description={descriptionInput}
                                         ownerName={ownerName}
                                         ownerAvatarUrl={ownerAvatarUrl}
+                                        generatedPreviewUrl={
+                                            generatedPreview.previewUrl
+                                        }
+                                        generatedPreviewState={
+                                            generatedPreview.state
+                                        }
+                                        generatedPreviewError={
+                                            generatedPreview.error
+                                        }
                                     />
                                 )}
                                 {currentStepKey === "publish" && (

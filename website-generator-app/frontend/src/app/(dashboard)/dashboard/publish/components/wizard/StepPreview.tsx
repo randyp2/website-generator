@@ -1,11 +1,20 @@
 "use client"
 
-import { Eye, Heart, Info, Lock, MessageCircle } from "lucide-react"
+import {
+  AlertCircle,
+  Eye,
+  Heart,
+  Info,
+  LoaderCircle,
+  Lock,
+  MessageCircle,
+} from "lucide-react"
 
 import { LazyImage } from "@/components/ui/lazy-image"
 import { buildPortfolioUrl } from "@/lib/public-env"
 
 import type { Portfolio } from "@/types/portfolio"
+import type { GeneratedPreviewState } from "../../hooks/useGeneratedPortfolioPreview"
 import type { PublishSource } from "./StepPick"
 
 const DEFAULT_PREVIEW_IMAGE =
@@ -21,6 +30,9 @@ interface StepPreviewProps {
   description: string
   ownerName: string
   ownerAvatarUrl: string | null
+  generatedPreviewUrl: string | null
+  generatedPreviewState: GeneratedPreviewState
+  generatedPreviewError: string | null
 }
 
 const formatTemplateLabel = (templateId: string | null | undefined): string => {
@@ -39,6 +51,9 @@ export const StepPreview = ({
   description,
   ownerName,
   ownerAvatarUrl,
+  generatedPreviewUrl,
+  generatedPreviewState,
+  generatedPreviewError,
 }: StepPreviewProps) => {
   const isExternal = source === "external"
   const portfolioTitle = isExternal
@@ -49,8 +64,14 @@ export const StepPreview = ({
   const templateLabel = isExternal
     ? "External Website"
     : formatTemplateLabel(portfolio?.template_id)
-  const usingPlaceholder = !portfolio?.screenshot_url
-  const previewSrc = portfolio?.screenshot_url ?? DEFAULT_PREVIEW_IMAGE
+  const previewSrc = isExternal
+    ? portfolio?.screenshot_url ?? DEFAULT_PREVIEW_IMAGE
+    : generatedPreviewUrl ?? DEFAULT_PREVIEW_IMAGE
+  const usingPlaceholder = isExternal
+    ? !portfolio?.screenshot_url
+    : !generatedPreviewUrl
+  const isGeneratingPreview = !isExternal
+    && (generatedPreviewState === "requesting" || generatedPreviewState === "processing")
   const browserUrl = isExternal
     ? externalUrl || "https://yourportfolio.com"
     : buildPortfolioUrl(slug || "your-slug", ownerName)
@@ -72,12 +93,30 @@ export const StepPreview = ({
         </p>
       </div>
 
-      {usingPlaceholder && (
+      {isGeneratingPreview && (
+        <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
+          <LoaderCircle className="mt-0.5 size-3.5 shrink-0 animate-spin text-primary" />
+          <p>
+            Capturing the active generated version now. This preview will update
+            automatically when the background worker finishes.
+          </p>
+        </div>
+      )}
+
+      {!isExternal && generatedPreviewState === "error" && (
+        <div className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+          <AlertCircle className="mt-0.5 size-3.5 shrink-0" />
+          <p>{generatedPreviewError ?? "The generated preview could not be captured."}</p>
+        </div>
+      )}
+
+      {usingPlaceholder && !isGeneratingPreview && generatedPreviewState !== "error" && (
         <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
           <Info className="mt-0.5 size-3.5 shrink-0 text-primary" />
           <p>
-            The image below is a placeholder. A screenshot of your site will be
-            captured and uploaded for you automatically once you publish.
+            {isExternal
+              ? "The image below is a placeholder. A screenshot of your site will be captured and uploaded automatically once you publish."
+              : "The image below is a placeholder while your generated portfolio preview starts."}
           </p>
         </div>
       )}
