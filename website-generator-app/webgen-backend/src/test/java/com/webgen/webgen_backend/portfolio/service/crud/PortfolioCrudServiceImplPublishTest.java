@@ -4,28 +4,30 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.portfolio.dto.crud.PublishRequestDTO;
 import com.webgen.webgen_backend.portfolio.dto.crud.PublishResponseDTO;
 import com.webgen.webgen_backend.portfolio.entity.Portfolio;
+import com.webgen.webgen_backend.portfolio.entity.SiteOwnershipVerification;
 import com.webgen.webgen_backend.portfolio.mapper.AssetMapper;
 import com.webgen.webgen_backend.portfolio.mapper.PortfolioMapper;
+import com.webgen.webgen_backend.portfolio.model.verification.SiteVerificationStatus;
 import com.webgen.webgen_backend.portfolio.repository.AssetRepository;
 import com.webgen.webgen_backend.portfolio.repository.GeneratedVersionRepository;
 import com.webgen.webgen_backend.portfolio.repository.PortfolioRepository;
 import com.webgen.webgen_backend.portfolio.repository.PortfolioSectionRepository;
+import com.webgen.webgen_backend.portfolio.repository.SiteOwnershipVerificationRepository;
 import com.webgen.webgen_backend.portfolio.service.verification.SiteOwnershipPublishGuard;
+import com.webgen.webgen_backend.portfolio.service.verification.SiteVerificationUrlCanonicalizer;
 import com.webgen.webgen_backend.portfolio.service.version.VersionSnapshotReader;
 import com.webgen.webgen_backend.profile.repository.ProfileRepository;
 import com.webgen.webgen_backend.resume.mapper.ResumeMapper;
 import com.webgen.webgen_backend.resume.repository.ResumeRepository;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
+import java.lang.reflect.Proxy;
+import java.time.OffsetDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 class PortfolioCrudServiceImplPublishTest {
 
@@ -34,35 +36,29 @@ class PortfolioCrudServiceImplPublishTest {
     @Test
     void persistsVerificationThatAuthorizedExternalPublish() {
         UUID userId = UUID.randomUUID();
-        UUID verificationId = UUID.randomUUID();
-        PortfolioRepository portfolioRepository = mock(PortfolioRepository.class);
-        SiteOwnershipPublishGuard publishGuard =
-                mock(SiteOwnershipPublishGuard.class);
-        when(publishGuard.requireVerified(
-                userId,
-                verificationId,
-                EXTERNAL_URL
-        )).thenReturn(verificationId);
-        when(portfolioRepository.save(any(Portfolio.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-
+        SiteOwnershipVerification verification = verified(userId);
+        PortfolioRepositoryFixture portfolioRepository =
+                new PortfolioRepositoryFixture();
+        SiteOwnershipPublishGuard publishGuard = new SiteOwnershipPublishGuard(
+                verificationRepository(verification),
+                new SiteVerificationUrlCanonicalizer()
+        );
         PortfolioCrudServiceImpl service = service(
-                portfolioRepository,
+                portfolioRepository.proxy(),
                 publishGuard
         );
         PublishRequestDTO request = new PublishRequestDTO();
         request.setSourceType(PublishRequestDTO.SourceType.EXTERNAL);
         request.setExternalUrl(EXTERNAL_URL);
-        request.setSiteVerificationId(verificationId);
+        request.setSiteVerificationId(verification.getId());
         request.setSlug("verified-portfolio");
 
         PublishResponseDTO result = service.publishPortfolio(userId, request);
 
-        ArgumentCaptor<Portfolio> portfolioCaptor =
-                ArgumentCaptor.forClass(Portfolio.class);
-        verify(portfolioRepository).save(portfolioCaptor.capture());
-        Portfolio saved = portfolioCaptor.getValue();
-        assertThat(saved.getSiteVerificationId()).isEqualTo(verificationId);
+        Portfolio saved = portfolioRepository.saved;
+        assertThat(saved).isNotNull();
+        assertThat(saved.getSiteVerificationId())
+                .isEqualTo(verification.getId());
         assertThat(saved.getExternalUrl()).isEqualTo(EXTERNAL_URL);
         assertThat(result.getPortfolioId()).isEqualTo(saved.getId().toString());
     }
@@ -71,20 +67,109 @@ class PortfolioCrudServiceImplPublishTest {
             PortfolioRepository portfolioRepository,
             SiteOwnershipPublishGuard publishGuard
     ) {
+        ObjectMapper objectMapper = new ObjectMapper();
         return new PortfolioCrudServiceImpl(
                 portfolioRepository,
-                mock(ResumeRepository.class),
-                mock(AssetRepository.class),
-                mock(GeneratedVersionRepository.class),
-                mock(PortfolioSectionRepository.class),
-                mock(ProfileRepository.class),
-                mock(PortfolioMapper.class),
-                mock(ResumeMapper.class),
-                mock(AssetMapper.class),
-                mock(RabbitTemplate.class),
-                new ObjectMapper(),
-                mock(VersionSnapshotReader.class),
+                unused(ResumeRepository.class),
+                unused(AssetRepository.class),
+                unused(GeneratedVersionRepository.class),
+                unused(PortfolioSectionRepository.class),
+                unused(ProfileRepository.class),
+                unused(PortfolioMapper.class),
+                unused(ResumeMapper.class),
+                unused(AssetMapper.class),
+                new NoOpRabbitTemplate(),
+                objectMapper,
+                new VersionSnapshotReader(objectMapper),
                 publishGuard
         );
+    }
+
+    private SiteOwnershipVerification verified(UUID userId) {
+        return SiteOwnershipVerification.builder()
+                .id(UUID.randomUUID())
+                .userId(userId)
+                .verificationUrl(EXTERNAL_URL)
+                .canonicalOrigin("https://8.8.8.8")
+                .challengeToken("wg_v1_verified_token_123456789012345678901")
+                .status(SiteVerificationStatus.VERIFIED)
+                .challengeExpiresAt(OffsetDateTime.now().plusHours(1))
+                .verifiedAt(OffsetDateTime.now())
+                .build();
+    }
+
+    private SiteOwnershipVerificationRepository verificationRepository(
+            SiteOwnershipVerification verification
+    ) {
+        return (SiteOwnershipVerificationRepository) Proxy.newProxyInstance(
+                SiteOwnershipVerificationRepository.class.getClassLoader(),
+                new Class[]{SiteOwnershipVerificationRepository.class},
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "findByIdAndUserId" ->
+                            verification.getId().equals(args[0])
+                                    && verification.getUserId().equals(args[1])
+                                    ? Optional.of(verification)
+                                    : Optional.empty();
+                    case "toString" -> "SiteOwnershipVerificationFixture";
+                    case "hashCode" -> System.identityHashCode(proxy);
+                    case "equals" -> proxy == args[0];
+                    default -> throw new UnsupportedOperationException(
+                            method.getName()
+                    );
+                }
+        );
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> T unused(Class<T> contract) {
+        return (T) Proxy.newProxyInstance(
+                contract.getClassLoader(),
+                new Class[]{contract},
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "toString" -> contract.getSimpleName() + "Fixture";
+                    case "hashCode" -> System.identityHashCode(proxy);
+                    case "equals" -> proxy == args[0];
+                    default -> throw new UnsupportedOperationException(
+                            method.getName()
+                    );
+                }
+        );
+    }
+
+    private static final class PortfolioRepositoryFixture {
+        private Portfolio saved;
+
+        private PortfolioRepository proxy() {
+            return (PortfolioRepository) Proxy.newProxyInstance(
+                    PortfolioRepository.class.getClassLoader(),
+                    new Class[]{PortfolioRepository.class},
+                    (proxy, method, args) -> switch (method.getName()) {
+                        case "existsBySlug" -> false;
+                        case "save" -> save((Portfolio) args[0]);
+                        case "toString" -> "PortfolioRepositoryFixture";
+                        case "hashCode" -> System.identityHashCode(proxy);
+                        case "equals" -> proxy == args[0];
+                        default -> throw new UnsupportedOperationException(
+                                method.getName()
+                        );
+                    }
+            );
+        }
+
+        private Portfolio save(Portfolio portfolio) {
+            saved = portfolio;
+            return portfolio;
+        }
+    }
+
+    private static final class NoOpRabbitTemplate extends RabbitTemplate {
+        @Override
+        public void convertAndSend(
+                String exchange,
+                String routingKey,
+                Object message
+        ) {
+            // Publishing the message is outside this service wiring test.
+        }
     }
 }

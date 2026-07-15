@@ -7,24 +7,22 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.lang.reflect.Proxy;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class SiteOwnershipPublishGuardTest {
 
     private static final String VERIFIED_URL = "https://8.8.8.8/portfolio";
 
-    private final SiteOwnershipVerificationRepository repository =
-            mock(SiteOwnershipVerificationRepository.class);
+    private final RepositoryFixture repository = new RepositoryFixture();
     private final SiteOwnershipPublishGuard guard =
             new SiteOwnershipPublishGuard(
-                    repository,
+                    repository.proxy(),
                     new SiteVerificationUrlCanonicalizer()
             );
 
@@ -32,8 +30,7 @@ class SiteOwnershipPublishGuardTest {
     void authorizesVerifiedChallengeBoundToCanonicalUrl() {
         UUID userId = UUID.randomUUID();
         SiteOwnershipVerification verification = verified(userId);
-        when(repository.findByIdAndUserId(verification.getId(), userId))
-                .thenReturn(Optional.of(verification));
+        repository.stored = verification;
 
         UUID result = guard.requireVerified(
                 userId,
@@ -62,8 +59,7 @@ class SiteOwnershipPublishGuardTest {
         SiteOwnershipVerification verification = verified(userId);
         verification.setStatus(SiteVerificationStatus.PENDING);
         verification.setVerifiedAt(null);
-        when(repository.findByIdAndUserId(verification.getId(), userId))
-                .thenReturn(Optional.of(verification));
+        repository.stored = verification;
 
         assertStatus(
                 () -> guard.requireVerified(
@@ -91,8 +87,7 @@ class SiteOwnershipPublishGuardTest {
     void rejectsVerificationForDifferentUrl() {
         UUID userId = UUID.randomUUID();
         SiteOwnershipVerification verification = verified(userId);
-        when(repository.findByIdAndUserId(verification.getId(), userId))
-                .thenReturn(Optional.of(verification));
+        repository.stored = verification;
 
         assertStatus(
                 () -> guard.requireVerified(
@@ -124,5 +119,40 @@ class SiteOwnershipPublishGuardTest {
                         exception -> assertThat(exception.getStatusCode())
                                 .isEqualTo(expectedStatus)
                 );
+    }
+
+    private static final class RepositoryFixture {
+        private SiteOwnershipVerification stored;
+
+        private SiteOwnershipVerificationRepository proxy() {
+            return (SiteOwnershipVerificationRepository) Proxy.newProxyInstance(
+                    SiteOwnershipVerificationRepository.class.getClassLoader(),
+                    new Class[]{SiteOwnershipVerificationRepository.class},
+                    (proxy, method, args) -> switch (method.getName()) {
+                        case "findByIdAndUserId" -> find(
+                                (UUID) args[0],
+                                (UUID) args[1]
+                        );
+                        case "toString" -> "SiteOwnershipPublishRepositoryFixture";
+                        case "hashCode" -> System.identityHashCode(proxy);
+                        case "equals" -> proxy == args[0];
+                        default -> throw new UnsupportedOperationException(
+                                method.getName()
+                        );
+                    }
+            );
+        }
+
+        private Optional<SiteOwnershipVerification> find(
+                UUID verificationId,
+                UUID userId
+        ) {
+            if (stored == null
+                    || !stored.getId().equals(verificationId)
+                    || !stored.getUserId().equals(userId)) {
+                return Optional.empty();
+            }
+            return Optional.of(stored);
+        }
     }
 }
