@@ -12,6 +12,13 @@ import {
 
 import { LazyImage } from "@/components/ui/lazy-image"
 import { buildPortfolioUrl } from "@/lib/public-env"
+import type { PortfolioCard } from "@/app/(public)/(site)/explore/components/explore.types"
+import {
+  formatPublishedDate,
+  getPortfolioInitials,
+  getPortfolioSummary,
+  getTemplateLabel,
+} from "@/app/(public)/(site)/explore/components/explore.utils"
 
 import type { Portfolio } from "@/types/portfolio"
 import type { GeneratedPreviewState } from "../../hooks/useGeneratedPortfolioPreview"
@@ -35,14 +42,6 @@ interface StepPreviewProps {
   generatedPreviewError: string | null
 }
 
-const formatTemplateLabel = (templateId: string | null | undefined): string => {
-  if (!templateId || templateId.toLowerCase() === "blank") return "Custom Build"
-  return templateId.replace(/[-_]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-}
-
-const fallbackSummary = (portfolio: Portfolio, ownerName: string) =>
-  `${formatTemplateLabel(portfolio.template_id)} portfolio by ${ownerName}.`
-
 export const StepPreview = ({
   source,
   externalUrl,
@@ -59,11 +58,6 @@ export const StepPreview = ({
   const portfolioTitle = isExternal
     ? "External Portfolio"
     : portfolio?.title ?? "Untitled Portfolio"
-  const summary = description.trim()
-    || (portfolio ? fallbackSummary(portfolio, ownerName) : `External portfolio by ${ownerName}.`)
-  const templateLabel = isExternal
-    ? "External Website"
-    : formatTemplateLabel(portfolio?.template_id)
   const previewSrc = isExternal
     ? portfolio?.screenshot_url ?? DEFAULT_PREVIEW_IMAGE
     : generatedPreviewUrl ?? DEFAULT_PREVIEW_IMAGE
@@ -75,14 +69,26 @@ export const StepPreview = ({
   const browserUrl = isExternal
     ? externalUrl || "https://yourportfolio.com"
     : buildPortfolioUrl(slug || "your-slug", ownerName)
-  const initials =
-    ownerName
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((p) => p[0] ?? "")
-      .join("")
-      .slice(0, 2)
-      .toUpperCase() || "PC"
+
+  // Build the same shape the real /explore card consumes so the mock renders
+  // through the identical helpers and markup.
+  const previewCard: PortfolioCard = {
+    title: portfolioTitle,
+    slug: slug || "your-slug",
+    templateId: isExternal ? null : portfolio?.template_id ?? null,
+    description: description.trim() || null,
+    ownerName,
+    ownerUsername: null,
+    ownerAvatarUrl,
+    publishedAt: new Date().toISOString(),
+    screenshotUrl: previewSrc,
+    sourceType: isExternal ? "EXTERNAL" : "GENERATED",
+    externalUrl: isExternal ? externalUrl.trim() || null : null,
+  }
+  const templateLabel = getTemplateLabel(previewCard.templateId)
+  const summary = getPortfolioSummary(previewCard)
+  const publishedDate = formatPublishedDate(previewCard.publishedAt)
+  const initials = getPortfolioInitials(ownerName)
 
   return (
     <div className="space-y-4">
@@ -143,63 +149,76 @@ export const StepPreview = ({
               const img = e.currentTarget
               if (img.src !== BROWSER_FALLBACK) img.src = BROWSER_FALLBACK
             }}
-            className="block aspect-video w-full bg-[#17191f] object-cover"
+            className="block aspect-video w-full bg-[#17191f] object-cover object-top"
             loading="lazy"
             decoding="async"
           />
         </div>
 
-        {/* Explore card mock */}
-        <div className="flex flex-col gap-2 rounded-xl border border-border bg-card/70 p-3">
+        {/* Explore card mock — mirrors ExploreCard on /explore */}
+        <div className="space-y-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
             /explore card
           </p>
-          <LazyImage
-            src={previewSrc}
-            fallback="https://placehold.co/640x360?text=Portfolio+Preview"
-            inView={true}
-            alt={portfolioTitle}
-            ratio={16 / 9}
-          />
-          <div className="space-y-2 px-1 pb-1">
-            <p className="text-[11px] text-muted-foreground">{templateLabel}</p>
-            <h3 className="line-clamp-2 text-base font-semibold leading-5 tracking-tight text-foreground">
-              {portfolioTitle}
-            </h3>
-            <p className="line-clamp-3 whitespace-pre-line text-sm text-muted-foreground">
-              {summary}
-            </p>
-            {isExternal && externalUrl.trim() && (
-              <p className="truncate text-[11px] text-primary">{externalUrl.trim()}</p>
-            )}
-            <div className="flex items-end justify-between gap-3 pt-2">
-              <div className="flex min-w-0 items-center gap-2">
-                {ownerAvatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={ownerAvatarUrl}
-                    alt={ownerName}
-                    className="size-8 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="flex size-8 items-center justify-center rounded-full bg-primary/15 text-[11px] font-semibold text-primary">
-                    {initials}
-                  </div>
-                )}
-                <p className="truncate text-xs font-medium text-foreground">
-                  {ownerName}
+          <div className="rounded-xl border border-border bg-card/40 p-1">
+            <div className="group relative flex flex-col gap-2 rounded-lg p-2">
+              <LazyImage
+                src={previewSrc}
+                fallback="https://placehold.co/640x360?text=Portfolio+Preview"
+                inView={true}
+                alt={portfolioTitle}
+                ratio={16 / 9}
+                className="transition-all duration-500 group-hover:scale-105"
+              />
+              <div className="space-y-2 px-2 pb-2">
+                <div className="flex items-center gap-2 text-[11px] text-muted-foreground sm:text-xs">
+                  <p>{publishedDate}</p>
+                  <div className="size-1 rounded-full bg-muted-foreground" />
+                  <p>{templateLabel}</p>
+                </div>
+                <h2 className="line-clamp-2 text-lg font-semibold leading-5 tracking-tight">
+                  {portfolioTitle}
+                </h2>
+                <p className="line-clamp-3 text-sm text-muted-foreground">
+                  {summary}
                 </p>
-              </div>
-              <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-                <span className="inline-flex items-center gap-1">
-                  <Heart className="size-3.5" /> 0
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <Eye className="size-3.5" /> 0
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <MessageCircle className="size-3.5" /> 0
-                </span>
+                <div className="flex items-end justify-between gap-4 pt-2">
+                  <div className="flex min-w-0 items-center gap-3">
+                    {ownerAvatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={ownerAvatarUrl}
+                        alt={ownerName}
+                        className="size-9 rounded-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
+                        {initials}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {ownerName}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-end gap-3 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                      <Heart className="size-4" />
+                      <span>0</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Eye className="size-4" />
+                      <span>0</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <MessageCircle className="size-4" />
+                      <span>0</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
