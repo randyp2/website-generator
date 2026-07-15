@@ -1,8 +1,9 @@
 import "server-only";
 
-import { getBackendUrl } from "@/lib/server-env";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
+
+import { fetchBackend } from "./backendFetch";
 
 type ProxyMethod = "GET" | "POST" | "PATCH" | "DELETE";
 
@@ -82,7 +83,7 @@ export const proxyBackendRequest = async (
             );
         }
 
-        const response = await fetch(`${getBackendUrl()}${path}`, {
+        const response = await fetchBackend(path, {
             method,
             headers,
             body,
