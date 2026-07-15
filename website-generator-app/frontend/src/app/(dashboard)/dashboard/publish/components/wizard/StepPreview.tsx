@@ -1,6 +1,6 @@
 "use client"
 
-import { Eye, Heart, Info, MessageCircle } from "lucide-react"
+import { Eye, Heart, Info, Lock, MessageCircle } from "lucide-react"
 
 import { LazyImage } from "@/components/ui/lazy-image"
 import { buildPortfolioUrl } from "@/lib/public-env"
@@ -10,6 +10,8 @@ import type { PublishSource } from "./StepPick"
 
 const DEFAULT_PREVIEW_IMAGE =
   "https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?q=80&w=1170&auto=format&fit=crop"
+
+const BROWSER_FALLBACK = "https://placehold.co/1280x720?text=Portfolio+Preview"
 
 interface StepPreviewProps {
   source: PublishSource
@@ -87,20 +89,24 @@ export const StepPreview = ({
             <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
             <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
             <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
-            <div className="ml-2 min-w-0 flex-1 rounded-full border border-[#3a3f49] bg-[#17191f] px-3 py-1">
+            <div className="ml-2 flex min-w-0 flex-1 items-center gap-1.5 rounded-full border border-[#3a3f49] bg-[#17191f] px-3 py-1">
+              <Lock className="size-3 shrink-0 text-white/40" />
               <p className="truncate text-[11px] text-white/75">
                 {browserUrl}
               </p>
             </div>
           </div>
-          <LazyImage
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src={previewSrc}
-            fallback="https://placehold.co/1280x720?text=Portfolio+Preview"
-            inView={true}
             alt={`${portfolioTitle} screenshot`}
-            ratio={16 / 9}
-            aspectRatioClassName="rounded-none border-0"
-            className="rounded-none"
+            onError={(e) => {
+              const img = e.currentTarget
+              if (img.src !== BROWSER_FALLBACK) img.src = BROWSER_FALLBACK
+            }}
+            className="block aspect-video w-full bg-[#17191f] object-cover"
+            loading="lazy"
+            decoding="async"
           />
         </div>
 
