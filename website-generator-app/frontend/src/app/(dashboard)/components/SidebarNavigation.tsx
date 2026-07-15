@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -91,6 +91,28 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
         theme === "light" || theme === "dark" || theme === "system"
             ? theme
             : "system";
+
+    useEffect(() => {
+        if (!showProfileMenu) return;
+
+        const handlePointerDown = (event: PointerEvent) => {
+            const target = event.target;
+            const element =
+                target instanceof Element
+                    ? target
+                    : target instanceof Node
+                      ? target.parentElement
+                      : null;
+
+            if (element?.closest("[data-sidebar-profile-menu]")) return;
+
+            setShowProfileMenu(false);
+            setShowThemeModal(false);
+        };
+
+        document.addEventListener("pointerdown", handlePointerDown);
+        return () => document.removeEventListener("pointerdown", handlePointerDown);
+    }, [showProfileMenu]);
 
     const collapsed = externalCollapsed ?? false;
 
@@ -243,7 +265,10 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
             </div>
 
             {/* Profile Menu */}
-            <div className="relative border-t border-sidebar-border p-3.5">
+            <div
+                data-sidebar-profile-menu
+                className="relative border-t border-sidebar-border p-3.5"
+            >
                 {collapsed ? (
                     <motion.button
                         whileHover={{ scale: 1.05 }}

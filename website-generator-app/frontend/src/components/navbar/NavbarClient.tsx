@@ -6,6 +6,7 @@ import { motion } from "framer-motion"
 import {
   LayoutDashboard,
   LogIn,
+  Settings,
   Sparkles,
   UserCircle2,
 } from "lucide-react"
@@ -264,6 +265,13 @@ const NavbarClient: React.FC = () => {
                   >
                     <UserCircle2 className="mr-2 size-4" />
                     Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="hover:cursor-pointer"
+                    onClick={() => router.push("/dashboard/settings")}
+                  >
+                    <Settings className="mr-2 size-4" />
+                    Settings
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
