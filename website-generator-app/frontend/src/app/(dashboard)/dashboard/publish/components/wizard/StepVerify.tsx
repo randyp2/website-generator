@@ -12,6 +12,7 @@ import {
     SiteVerificationCodeBlock,
     SiteVerificationFrameworkPicker,
 } from "./SiteVerificationInstallGuide";
+import { StepMarker } from "./StepMarker";
 
 interface StepVerifyProps {
     challenge: SiteOwnershipChallenge;
@@ -110,27 +111,26 @@ export const StepVerify = ({ challenge, error }: StepVerifyProps) => {
                     )}
                 </section>
 
-                {/* Top-right: step 1 description, reading back toward the tag box */}
-                <div className="flex items-center gap-3 md:flex-row-reverse md:text-right">
-                    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                        1
-                    </span>
-                    <div className="min-w-0">
-                        <p className="text-sm font-semibold text-foreground">
-                            Copy your verification tag
-                        </p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                            This tag is unique to your website verification
-                            request.
-                        </p>
-                    </div>
-                </div>
-
-                {/* Bottom-left: step 2 description, reading toward the code block */}
-                <SiteVerificationFrameworkPicker
-                    framework={framework}
-                    onFrameworkChange={setFramework}
+                {/* Top-right: step 1 marker, reading back toward the tag box */}
+                <StepMarker
+                    number={1}
+                    align="right"
+                    title="Copy your verification tag"
+                    description="This tag is unique to your website verification request."
                 />
+
+                {/* Bottom-left: step 2 marker, reading toward the code block */}
+                <StepMarker
+                    number={2}
+                    align="left"
+                    title="Add it inside your head tag"
+                    description="Choose your framework to find the correct file."
+                >
+                    <SiteVerificationFrameworkPicker
+                        framework={framework}
+                        onFrameworkChange={setFramework}
+                    />
+                </StepMarker>
 
                 {/* Bottom-right: the code block */}
                 <SiteVerificationCodeBlock
