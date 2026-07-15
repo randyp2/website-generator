@@ -18,14 +18,7 @@ export const ExploreCardPreview = ({ portfolio }: ExploreCardPreviewProps) => {
 
   return (
     <div className="rounded-xl border border-border bg-background/60 p-4 sm:p-5">
-      <div className="mx-auto max-w-xl space-y-3">
-        <div>
-          <p className="text-xs font-medium text-foreground">Explore listing</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            This is the card visitors will see while browsing portfolios.
-          </p>
-        </div>
-
+      <div className="mx-auto max-w-xl">
         <div className="rounded-xl border border-border bg-card/40 p-1">
           <div className="group relative flex flex-col gap-2 rounded-lg p-2">
             <LazyImage

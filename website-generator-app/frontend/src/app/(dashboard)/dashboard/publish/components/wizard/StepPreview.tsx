@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { motion } from "framer-motion"
 import { LayoutPanelTop, Rows3 } from "lucide-react"
 
 import type { PortfolioCard } from "@/app/(public)/(site)/explore/components/explore.types"
@@ -103,7 +104,7 @@ export const StepPreview = ({
         <div
           role="tablist"
           aria-label="Portfolio preview view"
-          className="inline-flex self-start rounded-lg border border-border bg-muted/50 p-1"
+          className="inline-flex self-start items-center rounded-full border border-border bg-background/70 p-1"
         >
           <button
             type="button"
@@ -111,14 +112,21 @@ export const StepPreview = ({
             aria-selected={surface === "page"}
             onClick={() => setSurface("page")}
             className={cn(
-              "inline-flex cursor-pointer items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+              "relative inline-flex cursor-pointer items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-medium transition-colors",
               surface === "page"
-                ? "bg-background text-foreground shadow-sm"
+                ? "text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <LayoutPanelTop className="size-3.5" />
-            Explore page
+            {surface === "page" && (
+              <motion.span
+                layoutId="previewSurfaceThumb"
+                className="absolute inset-0 rounded-full bg-primary"
+                transition={{ type: "spring", stiffness: 500, damping: 34 }}
+              />
+            )}
+            <LayoutPanelTop className="relative z-10 size-3.5" />
+            <span className="relative z-10">Explore page</span>
           </button>
           <button
             type="button"
@@ -126,14 +134,21 @@ export const StepPreview = ({
             aria-selected={surface === "card"}
             onClick={() => setSurface("card")}
             className={cn(
-              "inline-flex cursor-pointer items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+              "relative inline-flex cursor-pointer items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-medium transition-colors",
               surface === "card"
-                ? "bg-background text-foreground shadow-sm"
+                ? "text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <Rows3 className="size-3.5" />
-            Explore card
+            {surface === "card" && (
+              <motion.span
+                layoutId="previewSurfaceThumb"
+                className="absolute inset-0 rounded-full bg-primary"
+                transition={{ type: "spring", stiffness: 500, damping: 34 }}
+              />
+            )}
+            <Rows3 className="relative z-10 size-3.5" />
+            <span className="relative z-10">Explore card</span>
           </button>
         </div>
       </div>
