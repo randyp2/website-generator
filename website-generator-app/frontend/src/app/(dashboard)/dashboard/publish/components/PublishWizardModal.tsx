@@ -398,7 +398,11 @@ export const PublishWizardModal = ({
                     exit={{ scale: 0.96, opacity: 0 }}
                     onClick={(e) => e.stopPropagation()}
                     className={`flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl transition-[max-width] duration-200 ${
-                        currentStepKey === "verify" ? "max-w-6xl" : "max-w-4xl"
+                        currentStepKey === "verify"
+                            ? "max-w-6xl"
+                            : currentStepKey === "preview"
+                              ? "max-w-6xl"
+                              : "max-w-4xl"
                     }`}
                 >
                     {/* Header */}

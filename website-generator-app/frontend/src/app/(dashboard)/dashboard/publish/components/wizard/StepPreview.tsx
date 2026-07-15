@@ -1,6 +1,6 @@
 "use client"
 
-import { Eye, Heart, MessageCircle } from "lucide-react"
+import { Eye, Heart, Info, MessageCircle } from "lucide-react"
 
 import { LazyImage } from "@/components/ui/lazy-image"
 import { buildPortfolioUrl } from "@/lib/public-env"
@@ -9,7 +9,7 @@ import type { Portfolio } from "@/types/portfolio"
 import type { PublishSource } from "./StepPick"
 
 const DEFAULT_PREVIEW_IMAGE =
-  "https://images.unsplash.com/photo-1545665277-5937489579f2?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+  "https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?q=80&w=1170&auto=format&fit=crop"
 
 interface StepPreviewProps {
   source: PublishSource
@@ -47,6 +47,7 @@ export const StepPreview = ({
   const templateLabel = isExternal
     ? "External Website"
     : formatTemplateLabel(portfolio?.template_id)
+  const usingPlaceholder = !portfolio?.screenshot_url
   const previewSrc = portfolio?.screenshot_url ?? DEFAULT_PREVIEW_IMAGE
   const browserUrl = isExternal
     ? externalUrl || "https://yourportfolio.com"
@@ -69,7 +70,17 @@ export const StepPreview = ({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      {usingPlaceholder && (
+        <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+          <Info className="mt-0.5 size-3.5 shrink-0 text-primary" />
+          <p>
+            The image below is a placeholder. A screenshot of your site will be
+            captured and uploaded for you automatically once you publish.
+          </p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
         {/* Browser frame */}
         <div className="overflow-hidden rounded-xl border border-[#32353d] bg-[#1f2128]">
           <div className="flex items-center gap-2 border-b border-[#32353d] bg-[#2a2d35] px-3 py-2">
