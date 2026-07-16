@@ -7,7 +7,6 @@ import {
     BarChart3,
     CreditCard,
     FileText,
-    Gauge,
     Settings,
 } from "lucide-react";
 
@@ -27,6 +26,7 @@ const BILLING_SHORTCUTS = [
         title: "Payment methods",
         description: "Add or change payment method",
         icon: CreditCard,
+        action: "billing-portal",
     },
     {
         title: "Billing history",
@@ -38,11 +38,7 @@ const BILLING_SHORTCUTS = [
         title: "Preferences",
         description: "Manage billing information",
         icon: Settings,
-    },
-    {
-        title: "Usage limits",
-        description: "Set monthly spend limits",
-        icon: Gauge,
+        action: "billing-portal",
     },
     {
         title: "Pricing",
@@ -272,6 +268,8 @@ const BillingSettingsPage = () => {
             <div className="grid w-full gap-1 md:grid-cols-2">
                 {BILLING_SHORTCUTS.map((item) => {
                     const Icon = item.icon;
+                    const opensBillingPortal =
+                        "action" in item && item.action === "billing-portal";
                     const content = (
                         <>
                             <div className="grid h-12 w-12 shrink-0 place-items-center rounded-lg text-foreground/60 transition-colors group-hover:text-primary">
@@ -304,6 +302,14 @@ const BillingSettingsPage = () => {
                         <button
                             key={item.title}
                             type="button"
+                            disabled={opensBillingPortal && isOpeningPortal}
+                            onClick={
+                                opensBillingPortal
+                                    ? () => {
+                                          void openBillingPortal();
+                                      }
+                                    : undefined
+                            }
                             className="group flex w-full items-center gap-4 rounded-lg p-3 text-left transition-colors hover:cursor-pointer hover:bg-muted/40 hover:text-primary"
                         >
                             {content}
