@@ -4,8 +4,8 @@ import { useCallback, useMemo, useState } from "react";
 
 import { ONBOARDING_STEPS } from "../constants";
 
-export const useOnboardingSteps = () => {
-    const [step, setStep] = useState(0);
+export const useOnboardingSteps = (initialStep: number = 0) => {
+    const [step, setStep] = useState(initialStep);
     const lastStep = ONBOARDING_STEPS.length - 1;
 
     const goBack = useCallback(() => {

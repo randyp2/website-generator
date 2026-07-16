@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
-import { type ChangeEvent, type FormEvent } from "react";
+import { useEffect, type ChangeEvent, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,6 +21,7 @@ type OnboardingFormCardProps = {
     usernameHelper: string;
     usernamePreview: string;
     siteHost: string;
+    initialStep: number;
     bioLength: number;
     submitError: string | null;
     isSubmitting: boolean;
@@ -30,6 +31,7 @@ type OnboardingFormCardProps = {
         field: keyof FormState,
     ) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
     onUsernameChange: (event: ChangeEvent<HTMLInputElement>) => void;
+    onDraftChange: (form: FormState, step: number) => void;
 };
 
 const OnboardingFormCard = ({
@@ -38,6 +40,7 @@ const OnboardingFormCard = ({
     usernameHelper,
     usernamePreview,
     siteHost,
+    initialStep,
     bioLength,
     submitError,
     isSubmitting,
@@ -45,9 +48,14 @@ const OnboardingFormCard = ({
     onSubmit,
     onFieldChange,
     onUsernameChange,
+    onDraftChange,
 }: OnboardingFormCardProps) => {
     const { step, activeStep, isLastStep, goBack, goNext, jumpTo } =
-        useOnboardingSteps();
+        useOnboardingSteps(initialStep);
+
+    useEffect(() => {
+        onDraftChange(form, step);
+    }, [form, onDraftChange, step]);
 
     // Username must resolve before leaving the first step.
     const canLeaveStep =

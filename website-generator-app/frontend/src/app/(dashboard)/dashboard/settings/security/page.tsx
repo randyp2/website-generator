@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SettingsRow, SettingsSection } from "../components/SettingsSection";
 import { SETTINGS_SECURITY_MOCK } from "../mock-settings-data";
+import { PasswordResetRequest } from "./components/PasswordResetRequest";
 
 /** Small colored status pill with a leading dot. */
 const StatusPill = ({
@@ -56,9 +57,7 @@ const SecuritySettingsPage = () => {
                     title="Password"
                     description="Set a strong password unique to this account."
                 >
-                    <Button variant="outline" size="sm" disabled>
-                        Change password
-                    </Button>
+                    <PasswordResetRequest />
                 </SettingsRow>
 
                 <SettingsRow

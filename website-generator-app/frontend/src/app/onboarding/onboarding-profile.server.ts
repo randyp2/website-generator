@@ -8,6 +8,12 @@ import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { hasCompletedOnboarding } from "./lib/onboarding-utils";
 import type { ProfileMeResponse } from "./types";
 
+/** Server-authenticated data required to initialize the onboarding client. */
+export type OnboardingBootstrap = {
+    initialProfile: ProfileMeResponse | null;
+    userId: string;
+};
+
 const fetchOnboardingProfile = async (
     accessToken: string,
 ): Promise<ProfileMeResponse | null> => {
@@ -26,8 +32,8 @@ const fetchOnboardingProfile = async (
     }
 };
 
-/** Resolves onboarding eligibility before the route renders any client UI. */
-export const getOnboardingProfile = async (): Promise<ProfileMeResponse | null> => {
+/** Resolves onboarding eligibility and user-scoped bootstrap data. */
+export const getOnboardingBootstrap = async (): Promise<OnboardingBootstrap> => {
     const supabase = await createServerSupabaseClient();
     const {
         data: { user },
@@ -44,5 +50,8 @@ export const getOnboardingProfile = async (): Promise<ProfileMeResponse | null> 
     const profile = await fetchOnboardingProfile(session.access_token);
     if (hasCompletedOnboarding(profile)) redirect("/dashboard");
 
-    return profile;
+    return {
+        initialProfile: profile,
+        userId: user.id,
+    };
 };

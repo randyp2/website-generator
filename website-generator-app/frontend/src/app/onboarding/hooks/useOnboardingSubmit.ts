@@ -23,6 +23,7 @@ type UseOnboardingSubmitParams = {
     username: string;
     usernameState: UsernameState;
     isBootstrapping: boolean;
+    onComplete: () => void;
 };
 
 type UseOnboardingSubmitReturn = {
@@ -38,6 +39,7 @@ export const useOnboardingSubmit = ({
     username,
     usernameState,
     isBootstrapping,
+    onComplete,
 }: UseOnboardingSubmitParams): UseOnboardingSubmitReturn => {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -75,6 +77,7 @@ export const useOnboardingSubmit = ({
         try {
             const updated = await updateProfileMutation.mutateAsync(toPayload(form));
             if (hasCompletedOnboarding(updated)) {
+                onComplete();
                 const nextPath = resolveSafeNextPath(searchParams.get("next"));
                 router.replace(nextPath ?? "/dashboard");
                 return;

@@ -11,6 +11,7 @@ import OnboardingErrorState from "./components/OnboardingErrorState";
 import OnboardingFormCard from "./components/OnboardingFormCard";
 import OnboardingLoadingState from "./components/OnboardingLoadingState";
 import { useOnboardingBootstrap } from "./hooks/useOnboardingBootstrap";
+import { useOnboardingDraft } from "./hooks/useOnboardingDraft";
 import { useOnboardingSubmit } from "./hooks/useOnboardingSubmit";
 import { useUsernameAvailability } from "./hooks/useUsernameAvailability";
 import {
@@ -22,24 +23,37 @@ import type { ProfileMeResponse } from "./types";
 
 interface OnboardingPageClientProps {
     initialProfile?: ProfileMeResponse;
+    siteHost: string;
+    userId: string;
 }
 
-const OnboardingPageClient = ({ initialProfile }: OnboardingPageClientProps) => {
+const OnboardingPageClient = ({
+    initialProfile,
+    siteHost,
+    userId,
+}: OnboardingPageClientProps) => {
+    const {
+        draft,
+        isDraftHydrated,
+        saveDraft,
+        clearDraft,
+    } = useOnboardingDraft(userId);
     const {
         form,
         setForm,
         isBootstrapping,
         bootstrapError,
         retryBootstrap,
-    } = useOnboardingBootstrap(initialProfile);
+    } = useOnboardingBootstrap(initialProfile, draft?.form);
 
+    const isPreparing = isBootstrapping || !isDraftHydrated;
     const usernameNormalized = useMemo(
         () => normalizeUsername(form.username),
         [form.username],
     );
     const usernameState = useUsernameAvailability({
         username: usernameNormalized,
-        isBootstrapping,
+        isBootstrapping: isPreparing,
     });
     const {
         isSubmitting,
@@ -51,17 +65,14 @@ const OnboardingPageClient = ({ initialProfile }: OnboardingPageClientProps) => 
         form,
         username: usernameNormalized,
         usernameState,
-        isBootstrapping,
+        isBootstrapping: isPreparing,
+        onComplete: clearDraft,
     });
 
     const bioLength = form.bio.length;
     const usernamePreview =
         usernameNormalized.length > 0 ? usernameNormalized : "your-name";
     const usernameHelper = getUsernameMessage(usernameState);
-    const siteHost = useMemo(
-        () => (typeof window === "undefined" ? "your-site.com" : window.location.host),
-        [],
-    );
 
     const handleFieldChange = useCallback(
         (field: keyof FormState) =>
@@ -95,7 +106,7 @@ const OnboardingPageClient = ({ initialProfile }: OnboardingPageClientProps) => 
         [submitProfile],
     );
 
-    if (isBootstrapping) {
+    if (isPreparing) {
         return <OnboardingLoadingState />;
     }
 
@@ -115,6 +126,7 @@ const OnboardingPageClient = ({ initialProfile }: OnboardingPageClientProps) => 
             usernameHelper={usernameHelper}
             usernamePreview={usernamePreview}
             siteHost={siteHost}
+            initialStep={draft?.step ?? 0}
             bioLength={bioLength}
             submitError={submitError}
             isSubmitting={isSubmitting}
@@ -122,6 +134,7 @@ const OnboardingPageClient = ({ initialProfile }: OnboardingPageClientProps) => 
             onSubmit={handleSubmit}
             onFieldChange={handleFieldChange}
             onUsernameChange={handleUsernameChange}
+            onDraftChange={saveDraft}
         />
     );
 };

@@ -32,6 +32,7 @@ type UseOnboardingBootstrapReturn = {
 
 export const useOnboardingBootstrap = (
     initialProfile?: ProfileMeResponse,
+    initialDraftForm?: FormState,
 ): UseOnboardingBootstrapReturn => {
     const router = useRouter();
     const [draftForm, setDraftForm] = useState<FormState | null>(null);
@@ -44,15 +45,15 @@ export const useOnboardingBootstrap = (
                 : null,
         [profile],
     );
-    const form = draftForm ?? profileForm ?? DEFAULT_FORM;
+    const form = draftForm ?? initialDraftForm ?? profileForm ?? DEFAULT_FORM;
     const setForm: Dispatch<SetStateAction<FormState>> = useCallback(
         (update) => {
             setDraftForm((current) => {
-                const base = current ?? form;
+                const base = current ?? initialDraftForm ?? form;
                 return typeof update === "function" ? update(base) : update;
             });
         },
-        [form],
+        [form, initialDraftForm],
     );
     const bootstrapError = useMemo(() => {
         if (profileQuery.isPending) {

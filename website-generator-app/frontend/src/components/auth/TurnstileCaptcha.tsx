@@ -24,7 +24,7 @@ export type TurnstileCaptchaHandle = {
 };
 
 type TurnstileCaptchaProps = {
-    action: "auth_login" | "auth_signup";
+    action: "auth_login" | "auth_password_reset" | "auth_signup";
     className?: string;
     onTokenChange: (token: string | null) => void;
 };
