@@ -18,6 +18,7 @@ import { FcGoogle } from "react-icons/fc";
 
 import BrandWordmark from "@/components/branding/BrandWordmark";
 import { TermsAgreementCheckbox } from "@/components/auth/TermsAgreementCheckbox";
+import { TurnstileCaptcha } from "@/components/auth/TurnstileCaptcha";
 import { cn } from "@/lib/utils";
 import { login, signup, signInWithGoogle } from "@/lib/auth-actions";
 
@@ -137,40 +138,59 @@ const SubmitButton = ({
     );
 };
 
-const LoginFields = (): JSX.Element => (
-    <form action={login} className="space-y-3.5">
-        <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Email Address</label>
-            <AuthInput
-                name="email"
-                type="email"
-                placeholder="you@example.com"
-                autoComplete="email"
+const LoginFields = (): JSX.Element => {
+    const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+
+    return (
+        <form action={login} className="space-y-3.5">
+            <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">
+                    Email Address
+                </label>
+                <AuthInput
+                    name="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                />
+            </div>
+
+            <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">
+                    Password
+                </label>
+                <PasswordField
+                    name="password"
+                    placeholder="Enter your password"
+                    autoComplete="current-password"
+                />
+            </div>
+
+            <div className="flex justify-end">
+                <span className="text-sm text-muted-foreground">
+                    Forgot password?
+                </span>
+            </div>
+
+            <input
+                type="hidden"
+                name="captcha_token"
+                value={captchaToken ?? ""}
             />
-        </div>
-
-        <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Password</label>
-            <PasswordField
-                name="password"
-                placeholder="Enter your password"
-                autoComplete="current-password"
+            <TurnstileCaptcha
+                action="auth_login"
+                onTokenChange={setCaptchaToken}
             />
-        </div>
 
-        <div className="flex justify-end">
-            <span className="text-sm text-muted-foreground">
-                Forgot password?
-            </span>
-        </div>
-
-        <SubmitButton
-            label="Log in"
-            pendingLabel="Logging in..."
-            icon={<LogIn className="h-4 w-4" />}
-        />
-    </form>
-);
+            <SubmitButton
+                label="Log in"
+                pendingLabel="Logging in..."
+                icon={<LogIn className="h-4 w-4" />}
+                disabled={!captchaToken}
+            />
+        </form>
+    );
+};
 
 const SignupFields = ({
     agreedToTerms,
@@ -178,71 +198,93 @@ const SignupFields = ({
 }: {
     agreedToTerms: boolean;
     onAgreedChange: (checked: boolean) => void;
-}): JSX.Element => (
-    <form action={signup} className="space-y-3.5">
-        <div className="grid grid-cols-2 gap-3">
+}): JSX.Element => {
+    const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+
+    return (
+        <form action={signup} className="space-y-3.5">
+            <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">
+                        First Name
+                    </label>
+                    <AuthInput
+                        name="first-name"
+                        type="text"
+                        placeholder="Ava"
+                        autoComplete="given-name"
+                    />
+                </div>
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">
+                        Last Name
+                    </label>
+                    <AuthInput
+                        name="last-name"
+                        type="text"
+                        placeholder="Johnson"
+                        autoComplete="family-name"
+                    />
+                </div>
+            </div>
+
             <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">First Name</label>
+                <label className="text-sm font-medium text-foreground">
+                    Email Address
+                </label>
                 <AuthInput
-                    name="first-name"
-                    type="text"
-                    placeholder="Ava"
-                    autoComplete="given-name"
+                    name="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    autoComplete="email"
                 />
             </div>
+
             <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Last Name</label>
-                <AuthInput
-                    name="last-name"
-                    type="text"
-                    placeholder="Johnson"
-                    autoComplete="family-name"
+                <label className="text-sm font-medium text-foreground">
+                    Password
+                </label>
+                <PasswordField
+                    name="password"
+                    placeholder="Create a password"
+                    autoComplete="new-password"
                 />
             </div>
-        </div>
 
-        <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Email Address</label>
-            <AuthInput
-                name="email"
-                type="email"
-                placeholder="you@example.com"
-                autoComplete="email"
+            <TermsAgreementCheckbox
+                checked={agreedToTerms}
+                onCheckedChange={onAgreedChange}
+                className="pt-1"
             />
-        </div>
 
-        <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Password</label>
-            <PasswordField
-                name="password"
-                placeholder="Create a password"
-                autoComplete="new-password"
+            {/* Carry consent into the server action so signup() can enforce and
+                record it server-side. */}
+            <input
+                type="hidden"
+                name="terms_accepted"
+                value={agreedToTerms ? "true" : "false"}
             />
-        </div>
+            <input type="hidden" name="terms_version" value={TERMS_VERSION} />
+            <input
+                type="hidden"
+                name="captcha_token"
+                value={captchaToken ?? ""}
+            />
 
-        <TermsAgreementCheckbox
-            checked={agreedToTerms}
-            onCheckedChange={onAgreedChange}
-            className="pt-1"
-        />
+            <TurnstileCaptcha
+                action="auth_signup"
+                onTokenChange={setCaptchaToken}
+            />
 
-        {/* Carry consent into the server action so signup() can enforce and
-            record it server-side. */}
-        <input
-            type="hidden"
-            name="terms_accepted"
-            value={agreedToTerms ? "true" : "false"}
-        />
-        <input type="hidden" name="terms_version" value={TERMS_VERSION} />
-
-        <SubmitButton
-            label="Create account"
-            pendingLabel="Creating account..."
-            icon={<UserPlus className="h-4 w-4" />}
-            disabled={!agreedToTerms}
-        />
-    </form>
-);
+            <SubmitButton
+                label="Create account"
+                pendingLabel="Creating account..."
+                icon={<UserPlus className="h-4 w-4" />}
+                disabled={!agreedToTerms || !captchaToken}
+            />
+        </form>
+    );
+};
 
 const LandingAuthPanel = ({
     backAction,

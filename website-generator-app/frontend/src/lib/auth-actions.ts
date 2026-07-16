@@ -19,14 +19,25 @@ import { redirect } from "next/navigation";
 // and redirect users based on the result of the operation.
 // -------------------------------------------------------------
 
+const requireCaptchaToken = (formData: FormData): string => {
+  const captchaToken = formData.get("captcha_token");
+  if (typeof captchaToken !== "string" || !captchaToken.trim()) {
+    redirect("/error");
+  }
+
+  return captchaToken;
+};
+
 export async function login(formData: FormData) {
   const supabase = await createServerSupabaseClient();
+  const captchaToken = requireCaptchaToken(formData);
 
   // type-casting here for convenience
   // in practice, you should validate your inputs
   const data = {
     email: formData.get("email") as string,
     password: formData.get("password") as string,
+    options: { captchaToken },
   };
 
   const { error } = await supabase.auth.signInWithPassword(data);
@@ -41,6 +52,7 @@ export async function login(formData: FormData) {
 
 export async function signup(formData: FormData) {
   const supabase = await createServerSupabaseClient();
+  const captchaToken = requireCaptchaToken(formData);
 
   // Enforce Terms consent server-side: the client gates the submit button, but
   // that is only UX and can be bypassed. Refuse to create an account unless the
@@ -59,6 +71,7 @@ export async function signup(formData: FormData) {
     email: formData.get("email") as string,
     password: formData.get("password") as string,
     options: {
+      captchaToken,
       data: {
         full_name: `${firstName + " " + lastName}`,
         email: formData.get("email") as string,

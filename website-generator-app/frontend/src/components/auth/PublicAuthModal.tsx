@@ -1,7 +1,13 @@
 "use client";
 
 import { ArrowRight, Loader2 } from "lucide-react";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import {
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    type FormEvent,
+} from "react";
 import { FcGoogle } from "react-icons/fc";
 
 import type {
@@ -20,6 +26,10 @@ import { resolvePostLoginNextPath } from "@/lib/public-auth-intent-storage";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/client";
 import { TermsAgreementCheckbox } from "@/components/auth/TermsAgreementCheckbox";
+import {
+    TurnstileCaptcha,
+    type TurnstileCaptchaHandle,
+} from "@/components/auth/TurnstileCaptcha";
 
 type Mode = "login" | "signup";
 
@@ -92,6 +102,8 @@ export const PublicAuthModal = ({
     const [isLoading, setIsLoading] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
     const [successMessage, setSuccessMessage] = useState<string>("");
+    const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+    const captchaRef = useRef<TurnstileCaptchaHandle | null>(null);
     const supabase = useMemo(() => createClient(), []);
 
     const copy = REASON_COPY[reason];
@@ -105,6 +117,7 @@ export const PublicAuthModal = ({
 
     const onModeChange = (nextMode: Mode) => {
         setMode(nextMode);
+        setCaptchaToken(null);
         resetState();
     };
 
@@ -122,6 +135,7 @@ export const PublicAuthModal = ({
         setErrorMessage(null);
         setIsSuccess(false);
         setSuccessMessage("");
+        setCaptchaToken(null);
     }, [open, reason]);
 
     // Consent is required to create an account (email or Google), but not to
@@ -134,6 +148,20 @@ export const PublicAuthModal = ({
             return;
         }
 
+        if (needsTermsConsent) {
+            resetState();
+            setErrorMessage(
+                "Please agree to the Terms of Use and Privacy Policy to continue.",
+            );
+            return;
+        }
+
+        if (!captchaToken) {
+            resetState();
+            setErrorMessage("Please complete the security check to continue.");
+            return;
+        }
+
         resetState();
         setIsLoading(true);
 
@@ -142,6 +170,7 @@ export const PublicAuthModal = ({
                 const { error } = await supabase.auth.signInWithPassword({
                     email: email.trim(),
                     password,
+                    options: { captchaToken },
                 });
 
                 if (error) {
@@ -155,19 +184,13 @@ export const PublicAuthModal = ({
                 return;
             }
 
-            if (needsTermsConsent) {
-                setErrorMessage(
-                    "Please agree to the Terms of Use and Privacy Policy to continue.",
-                );
-                return;
-            }
-
             const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
 
             const { data, error } = await supabase.auth.signUp({
                 email: email.trim(),
                 password,
                 options: {
+                    captchaToken,
                     data: {
                         full_name: fullName,
                         email: email.trim(),
@@ -198,6 +221,7 @@ export const PublicAuthModal = ({
         } catch {
             setErrorMessage("Something went wrong. Please try again.");
         } finally {
+            captchaRef.current?.reset();
             setIsLoading(false);
         }
     };
@@ -431,6 +455,15 @@ export const PublicAuthModal = ({
                         />
                     ) : null}
 
+                    <TurnstileCaptcha
+                        key={mode}
+                        ref={captchaRef}
+                        action={
+                            mode === "login" ? "auth_login" : "auth_signup"
+                        }
+                        onTokenChange={setCaptchaToken}
+                    />
+
                     {errorMessage ? (
                         <p className="text-xs text-red-500">{errorMessage}</p>
                     ) : null}
@@ -443,7 +476,9 @@ export const PublicAuthModal = ({
                     <Button
                         type="submit"
                         className="w-full hover:cursor-pointer"
-                        disabled={isLoading || needsTermsConsent}
+                        disabled={
+                            isLoading || needsTermsConsent || !captchaToken
+                        }
                     >
                         {isLoading ? (
                             <>
