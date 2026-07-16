@@ -1,11 +1,28 @@
+"use client";
+
 import Link from "next/link";
+import { useSyncExternalStore } from "react";
 import { Clock, KeyRound, Mail, ShieldCheck, Trash2, TriangleAlert } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useUser } from "@/context/UserContext";
 import { SettingsRow, SettingsSection } from "../components/SettingsSection";
-import { SETTINGS_PROFILE_MOCK } from "../mock-settings-data";
+
+const subscribeToTimezone = () => () => undefined;
+
+const getBrowserTimezone = () =>
+    Intl.DateTimeFormat().resolvedOptions().timeZone || "Local timezone";
+
+const getServerTimezone = () => "Detecting...";
 
 const AccountSettingsPage = () => {
+    const { user } = useUser();
+    const timezone = useSyncExternalStore(
+        subscribeToTimezone,
+        getBrowserTimezone,
+        getServerTimezone,
+    );
+
     return (
         <div className="space-y-8">
             <SettingsSection
@@ -22,7 +39,7 @@ const AccountSettingsPage = () => {
                     description="Used to sign in and receive notifications."
                 >
                     <span className="hidden max-w-[12rem] truncate text-sm text-muted-foreground sm:inline">
-                        {SETTINGS_PROFILE_MOCK.email}
+                        {user.email}
                     </span>
                     <Button variant="outline" size="sm" disabled>
                         Change
@@ -55,7 +72,7 @@ const AccountSettingsPage = () => {
                     description="Used for dates and scheduling."
                 >
                     <span className="text-sm text-muted-foreground">
-                        {SETTINGS_PROFILE_MOCK.timezone}
+                        {timezone}
                     </span>
                     <Button variant="outline" size="sm" disabled>
                         Change
