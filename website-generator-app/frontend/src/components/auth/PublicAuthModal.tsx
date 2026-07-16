@@ -26,12 +26,13 @@ import { resolvePostLoginNextPath } from "@/lib/public-auth-intent-storage";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/client";
 import { TermsAgreementCheckbox } from "@/components/auth/TermsAgreementCheckbox";
+import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 import {
     TurnstileCaptcha,
     type TurnstileCaptchaHandle,
 } from "@/components/auth/TurnstileCaptcha";
 
-type Mode = "login" | "signup";
+type Mode = "forgot" | "login" | "signup";
 
 // Bump when the Terms/Privacy content materially changes so we can tell which
 // version a user accepted at sign-up.
@@ -107,6 +108,14 @@ export const PublicAuthModal = ({
     const supabase = useMemo(() => createClient(), []);
 
     const copy = REASON_COPY[reason];
+    const headerCopy =
+        mode === "forgot"
+            ? {
+                  title: "Reset your password",
+                  description:
+                      "Enter your email and we will send you a secure reset link.",
+              }
+            : copy;
     const primaryButtonLabel = mode === "signup" ? copy.cta : "Log in";
 
     const resetState = () => {
@@ -284,11 +293,14 @@ export const PublicAuthModal = ({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-md [&_button]:hover:cursor-pointer">
                 <DialogHeader>
-                    <DialogTitle>{copy.title}</DialogTitle>
-                    <DialogDescription>{copy.description}</DialogDescription>
+                    <DialogTitle>{headerCopy.title}</DialogTitle>
+                    <DialogDescription>
+                        {headerCopy.description}
+                    </DialogDescription>
                 </DialogHeader>
 
-                <div className="mx-auto mt-1 w-fit">
+                {mode !== "forgot" ? (
+                    <div className="mx-auto mt-1 w-fit">
                     <div className="relative inline-flex rounded-full border border-border bg-muted/30 p-1">
                         <span
                             aria-hidden="true"
@@ -328,9 +340,16 @@ export const PublicAuthModal = ({
                             Log in
                         </Button>
                     </div>
-                </div>
+                    </div>
+                ) : null}
 
-                <form className="space-y-3" onSubmit={handleAuthSubmit}>
+                {mode === "forgot" ? (
+                    <ForgotPasswordForm
+                        defaultEmail={email}
+                        onBack={() => onModeChange("login")}
+                    />
+                ) : (
+                    <form className="space-y-3" onSubmit={handleAuthSubmit}>
                     {mode === "signup" ? (
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
@@ -413,12 +432,23 @@ export const PublicAuthModal = ({
                     </div>
 
                     <div className="space-y-1">
-                        <label
-                            htmlFor="auth-password"
-                            className={labelClassName}
-                        >
-                            Password
-                        </label>
+                        <div className="flex items-center justify-between">
+                            <label
+                                htmlFor="auth-password"
+                                className={labelClassName}
+                            >
+                                Password
+                            </label>
+                            {mode === "login" ? (
+                                <button
+                                    type="button"
+                                    className="text-xs text-muted-foreground transition-colors hover:text-primary"
+                                    onClick={() => onModeChange("forgot")}
+                                >
+                                    Forgot password?
+                                </button>
+                            ) : null}
+                        </div>
                         <div className="relative">
                             <input
                                 id="auth-password"
@@ -492,24 +522,29 @@ export const PublicAuthModal = ({
                             </>
                         )}
                     </Button>
-                </form>
+                    </form>
+                )}
 
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <div className="h-px flex-1 bg-border" />
-                    <span>or</span>
-                    <div className="h-px flex-1 bg-border" />
-                </div>
+                {mode !== "forgot" ? (
+                    <>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            <div className="h-px flex-1 bg-border" />
+                            <span>or</span>
+                            <div className="h-px flex-1 bg-border" />
+                        </div>
 
-                <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full hover:cursor-pointer"
-                    onClick={handleGoogleOauth}
-                    disabled={isLoading || needsTermsConsent}
-                >
-                    <FcGoogle className="mr-2 h-4 w-4" />
-                    Continue with Google
-                </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full hover:cursor-pointer"
+                            onClick={handleGoogleOauth}
+                            disabled={isLoading || needsTermsConsent}
+                        >
+                            <FcGoogle className="mr-2 h-4 w-4" />
+                            Continue with Google
+                        </Button>
+                    </>
+                ) : null}
             </DialogContent>
         </Dialog>
     );

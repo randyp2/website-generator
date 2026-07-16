@@ -1,6 +1,6 @@
 "use client";
 
-import type { JSX, ReactNode } from "react";
+import type { ChangeEventHandler, JSX, ReactNode } from "react";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
@@ -17,12 +17,13 @@ import {
 import { FcGoogle } from "react-icons/fc";
 
 import BrandWordmark from "@/components/branding/BrandWordmark";
+import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 import { TermsAgreementCheckbox } from "@/components/auth/TermsAgreementCheckbox";
 import { TurnstileCaptcha } from "@/components/auth/TurnstileCaptcha";
 import { cn } from "@/lib/utils";
 import { login, signup, signInWithGoogle } from "@/lib/auth-actions";
 
-type Mode = "login" | "signup";
+type Mode = "forgot" | "login" | "signup";
 
 // Bump when the Terms/Privacy content materially changes so we can tell which
 // version a user accepted at sign-up. Kept in sync with the auth modal.
@@ -33,7 +34,9 @@ type AuthInputProps = {
     type: "email" | "password" | "text";
     placeholder: string;
     autoComplete?: string;
+    onChange?: ChangeEventHandler<HTMLInputElement>;
     required?: boolean;
+    value?: string;
 };
 
 type SubmitButtonProps = {
@@ -69,7 +72,9 @@ const AuthInput = ({
     type,
     placeholder,
     autoComplete,
+    onChange,
     required = true,
+    value,
 }: AuthInputProps): JSX.Element => (
     <div className="relative">
         <input
@@ -77,7 +82,9 @@ const AuthInput = ({
             name={name}
             placeholder={placeholder}
             autoComplete={autoComplete}
+            onChange={onChange}
             required={required}
+            value={value}
             className={inputClassName}
         />
         <span aria-hidden="true" className={underlineClassName} />
@@ -138,7 +145,15 @@ const SubmitButton = ({
     );
 };
 
-const LoginFields = (): JSX.Element => {
+const LoginFields = ({
+    email,
+    onEmailChange,
+    onForgotPassword,
+}: {
+    email: string;
+    onEmailChange: (email: string) => void;
+    onForgotPassword: () => void;
+}): JSX.Element => {
     const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
     return (
@@ -152,6 +167,8 @@ const LoginFields = (): JSX.Element => {
                     type="email"
                     placeholder="you@example.com"
                     autoComplete="email"
+                    value={email}
+                    onChange={(event) => onEmailChange(event.target.value)}
                 />
             </div>
 
@@ -167,9 +184,13 @@ const LoginFields = (): JSX.Element => {
             </div>
 
             <div className="flex justify-end">
-                <span className="text-sm text-muted-foreground">
+                <button
+                    type="button"
+                    onClick={onForgotPassword}
+                    className="text-sm text-muted-foreground transition-colors hover:cursor-pointer hover:text-primary"
+                >
                     Forgot password?
-                </span>
+                </button>
             </div>
 
             <input
@@ -292,6 +313,7 @@ const LandingAuthPanel = ({
     backAction?: ReactNode;
 }): JSX.Element => {
     const [mode, setMode] = useState<Mode>("login");
+    const [loginEmail, setLoginEmail] = useState<string>("");
     const [agreedToTerms, setAgreedToTerms] = useState<boolean>(false);
     const [isVisible, setIsVisible] = useState<boolean>(false);
     const { resolvedTheme, setTheme } = useTheme();
@@ -354,9 +376,7 @@ const LandingAuthPanel = ({
                             type="button"
                             onClick={() =>
                                 setMode((currentMode) =>
-                                    currentMode === "login"
-                                        ? "signup"
-                                        : "login",
+                                    currentMode === "login" ? "signup" : "login",
                                 )
                             }
                             className="font-semibold text-primary transition-colors hover:text-primary/80 hover:cursor-pointer"
@@ -377,7 +397,9 @@ const LandingAuthPanel = ({
                     <div className="space-y-4">
                         <div className="space-y-2">
                             <h2 className="text-3xl font-semibold tracking-tight text-foreground">
-                                {mode === "login"
+                                {mode === "forgot" ? (
+                                    "Reset your password"
+                                ) : mode === "login"
                                     ? (
                                         <>
                                             Log in to{" "}
@@ -393,9 +415,11 @@ const LandingAuthPanel = ({
                                     )}
                             </h2>
                             <p className="max-w-md text-sm leading-6 text-muted-foreground">
-                                {mode === "login"
-                                    ? ""
-                                    : "Start with your resume, shape the design, and publish a recruiter-ready portfolio."}
+                                {mode === "forgot"
+                                    ? "Enter your email and we will send you a secure reset link."
+                                    : mode === "login"
+                                      ? ""
+                                      : "Start with your resume, shape the design, and publish a recruiter-ready portfolio."}
                             </p>
                         </div>
                     </div>
@@ -416,33 +440,48 @@ const LandingAuthPanel = ({
 
                 <div className="space-y-6">
                     {mode === "login" ? (
-                        <LoginFields />
-                    ) : (
+                        <LoginFields
+                            email={loginEmail}
+                            onEmailChange={setLoginEmail}
+                            onForgotPassword={() => setMode("forgot")}
+                        />
+                    ) : mode === "signup" ? (
                         <SignupFields
                             agreedToTerms={agreedToTerms}
                             onAgreedChange={setAgreedToTerms}
                         />
+                    ) : (
+                        <ForgotPasswordForm
+                            defaultEmail={loginEmail}
+                            onBack={() => setMode("login")}
+                        />
                     )}
 
-                    <div className="flex items-center gap-4">
-                        <div className="h-px flex-1 bg-border" />
-                        <span className="text-xs font-medium uppercase tracking-[0.28em] text-muted-foreground">
-                            Or continue with
-                        </span>
-                        <div className="h-px flex-1 bg-border" />
-                    </div>
+                    {mode !== "forgot" ? (
+                        <>
+                            <div className="flex items-center gap-4">
+                                <div className="h-px flex-1 bg-border" />
+                                <span className="text-xs font-medium uppercase tracking-[0.28em] text-muted-foreground">
+                                    Or continue with
+                                </span>
+                                <div className="h-px flex-1 bg-border" />
+                            </div>
 
-                    <form action={signInWithGoogle}>
-                        <button
-                            type="submit"
-                            disabled={mode === "signup" && !agreedToTerms}
-                            className="flex w-full items-center justify-center gap-3 rounded-md border border-border bg-card px-4 py-3.5 text-sm font-medium text-foreground transition-colors hover:bg-muted hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                            <FcGoogle className="h-5 w-5" />
-                            Continue with Google
-                            <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                        </button>
-                    </form>
+                            <form action={signInWithGoogle}>
+                                <button
+                                    type="submit"
+                                    disabled={
+                                        mode === "signup" && !agreedToTerms
+                                    }
+                                    className="flex w-full items-center justify-center gap-3 rounded-md border border-border bg-card px-4 py-3.5 text-sm font-medium text-foreground transition-colors hover:bg-muted hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    <FcGoogle className="h-5 w-5" />
+                                    Continue with Google
+                                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                                </button>
+                            </form>
+                        </>
+                    ) : null}
                 </div>
             </div>
         </div>

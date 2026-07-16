@@ -74,6 +74,23 @@ vi.mock("@/components/auth/TurnstileCaptcha", () => ({
     ),
 }));
 
+vi.mock("@/components/auth/ForgotPasswordForm", () => ({
+    ForgotPasswordForm: ({
+        defaultEmail,
+        onBack,
+    }: {
+        defaultEmail?: string;
+        onBack: () => void;
+    }) => (
+        <div>
+            <p>Recovery email: {defaultEmail}</p>
+            <button type="button" onClick={onBack}>
+                Back to login
+            </button>
+        </div>
+    ),
+}));
+
 import { PublicAuthModal } from "./PublicAuthModal";
 
 describe("PublicAuthModal CAPTCHA integration", () => {
@@ -159,5 +176,40 @@ describe("PublicAuthModal CAPTCHA integration", () => {
                 }),
             );
         });
+    });
+
+    it("opens recovery with the email entered in login mode", async () => {
+        const user = userEvent.setup();
+        render(
+            <PublicAuthModal
+                open
+                reason="general"
+                intent={null}
+                onOpenChange={vi.fn()}
+            />,
+        );
+
+        await user.click(screen.getByRole("button", { name: "Log in" }));
+        await user.type(screen.getByLabelText("Email"), "person@example.com");
+        await user.click(
+            screen.getByRole("button", { name: "Forgot password?" }),
+        );
+
+        expect(
+            screen.getByRole("heading", { name: "Reset your password" }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText("Recovery email: person@example.com"),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole("button", { name: "Continue with Google" }),
+        ).not.toBeInTheDocument();
+
+        await user.click(
+            screen.getByRole("button", { name: "Back to login" }),
+        );
+        expect(screen.getByLabelText("Email")).toHaveValue(
+            "person@example.com",
+        );
     });
 });
