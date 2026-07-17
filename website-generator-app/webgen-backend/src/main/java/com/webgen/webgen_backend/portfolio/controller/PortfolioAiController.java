@@ -10,6 +10,7 @@ import com.webgen.webgen_backend.portfolio.billing.PortfolioCreditCostPolicy;
 import com.webgen.webgen_backend.portfolio.service.PortfolioAiService;
 import com.webgen.webgen_backend.portfolio.service.job.GenerateJobService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import com.webgen.webgen_backend.shared.ratelimit.RateLimiterService;
@@ -22,6 +23,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/portfolio")
 @RequiredArgsConstructor
+@Slf4j
 public class PortfolioAiController {
 
     private final GenerateJobService generateJobService;
@@ -40,15 +42,25 @@ public class PortfolioAiController {
 
         rateLimiterService.check("portfolio-generate", userId.toString());
 
-        creditGuardService.consumeCredits(
+        UUID creditReservationId = creditGuardService.reserveCredits(
                 userId,
                 PortfolioCreditCostPolicy.GENERATE_PORTFOLIO_REQUIRED_CREDITS,
                 "portfolio_generation"
-        );
+        ).orElse(null);
 
-        String jobId = generateJobService.createJobAndQueue(id, userId, req);
+        try {
+            String jobId = generateJobService.createJobAndQueue(
+                    id,
+                    userId,
+                    creditReservationId,
+                    req
+            );
 
-        return ResponseEntity.accepted().body(Map.of("jobId", jobId));
+            return ResponseEntity.accepted().body(Map.of("jobId", jobId));
+        } catch (RuntimeException failure) {
+            refundReservation(creditReservationId, failure);
+            throw failure;
+        }
     }
 
     @GetMapping("/jobs/status/{jobId}")
@@ -92,5 +104,21 @@ public class PortfolioAiController {
 
         return ResponseEntity.ok(response);
 
+    }
+
+    private void refundReservation(UUID reservationId, RuntimeException failure) {
+        if (reservationId == null) {
+            return;
+        }
+        try {
+            creditGuardService.refundCredits(reservationId, failureCode(failure));
+        } catch (RuntimeException refundFailure) {
+            failure.addSuppressed(refundFailure);
+            log.error("Failed to refund credit reservation {}", reservationId, refundFailure);
+        }
+    }
+
+    private String failureCode(Exception failure) {
+        return failure.getClass().getSimpleName();
     }
 }

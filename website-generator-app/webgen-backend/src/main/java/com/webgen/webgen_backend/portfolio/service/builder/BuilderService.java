@@ -7,7 +7,16 @@ import com.webgen.webgen_backend.portfolio.service.job.SectionGenerationMessage;
 import java.util.UUID;
 
 public interface BuilderService {
-    BuilderResponseDTO build(BuilderRequestDTO req, UUID userId);
+
+    /**
+     * Validates an approved refine plan and queues its actionable section work.
+     *
+     * @param req approved refine build request
+     * @param userId authenticated user id
+     * @param creditReservationId credit reservation attached to queued section work
+     * @return job response used for status polling
+     */
+    BuilderResponseDTO build(BuilderRequestDTO req, UUID userId, UUID creditReservationId);
 
 
     /**

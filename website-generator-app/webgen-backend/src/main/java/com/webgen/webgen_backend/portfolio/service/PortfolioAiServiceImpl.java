@@ -96,7 +96,8 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
             UUID portfolioId,
             UUID userId,
             PortfolioGenerateRequestDTO req,
-            String jobId) {
+            String jobId,
+            UUID creditReservationId) {
         System.out.println(">>> [SERVICE] generatePortfolio() started");
 
         // --- Ownership check
@@ -168,6 +169,7 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
                     msg.setJobId(jobId);
                     msg.setPortfolioId(portfolioId.toString());
                     msg.setUserId(userId.toString());
+                    msg.setCreditReservationId(creditReservationId);
                     msg.setTotalSections(blueprint.getSectionPlan().size());
                     msg.setMode(SectionGenerationMessage.Mode.GENERATE);
                     msg.setReq(req);

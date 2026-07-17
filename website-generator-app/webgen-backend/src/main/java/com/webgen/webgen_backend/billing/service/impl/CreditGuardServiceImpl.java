@@ -18,13 +18,17 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class CreditGuardServiceImpl implements CreditGuardService {
 
-    private static final String REASON_CREDIT_USAGE = "credit_usage";
+    private static final String REASON_CREDIT_RESERVATION = "credit_reservation";
+    private static final String REASON_CREDIT_REFUND = "credit_refund";
+    private static final String REASON_LEGACY_CREDIT_USAGE = "credit_usage";
+    private static final int MAX_FAILURE_REASON_LENGTH = 500;
 
     private final BillingCreditLedgerEntryRepository billingCreditLedgerEntryRepository;
     private final ProfileRepository profileRepository;
@@ -33,12 +37,12 @@ public class CreditGuardServiceImpl implements CreditGuardService {
 
     @Override
     @Transactional
-    public void consumeCredits(UUID profileId, int credits, String operationCode) {
+    public Optional<UUID> reserveCredits(UUID profileId, int credits, String operationCode) {
         if (environment.acceptsProfiles(Profiles.of("dev"))) {
-            return;
+            return Optional.empty();
         }
         if (credits <= 0) {
-            return;
+            return Optional.empty();
         }
         if (profileId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Profile id is required");
@@ -63,14 +67,16 @@ public class CreditGuardServiceImpl implements CreditGuardService {
             );
         }
 
+        UUID reservationId = UUID.randomUUID();
         BillingCreditLedgerEntry entry = new BillingCreditLedgerEntry();
-        entry.setId(UUID.randomUUID());
+        entry.setId(reservationId);
         entry.setProfile(profile);
         entry.setDeltaCredits(-credits);
-        entry.setReason(REASON_CREDIT_USAGE);
+        entry.setReason(REASON_CREDIT_RESERVATION);
         entry.setStripeEventId(null);
         entry.setCheckoutSessionId(null);
-        entry.setMetadata(buildUsageMetadata(
+        entry.setCreditOperationId(reservationId);
+        entry.setMetadata(buildReservationMetadata(
                 operationCode,
                 credits,
                 availableCredits
@@ -78,19 +84,111 @@ public class CreditGuardServiceImpl implements CreditGuardService {
         entry.setCreatedAt(OffsetDateTime.now(ZoneOffset.UTC));
 
         billingCreditLedgerEntryRepository.save(entry);
+        return Optional.of(reservationId);
     }
 
-    private ObjectNode buildUsageMetadata(
+    @Override
+    @Transactional
+    public void refundCredits(UUID reservationId, String failureReason) {
+        if (reservationId == null) {
+            return;
+        }
+
+        BillingCreditLedgerEntry reservation = billingCreditLedgerEntryRepository.findById(reservationId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Credit reservation not found: " + reservationId
+                ));
+
+        if (!isRefundableReservation(reservation)
+                || reservation.getDeltaCredits() == null
+                || reservation.getDeltaCredits() >= 0) {
+            throw new IllegalArgumentException("Ledger entry is not a credit reservation: " + reservationId);
+        }
+
+        UUID profileId = reservation.getProfile().getId();
+        Profile profile = profileRepository.findByIdForUpdate(profileId)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Profile for credit reservation not found: " + profileId
+                ));
+
+        if (billingCreditLedgerEntryRepository.existsByCreditOperationIdAndReason(
+                reservationId,
+                REASON_CREDIT_REFUND
+        )) {
+            return;
+        }
+
+        Integer currentBalance = billingCreditLedgerEntryRepository.computeBalanceByProfileId(profileId);
+        int availableCredits = currentBalance != null ? currentBalance : 0;
+        int refundedCredits = Math.negateExact(reservation.getDeltaCredits());
+
+        BillingCreditLedgerEntry refund = new BillingCreditLedgerEntry();
+        refund.setId(UUID.randomUUID());
+        refund.setProfile(profile);
+        refund.setDeltaCredits(refundedCredits);
+        refund.setReason(REASON_CREDIT_REFUND);
+        refund.setStripeEventId(null);
+        refund.setCheckoutSessionId(null);
+        refund.setCreditOperationId(reservationId);
+        refund.setMetadata(buildRefundMetadata(
+                reservation,
+                failureReason,
+                refundedCredits,
+                availableCredits
+        ));
+        refund.setCreatedAt(OffsetDateTime.now(ZoneOffset.UTC));
+
+        billingCreditLedgerEntryRepository.save(refund);
+    }
+
+    private boolean isRefundableReservation(BillingCreditLedgerEntry entry) {
+        return REASON_CREDIT_RESERVATION.equals(entry.getReason())
+                || REASON_LEGACY_CREDIT_USAGE.equals(entry.getReason());
+    }
+
+    private ObjectNode buildReservationMetadata(
             String operationCode,
             int credits,
             int balanceBefore
     ) {
         ObjectNode metadata = objectMapper.createObjectNode();
         metadata.put("operation_code", normalizeOperationCode(operationCode));
-        metadata.put("credits_consumed", credits);
+        metadata.put("credits_reserved", credits);
         metadata.put("balance_before", balanceBefore);
         metadata.put("balance_after", balanceBefore - credits);
         return metadata;
+    }
+
+    private ObjectNode buildRefundMetadata(
+            BillingCreditLedgerEntry reservation,
+            String failureReason,
+            int refundedCredits,
+            int balanceBefore
+    ) {
+        ObjectNode metadata = objectMapper.createObjectNode();
+        metadata.put("reservation_id", reservation.getId().toString());
+        metadata.put("failure_reason", normalizeFailureReason(failureReason));
+        metadata.put("credits_refunded", refundedCredits);
+        metadata.put("balance_before", balanceBefore);
+        metadata.put("balance_after", balanceBefore + refundedCredits);
+
+        if (reservation.getMetadata() != null
+                && reservation.getMetadata().path("operation_code").isTextual()) {
+            metadata.put(
+                    "operation_code",
+                    reservation.getMetadata().path("operation_code").asText()
+            );
+        }
+        return metadata;
+    }
+
+    private String normalizeFailureReason(String failureReason) {
+        String normalized = failureReason == null || failureReason.isBlank()
+                ? "unspecified_failure"
+                : failureReason.trim();
+        return normalized.length() <= MAX_FAILURE_REASON_LENGTH
+                ? normalized
+                : normalized.substring(0, MAX_FAILURE_REASON_LENGTH);
     }
 
     private String normalizeOperationCode(String operationCode) {

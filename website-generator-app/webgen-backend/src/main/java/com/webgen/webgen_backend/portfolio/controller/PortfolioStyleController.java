@@ -10,6 +10,7 @@ import com.webgen.webgen_backend.portfolio.service.crud.PortfolioCrudService;
 import com.webgen.webgen_backend.portfolio.service.style.StyleChatService;
 import com.webgen.webgen_backend.portfolio.service.style.StyleSuggestionsService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import com.webgen.webgen_backend.shared.ratelimit.RateLimiterService;
@@ -24,6 +25,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/portfolio/style")
 @RequiredArgsConstructor
+@Slf4j
 public class PortfolioStyleController {
 
     private final StyleChatService styleChatService;
@@ -39,18 +41,20 @@ public class PortfolioStyleController {
         );
         rateLimiterService.check("style-chat", userId.toString());
         portfolioCrudService.verifyOwnership(userId, req.getPortfolioId());
-        creditGuardService.consumeCredits(
+        UUID creditReservationId = creditGuardService.reserveCredits(
                 userId,
                 PortfolioCreditCostPolicy.STYLE_CHAT_REQUIRED_CREDITS,
                 "style_chat"
-        );
+        ).orElse(null);
 
         try {
             StyleChatResponseDTO response = styleChatService.chat(req);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
+            refundReservation(creditReservationId, e);
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
+            refundReservation(creditReservationId, e);
             return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }
     }
@@ -63,5 +67,21 @@ public class PortfolioStyleController {
         rateLimiterService.check("style-suggestions", userId);
         StyleSuggestionsResponseDTO response = styleSuggestionsService.getSuggestions(req);
         return ResponseEntity.ok(response);
+    }
+
+    private void refundReservation(UUID reservationId, Exception failure) {
+        if (reservationId == null) {
+            return;
+        }
+        try {
+            creditGuardService.refundCredits(reservationId, failureCode(failure));
+        } catch (RuntimeException refundFailure) {
+            failure.addSuppressed(refundFailure);
+            log.error("Failed to refund credit reservation {}", reservationId, refundFailure);
+        }
+    }
+
+    private String failureCode(Exception failure) {
+        return failure.getClass().getSimpleName();
     }
 }

@@ -18,6 +18,8 @@ public interface BillingCreditLedgerEntryRepository extends JpaRepository<Billin
 
     Optional<BillingCreditLedgerEntry> findByCheckoutSessionId(String checkoutSessionId);
 
+    boolean existsByCreditOperationIdAndReason(UUID creditOperationId, String reason);
+
     @Query("""
         SELECT COALESCE(SUM(e.deltaCredits), 0)
         FROM BillingCreditLedgerEntry e

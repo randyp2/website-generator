@@ -45,6 +45,9 @@ public class BillingCreditLedgerEntry {
     @Column(name = "checkout_session_id")
     private String checkoutSessionId;
 
+    @Column(name = "credit_operation_id")
+    private UUID creditOperationId;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "metadata", nullable = false, columnDefinition = "jsonb")
     private JsonNode metadata;

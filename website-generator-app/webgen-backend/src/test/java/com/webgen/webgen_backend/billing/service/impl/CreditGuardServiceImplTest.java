@@ -18,7 +18,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class CreditGuardServiceImplTest {
@@ -34,26 +33,27 @@ class CreditGuardServiceImplTest {
     }
 
     @Test
-    void consumeCreditsSkipsConsumptionWhenDevProfileIsActive() {
+    void reserveCreditsSkipsReservationWhenDevProfileIsActive() {
         RepositoryState state = new RepositoryState(0);
         CreditGuardServiceImpl service = serviceWithProfiles(state, "dev");
 
-        assertThatCode(() -> service.consumeCredits(
+        Optional<UUID> reservationId = service.reserveCredits(
                 profileId,
                 1,
                 "style_chat"
-        )).doesNotThrowAnyException();
+        );
 
+        assertThat(reservationId).isEmpty();
         assertThat(state.invocations).isEmpty();
-        assertThat(state.savedEntry).isNull();
+        assertThat(state.savedEntries).isEmpty();
     }
 
     @Test
-    void consumeCreditsRejectsInsufficientBalanceWithoutWritingDebit() {
+    void reserveCreditsRejectsInsufficientBalanceWithoutWritingDebit() {
         RepositoryState state = new RepositoryState(5);
         CreditGuardServiceImpl service = serviceWithProfiles(state, "test");
 
-        assertThatThrownBy(() -> service.consumeCredits(
+        assertThatThrownBy(() -> service.reserveCredits(
                 profileId,
                 6,
                 "refine_build"
@@ -63,15 +63,15 @@ class CreditGuardServiceImplTest {
         });
 
         assertThat(state.invocations).containsExactly("lock_profile", "compute_balance");
-        assertThat(state.savedEntry).isNull();
+        assertThat(state.savedEntries).isEmpty();
     }
 
     @Test
-    void consumeCreditsLocksProfileAndAppendsNegativeLedgerDelta() {
+    void reserveCreditsLocksProfileAndAppendsNegativeLedgerDelta() {
         RepositoryState state = new RepositoryState(10);
         CreditGuardServiceImpl service = serviceWithProfiles(state, "test");
 
-        service.consumeCredits(profileId, 6, "refine_build");
+        UUID reservationId = service.reserveCredits(profileId, 6, "refine_build").orElseThrow();
 
         assertThat(state.invocations).containsExactly(
                 "lock_profile",
@@ -79,30 +79,94 @@ class CreditGuardServiceImplTest {
                 "save_entry"
         );
 
-        BillingCreditLedgerEntry entry = state.savedEntry;
+        BillingCreditLedgerEntry entry = state.savedEntries.getFirst();
         assertThat(entry).isNotNull();
-        assertThat(entry.getId()).isNotNull();
+        assertThat(entry.getId()).isEqualTo(reservationId);
+        assertThat(entry.getCreditOperationId()).isEqualTo(reservationId);
         assertThat(entry.getProfile()).isSameAs(profile);
         assertThat(entry.getDeltaCredits()).isEqualTo(-6);
-        assertThat(entry.getReason()).isEqualTo("credit_usage");
+        assertThat(entry.getReason()).isEqualTo("credit_reservation");
         assertThat(entry.getStripeEventId()).isNull();
         assertThat(entry.getCheckoutSessionId()).isNull();
         assertThat(entry.getCreatedAt()).isNotNull();
         assertThat(entry.getMetadata().path("operation_code").asText()).isEqualTo("refine_build");
-        assertThat(entry.getMetadata().path("credits_consumed").asInt()).isEqualTo(6);
+        assertThat(entry.getMetadata().path("credits_reserved").asInt()).isEqualTo(6);
         assertThat(entry.getMetadata().path("balance_before").asInt()).isEqualTo(10);
         assertThat(entry.getMetadata().path("balance_after").asInt()).isEqualTo(4);
     }
 
     @Test
-    void consumeCreditsSkipsNonPositiveAmounts() {
+    void reserveCreditsSkipsNonPositiveAmounts() {
         RepositoryState state = new RepositoryState(10);
         CreditGuardServiceImpl service = serviceWithProfiles(state, "test");
 
-        service.consumeCredits(profileId, 0, "style_chat");
+        Optional<UUID> reservationId = service.reserveCredits(profileId, 0, "style_chat");
 
+        assertThat(reservationId).isEmpty();
         assertThat(state.invocations).isEmpty();
-        assertThat(state.savedEntry).isNull();
+        assertThat(state.savedEntries).isEmpty();
+    }
+
+    @Test
+    void refundCreditsLocksProfileAndAppendsCompensatingDelta() {
+        UUID reservationId = UUID.randomUUID();
+        RepositoryState state = new RepositoryState(4);
+        state.existingEntry = reservation(reservationId, 6);
+        CreditGuardServiceImpl service = serviceWithProfiles(state, "test");
+
+        service.refundCredits(reservationId, "OpenAiException: upstream unavailable");
+
+        assertThat(state.invocations).containsExactly(
+                "find_entry",
+                "lock_profile",
+                "refund_exists",
+                "compute_balance",
+                "save_entry"
+        );
+
+        BillingCreditLedgerEntry refund = state.savedEntries.getFirst();
+        assertThat(refund.getId()).isNotEqualTo(reservationId);
+        assertThat(refund.getCreditOperationId()).isEqualTo(reservationId);
+        assertThat(refund.getProfile()).isSameAs(profile);
+        assertThat(refund.getDeltaCredits()).isEqualTo(6);
+        assertThat(refund.getReason()).isEqualTo("credit_refund");
+        assertThat(refund.getMetadata().path("reservation_id").asText())
+                .isEqualTo(reservationId.toString());
+        assertThat(refund.getMetadata().path("operation_code").asText()).isEqualTo("refine_build");
+        assertThat(refund.getMetadata().path("failure_reason").asText())
+                .isEqualTo("OpenAiException: upstream unavailable");
+        assertThat(refund.getMetadata().path("credits_refunded").asInt()).isEqualTo(6);
+        assertThat(refund.getMetadata().path("balance_before").asInt()).isEqualTo(4);
+        assertThat(refund.getMetadata().path("balance_after").asInt()).isEqualTo(10);
+    }
+
+    @Test
+    void refundCreditsDoesNotAppendDuplicateRefund() {
+        UUID reservationId = UUID.randomUUID();
+        RepositoryState state = new RepositoryState(4);
+        state.existingEntry = reservation(reservationId, 6);
+        state.refundExists = true;
+        CreditGuardServiceImpl service = serviceWithProfiles(state, "test");
+
+        service.refundCredits(reservationId, "duplicate worker failure");
+
+        assertThat(state.invocations).containsExactly(
+                "find_entry",
+                "lock_profile",
+                "refund_exists"
+        );
+        assertThat(state.savedEntries).isEmpty();
+    }
+
+    private BillingCreditLedgerEntry reservation(UUID reservationId, int credits) {
+        BillingCreditLedgerEntry entry = new BillingCreditLedgerEntry();
+        entry.setId(reservationId);
+        entry.setCreditOperationId(reservationId);
+        entry.setProfile(profile);
+        entry.setDeltaCredits(-credits);
+        entry.setReason("credit_reservation");
+        entry.setMetadata(new ObjectMapper().createObjectNode().put("operation_code", "refine_build"));
+        return entry;
     }
 
     private CreditGuardServiceImpl serviceWithProfiles(
@@ -128,10 +192,19 @@ class CreditGuardServiceImplTest {
                         state.invocations.add("compute_balance");
                         yield state.balance;
                     }
+                    case "findById" -> {
+                        state.invocations.add("find_entry");
+                        yield Optional.ofNullable(state.existingEntry);
+                    }
+                    case "existsByCreditOperationIdAndReason" -> {
+                        state.invocations.add("refund_exists");
+                        yield state.refundExists;
+                    }
                     case "save" -> {
                         state.invocations.add("save_entry");
-                        state.savedEntry = (BillingCreditLedgerEntry) args[0];
-                        yield state.savedEntry;
+                        BillingCreditLedgerEntry entry = (BillingCreditLedgerEntry) args[0];
+                        state.savedEntries.add(entry);
+                        yield entry;
                     }
                     default -> handleObjectMethod(proxy, method.getName(), args);
                 }
@@ -166,7 +239,9 @@ class CreditGuardServiceImplTest {
     private static final class RepositoryState {
         private final int balance;
         private final List<String> invocations = new ArrayList<>();
-        private BillingCreditLedgerEntry savedEntry;
+        private final List<BillingCreditLedgerEntry> savedEntries = new ArrayList<>();
+        private BillingCreditLedgerEntry existingEntry;
+        private boolean refundExists;
 
         private RepositoryState(int balance) {
             this.balance = balance;

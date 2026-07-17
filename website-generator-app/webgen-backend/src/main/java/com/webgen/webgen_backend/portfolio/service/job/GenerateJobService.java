@@ -39,12 +39,14 @@ public class GenerateJobService {
      *
      * @param portfolioId portfolio to generate for
      * @param userId      authenticated user id for ownership checks inside the worker
+     * @param creditReservationId credit reservation to refund if queued work fails
      * @param req         original generation request forwarded to the worker
      * @return newly created jobId for status polling
      */
     public String createJobAndQueue(
             UUID portfolioId,
             UUID userId,
+            UUID creditReservationId,
             PortfolioGenerateRequestDTO req) {
         String jobId = createJob(portfolioId);
 
@@ -52,6 +54,7 @@ public class GenerateJobService {
                 .jobId(jobId)
                 .portfolioId(portfolioId.toString())
                 .userId(userId.toString())
+                .creditReservationId(creditReservationId)
                 .req(req)
                 .build();
 

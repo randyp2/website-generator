@@ -14,6 +14,7 @@ import com.webgen.webgen_backend.portfolio.service.crud.PortfolioCrudService;
 import com.webgen.webgen_backend.portfolio.service.planner.PlannerService;
 import com.webgen.webgen_backend.portfolio.service.refine.RefineChatTurnHistoryService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import com.webgen.webgen_backend.shared.ratelimit.RateLimiterService;
@@ -27,6 +28,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/portfolio/refine")
 @RequiredArgsConstructor
+@Slf4j
 public class PortfolioRefineController {
 
     private final ClarifierService clarifierService;
@@ -46,22 +48,27 @@ public class PortfolioRefineController {
         );
         rateLimiterService.check("refine-turn", userId.toString());
         portfolioCrudService.verifyOwnership(userId, req.getPortfolioId());
-        creditGuardService.consumeCredits(
+        UUID creditReservationId = creditGuardService.reserveCredits(
                 userId,
                 PortfolioCreditCostPolicy.REFINE_CLARIFY_REQUIRED_CREDITS,
                 "refine_clarify"
-        );
+        ).orElse(null);
 
-        long startedAtMillis = System.currentTimeMillis();
-        ClarifierResponseDTO response = clarifierService.clarify(req);
-        refineChatTurnHistoryService.recordClarifierTurn(
-                userId,
-                req.getPortfolioId(),
-                req.getUserPrompt(),
-                response,
-                elapsedSeconds(startedAtMillis)
-        );
-        return ResponseEntity.ok(response);
+        try {
+            long startedAtMillis = System.currentTimeMillis();
+            ClarifierResponseDTO response = clarifierService.clarify(req);
+            refineChatTurnHistoryService.recordClarifierTurn(
+                    userId,
+                    req.getPortfolioId(),
+                    req.getUserPrompt(),
+                    response,
+                    elapsedSeconds(startedAtMillis)
+            );
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException failure) {
+            refundReservation(creditReservationId, failure);
+            throw failure;
+        }
     }
 
     @PostMapping("/plan")
@@ -73,21 +80,26 @@ public class PortfolioRefineController {
         );
         rateLimiterService.check("refine-turn", userId.toString());
         portfolioCrudService.verifyOwnership(userId, req.getPortfolioId());
-        creditGuardService.consumeCredits(
+        UUID creditReservationId = creditGuardService.reserveCredits(
                 userId,
                 PortfolioCreditCostPolicy.REFINE_PLAN_REQUIRED_CREDITS,
                 "refine_plan"
-        );
+        ).orElse(null);
 
-        long startedAtMillis = System.currentTimeMillis();
-        PlannerResponseDTO response = plannerService.plan(req);
-        refineChatTurnHistoryService.recordPlannerTurn(
-                userId,
-                req.getPortfolioId(),
-                response,
-                elapsedSeconds(startedAtMillis)
-        );
-        return ResponseEntity.ok(response);
+        try {
+            long startedAtMillis = System.currentTimeMillis();
+            PlannerResponseDTO response = plannerService.plan(req);
+            refineChatTurnHistoryService.recordPlannerTurn(
+                    userId,
+                    req.getPortfolioId(),
+                    response,
+                    elapsedSeconds(startedAtMillis)
+            );
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException failure) {
+            refundReservation(creditReservationId, failure);
+            throw failure;
+        }
     }
 
     @PostMapping("/build")
@@ -99,17 +111,38 @@ public class PortfolioRefineController {
         );
         rateLimiterService.check("refine-build", userId.toString());
         portfolioCrudService.verifyOwnership(userId, req.getPortfolioId());
-        creditGuardService.consumeCredits(
+        UUID creditReservationId = creditGuardService.reserveCredits(
                 userId,
                 PortfolioCreditCostPolicy.REFINE_BUILD_REQUIRED_CREDITS,
                 "refine_build"
-        );
+        ).orElse(null);
 
-        BuilderResponseDTO response = builderService.build(req, userId);
-        return ResponseEntity.ok(response);
+        try {
+            BuilderResponseDTO response = builderService.build(req, userId, creditReservationId);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException failure) {
+            refundReservation(creditReservationId, failure);
+            throw failure;
+        }
     }
 
     private int elapsedSeconds(long startedAtMillis) {
         return Math.max(0, (int) ((System.currentTimeMillis() - startedAtMillis) / 1000));
+    }
+
+    private void refundReservation(UUID reservationId, RuntimeException failure) {
+        if (reservationId == null) {
+            return;
+        }
+        try {
+            creditGuardService.refundCredits(reservationId, failureCode(failure));
+        } catch (RuntimeException refundFailure) {
+            failure.addSuppressed(refundFailure);
+            log.error("Failed to refund credit reservation {}", reservationId, refundFailure);
+        }
+    }
+
+    private String failureCode(Exception failure) {
+        return failure.getClass().getSimpleName();
     }
 }
