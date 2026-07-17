@@ -39,12 +39,9 @@ const AccountSettingsPage = () => {
                     title="Email address"
                     description="Used to sign in and receive notifications."
                 >
-                    <span className="hidden max-w-[12rem] truncate text-sm text-muted-foreground sm:inline">
+                    <span className="max-w-[16rem] truncate text-sm text-muted-foreground">
                         {user.email}
                     </span>
-                    <Button variant="outline" size="sm" disabled>
-                        Change
-                    </Button>
                 </SettingsRow>
 
                 <SettingsRow

@@ -33,7 +33,7 @@ public class PortfolioResponseParser {
     public BlueprintDTO parseBlueprintResponse(String rawJson) {
         System.out.println(">>> [PARSER] parseBlueprintResponse () started");
         System.out.println(">>> [PARSER] Raw JSON length: " + (rawJson != null ? rawJson.length() : 0));
-        rawJson = stripMarkdownFence(rawJson);
+        rawJson = extractJson(rawJson);
 
         try {
             JsonNode root = objectMapper.readTree(rawJson);
@@ -120,7 +120,7 @@ public class PortfolioResponseParser {
      */
     public SectionDTO parseSingleSectionResponse(String rawJson) {
         System.out.println(">>> [PARSER] parseSectionResponse() started");
-        rawJson = stripMarkdownFence(rawJson);
+        rawJson = extractJson(rawJson);
 
         try {
 
@@ -151,7 +151,7 @@ public class PortfolioResponseParser {
     public PortfolioGenerateResponseDTO parseGenerateResponse(String rawJson) {
         System.out.println(">>> [PARSER] parseGenerateResponse() started");
         System.out.println(">>> [PARSER] Raw JSON length: " + (rawJson != null ? rawJson.length() : 0));
-        rawJson = stripMarkdownFence(rawJson);
+        rawJson = extractJson(rawJson);
 
         try {
             JsonNode root = objectMapper.readTree(rawJson);
@@ -266,6 +266,67 @@ public class PortfolioResponseParser {
     /** Lowercases and trims the sectionKey to ensure consistent matching across parser and DB. */
     private String normalizeSectionKey(String sectionKey) {
         return sectionKey == null ? null : sectionKey.trim().toLowerCase();
+    }
+
+    /*
+     * LLMs frequently pad the JSON payload with prose or trailing commentary
+     * ("Here is your blueprint: { ... } Hope this helps!"), which the strict
+     * full-string fence matcher could not handle. This first strips any markdown
+     * fence, then scans for the first balanced JSON value ({...} or [...]) and
+     * returns just that substring. String literals are tracked so braces inside
+     * strings do not affect depth. Falls back to the fence-stripped input when no
+     * balanced value is found, preserving prior behavior for clean responses.
+     */
+    private String extractJson(String raw) {
+        String stripped = stripMarkdownFence(raw);
+        if (stripped == null)
+            return null;
+
+        int start = -1;
+        for (int i = 0; i < stripped.length(); i++) {
+            char c = stripped.charAt(i);
+            if (c == '{' || c == '[') {
+                start = i;
+                break;
+            }
+        }
+        if (start < 0)
+            return stripped;
+
+        char open = stripped.charAt(start);
+        char close = open == '{' ? '}' : ']';
+
+        int depth = 0;
+        boolean inString = false;
+        boolean escaped = false;
+
+        for (int i = start; i < stripped.length(); i++) {
+            char c = stripped.charAt(i);
+
+            if (inString) {
+                if (escaped)
+                    escaped = false;
+                else if (c == '\\')
+                    escaped = true;
+                else if (c == '"')
+                    inString = false;
+                continue;
+            }
+
+            if (c == '"')
+                inString = true;
+            else if (c == open)
+                depth++;
+            else if (c == close) {
+                depth--;
+                if (depth == 0)
+                    return stripped.substring(start, i + 1);
+            }
+        }
+
+        // Unbalanced (e.g. a truncated response): return from the opener onward
+        // and let Jackson surface a precise parse error.
+        return stripped.substring(start);
     }
 
     /*
