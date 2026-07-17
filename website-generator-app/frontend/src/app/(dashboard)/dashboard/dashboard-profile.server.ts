@@ -4,8 +4,8 @@ import { redirect } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 
 import type { DashboardAuthUserFallback } from "../components/dashboard-user";
-import { getBackendUrl } from "@/lib/server-env";
 import type { ProfileMeResponse } from "@/hooks/useProfileMeQuery";
+import { fetchBackend } from "@/lib/api/backendFetch";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 
 export interface DashboardProfileState {
@@ -41,8 +41,7 @@ const fetchDashboardProfile = async (
     accessToken: string,
 ): Promise<ProfileFetchOutcome> => {
     try {
-        const backendUrl = getBackendUrl();
-        const response = await fetch(`${backendUrl}/api/v1/profile/me`, {
+        const response = await fetchBackend("/api/v1/profile/me", {
             method: "GET",
             headers: {
                 Authorization: `Bearer ${accessToken}`,

@@ -11,8 +11,8 @@
  * OpenAI, R2, etc. pass through untouched. Dormant when the secret is unset.
  */
 export async function register(): Promise<void> {
-    // Route handlers run in the Node.js runtime; skip edge/other runtimes.
-    if (process.env.NEXT_RUNTIME !== "nodejs") return;
+    // The Node.js runtime is the default when NEXT_RUNTIME is unset.
+    if (process.env.NEXT_RUNTIME === "edge") return;
 
     const secret = process.env.INTERNAL_API_SECRET?.trim();
     // No secret configured → do nothing, exactly like the backend filter's
@@ -42,8 +42,12 @@ export async function register(): Promise<void> {
             return originalFetch(input, init);
         }
 
-        // Merge onto any caller-provided headers (Authorization, Content-Type…).
-        const headers = new Headers(init?.headers);
+        const headers = new Headers(
+            input instanceof Request ? input.headers : undefined,
+        );
+        new Headers(init?.headers).forEach((value, name) => {
+            headers.set(name, value);
+        });
         headers.set("X-Internal-Secret", secret);
         return originalFetch(input, { ...init, headers });
     };

@@ -2,9 +2,10 @@ import "server-only";
 
 import type { PortfolioCard } from "@/app/(public)/(site)/explore/components/explore.types";
 import { getPublicSiteUrl } from "@/lib/public-env";
-import { getBackendUrl } from "@/lib/server-env";
 import type { PublicProfileDTO } from "@/types/public-profile";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
+
+import { fetchBackend } from "./backendFetch";
 
 type PublicPortfolioPageResponse = {
     content?: PortfolioCard[];
@@ -70,8 +71,7 @@ export const fetchCurrentViewerUsername = async (): Promise<string | null> => {
             return null;
         }
 
-        const backendUrl = getBackendUrl();
-        const response = await fetch(`${backendUrl}/api/v1/profile/me`, {
+        const response = await fetchBackend("/api/v1/profile/me", {
             method: "GET",
             headers: {
                 Authorization: `Bearer ${session.access_token}`,

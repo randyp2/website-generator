@@ -128,6 +128,7 @@ export const PasswordResetRequest = () => {
                         <DialogFooter>
                             <Button
                                 type="submit"
+                                className="hover:cursor-pointer"
                                 disabled={!captchaToken || isSending}
                             >
                                 {isSending ? "Sending..." : "Send reset email"}

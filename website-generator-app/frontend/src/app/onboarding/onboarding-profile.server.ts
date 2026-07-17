@@ -2,7 +2,7 @@ import "server-only";
 
 import { redirect } from "next/navigation";
 
-import { getBackendUrl } from "@/lib/server-env";
+import { fetchBackend } from "@/lib/api/backendFetch";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 
 import { hasCompletedOnboarding } from "./lib/onboarding-utils";
@@ -18,7 +18,7 @@ const fetchOnboardingProfile = async (
     accessToken: string,
 ): Promise<ProfileMeResponse | null> => {
     try {
-        const response = await fetch(`${getBackendUrl()}/api/v1/profile/me`, {
+        const response = await fetchBackend("/api/v1/profile/me", {
             headers: {
                 Authorization: `Bearer ${accessToken}`,
             },

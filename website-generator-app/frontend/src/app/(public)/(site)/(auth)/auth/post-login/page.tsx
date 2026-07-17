@@ -1,6 +1,6 @@
 import { AUTH_NEXT_PATH_COOKIE } from "@/lib/public-auth-intent-storage";
 import { resolveSafeNextPath } from "@/lib/safe-next-path";
-import { getBackendUrl } from "@/lib/server-env";
+import { fetchBackend } from "@/lib/api/backendFetch";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -53,8 +53,7 @@ const resolveNextPathFromRedirectTo = (
  */
 const fetchProfileMe = async (accessToken: string): Promise<ProfileMeResponse | null> => {
     try {
-        const backendUrl = getBackendUrl();
-        const response = await fetch(`${backendUrl}/api/v1/profile/me`, {
+        const response = await fetchBackend("/api/v1/profile/me", {
             method: "GET",
             headers: {
                 Authorization: `Bearer ${accessToken}`,
