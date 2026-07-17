@@ -8,6 +8,7 @@ import { SidebarProvider, useSidebar } from "@/context/SidebarContext";
 import { usePathname } from "next/navigation";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import HeaderCreditsChip from "./HeaderCreditsChip";
+import LaunchWelcomeModal from "./LaunchWelcomeModal";
 import { NotificationsMenu } from "@/components/notifications/NotificationsMenu";
 
 interface DashboardLayoutClientProps {
@@ -72,6 +73,8 @@ const DashboardLayoutClientInner: React.FC<DashboardLayoutClientProps> = ({
 
   return (
     <>
+      <LaunchWelcomeModal />
+
       {/* Sidebar Navigation */}
       <SidebarNavigation
         collapsed={collapsed}

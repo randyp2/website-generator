@@ -1,3 +1,5 @@
+import { isLaunchPromotion } from "./launch-promotion";
+
 /** Billing fields used to derive a user's stable dashboard access identity. */
 export interface BillingAccessSnapshot {
     activePlanKey?: string | null;
@@ -25,7 +27,7 @@ export const getBillingAccessLabel = (
     }
 
     const promotionKey = snapshot?.activePromotionKey?.trim();
-    if (promotionKey === "launch_access_2026") {
+    if (isLaunchPromotion(promotionKey)) {
         return "Launch";
     }
     if (promotionKey) {

@@ -8,6 +8,10 @@ import {
     useUpdateProfileMeMutation,
 } from "@/hooks/useProfileMeQuery";
 import { resolveSafeNextPath } from "@/lib/safe-next-path";
+import {
+    isLaunchPromotion,
+    markLaunchWelcomePending,
+} from "@/lib/billing/launch-promotion";
 import { BIO_MAX_LENGTH, USERNAME_PATTERN } from "../constants";
 import {
     hasCompletedOnboarding,
@@ -77,6 +81,9 @@ export const useOnboardingSubmit = ({
         try {
             const updated = await updateProfileMutation.mutateAsync(toPayload(form));
             if (hasCompletedOnboarding(updated)) {
+                if (isLaunchPromotion(updated.billing?.activePromotionKey)) {
+                    markLaunchWelcomePending();
+                }
                 onComplete();
                 const nextPath = resolveSafeNextPath(searchParams.get("next"));
                 router.replace(nextPath ?? "/dashboard");
