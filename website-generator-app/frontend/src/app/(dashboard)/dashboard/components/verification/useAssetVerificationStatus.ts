@@ -8,6 +8,7 @@ import {
     useAssetJobStatusQuery,
     useClaimUploadQuery,
 } from "./verification.query";
+import { invalidateProfileMeQuery } from "@/hooks/useProfileMeQuery";
 import type { AssetJobPhase } from "./verification.types";
 
 export interface AssetVerificationStatusState {
@@ -62,6 +63,7 @@ export const useAssetVerificationStatus = (
         if (!isTerminalPhase) return;
 
         void invalidateClaimVerificationQueries(queryClient, claimId);
+        void invalidateProfileMeQuery(queryClient);
     }, [claimId, isTerminalPhase, queryClient]);
 
     return {

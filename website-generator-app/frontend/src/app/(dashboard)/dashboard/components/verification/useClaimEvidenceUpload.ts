@@ -7,6 +7,7 @@ import {
     buildClaimEvidenceUploadDescriptorFromFile,
     validateClaimEvidenceUploadDescriptor,
 } from "@/lib/verification/claimEvidenceUploadPolicy";
+import { invalidateProfileMeQuery } from "@/hooks/useProfileMeQuery";
 import { invalidateClaimVerificationQueries } from "./verification.query";
 
 interface PresignResponse {
@@ -100,6 +101,7 @@ export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
                     body: JSON.stringify({ uploadId }),
                 },
             );
+            void invalidateProfileMeQuery(queryClient);
 
             if (!finalizeRes.ok) {
                 throw new Error(

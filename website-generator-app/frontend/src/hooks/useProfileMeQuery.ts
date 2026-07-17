@@ -9,6 +9,9 @@ import {
 
 export type ProfileMeBillingSnapshot = {
     creditBalance?: number | null;
+    portfolioGenerationAllowanceRemaining?: number | null;
+    portfolioRefinementAllowanceRemaining?: number | null;
+    assetVerificationAllowanceRemaining?: number | null;
     activePlanKey?: string | null;
     activePriceKey?: string | null;
     status?: string | null;
@@ -115,6 +118,9 @@ export const setProfileMeQueryData = (
 ) => {
     queryClient.setQueryData(profileMeQueryKey, profile);
 };
+
+export const invalidateProfileMeQuery = (queryClient: QueryClient): Promise<void> =>
+    queryClient.invalidateQueries({ queryKey: profileMeQueryKey });
 
 export const useProfileMeQuery = ({
     enabled = true,

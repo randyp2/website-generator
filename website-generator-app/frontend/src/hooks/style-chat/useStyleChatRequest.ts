@@ -1,5 +1,7 @@
 import { useCallback, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
+import { invalidateProfileMeQuery } from "@/hooks/useProfileMeQuery";
 import { useToast } from "@/hooks/useToast";
 import type { StyleChatResponse } from "@/types/style";
 
@@ -14,6 +16,7 @@ import {
  */
 export const useStyleChatRequest = () => {
     const { addToast } = useToast();
+    const queryClient = useQueryClient();
     const [isInsufficientCreditsModalOpen, setIsInsufficientCreditsModalOpen] =
         useState(false);
 
@@ -48,6 +51,7 @@ export const useStyleChatRequest = () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
             });
+            void invalidateProfileMeQuery(queryClient);
 
             if (!response.ok) {
                 const failure = await parseStyleChatFailure(
@@ -60,7 +64,7 @@ export const useStyleChatRequest = () => {
 
             return (await response.json()) as StyleChatResponse;
         },
-        [handleStyleChatFailure],
+        [handleStyleChatFailure, queryClient],
     );
 
     return {

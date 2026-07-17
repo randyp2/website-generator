@@ -15,4 +15,7 @@ public class ProfileBillingDTO {
     private OffsetDateTime cancelAt;
     private Boolean cancelAtPeriodEnd;
     private Integer creditBalance;
+    private Integer portfolioGenerationAllowanceRemaining;
+    private Integer portfolioRefinementAllowanceRemaining;
+    private Integer assetVerificationAllowanceRemaining;
 }

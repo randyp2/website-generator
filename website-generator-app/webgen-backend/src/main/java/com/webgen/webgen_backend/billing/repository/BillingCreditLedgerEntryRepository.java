@@ -68,6 +68,29 @@ public interface BillingCreditLedgerEntryRepository extends JpaRepository<Billin
     );
 
     /**
+     * Finds active grants without locking them for a read-only balance snapshot.
+     */
+    @Query("""
+        SELECT e
+        FROM BillingCreditLedgerEntry e
+        WHERE e.profile.id = :profileId
+          AND e.creditBucket = :creditBucket
+          AND e.deltaCredits > 0
+          AND e.grantKey IS NOT NULL
+          AND (e.validFrom IS NULL OR e.validFrom <= :activeAt)
+          AND (e.expiresAt IS NULL OR e.expiresAt > :activeAt)
+        ORDER BY
+          CASE WHEN e.expiresAt IS NULL THEN 1 ELSE 0 END,
+          e.expiresAt,
+          e.createdAt
+    """)
+    List<BillingCreditLedgerEntry> findActiveAllowanceGrants(
+            @Param("profileId") UUID profileId,
+            @Param("creditBucket") CreditBucket creditBucket,
+            @Param("activeAt") OffsetDateTime activeAt
+    );
+
+    /**
      * Sums an allowance grant and every reservation or refund linked to it.
      */
     @Query("""
@@ -77,6 +100,23 @@ public interface BillingCreditLedgerEntryRepository extends JpaRepository<Billin
            OR e.grantEntry.id = :grantEntryId
     """)
     Integer computeRemainingUnitsByGrantEntryId(@Param("grantEntryId") UUID grantEntryId);
+
+    /**
+     * Computes the remaining units across all currently active grants in a bucket.
+     */
+    default int computeActiveAllowanceBalance(
+            UUID profileId,
+            CreditBucket creditBucket,
+            OffsetDateTime activeAt
+    ) {
+        return findActiveAllowanceGrants(profileId, creditBucket, activeAt).stream()
+                .mapToInt(grant -> Math.max(
+                        0,
+                        Optional.ofNullable(computeRemainingUnitsByGrantEntryId(grant.getId()))
+                                .orElse(0)
+                ))
+                .sum();
+    }
 
     Optional<BillingCreditLedgerEntry> findByGrantKey(String grantKey);
 }

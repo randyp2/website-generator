@@ -38,7 +38,11 @@ export interface SettingsBillingMock {
         statusLabel: string;
         cadenceLabel: string;
         renewalLabel: string;
-        monthlyCredits: number;
+        monthlyAllowances: {
+            portfolioGenerations: number;
+            portfolioRefinements: number;
+            assetVerifications: number;
+        };
         manageEnabled: boolean;
     };
     credits: {
@@ -87,12 +91,16 @@ export const SETTINGS_BILLING_MOCK: SettingsBillingMock = {
         statusLabel: "Active",
         cadenceLabel: "Annual · $99 / year",
         renewalLabel: "Renews on June 15, 2026",
-        monthlyCredits: 300,
+        monthlyAllowances: {
+            portfolioGenerations: 3,
+            portfolioRefinements: 3,
+            assetVerifications: 50,
+        },
         manageEnabled: false,
     },
     credits: {
         balance: 742,
-        nextRefreshLabel: "Credits refresh on June 15, 2026",
+        nextRefreshLabel: "Purchased credits do not expire",
     },
     invoices: [
         {

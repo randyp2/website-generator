@@ -177,8 +177,8 @@ const BillingPageContent: React.FC = () => {
                                 Pricing that scales with you
                             </h2>
                             <p className="text-sm text-muted-foreground">
-                                Subscribe for monthly credits, or top up any
-                                time with one-time packs.
+                                Subscribe for monthly feature allowances, or
+                                top up any time with one-time credit packs.
                             </p>
                             <div className="flex justify-center">
                                 <BillingModeTabs

@@ -31,12 +31,12 @@ const toPlanLabel = (planKey: string | null): string => {
 const HeaderCreditsChip = () => {
     const { data: profile } = useProfileMeQuery();
     const billingSummary = useMemo<HeaderBillingSummary | null>(() => {
-        const balance = profile?.billing?.creditBalance;
-        const activePlanKey = profile?.billing?.activePlanKey;
-
-        if (!profile?.billing) {
+        if (!profile) {
             return null;
         }
+
+        const balance = profile.billing?.creditBalance;
+        const activePlanKey = profile.billing?.activePlanKey;
 
         return {
             creditBalance: typeof balance === "number" ? balance : 0,
@@ -44,8 +44,14 @@ const HeaderCreditsChip = () => {
                 typeof activePlanKey === "string" && activePlanKey.trim()
                     ? activePlanKey.trim()
                     : null,
+            portfolioGenerationAllowanceRemaining:
+                profile.billing?.portfolioGenerationAllowanceRemaining ?? 0,
+            portfolioRefinementAllowanceRemaining:
+                profile.billing?.portfolioRefinementAllowanceRemaining ?? 0,
+            assetVerificationAllowanceRemaining:
+                profile.billing?.assetVerificationAllowanceRemaining ?? 0,
         };
-    }, [profile?.billing]);
+    }, [profile]);
 
     const creditLabel = useMemo(() => {
         const balance = billingSummary?.creditBalance ?? null;
@@ -58,6 +64,12 @@ const HeaderCreditsChip = () => {
     const planLabel = useMemo(
         () => toPlanLabel(billingSummary?.activePlanKey ?? null),
         [billingSummary],
+    );
+    const showAllowances = Boolean(
+        billingSummary?.activePlanKey ||
+        billingSummary?.portfolioGenerationAllowanceRemaining ||
+        billingSummary?.portfolioRefinementAllowanceRemaining ||
+        billingSummary?.assetVerificationAllowanceRemaining,
     );
 
     return (
@@ -102,12 +114,43 @@ const HeaderCreditsChip = () => {
                         </div>
                         <div className="flex items-center justify-between gap-3">
                             <span className="text-sm font-medium text-foreground">
-                                Credits
+                                Purchased credits
                             </span>
                             <span className="text-sm text-muted-foreground">
                                 {creditLabel}
                             </span>
                         </div>
+                        {showAllowances ? (
+                            <>
+                                <div className="border-t border-border/70 pt-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                    Current allowances
+                                </div>
+                                <div className="flex items-center justify-between gap-3">
+                                    <span className="text-sm font-medium text-foreground">
+                                        Generations
+                                    </span>
+                                    <span className="text-sm text-muted-foreground">
+                                        {billingSummary?.portfolioGenerationAllowanceRemaining ?? 0}
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between gap-3">
+                                    <span className="text-sm font-medium text-foreground">
+                                        Refinements
+                                    </span>
+                                    <span className="text-sm text-muted-foreground">
+                                        {billingSummary?.portfolioRefinementAllowanceRemaining ?? 0}
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between gap-3">
+                                    <span className="text-sm font-medium text-foreground">
+                                        Verifications
+                                    </span>
+                                    <span className="text-sm text-muted-foreground">
+                                        {billingSummary?.assetVerificationAllowanceRemaining ?? 0}
+                                    </span>
+                                </div>
+                            </>
+                        ) : null}
                     </div>
 
                     <Button asChild size="sm" className="w-full rounded-lg">

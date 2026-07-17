@@ -8,7 +8,8 @@ public interface BillingStatusReader {
 
     /**
      * Builds the user-facing billing snapshot for the given profile.
-     * Returns null when the profile has no billing footprint (no active sub and zero credits).
+     * Materializes the current subscription allowance window when needed.
+     * Returns null when the profile has no plan, credits, or active allowances.
      */
     ProfileBillingDTO read(UUID profileId);
 }

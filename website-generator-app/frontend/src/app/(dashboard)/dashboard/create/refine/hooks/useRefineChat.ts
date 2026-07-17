@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { invalidateProfileMeQuery } from "@/hooks/useProfileMeQuery";
 import type {
     CompletedSectionsResponse,
     GlobalTheme,
@@ -62,6 +64,7 @@ interface UseRefineChatResult {
 }
 
 const POLL_INTERVAL_MS = 3000;
+const REFUND_REFRESH_DELAY_MS = 1_000;
 
 /** Raised when the backend reports the clarifier session expired (HTTP 410). */
 class RefineSessionExpiredError extends Error {
@@ -99,11 +102,19 @@ export const useRefineChat = ({
     removeMediaFile,
     removeVideoFile,
 }: UseRefineChatParams): UseRefineChatResult => {
+    const queryClient = useQueryClient();
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
     const [currentPlan, setCurrentPlan] = useState<SectionPlan[] | null>(null);
     const [isPlanApproved, setIsPlanApproved] = useState<boolean>(false);
     const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const hasResumedRef = useRef(false);
+    const refreshBillingAfterRefund = (): void => {
+        void invalidateProfileMeQuery(queryClient);
+        setTimeout(
+            () => void invalidateProfileMeQuery(queryClient),
+            REFUND_REFRESH_DELAY_MS,
+        );
+    };
 
     // Session id lives in the persisted store so a page refresh mid-conversation
     // keeps the clarifier context. Read via getState() to avoid stale closures.
@@ -126,6 +137,7 @@ export const useRefineChat = ({
                 sessionId: getSessionId(),
             }),
         });
+        void invalidateProfileMeQuery(queryClient);
 
         if (!response.ok) {
             if (response.status === 410) {
@@ -157,6 +169,7 @@ export const useRefineChat = ({
                 sectionPlans,
             }),
         });
+        void invalidateProfileMeQuery(queryClient);
 
         if (!response.ok) {
             if (response.status === 410) {
@@ -292,6 +305,7 @@ export const useRefineChat = ({
                 if (data.status === "FAILED") {
                     if (pollTimerRef.current) clearInterval(pollTimerRef.current);
                     useGenerationJobStore.getState().clearJob();
+                    refreshBillingAfterRefund();
 
                     const errorMessage: Message = createAiMessage(
                         "Sorry, there was an error building your changes. Please try again.",
@@ -433,6 +447,7 @@ export const useRefineChat = ({
                     sections: buildSectionSummaries(sections),
                 }),
             });
+            void invalidateProfileMeQuery(queryClient);
 
             const data = (await response.json()) as ClarifyResponse;
 

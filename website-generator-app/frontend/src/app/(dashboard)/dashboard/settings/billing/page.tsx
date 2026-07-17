@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/useToast";
 import { useProfileMeQuery } from "@/hooks/useProfileMeQuery";
-import { SETTINGS_BILLING_MOCK } from "../mock-settings-data";
 
 const BILLING_SHORTCUTS = [
     {
@@ -63,6 +62,9 @@ const BILLING_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
 
 interface ProfileBillingSnapshot {
     creditBalance?: number | null;
+    portfolioGenerationAllowanceRemaining?: number | null;
+    portfolioRefinementAllowanceRemaining?: number | null;
+    assetVerificationAllowanceRemaining?: number | null;
     activePlanKey?: string | null;
     status?: string | null;
     currentPeriodEnd?: string | null;
@@ -113,7 +115,6 @@ const toPlanName = (planKey?: string | null): string | null => {
 };
 
 const BillingSettingsPage = () => {
-    const { plan } = SETTINGS_BILLING_MOCK;
     const [isOpeningPortal, setIsOpeningPortal] = useState<boolean>(false);
     const { addToast } = useToast();
     const { data: profile } = useProfileMeQuery();
@@ -124,9 +125,10 @@ const BillingSettingsPage = () => {
             ? billingSnapshot.creditBalance
             : 0;
     const creditBalanceLabel = creditBalance.toLocaleString();
-    const activePlanName = toPlanName(billingSnapshot?.activePlanKey) ?? plan.name;
+    const activePlanName =
+        toPlanName(billingSnapshot?.activePlanKey) ?? "Free";
     const subscriptionStatusLabel =
-        formatStatusLabel(billingSnapshot?.status) ?? plan.statusLabel;
+        formatStatusLabel(billingSnapshot?.status) ?? "No active subscription";
 
     const currentPeriodEndLabel = formatBillingDate(
         billingSnapshot?.currentPeriodEnd,
@@ -145,8 +147,14 @@ const BillingSettingsPage = () => {
         : "No active billing period yet.";
     const creditsPolicySummary =
         billingSnapshot?.activePlanKey === "website_generator_pro"
-            ? `${plan.monthlyCredits.toLocaleString()} plan credits are granted on paid subscription invoices.`
-            : "Purchase a plan or credit pack to add credits.";
+            ? "Subscription allowances are used first. Purchased credits are used only when an allowance is unavailable."
+            : "Purchase a plan for monthly allowances or a credit pack for general usage.";
+    const showAllowances = Boolean(
+        billingSnapshot?.activePlanKey ||
+        billingSnapshot?.portfolioGenerationAllowanceRemaining ||
+        billingSnapshot?.portfolioRefinementAllowanceRemaining ||
+        billingSnapshot?.assetVerificationAllowanceRemaining,
+    );
 
     const openBillingPortal = async (): Promise<void> => {
         setIsOpeningPortal(true);
@@ -232,6 +240,37 @@ const BillingSettingsPage = () => {
                     <p className="text-sm text-muted-foreground">
                         {currentPeriodEndSummary} {creditsPolicySummary}
                     </p>
+                    {showAllowances ? (
+                        <div className="grid gap-2 pt-2 text-sm sm:grid-cols-3">
+                            <div className="rounded-lg border border-border px-3 py-2">
+                                <p className="text-xs text-muted-foreground">
+                                    Generations
+                                </p>
+                                <p className="font-medium">
+                                    {billingSnapshot?.portfolioGenerationAllowanceRemaining ?? 0}{" "}
+                                    remaining
+                                </p>
+                            </div>
+                            <div className="rounded-lg border border-border px-3 py-2">
+                                <p className="text-xs text-muted-foreground">
+                                    Refinements
+                                </p>
+                                <p className="font-medium">
+                                    {billingSnapshot?.portfolioRefinementAllowanceRemaining ?? 0}{" "}
+                                    remaining
+                                </p>
+                            </div>
+                            <div className="rounded-lg border border-border px-3 py-2">
+                                <p className="text-xs text-muted-foreground">
+                                    Verifications
+                                </p>
+                                <p className="font-medium">
+                                    {billingSnapshot?.assetVerificationAllowanceRemaining ?? 0}{" "}
+                                    remaining
+                                </p>
+                            </div>
+                        </div>
+                    ) : null}
                 </div>
 
                 <div className="flex flex-wrap gap-2">

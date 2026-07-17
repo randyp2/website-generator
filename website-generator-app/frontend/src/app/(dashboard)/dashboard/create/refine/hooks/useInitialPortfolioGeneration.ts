@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { invalidateProfileMeQuery } from "@/hooks/useProfileMeQuery";
 import type {
     CompletedSectionsResponse,
     GlobalTheme,
@@ -51,6 +53,7 @@ const DEFAULT_GENERATION_PROMPT: string =
     "Generate a visually appealing one-shot portfolio that reflects the parsed resume data and style preferences.";
 
 const POLL_INTERVAL_MS: number = 3000; // 3 seconds
+const REFUND_REFRESH_DELAY_MS = 1_000;
 
 const STATUS_LABELS: Record<string, string> = {
     QUEUED: "Queued...",
@@ -76,6 +79,7 @@ export const useInitialPortfolioGeneration = ({
     setGlobalTheme,
     setMessages,
 }: UseInitialPortfolioGenerationParams): UseInitialPortfolioGenerationReturn => {
+    const queryClient = useQueryClient();
     const hasGeneratedRef = useRef<boolean>(false);
     const sectionsRef = useRef(sections);
     const [generationPhase, setGenerationPhase] = useState<GenerationPhase | null>(null);
@@ -88,6 +92,13 @@ export const useInitialPortfolioGeneration = ({
     useEffect(() => {
         let pollTimer: ReturnType<typeof setInterval> | null = null;
         let cancelled: boolean = false;
+        const refreshBillingAfterRefund = (): void => {
+            void invalidateProfileMeQuery(queryClient);
+            setTimeout(
+                () => void invalidateProfileMeQuery(queryClient),
+                REFUND_REFRESH_DELAY_MS,
+            );
+        };
 
         // Fallback: load the full portfolio from DB (catches missed sections + global theme)
         const loadSavedPortfolio = async (): Promise<boolean> => {
@@ -211,6 +222,7 @@ export const useInitialPortfolioGeneration = ({
                             if (pollTimer) clearInterval(pollTimer);
                             setGenerationPhase(null);
                             useGenerationJobStore.getState().clearJob();
+                            refreshBillingAfterRefund();
 
                             const error_message: Message = createAiMessage(
                                 "Generation failed. Please try again.",
@@ -272,6 +284,7 @@ export const useInitialPortfolioGeneration = ({
                             if (pollTimer) clearInterval(pollTimer);
                             setGenerationPhase(null);
                             useGenerationJobStore.getState().clearJob();
+                            refreshBillingAfterRefund();
 
                             const error_message: Message = createAiMessage(
                                 "Generation failed. Please try again.",
@@ -375,6 +388,7 @@ export const useInitialPortfolioGeneration = ({
                         }),
                     },
                 );
+                void invalidateProfileMeQuery(queryClient);
 
                 if (!response.ok) {
                     let errorData: unknown = null;
@@ -440,6 +454,7 @@ export const useInitialPortfolioGeneration = ({
         appendSections,
         setGlobalTheme,
         setMessages,
+        queryClient,
     ]);
 
     return { generationPhase, totalSections };

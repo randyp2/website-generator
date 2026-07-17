@@ -111,6 +111,10 @@ public class BillingAllowanceGrantServiceImpl implements BillingAllowanceGrantSe
         }
 
         AllowanceWindow window = windowOptional.orElseThrow();
+        if (allAllowancesExist(subscription, window)) {
+            return;
+        }
+
         Profile profile = profileRepository.findByIdForUpdate(subscription.getProfile().getId())
                 .orElseThrow(() -> new IllegalStateException(
                         "Profile for subscription allowance grant not found: "
@@ -141,6 +145,17 @@ public class BillingAllowanceGrantServiceImpl implements BillingAllowanceGrantSe
 
             billingCreditLedgerEntryRepository.save(grant);
         }
+    }
+
+    private boolean allAllowancesExist(
+            BillingSubscription subscription,
+            AllowanceWindow window
+    ) {
+        return PRO_ALLOWANCES.stream()
+                .map(policy -> buildGrantKey(subscription, window, policy.creditBucket()))
+                .allMatch(grantKey ->
+                        billingCreditLedgerEntryRepository.findByGrantKey(grantKey).isPresent()
+                );
     }
 
     private Optional<AllowanceWindow> resolveAllowanceWindow(

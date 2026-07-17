@@ -9,6 +9,12 @@ export type BillingPlanTier = "free" | "pro";
 
 export type BillingMode = "subscription" | "credits";
 
+export interface MonthlyAllowances {
+    portfolioGenerations: number;
+    portfolioRefinements: number;
+    assetVerifications: number;
+}
+
 export interface PricingPlan {
     priceKey: PriceKey | null;
     name: string;
@@ -17,7 +23,7 @@ export interface PricingPlan {
     pricePeriod: string;
     cadenceLabel?: string;
     originalPriceLabel?: string;
-    monthlyCredits: number;
+    monthlyAllowances: MonthlyAllowances | null;
     features: readonly string[];
     ctaLabel: string;
     highlighted?: boolean;
