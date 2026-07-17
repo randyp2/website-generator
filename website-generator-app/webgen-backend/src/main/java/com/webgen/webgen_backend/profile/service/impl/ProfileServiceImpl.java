@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.profile.service.impl;
 
+import com.webgen.webgen_backend.account.service.AccountDeletionStateService;
 import com.webgen.webgen_backend.billing.service.BillingStatusReader;
 import com.webgen.webgen_backend.profile.dto.ProfileMeDTO;
 import com.webgen.webgen_backend.profile.dto.PublicProfileDTO;
@@ -30,6 +31,7 @@ public class ProfileServiceImpl implements ProfileService {
     private final ProfileRepository profileRepository;
     private final ProfileMapper profileMapper;
     private final BillingStatusReader billingStatusReader;
+    private final AccountDeletionStateService accountDeletionStateService;
 
     private static final Pattern USERNAME_PATTERN =
             Pattern.compile("^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$");
@@ -51,6 +53,7 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     @Transactional
     public ProfileMeDTO getOrCreateMyProfile(UUID profileId) {
+        accountDeletionStateService.assertAccountActive(profileId);
         Profile profile = getOrCreateProfile(profileId);
         profile = syncOnboardingComplete(profile);
         return withBilling(profileMapper.toMeDto(profile), profileId);
@@ -59,6 +62,7 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     @Transactional
     public ProfileMeDTO updateMyProfile(UUID profileId, UpdateProfileRequestDTO request) {
+        accountDeletionStateService.assertAccountActive(profileId);
         if (request == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request body is required");
         }
