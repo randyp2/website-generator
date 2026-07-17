@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -14,6 +16,7 @@ public class AssetVerificationMessage {
     private String uploadId;
     private String claimId;
     private String profileId;
+    private UUID creditReservationId;
     private String storageProvider;
     private String storageBucket;
     private String storageKey;

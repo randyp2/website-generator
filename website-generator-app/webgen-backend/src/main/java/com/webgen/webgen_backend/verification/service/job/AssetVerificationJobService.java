@@ -2,6 +2,7 @@ package com.webgen.webgen_backend.verification.service.job;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.account.service.AccountDeletionStateService;
+import com.webgen.webgen_backend.billing.service.CreditGuardService;
 import com.webgen.webgen_backend.verification.dto.job.AssetVerificationEnqueueDTO;
 import com.webgen.webgen_backend.verification.dto.job.AssetVerificationJobStatusDTO;
 import com.webgen.webgen_backend.verification.entity.AssetVerificationJob;
@@ -31,6 +32,9 @@ public class AssetVerificationJobService {
     private static final String KEY_PREFIX = "verify:job:";
     private static final Duration CACHE_TTL = Duration.ofHours(24);
     private static final int MAX_ATTEMPTS = 3;
+    private static final String FAILURE_CODE = "AssetVerificationFailed";
+    private static final String TIMEOUT_CODE = "AssetVerificationTimedOut";
+    private static final String UPLOAD_DELETED_CODE = "AssetVerificationUploadDeleted";
 
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
@@ -38,6 +42,7 @@ public class AssetVerificationJobService {
     private final VerificationOutboxRepository outboxRepository;
     private final ClaimEvidenceUploadRepository uploadRepository;
     private final AccountDeletionStateService accountDeletionStateService;
+    private final CreditGuardService creditGuardService;
 
     @Transactional
     public String createJobAndQueue(AssetVerificationEnqueueDTO request) {
@@ -47,7 +52,8 @@ public class AssetVerificationJobService {
         AssetVerificationMessage message = toMessage(jobId, request, now);
         jobRepository.save(AssetVerificationJob.builder()
                 .id(jobId).profileId(request.getProfileId()).claimId(request.getClaimId())
-                .uploadId(request.getUploadId()).status("queued").attemptCount(0)
+                .uploadId(request.getUploadId()).creditReservationId(request.getCreditReservationId())
+                .status("queued").attemptCount(0)
                 .maxAttempts(MAX_ATTEMPTS).createdAt(now).updatedAt(now).build());
         outboxRepository.save(VerificationOutboxEvent.builder()
                 .id(UUID.randomUUID()).aggregateId(jobId).eventType("asset_verification_requested")
@@ -100,6 +106,7 @@ public class AssetVerificationJobService {
             enqueueRetry(job, OffsetDateTime.now().plusSeconds(retryBackoffSeconds(job.getAttemptCount())));
         } else {
             updateUploadStatus(job.getUploadId(), "failed", job.getError());
+            refundReservation(job, FAILURE_CODE);
         }
         save(job);
         log.warn("Verification attempt failed jobId={} attempt={}/{} retry={} reason={}",
@@ -128,6 +135,17 @@ public class AssetVerificationJobService {
         }
     }
 
+    /** Refunds unfinished verification work before its source upload is deleted. */
+    @Transactional
+    public void refundForUploadDeletion(UUID uploadId) {
+        if (uploadId == null) {
+            return;
+        }
+        jobRepository.findByUploadId(uploadId)
+                .filter(job -> !"completed".equals(job.getStatus()))
+                .ifPresent(job -> refundReservation(job, UPLOAD_DELETED_CODE));
+    }
+
     public AssetVerificationJobStatusDTO getJob(String jobId) {
         AssetVerificationJobStatusDTO cached = readCache(jobId);
         if (cached != null) return cached;
@@ -149,6 +167,7 @@ public class AssetVerificationJobService {
                 job.setStatus("failed");
                 job.setError("Verification timed out after maximum attempts");
                 updateUploadStatus(job.getUploadId(), "failed", job.getError());
+                refundReservation(job, TIMEOUT_CODE);
             } else {
                 enqueueRetry(job, OffsetDateTime.now());
                 job.setStatus("queued");
@@ -164,6 +183,7 @@ public class AssetVerificationJobService {
         AssetVerificationMessage message = AssetVerificationMessage.builder()
                 .jobId(job.getId().toString()).profileId(job.getProfileId().toString())
                 .claimId(job.getClaimId().toString()).uploadId(job.getUploadId().toString())
+                .creditReservationId(job.getCreditReservationId())
                 .storageProvider(upload.getStorageProvider()).storageBucket(upload.getStorageBucket())
                 .storageKey(upload.getStorageKey()).fileSizeBytes(upload.getFileSizeBytes())
                 .queuedAt(OffsetDateTime.now().toString()).build();
@@ -179,10 +199,18 @@ public class AssetVerificationJobService {
         return Math.min(300, 5L << Math.min(attempt - 1, 6));
     }
 
+    private void refundReservation(AssetVerificationJob job, String failureCode) {
+        if (job.getCreditReservationId() != null) {
+            creditGuardService.refundCredits(job.getCreditReservationId(), failureCode);
+        }
+    }
+
     private AssetVerificationMessage toMessage(UUID jobId, AssetVerificationEnqueueDTO request, OffsetDateTime now) {
         return AssetVerificationMessage.builder().jobId(jobId.toString())
                 .uploadId(request.getUploadId().toString()).claimId(request.getClaimId().toString())
-                .profileId(request.getProfileId().toString()).storageProvider(request.getStorageProvider())
+                .profileId(request.getProfileId().toString())
+                .creditReservationId(request.getCreditReservationId())
+                .storageProvider(request.getStorageProvider())
                 .storageBucket(request.getStorageBucket()).storageKey(request.getStorageKey())
                 .fileSizeBytes(request.getFileSizeBytes()).queuedAt(now.toString()).build();
     }

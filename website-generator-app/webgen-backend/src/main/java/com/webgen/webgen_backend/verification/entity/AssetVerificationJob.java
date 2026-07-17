@@ -30,6 +30,8 @@ public class AssetVerificationJob {
     private UUID claimId;
     @Column(name = "upload_id", nullable = false)
     private UUID uploadId;
+    @Column(name = "credit_reservation_id")
+    private UUID creditReservationId;
     @Column(nullable = false)
     private String status;
     @Column(name = "attempt_count", nullable = false)

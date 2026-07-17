@@ -4,6 +4,7 @@ import com.webgen.webgen_backend.account.service.AccountDeletionStateService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.webgen.webgen_backend.billing.service.CreditGuardService;
 import com.webgen.webgen_backend.profile.entity.Profile;
 import com.webgen.webgen_backend.shared.config.R2Properties;
 import com.webgen.webgen_backend.verification.dto.evidence.ClaimEvidenceUploadDTO;
@@ -14,6 +15,7 @@ import com.webgen.webgen_backend.verification.dto.evidence.CreateClaimEvidenceUp
 import com.webgen.webgen_backend.verification.dto.evidence.FinalizeClaimEvidenceUploadRequestDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.FinalizeClaimEvidenceUploadResponseDTO;
 import com.webgen.webgen_backend.verification.dto.job.AssetVerificationEnqueueDTO;
+import com.webgen.webgen_backend.verification.billing.VerificationCreditCostPolicy;
 import com.webgen.webgen_backend.verification.entity.Claim;
 import com.webgen.webgen_backend.verification.entity.ClaimEvidenceUpload;
 import com.webgen.webgen_backend.verification.repository.ClaimEvidenceUploadRepository;
@@ -70,6 +72,7 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
     private final ClaimEvidenceUploadFilePolicy claimEvidenceUploadFilePolicy;
     private final ClaimEvidenceUploadObjectVerifier claimEvidenceUploadObjectVerifier;
     private final AssetVerificationJobService assetVerificationJobService;
+    private final CreditGuardService creditGuardService;
     private final EvidenceRetractionService evidenceRetractionService;
     private final AccountDeletionStateService accountDeletionStateService;
 
@@ -185,6 +188,12 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
                         upload.getContentType()
                 );
 
+        UUID creditReservationId = creditGuardService.reserveCredits(
+                profileId,
+                VerificationCreditCostPolicy.ASSET_VERIFICATION_REQUIRED_CREDITS,
+                "asset_verification"
+        ).orElse(null);
+
         //--- Transition lifecycle status and persist finalize metadata
         upload.setStatus(STATUS_QUEUED);
         upload.setAnalysisError(null);
@@ -202,6 +211,7 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
                 .profileId(profileId)
                 .claimId(claimId)
                 .uploadId(saved.getId())
+                .creditReservationId(creditReservationId)
                 .storageProvider(saved.getStorageProvider())
                 .storageBucket(saved.getStorageBucket())
                 .storageKey(saved.getStorageKey())
@@ -273,6 +283,8 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
         if (!claimId.equals(upload.getClaimId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Upload does not belong to claim");
         }
+
+        assetVerificationJobService.refundForUploadDeletion(uploadId);
 
         //--- Delete object from storage before removing database row
         deleteObjectFromStorage(

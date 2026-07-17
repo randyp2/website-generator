@@ -15,6 +15,7 @@ public class AssetVerificationEnqueueDTO {
     private UUID profileId;
     private UUID claimId;
     private UUID uploadId;
+    private UUID creditReservationId;
     private String storageProvider;
     private String storageBucket;
     private String storageKey;
