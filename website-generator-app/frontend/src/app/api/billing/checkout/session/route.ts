@@ -1,4 +1,4 @@
-import { getBackendUrl } from "@/lib/server-env";
+import { fetchBackend } from "@/lib/api/backendFetch";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -54,9 +54,8 @@ export const POST = async (req: Request) => {
             );
         }
 
-        const backendUrl = getBackendUrl();
-        const response = await fetch(
-            `${backendUrl}/api/v1/billing/checkout/session`,
+        const response = await fetchBackend(
+            "/api/v1/billing/checkout/session",
             {
                 method: "POST",
                 headers: {

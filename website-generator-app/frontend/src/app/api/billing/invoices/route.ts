@@ -1,4 +1,4 @@
-import { getBackendUrl } from "@/lib/server-env";
+import { fetchBackend } from "@/lib/api/backendFetch";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -44,9 +44,8 @@ export const GET = async (req: Request) => {
         const limit = normalizeLimit(requestUrl.searchParams.get("limit"));
         const limitQuery = limit ? `?limit=${encodeURIComponent(limit)}` : "";
 
-        const backendUrl = getBackendUrl();
-        const response = await fetch(
-            `${backendUrl}/api/v1/billing/invoices${limitQuery}`,
+        const response = await fetchBackend(
+            `/api/v1/billing/invoices${limitQuery}`,
             {
                 method: "GET",
                 headers: {

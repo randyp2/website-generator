@@ -1,4 +1,4 @@
-import { getBackendUrl } from "@/lib/server-env";
+import { fetchBackend } from "@/lib/api/backendFetch";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -27,8 +27,7 @@ export const POST = async () => {
             );
         }
 
-        const backendUrl = getBackendUrl();
-        const response = await fetch(`${backendUrl}/api/v1/billing/portal/session`, {
+        const response = await fetchBackend("/api/v1/billing/portal/session", {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${session.access_token}`,
