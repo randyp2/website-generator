@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/useToast";
 import { useProfileMeQuery } from "@/hooks/useProfileMeQuery";
+import { getBillingAccessLabel } from "@/lib/billing/access-label";
 
 const BILLING_SHORTCUTS = [
     {
@@ -60,18 +61,6 @@ const BILLING_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
     year: "numeric",
 });
 
-interface ProfileBillingSnapshot {
-    creditBalance?: number | null;
-    portfolioGenerationAllowanceRemaining?: number | null;
-    portfolioRefinementAllowanceRemaining?: number | null;
-    assetVerificationAllowanceRemaining?: number | null;
-    activePlanKey?: string | null;
-    status?: string | null;
-    currentPeriodEnd?: string | null;
-    cancelAt?: string | null;
-    cancelAtPeriodEnd?: boolean | null;
-}
-
 interface CreatePortalSessionResponse {
     portalUrl?: string;
 }
@@ -102,33 +91,22 @@ const formatStatusLabel = (status?: string | null): string | null => {
     return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 };
 
-const toPlanName = (planKey?: string | null): string | null => {
-    if (!planKey) {
-        return null;
-    }
-
-    if (planKey === "website_generator_pro") {
-        return "PortRN Pro";
-    }
-
-    return planKey.replaceAll("_", " ");
-};
-
 const BillingSettingsPage = () => {
     const [isOpeningPortal, setIsOpeningPortal] = useState<boolean>(false);
     const { addToast } = useToast();
     const { data: profile } = useProfileMeQuery();
-    const billingSnapshot =
-        (profile?.billing as ProfileBillingSnapshot | null | undefined) ?? null;
+    const billingSnapshot = profile?.billing ?? null;
     const creditBalance =
         typeof billingSnapshot?.creditBalance === "number"
             ? billingSnapshot.creditBalance
             : 0;
     const creditBalanceLabel = creditBalance.toLocaleString();
-    const activePlanName =
-        toPlanName(billingSnapshot?.activePlanKey) ?? "Free";
-    const subscriptionStatusLabel =
-        formatStatusLabel(billingSnapshot?.status) ?? "No active subscription";
+    const accessLabel = getBillingAccessLabel(billingSnapshot);
+    const subscriptionStatusLabel = billingSnapshot?.activePlanKey
+        ? (formatStatusLabel(billingSnapshot.status) ?? "Status unavailable")
+        : billingSnapshot?.activePromotionKey
+          ? "Promotional access"
+          : "No active subscription";
 
     const currentPeriodEndLabel = formatBillingDate(
         billingSnapshot?.currentPeriodEnd,
@@ -148,9 +126,12 @@ const BillingSettingsPage = () => {
     const creditsPolicySummary =
         billingSnapshot?.activePlanKey === "website_generator_pro"
             ? "Subscription allowances are used first. Purchased credits are used only when an allowance is unavailable."
-            : "Purchase a plan for monthly allowances or a credit pack for general usage.";
+            : billingSnapshot?.activePromotionKey
+              ? "Promotional allowances are used first. Purchased credits are used only when an allowance is unavailable."
+              : "Purchase a plan for monthly allowances or a credit pack for general usage.";
     const showAllowances = Boolean(
         billingSnapshot?.activePlanKey ||
+        billingSnapshot?.activePromotionKey ||
         billingSnapshot?.portfolioGenerationAllowanceRemaining ||
         billingSnapshot?.portfolioRefinementAllowanceRemaining ||
         billingSnapshot?.assetVerificationAllowanceRemaining,
@@ -204,7 +185,7 @@ const BillingSettingsPage = () => {
             <div className="space-y-5">
                 <div className="space-y-2">
                     <p className="text-xs font-medium text-muted-foreground">
-                        {activePlanName} · {subscriptionStatusLabel}
+                        {accessLabel} · {subscriptionStatusLabel}
                     </p>
                 </div>
 
@@ -228,9 +209,9 @@ const BillingSettingsPage = () => {
                                 sideOffset={10}
                                 className="max-w-[320px] rounded-2xl border border-border bg-background px-4 py-3 text-sm leading-relaxed text-foreground shadow-[0_18px_45px_rgba(0,0,0,0.45)]"
                             >
-                                Your credit balance is consumed as you use
-                                the API. Visit the usage page to view a
-                                breakdown of your consumption.
+                                Purchased credits are used only after any
+                                applicable feature allowance. Current
+                                allowances are shown below.
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>

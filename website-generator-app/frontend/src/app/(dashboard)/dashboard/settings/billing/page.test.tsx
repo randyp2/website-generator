@@ -66,4 +66,26 @@ describe("BillingSettingsPage", () => {
 
         expect(screen.queryByText("Usage limits")).not.toBeInTheDocument();
     });
+
+    it("shows promotional access and its remaining allowances separately from credits", () => {
+        useProfileMeQueryMock.mockReturnValue({
+            data: {
+                billing: {
+                    activePromotionKey: "launch_access_2026",
+                    creditBalance: 0,
+                    portfolioGenerationAllowanceRemaining: 1,
+                    portfolioRefinementAllowanceRemaining: 2,
+                    assetVerificationAllowanceRemaining: 15,
+                },
+            },
+        });
+
+        render(<BillingSettingsPage />);
+
+        expect(screen.getByText("Launch · Promotional access")).toBeVisible();
+        expect(screen.getByText("0 credits")).toBeVisible();
+        expect(screen.getByText("1 remaining")).toBeVisible();
+        expect(screen.getByText("2 remaining")).toBeVisible();
+        expect(screen.getByText("15 remaining")).toBeVisible();
+    });
 });

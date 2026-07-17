@@ -1,10 +1,12 @@
 package com.webgen.webgen_backend.billing.service.impl;
 
 import com.webgen.webgen_backend.billing.config.StripeProperties;
+import com.webgen.webgen_backend.billing.entity.BillingPromotionEligibility;
 import com.webgen.webgen_backend.billing.entity.BillingSubscription;
 import com.webgen.webgen_backend.billing.model.CreditBucket;
 import com.webgen.webgen_backend.billing.model.webhook.StripeInvoiceSnapshotModel;
 import com.webgen.webgen_backend.billing.repository.BillingCreditLedgerEntryRepository;
+import com.webgen.webgen_backend.billing.repository.BillingPromotionEligibilityRepository;
 import com.webgen.webgen_backend.billing.repository.BillingSubscriptionRepository;
 import com.webgen.webgen_backend.billing.service.BillingAllowanceGrantService;
 import com.webgen.webgen_backend.billing.service.BillingEntitlementGrantService;
@@ -64,6 +66,7 @@ class BillingStatusReaderImplTest {
     @Test
     void returnsPromotionalAllowanceWithoutSubscriptionOrGeneralCredits() {
         RepositoryState state = new RepositoryState();
+        state.activePromotionKey = "launch_access_2026";
         state.allowanceBalances.put(CreditBucket.PORTFOLIO_GENERATION, 1);
 
         ProfileBillingDTO billing = service(state).read(profileId);
@@ -74,7 +77,21 @@ class BillingStatusReaderImplTest {
         assertThat(billing.getPortfolioRefinementAllowanceRemaining()).isZero();
         assertThat(billing.getAssetVerificationAllowanceRemaining()).isZero();
         assertThat(billing.getActivePlanKey()).isNull();
+        assertThat(billing.getActivePromotionKey()).isEqualTo("launch_access_2026");
         assertThat(state.allowanceProfileId).isNull();
+    }
+
+    @Test
+    void retainsPromotionIdentityAfterPromotionalAllowancesAreConsumed() {
+        RepositoryState state = new RepositoryState();
+        state.activePromotionKey = "launch_access_2026";
+
+        ProfileBillingDTO billing = service(state).read(profileId);
+
+        assertThat(billing).isNotNull();
+        assertThat(billing.getActivePromotionKey()).isEqualTo("launch_access_2026");
+        assertThat(billing.getPortfolioGenerationAllowanceRemaining()).isZero();
+        assertThat(billing.getPortfolioRefinementAllowanceRemaining()).isZero();
     }
 
     @Test
@@ -93,6 +110,7 @@ class BillingStatusReaderImplTest {
         return new BillingStatusReaderImpl(
                 subscriptionRepository(state),
                 ledgerRepository(state),
+                promotionRepository(state),
                 entitlementGrantService(state),
                 allowanceGrantService(state),
                 stripeProperties
@@ -141,6 +159,27 @@ class BillingStatusReaderImplTest {
                     default -> UNHANDLED;
                 }
         );
+    }
+
+    private BillingPromotionEligibilityRepository promotionRepository(RepositoryState state) {
+        return repositoryProxy(
+                BillingPromotionEligibilityRepository.class,
+                (methodName, args) -> switch (methodName) {
+                    case "findFirstByClaimedProfile_IdOrderByClaimedAtDesc" ->
+                            Optional.ofNullable(promotion(state.activePromotionKey));
+                    default -> UNHANDLED;
+                }
+        );
+    }
+
+    private BillingPromotionEligibility promotion(String campaignKey) {
+        if (campaignKey == null) {
+            return null;
+        }
+
+        BillingPromotionEligibility promotion = new BillingPromotionEligibility();
+        promotion.setCampaignKey(campaignKey);
+        return promotion;
     }
 
     private BillingAllowanceGrantService allowanceGrantService(RepositoryState state) {
@@ -211,6 +250,7 @@ class BillingStatusReaderImplTest {
         private final Map<CreditBucket, Integer> allowanceBalances =
                 new EnumMap<>(CreditBucket.class);
         private BillingSubscription activeSubscription;
+        private String activePromotionKey;
         private int generalCredits;
         private UUID entitlementProfileId;
         private OffsetDateTime entitlementActiveAt;

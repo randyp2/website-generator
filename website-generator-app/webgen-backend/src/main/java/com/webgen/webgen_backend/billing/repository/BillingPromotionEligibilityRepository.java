@@ -29,4 +29,11 @@ public interface BillingPromotionEligibilityRepository
     );
 
     boolean existsByCampaignKeyAndClaimedProfile_Id(String campaignKey, UUID profileId);
+
+    /**
+     * Returns the most recently claimed promotion for a profile's billing summary.
+     */
+    Optional<BillingPromotionEligibility> findFirstByClaimedProfile_IdOrderByClaimedAtDesc(
+            UUID profileId
+    );
 }

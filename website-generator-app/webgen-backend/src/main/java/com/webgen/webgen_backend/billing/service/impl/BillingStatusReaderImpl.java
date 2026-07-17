@@ -4,6 +4,7 @@ import com.webgen.webgen_backend.billing.config.StripeProperties;
 import com.webgen.webgen_backend.billing.entity.BillingSubscription;
 import com.webgen.webgen_backend.billing.model.CreditBucket;
 import com.webgen.webgen_backend.billing.repository.BillingCreditLedgerEntryRepository;
+import com.webgen.webgen_backend.billing.repository.BillingPromotionEligibilityRepository;
 import com.webgen.webgen_backend.billing.repository.BillingSubscriptionRepository;
 import com.webgen.webgen_backend.billing.service.BillingAllowanceGrantService;
 import com.webgen.webgen_backend.billing.service.BillingEntitlementGrantService;
@@ -29,6 +30,7 @@ public class BillingStatusReaderImpl implements BillingStatusReader {
 
     private final BillingSubscriptionRepository billingSubscriptionRepository;
     private final BillingCreditLedgerEntryRepository billingCreditLedgerEntryRepository;
+    private final BillingPromotionEligibilityRepository billingPromotionEligibilityRepository;
     private final BillingEntitlementGrantService billingEntitlementGrantService;
     private final BillingAllowanceGrantService billingAllowanceGrantService;
     private final StripeProperties stripeProperties;
@@ -68,8 +70,13 @@ public class BillingStatusReaderImpl implements BillingStatusReader {
                 CreditBucket.ASSET_VERIFICATION,
                 activeAt
         );
+        String activePromotionKey = billingPromotionEligibilityRepository
+                .findFirstByClaimedProfile_IdOrderByClaimedAtDesc(profileId)
+                .map(eligibility -> eligibility.getCampaignKey())
+                .orElse(null);
 
         if (activeOptional.isEmpty()
+                && !StringUtils.hasText(activePromotionKey)
                 && balanceOrZero(creditBalance) == 0
                 && generationAllowance == 0
                 && refinementAllowance == 0
@@ -78,6 +85,7 @@ public class BillingStatusReaderImpl implements BillingStatusReader {
         }
 
         ProfileBillingDTO.ProfileBillingDTOBuilder builder = ProfileBillingDTO.builder()
+                .activePromotionKey(activePromotionKey)
                 .creditBalance(balanceOrZero(creditBalance))
                 .portfolioGenerationAllowanceRemaining(generationAllowance)
                 .portfolioRefinementAllowanceRemaining(refinementAllowance)

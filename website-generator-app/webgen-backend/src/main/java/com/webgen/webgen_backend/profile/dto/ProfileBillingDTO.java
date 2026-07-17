@@ -10,6 +10,7 @@ import java.time.OffsetDateTime;
 public class ProfileBillingDTO {
     private String activePriceKey;
     private String activePlanKey;
+    private String activePromotionKey;
     private String status;
     private OffsetDateTime currentPeriodEnd;
     private OffsetDateTime cancelAt;

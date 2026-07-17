@@ -13,6 +13,7 @@ export type ProfileMeBillingSnapshot = {
     portfolioRefinementAllowanceRemaining?: number | null;
     assetVerificationAllowanceRemaining?: number | null;
     activePlanKey?: string | null;
+    activePromotionKey?: string | null;
     activePriceKey?: string | null;
     status?: string | null;
     currentPeriodEnd?: string | null;
