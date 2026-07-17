@@ -19,7 +19,7 @@ public interface BillingCreditLedgerEntryRepository extends JpaRepository<Billin
 
     boolean existsByStripeEventId(String stripeEventId);
 
-    boolean existsByCheckoutSessionId(String checkoutSessionId);
+    boolean existsByCheckoutSessionIdAndReason(String checkoutSessionId, String reason);
 
     Optional<BillingCreditLedgerEntry> findByCheckoutSessionId(String checkoutSessionId);
 

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.webgen.webgen_backend.billing.entity.BillingCreditLedgerEntry;
-import com.webgen.webgen_backend.billing.model.webhook.StripeCheckoutSessionCompletedModel;
+import com.webgen.webgen_backend.billing.model.webhook.StripeCheckoutSessionSnapshotModel;
 import com.webgen.webgen_backend.billing.model.webhook.StripeInvoiceSnapshotModel;
 import com.webgen.webgen_backend.billing.model.webhook.StripeWebhookEventType;
 import com.webgen.webgen_backend.billing.repository.BillingCreditLedgerEntryRepository;
@@ -29,6 +29,8 @@ import java.util.UUID;
 public class BillingCreditLedgerServiceImpl implements BillingCreditLedgerService {
 
     private static final String PURCHASE_TYPE_CREDITS = "credits";
+    private static final String PAYMENT_STATUS_PAID = "paid";
+    private static final String PAYMENT_STATUS_NO_PAYMENT_REQUIRED = "no_payment_required";
 
     private static final int CREDIT_PACK_SMALL_CREDITS = 100;
     private static final int CREDIT_PACK_MEDIUM_CREDITS = 500;
@@ -43,15 +45,23 @@ public class BillingCreditLedgerServiceImpl implements BillingCreditLedgerServic
 
     @Override
     @Transactional
-    public void fulfillCheckoutSessionCompleted(StripeCheckoutSessionCompletedModel snapshot) {
+    public void fulfillCheckoutSession(StripeCheckoutSessionSnapshotModel snapshot) {
         if (snapshot == null) {
             return;
         }
 
         String purchaseType = normalizeLower(snapshot.getPurchaseType());
         if (!PURCHASE_TYPE_CREDITS.equals(purchaseType)) {
-            System.out.println(">>> [BillingCredit] skip checkout fulfillment — purchaseType="
+            System.out.println(">>> [BillingCredit] skip checkout fulfillment: purchaseType="
                     + purchaseType + " (not credits)");
+            return;
+        }
+
+        if (!isConfirmedPayment(snapshot)) {
+            System.out.println(">>> [BillingCredit] skip checkout fulfillment: sessionId="
+                    + nullSafeText(snapshot.getCheckoutSessionId())
+                    + " eventType=" + eventTypeValue(snapshot)
+                    + " paymentStatus=" + normalizeLower(snapshot.getPaymentStatus()));
             return;
         }
 
@@ -64,14 +74,19 @@ public class BillingCreditLedgerServiceImpl implements BillingCreditLedgerServic
                 "Checkout session id is required for checkout fulfillment"
         );
 
-        // --- Prevent duplicate credit grants across Stripe retries and repeated handlers.
+        Profile profile = resolveProfile(snapshot.getProfileId(), snapshot.getStripeCustomerId());
+
+        // Profile locking serializes fulfillment for the same customer. The database
+        // unique index remains the final safeguard across inconsistent event metadata.
         if (billingCreditLedgerEntryRepository.existsByStripeEventId(stripeEventId)
-                || billingCreditLedgerEntryRepository.existsByCheckoutSessionId(checkoutSessionId)) {
+                || billingCreditLedgerEntryRepository.existsByCheckoutSessionIdAndReason(
+                        checkoutSessionId,
+                        REASON_CREDIT_PACK_PURCHASE
+                )) {
             return;
         }
 
         int creditDelta = resolveCreditPackCredits(snapshot.getPriceKey());
-        Profile profile = resolveProfile(snapshot.getProfileId(), snapshot.getStripeCustomerId());
 
         // --- Persist the append-only credit movement for reconciliation and balance derivation.
         BillingCreditLedgerEntry entry = new BillingCreditLedgerEntry();
@@ -97,7 +112,7 @@ public class BillingCreditLedgerServiceImpl implements BillingCreditLedgerServic
 
     private Profile resolveProfile(UUID profileId, String stripeCustomerId) {
         if (profileId != null) {
-            return profileRepository.findById(profileId)
+            return profileRepository.findByIdForUpdate(profileId)
                     .orElseThrow(() -> new ResponseStatusException(
                             HttpStatus.NOT_FOUND,
                             "Profile with profile id not found"
@@ -108,10 +123,15 @@ public class BillingCreditLedgerServiceImpl implements BillingCreditLedgerServic
                 stripeCustomerId,
                 "Stripe customer id is required to resolve profile"
         );
-        return profileRepository.findByStripeCustomerId(resolvedStripeCustomerId)
+        Profile resolvedProfile = profileRepository.findByStripeCustomerId(resolvedStripeCustomerId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "Profile with stripe customer id not found"
+                ));
+        return profileRepository.findByIdForUpdate(resolvedProfile.getId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Profile with profile id not found"
                 ));
     }
 
@@ -132,9 +152,10 @@ public class BillingCreditLedgerServiceImpl implements BillingCreditLedgerServic
         };
     }
 
-    private ObjectNode buildCheckoutMetadata(StripeCheckoutSessionCompletedModel snapshot) {
+    private ObjectNode buildCheckoutMetadata(StripeCheckoutSessionSnapshotModel snapshot) {
         ObjectNode metadata = objectMapper.createObjectNode();
-        metadata.put("source_event_type", StripeWebhookEventType.CHECKOUT_SESSION_COMPLETED.value());
+        metadata.put("source_event_type", eventTypeValue(snapshot));
+        metadata.put("payment_status", normalizeLower(snapshot.getPaymentStatus()));
         metadata.put("purchase_type", normalizeLower(snapshot.getPurchaseType()));
         metadata.put("price_key", nullSafeText(snapshot.getPriceKey()));
         metadata.put("price_id", nullSafeText(snapshot.getPriceId()));
@@ -145,6 +166,23 @@ public class BillingCreditLedgerServiceImpl implements BillingCreditLedgerServic
         JsonNode sourceMetadata = objectOrEmpty(snapshot.getMetadata());
         metadata.set("checkout_metadata", sourceMetadata);
         return metadata;
+    }
+
+    private boolean isConfirmedPayment(StripeCheckoutSessionSnapshotModel snapshot) {
+        StripeWebhookEventType eventType = snapshot.getEventType();
+        if (eventType != StripeWebhookEventType.CHECKOUT_SESSION_COMPLETED
+                && eventType != StripeWebhookEventType.CHECKOUT_SESSION_ASYNC_PAYMENT_SUCCEEDED) {
+            return false;
+        }
+
+        String paymentStatus = normalizeLower(snapshot.getPaymentStatus());
+        return PAYMENT_STATUS_PAID.equals(paymentStatus)
+                || PAYMENT_STATUS_NO_PAYMENT_REQUIRED.equals(paymentStatus);
+    }
+
+    private String eventTypeValue(StripeCheckoutSessionSnapshotModel snapshot) {
+        StripeWebhookEventType eventType = snapshot.getEventType();
+        return eventType != null ? eventType.value() : "";
     }
 
     private JsonNode objectOrEmpty(JsonNode candidate) {
