@@ -35,6 +35,21 @@ public interface AccountDeletionRequestRepository
                 stripe_customer_deleted_at = COALESCE(stripe_customer_deleted_at, now()),
                 updated_at = now()
             WHERE profile_id = :profileId
+              AND stage IN ('REQUESTED', 'STRIPE_CUSTOMER_DELETED')
             """, nativeQuery = true)
     int markStripeCustomerDeleted(@Param("profileId") UUID profileId);
+
+    /**
+     * Advances the durable workflow after every object storage provider succeeds.
+     */
+    @Modifying
+    @Query(value = """
+            UPDATE public.account_deletion_requests
+            SET stage = 'OBJECT_STORAGE_DELETED',
+                object_storage_deleted_at = COALESCE(object_storage_deleted_at, now()),
+                updated_at = now()
+            WHERE profile_id = :profileId
+              AND stage IN ('STRIPE_CUSTOMER_DELETED', 'OBJECT_STORAGE_DELETED')
+            """, nativeQuery = true)
+    int markObjectStorageDeleted(@Param("profileId") UUID profileId);
 }

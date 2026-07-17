@@ -1,6 +1,7 @@
 package com.webgen.webgen_backend.portfolio.service.crud;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.webgen.webgen_backend.account.service.AccountDeletionStateService;
 import com.webgen.webgen_backend.portfolio.dto.crud.PublishRequestDTO;
 import com.webgen.webgen_backend.portfolio.dto.crud.PublishResponseDTO;
 import com.webgen.webgen_backend.portfolio.entity.Portfolio;
@@ -116,8 +117,17 @@ class PortfolioCrudServiceImplPublishTest {
                 rabbitTemplate,
                 objectMapper,
                 new VersionSnapshotReader(objectMapper),
-                publishGuard
+                publishGuard,
+                activeAccountStateService()
         );
+    }
+
+    private AccountDeletionStateService activeAccountStateService() {
+        return new AccountDeletionStateService(null, null) {
+            @Override
+            public void assertAccountActive(UUID profileId) {
+            }
+        };
     }
 
     private SiteOwnershipVerification verified(UUID userId) {

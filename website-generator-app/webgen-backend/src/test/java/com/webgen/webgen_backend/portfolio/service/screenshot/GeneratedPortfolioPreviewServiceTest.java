@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.portfolio.service.screenshot;
 
+import com.webgen.webgen_backend.account.service.AccountDeletionStateService;
 import com.webgen.webgen_backend.portfolio.dto.crud.PublishRequestDTO;
 import com.webgen.webgen_backend.portfolio.dto.screenshot.GeneratedPreviewResponseDTO;
 import com.webgen.webgen_backend.portfolio.entity.GeneratedVersion;
@@ -27,8 +28,17 @@ class GeneratedPortfolioPreviewServiceTest {
     private final GeneratedPortfolioPreviewService service = new GeneratedPortfolioPreviewService(
             repositories.portfolios(),
             repositories.versions(),
-            rabbitTemplate
+            rabbitTemplate,
+            activeAccountStateService()
     );
+
+    private static AccountDeletionStateService activeAccountStateService() {
+        return new AccountDeletionStateService(null, null) {
+            @Override
+            public void assertAccountActive(UUID profileId) {
+            }
+        };
+    }
 
     @Test
     void requestPreviewQueuesTheOwnedActiveGeneratedVersion() {

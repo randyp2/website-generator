@@ -14,7 +14,8 @@ public class AssetVerificationJobStatusDTO {
         QUEUED,             // Pushed to redis list
         PROCESSING,         // Running through verification
         COMPLETED,          // Verification successful
-        FAILED              // Verification failed
+        FAILED,             // Verification failed
+        CANCELED            // Account deletion stopped the job
     }
 
     private String jobId;

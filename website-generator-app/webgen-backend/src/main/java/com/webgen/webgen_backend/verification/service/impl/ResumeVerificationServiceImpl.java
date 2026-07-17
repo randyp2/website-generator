@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.verification.service.impl;
 
+import com.webgen.webgen_backend.account.service.AccountDeletionStateService;
 import com.webgen.webgen_backend.verification.dto.ResumeVerificationDTO;
 import com.webgen.webgen_backend.verification.dto.UpdateResumeVerificationParsedDTO;
 import com.webgen.webgen_backend.verification.dto.UploadResumeVerificationRequestDTO;
@@ -25,6 +26,7 @@ public class ResumeVerificationServiceImpl implements ResumeVerificationService 
     private final ProfileRepository profileRepository;
     private final ResumeVerificationRepository resumeVerificationRepository;
     private final ResumeVerificationMapper resumeVerificationMapper;
+    private final AccountDeletionStateService accountDeletionStateService;
 
     @Override
     public ResumeVerificationDTO getResumeVerification(UUID userId) {
@@ -35,6 +37,7 @@ public class ResumeVerificationServiceImpl implements ResumeVerificationService 
 
     @Override
     public ResumeVerificationDTO uploadResumeVerification(UUID userId, UploadResumeVerificationRequestDTO request) {
+        accountDeletionStateService.assertAccountActive(userId);
         System.out.println(">>> [RESUME VERIFICATION SERVICE] entered upload resume verification serviced");
         validateRequest(request);
         Profile profile = resolveOrCreateProfile(userId);

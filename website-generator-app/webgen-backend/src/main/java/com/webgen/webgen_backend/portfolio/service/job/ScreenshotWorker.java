@@ -1,6 +1,7 @@
 package com.webgen.webgen_backend.portfolio.service.job;
 
 import com.rabbitmq.client.Channel;
+import com.webgen.webgen_backend.account.service.AccountDeletionStateService;
 import com.webgen.webgen_backend.shared.config.RabbitMQConfig;
 import com.webgen.webgen_backend.portfolio.entity.Portfolio;
 import com.webgen.webgen_backend.portfolio.service.screenshot.ScreenshotService;
@@ -8,6 +9,7 @@ import com.webgen.webgen_backend.portfolio.service.screenshot.ScreenshotStorageS
 import com.webgen.webgen_backend.portfolio.service.screenshot.GeneratedPreviewScreenshotProcessor;
 import com.webgen.webgen_backend.portfolio.service.screenshot.ExternalPreviewScreenshotProcessor;
 import com.webgen.webgen_backend.portfolio.repository.PortfolioRepository;
+import com.webgen.webgen_backend.portfolio.repository.SiteOwnershipVerificationRepository;
 import com.webgen.webgen_backend.shared.util.ExternalUrlSafetyValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +30,8 @@ public class ScreenshotWorker {
     private final ScreenshotService screenshotService;
     private final ScreenshotStorageService screenshotStorageService;
     private final PortfolioRepository portfolioRepository;
+    private final SiteOwnershipVerificationRepository siteOwnershipVerificationRepository;
+    private final AccountDeletionStateService accountDeletionStateService;
     private final GeneratedPreviewScreenshotProcessor generatedPreviewProcessor;
     private final ExternalPreviewScreenshotProcessor externalPreviewProcessor;
 
@@ -45,6 +49,12 @@ public class ScreenshotWorker {
                     msg.getSiteVerificationId(),
                     msg.getSlug()
             );
+
+            if (isOwnedByDeletingAccount(msg)) {
+                log.info("Skipping screenshot for deleting account jobId={}", msg.getJobId());
+                channel.basicAck(deliveryTag, false);
+                return;
+            }
 
             if (StringUtils.hasText(msg.getSiteVerificationId())) {
                 externalPreviewProcessor.process(msg);
@@ -137,5 +147,30 @@ public class ScreenshotWorker {
                 .map(Portfolio::getPublishedVersionId)
                 .map(currentPin -> !msg.getPublishedVersionId().equals(currentPin.toString()))
                 .orElse(true);
+    }
+
+    private boolean isOwnedByDeletingAccount(ScreenshotMessage message) {
+        UUID profileId = resolveOwningProfileId(message);
+        return accountDeletionStateService.hasDeletionStarted(profileId);
+    }
+
+    private UUID resolveOwningProfileId(ScreenshotMessage message) {
+        try {
+            if (StringUtils.hasText(message.getSiteVerificationId())) {
+                UUID verificationId = UUID.fromString(message.getSiteVerificationId());
+                return siteOwnershipVerificationRepository.findById(verificationId)
+                        .map(verification -> verification.getUserId())
+                        .orElse(null);
+            }
+            if (StringUtils.hasText(message.getPortfolioId())) {
+                UUID portfolioId = UUID.fromString(message.getPortfolioId());
+                return portfolioRepository.findById(portfolioId)
+                        .map(Portfolio::getUserId)
+                        .orElse(null);
+            }
+            return null;
+        } catch (IllegalArgumentException exception) {
+            return null;
+        }
     }
 }

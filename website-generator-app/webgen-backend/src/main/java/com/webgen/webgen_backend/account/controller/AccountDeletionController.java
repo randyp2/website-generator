@@ -23,6 +23,9 @@ public class AccountDeletionController {
 
     private final AccountDeletionService accountDeletionService;
 
+    /**
+     * Starts or resumes deletion for the authenticated account.
+     */
     @DeleteMapping
     public ResponseEntity<AccountDeletionProgressDTO> deleteMyAccount(
             @RequestBody DeleteAccountRequestDTO request

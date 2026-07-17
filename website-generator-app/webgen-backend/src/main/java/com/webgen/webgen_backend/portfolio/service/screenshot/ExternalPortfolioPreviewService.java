@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.portfolio.service.screenshot;
 
+import com.webgen.webgen_backend.account.service.AccountDeletionStateService;
 import com.webgen.webgen_backend.portfolio.dto.screenshot.ExternalPreviewResponseDTO;
 import com.webgen.webgen_backend.portfolio.entity.SiteOwnershipVerification;
 import com.webgen.webgen_backend.portfolio.model.screenshot.SitePreviewStatus;
@@ -23,9 +24,11 @@ public class ExternalPortfolioPreviewService {
 
     private final SiteOwnershipVerificationRepository repository;
     private final RabbitTemplate rabbitTemplate;
+    private final AccountDeletionStateService accountDeletionStateService;
 
     /** Queues or retries a screenshot for a user-owned verified website. */
     public ExternalPreviewResponseDTO requestPreview(UUID userId, UUID verificationId) {
+        accountDeletionStateService.assertAccountActive(userId);
         SiteOwnershipVerification verification = loadVerified(userId, verificationId);
         SitePreviewStatus status = statusOf(verification);
         if (status == SitePreviewStatus.READY

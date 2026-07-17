@@ -66,6 +66,24 @@ class AccountDeletionStateServiceTest {
                 );
     }
 
+    @Test
+    void doesNotRegressACompletedStorageStageDuringConcurrentStripeCleanup() {
+        UUID profileId = UUID.randomUUID();
+        AccountDeletionRequest request = new AccountDeletionRequest();
+        request.setProfileId(profileId);
+        request.setStage(AccountDeletionStage.OBJECT_STORAGE_DELETED);
+        AccountDeletionRequestRepository requestRepository =
+                completedStageRepository(request);
+        AccountDeletionStateService service = new AccountDeletionStateService(
+                requestRepository,
+                profileRepository(Optional.empty())
+        );
+
+        AccountDeletionStage stage = service.markStripeCustomerDeleted(profileId);
+
+        assertThat(stage).isEqualTo(AccountDeletionStage.OBJECT_STORAGE_DELETED);
+    }
+
     private ProfileRepository profileRepository(Optional<Profile> profile) {
         return (ProfileRepository) Proxy.newProxyInstance(
                 ProfileRepository.class.getClassLoader(),
@@ -98,6 +116,25 @@ class AccountDeletionStateServiceTest {
                     case "findById" -> request;
                     case "existsById" -> exists;
                     case "toString" -> "AccountDeletionRequestRepositoryStub";
+                    case "hashCode" -> System.identityHashCode(proxy);
+                    case "equals" -> proxy == args[0];
+                    default -> throw new UnsupportedOperationException(
+                            "Unexpected deletion repository method: " + method.getName()
+                    );
+                }
+        );
+    }
+
+    private AccountDeletionRequestRepository completedStageRepository(
+            AccountDeletionRequest request
+    ) {
+        return (AccountDeletionRequestRepository) Proxy.newProxyInstance(
+                AccountDeletionRequestRepository.class.getClassLoader(),
+                new Class[]{AccountDeletionRequestRepository.class},
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "markStripeCustomerDeleted" -> 0;
+                    case "findById" -> Optional.of(request);
+                    case "toString" -> "CompletedDeletionRepositoryStub";
                     case "hashCode" -> System.identityHashCode(proxy);
                     case "equals" -> proxy == args[0];
                     default -> throw new UnsupportedOperationException(

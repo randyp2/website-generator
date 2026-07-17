@@ -1,6 +1,7 @@
 package com.webgen.webgen_backend.verification.service.job;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.webgen.webgen_backend.account.service.AccountDeletionStateService;
 import com.webgen.webgen_backend.verification.dto.job.AssetVerificationEnqueueDTO;
 import com.webgen.webgen_backend.verification.dto.job.AssetVerificationJobStatusDTO;
 import com.webgen.webgen_backend.verification.entity.AssetVerificationJob;
@@ -36,9 +37,11 @@ public class AssetVerificationJobService {
     private final AssetVerificationJobRepository jobRepository;
     private final VerificationOutboxRepository outboxRepository;
     private final ClaimEvidenceUploadRepository uploadRepository;
+    private final AccountDeletionStateService accountDeletionStateService;
 
     @Transactional
     public String createJobAndQueue(AssetVerificationEnqueueDTO request) {
+        accountDeletionStateService.assertAccountActive(request.getProfileId());
         UUID jobId = UUID.randomUUID();
         OffsetDateTime now = OffsetDateTime.now();
         AssetVerificationMessage message = toMessage(jobId, request, now);
@@ -102,6 +105,27 @@ public class AssetVerificationJobService {
         log.warn("Verification attempt failed jobId={} attempt={}/{} retry={} reason={}",
                 jobId, job.getAttemptCount(), job.getMaxAttempts(), retry, message);
         return retry;
+    }
+
+    /**
+     * Stops a queued or in-flight verification from being recovered after deletion begins.
+     */
+    @Transactional
+    public void cancelForAccountDeletion(String jobId) {
+        if (jobId == null) {
+            return;
+        }
+        try {
+            jobRepository.findById(UUID.fromString(jobId)).ifPresent(job -> {
+                job.setStatus("canceled");
+                job.setError("Account deletion is in progress");
+                job.setCompletedAt(OffsetDateTime.now());
+                job.setUpdatedAt(OffsetDateTime.now());
+                save(job);
+            });
+        } catch (IllegalArgumentException exception) {
+            log.warn("Unable to cancel malformed verification job id={}", jobId);
+        }
     }
 
     public AssetVerificationJobStatusDTO getJob(String jobId) {

@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.portfolio.service.verification;
 
+import com.webgen.webgen_backend.account.service.AccountDeletionStateService;
 import com.webgen.webgen_backend.portfolio.dto.verification.CreateSiteOwnershipVerificationRequestDTO;
 import com.webgen.webgen_backend.portfolio.dto.verification.SiteOwnershipVerificationDTO;
 import com.webgen.webgen_backend.portfolio.entity.SiteOwnershipVerification;
@@ -32,6 +33,7 @@ public class SiteOwnershipVerificationService {
     private final SiteVerificationUrlCanonicalizer urlCanonicalizer;
     private final SiteVerificationTokenGenerator tokenGenerator;
     private final SiteOwnershipVerificationDtoMapper dtoMapper;
+    private final AccountDeletionStateService accountDeletionStateService;
 
     /**
      * Creates, reuses, or refreshes a challenge for the authenticated user and URL.
@@ -46,6 +48,7 @@ public class SiteOwnershipVerificationService {
         if (request == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request body is required");
         }
+        accountDeletionStateService.assertAccountActive(userId);
 
         CanonicalSiteUrl siteUrl = canonicalize(request.getExternalUrl());
         OffsetDateTime now = OffsetDateTime.now();

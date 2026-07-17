@@ -137,7 +137,7 @@ class SiteOwnershipVerificationControllerTest {
         private String externalUrl;
 
         private RecordingService(SiteOwnershipVerificationDTO response) {
-            super(null, null, null, null);
+            super(null, null, null, null, null);
             this.response = response;
         }
 

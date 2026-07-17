@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.verification.service.impl;
 
+import com.webgen.webgen_backend.account.service.AccountDeletionStateService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -70,6 +71,7 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
     private final ClaimEvidenceUploadObjectVerifier claimEvidenceUploadObjectVerifier;
     private final AssetVerificationJobService assetVerificationJobService;
     private final EvidenceRetractionService evidenceRetractionService;
+    private final AccountDeletionStateService accountDeletionStateService;
 
     @Override
     @Transactional
@@ -78,6 +80,7 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
             UUID claimId,
             CreateClaimEvidenceUploadPresignRequestDTO request
     ) {
+        accountDeletionStateService.assertAccountActive(profileId);
         //--- Validate request payload and claim ownership
         validatePresignRequest(profileId, claimId, request);
         Claim claim = ensureClaimOwnedByProfile(profileId, claimId);
@@ -151,6 +154,7 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
             UUID claimId,
             FinalizeClaimEvidenceUploadRequestDTO request
     ) {
+        accountDeletionStateService.assertAccountActive(profileId);
         log.info("Asset upload finalize started profileId={} claimId={} uploadId={}",
                 profileId, claimId, request == null ? null : request.getUploadId());
 

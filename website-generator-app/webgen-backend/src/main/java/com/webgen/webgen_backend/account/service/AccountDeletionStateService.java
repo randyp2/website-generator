@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
+import java.util.function.Predicate;
 
 /**
  * Owns durable account deletion state and guards operations that can create billing state.
@@ -60,13 +61,52 @@ public class AccountDeletionStateService {
     @Transactional
     public AccountDeletionStage markStripeCustomerDeleted(UUID profileId) {
         int updatedRows = accountDeletionRequestRepository.markStripeCustomerDeleted(profileId);
-        if (updatedRows != 1) {
-            throw new ResponseStatusException(
-                    HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Unable to update account deletion progress"
-            );
+        if (updatedRows == 1) {
+            return AccountDeletionStage.STRIPE_CUSTOMER_DELETED;
         }
-        return AccountDeletionStage.STRIPE_CUSTOMER_DELETED;
+        return currentCompletedStage(
+                profileId,
+                AccountDeletionStage::isStripeCleanupComplete,
+                "Unable to update account deletion progress"
+        );
+    }
+
+    /**
+     * Records completion only after every configured object storage provider succeeds.
+     */
+    @Transactional
+    public AccountDeletionStage markObjectStorageDeleted(UUID profileId) {
+        int updatedRows = accountDeletionRequestRepository.markObjectStorageDeleted(profileId);
+        if (updatedRows == 1) {
+            return AccountDeletionStage.OBJECT_STORAGE_DELETED;
+        }
+        return currentCompletedStage(
+                profileId,
+                AccountDeletionStage::isObjectStorageCleanupComplete,
+                "Unable to update object storage deletion progress"
+        );
+    }
+
+    /**
+     * Returns whether deletion has started without throwing at worker boundaries.
+     */
+    @Transactional(readOnly = true)
+    public boolean hasDeletionStarted(UUID profileId) {
+        return profileId != null && accountDeletionRequestRepository.existsById(profileId);
+    }
+
+    private AccountDeletionStage currentCompletedStage(
+            UUID profileId,
+            Predicate<AccountDeletionStage> isComplete,
+            String failureMessage
+    ) {
+        return accountDeletionRequestRepository.findById(profileId)
+                .map(AccountDeletionRequest::getStage)
+                .filter(isComplete)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        failureMessage
+                ));
     }
 
     /**

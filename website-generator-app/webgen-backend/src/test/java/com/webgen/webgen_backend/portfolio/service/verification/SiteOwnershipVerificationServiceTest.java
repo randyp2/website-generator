@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.portfolio.service.verification;
 
+import com.webgen.webgen_backend.account.service.AccountDeletionStateService;
 import com.webgen.webgen_backend.portfolio.dto.verification.CreateSiteOwnershipVerificationRequestDTO;
 import com.webgen.webgen_backend.portfolio.dto.verification.SiteOwnershipVerificationDTO;
 import com.webgen.webgen_backend.portfolio.entity.SiteOwnershipVerification;
@@ -129,7 +130,12 @@ class SiteOwnershipVerificationServiceTest {
                     repository(),
                     new SiteVerificationUrlCanonicalizer(),
                     new SiteVerificationTokenGenerator(),
-                    new SiteOwnershipVerificationDtoMapper()
+                    new SiteOwnershipVerificationDtoMapper(),
+                    new AccountDeletionStateService(null, null) {
+                        @Override
+                        public void assertAccountActive(UUID profileId) {
+                        }
+                    }
             );
         }
 

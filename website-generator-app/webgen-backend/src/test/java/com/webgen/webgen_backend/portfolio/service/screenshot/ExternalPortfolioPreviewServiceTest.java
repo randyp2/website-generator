@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.portfolio.service.screenshot;
 
+import com.webgen.webgen_backend.account.service.AccountDeletionStateService;
 import com.webgen.webgen_backend.portfolio.dto.screenshot.ExternalPreviewResponseDTO;
 import com.webgen.webgen_backend.portfolio.entity.SiteOwnershipVerification;
 import com.webgen.webgen_backend.portfolio.model.screenshot.SitePreviewStatus;
@@ -26,8 +27,17 @@ class ExternalPortfolioPreviewServiceTest {
     private final RecordingRabbitTemplate rabbitTemplate = new RecordingRabbitTemplate();
     private final ExternalPortfolioPreviewService service = new ExternalPortfolioPreviewService(
             repository.proxy(),
-            rabbitTemplate
+            rabbitTemplate,
+            activeAccountStateService()
     );
+
+    private static AccountDeletionStateService activeAccountStateService() {
+        return new AccountDeletionStateService(null, null) {
+            @Override
+            public void assertAccountActive(UUID profileId) {
+            }
+        };
+    }
 
     @Test
     void requestPreviewQueuesVerifiedWebsiteOnce() {
@@ -98,7 +108,8 @@ class ExternalPortfolioPreviewServiceTest {
         SiteOwnershipVerification verification = repository.storeVerified(SitePreviewStatus.NOT_REQUESTED);
         ExternalPortfolioPreviewService failingService = new ExternalPortfolioPreviewService(
                 repository.proxy(),
-                new ThrowingRabbitTemplate()
+                new ThrowingRabbitTemplate(),
+                activeAccountStateService()
         );
 
         assertThatThrownBy(() -> failingService.requestPreview(

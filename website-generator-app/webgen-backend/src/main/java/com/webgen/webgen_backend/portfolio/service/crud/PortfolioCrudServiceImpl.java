@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.portfolio.service.crud;
 
+import com.webgen.webgen_backend.account.service.AccountDeletionStateService;
 import com.webgen.webgen_backend.shared.config.RabbitMQConfig;
 import com.webgen.webgen_backend.portfolio.dto.common.AssetDTO;
 import com.webgen.webgen_backend.portfolio.dto.common.ResumeDTO;
@@ -65,6 +66,7 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
     private final ObjectMapper objectMapper;
     private final VersionSnapshotReader versionSnapshotReader;
     private final SiteOwnershipPublishGuard siteOwnershipPublishGuard;
+    private final AccountDeletionStateService accountDeletionStateService;
 
     private static final int MAX_PORTFOLIO_DESCRIPTION_LENGTH = 1000;
 
@@ -105,6 +107,7 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
 
     @Override
     public PortfolioDTO createDraft(UUID userId, CreatePortfolioRequestDTO request) {
+        accountDeletionStateService.assertAccountActive(userId);
         Portfolio portfolio = new Portfolio();
         portfolio.setId(UUID.randomUUID());
         portfolio.setUserId(userId);
@@ -158,6 +161,7 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
 
     @Override
     public UploadPortfolioResponseDTO saveUploads(UUID userId, UUID portfolioId, UploadPortfolioRequestDTO req) {
+        accountDeletionStateService.assertAccountActive(userId);
         // Ownership check
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio not found"));
@@ -361,6 +365,7 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
 
     @Override
     public ActivateVersionResponseDTO publishActiveVersion(UUID userId, UUID portfolioId) {
+        accountDeletionStateService.assertAccountActive(userId);
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio not found"));
 
@@ -427,6 +432,7 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
 
     @Override
     public PublishResponseDTO publishPortfolio(UUID userId, PublishRequestDTO request) {
+        accountDeletionStateService.assertAccountActive(userId);
         request = Objects.requireNonNull(request, "request must not be null");
 
         // Default to GENERATED if empty request

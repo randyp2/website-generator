@@ -27,7 +27,7 @@ class AccountDeletionControllerTest {
     }
 
     @Test
-    void startsDeletionForAuthenticatedUserAndReportsPartialProgress() throws Exception {
+    void startsDeletionForAuthenticatedUserAndReportsProgress() throws Exception {
         UUID profileId = UUID.randomUUID();
         RecordingAccountDeletionService service = new RecordingAccountDeletionService();
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
@@ -41,7 +41,7 @@ class AccountDeletionControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"confirmation\":\"DELETE\"}"))
                 .andExpect(status().isAccepted())
-                .andExpect(jsonPath("$.stage").value("STRIPE_CUSTOMER_DELETED"))
+                .andExpect(jsonPath("$.stage").value("OBJECT_STORAGE_DELETED"))
                 .andExpect(jsonPath("$.accountDeleted").value(false));
 
         assertThat(service.profileId).isEqualTo(profileId);
@@ -49,10 +49,14 @@ class AccountDeletionControllerTest {
     }
 
     private static final class RecordingAccountDeletionService
-            implements AccountDeletionService {
+            extends AccountDeletionService {
 
         private UUID profileId;
         private DeleteAccountRequestDTO request;
+
+        private RecordingAccountDeletionService() {
+            super(null, null, null);
+        }
 
         @Override
         public AccountDeletionProgressDTO beginAccountDeletion(
@@ -62,7 +66,7 @@ class AccountDeletionControllerTest {
             this.profileId = profileId;
             this.request = request;
             return AccountDeletionProgressDTO.builder()
-                    .stage(AccountDeletionStage.STRIPE_CUSTOMER_DELETED)
+                    .stage(AccountDeletionStage.OBJECT_STORAGE_DELETED)
                     .accountDeleted(false)
                     .build();
         }

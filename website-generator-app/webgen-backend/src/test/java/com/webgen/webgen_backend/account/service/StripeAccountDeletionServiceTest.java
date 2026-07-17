@@ -1,4 +1,4 @@
-package com.webgen.webgen_backend.account.service.impl;
+package com.webgen.webgen_backend.account.service;
 
 import com.stripe.exception.ApiConnectionException;
 import com.stripe.exception.InvalidRequestException;
@@ -13,15 +13,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class StripeAccountDeletionServiceImplTest {
+class StripeAccountDeletionServiceTest {
 
     @Test
     void deletesExistingStripeCustomer() throws Exception {
         Customer deletedCustomer = new Customer();
         deletedCustomer.setDeleted(true);
         RecordingGateway gateway = new RecordingGateway(deletedCustomer, null);
-        StripeAccountDeletionServiceImpl service =
-                new StripeAccountDeletionServiceImpl(gateway);
+        StripeAccountDeletionService service = new StripeAccountDeletionService(gateway);
 
         service.deleteCustomer(" cus_account ");
 
@@ -39,8 +38,7 @@ class StripeAccountDeletionServiceImplTest {
                 null
         );
         RecordingGateway gateway = new RecordingGateway(null, missing);
-        StripeAccountDeletionServiceImpl service =
-                new StripeAccountDeletionServiceImpl(gateway);
+        StripeAccountDeletionService service = new StripeAccountDeletionService(gateway);
 
         assertThatCode(() -> service.deleteCustomer("cus_missing"))
                 .doesNotThrowAnyException();
@@ -52,8 +50,7 @@ class StripeAccountDeletionServiceImplTest {
                 null,
                 new ApiConnectionException("Stripe unavailable")
         );
-        StripeAccountDeletionServiceImpl service =
-                new StripeAccountDeletionServiceImpl(gateway);
+        StripeAccountDeletionService service = new StripeAccountDeletionService(gateway);
 
         assertThatThrownBy(() -> service.deleteCustomer("cus_account"))
                 .isInstanceOfSatisfying(ResponseStatusException.class, exception ->
@@ -64,22 +61,21 @@ class StripeAccountDeletionServiceImplTest {
     @Test
     void accountWithoutStripeCustomerRequiresNoStripeCall() {
         RecordingGateway gateway = new RecordingGateway(null, null);
-        StripeAccountDeletionServiceImpl service =
-                new StripeAccountDeletionServiceImpl(gateway);
+        StripeAccountDeletionService service = new StripeAccountDeletionService(gateway);
 
         service.deleteCustomer(" ");
 
         assertThat(gateway.stripeCustomerId).isNull();
     }
 
-    private static final class RecordingGateway
-            implements StripeCustomerDeletionGateway {
+    private static final class RecordingGateway extends StripeCustomerDeletionGateway {
 
         private final Customer response;
         private final StripeException exception;
         private String stripeCustomerId;
 
         private RecordingGateway(Customer response, StripeException exception) {
+            super(null);
             this.response = response;
             this.exception = exception;
         }

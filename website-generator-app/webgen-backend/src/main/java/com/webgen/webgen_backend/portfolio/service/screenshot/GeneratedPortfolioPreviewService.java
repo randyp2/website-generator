@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.portfolio.service.screenshot;
 
+import com.webgen.webgen_backend.account.service.AccountDeletionStateService;
 import com.webgen.webgen_backend.portfolio.dto.crud.PublishRequestDTO;
 import com.webgen.webgen_backend.portfolio.dto.screenshot.GeneratedPreviewResponseDTO;
 import com.webgen.webgen_backend.portfolio.entity.GeneratedVersion;
@@ -26,9 +27,11 @@ public class GeneratedPortfolioPreviewService {
     private final PortfolioRepository portfolioRepository;
     private final GeneratedVersionRepository generatedVersionRepository;
     private final RabbitTemplate rabbitTemplate;
+    private final AccountDeletionStateService accountDeletionStateService;
 
     /** Queues a screenshot for the owned portfolio's active generated version. */
     public GeneratedPreviewResponseDTO requestPreview(UUID userId, UUID portfolioId) {
+        accountDeletionStateService.assertAccountActive(userId);
         PreviewContext context = loadContext(userId, portfolioId);
         if (StringUtils.hasText(context.version().getPreviewUrl())) {
             return response(context, GeneratedPreviewResponseDTO.Status.READY);

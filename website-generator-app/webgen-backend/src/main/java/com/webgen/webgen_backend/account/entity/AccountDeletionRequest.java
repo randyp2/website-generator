@@ -35,6 +35,9 @@ public class AccountDeletionRequest {
     @Column(name = "stripe_customer_deleted_at")
     private OffsetDateTime stripeCustomerDeletedAt;
 
+    @Column(name = "object_storage_deleted_at")
+    private OffsetDateTime objectStorageDeletedAt;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
