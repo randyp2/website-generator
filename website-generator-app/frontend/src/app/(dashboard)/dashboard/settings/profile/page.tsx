@@ -50,8 +50,8 @@ const AccountSettingsPage = () => {
                 <SettingsRow
                     icon={KeyRound}
                     iconClassName="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                    title="Password & 2FA"
-                    description="Update your password and second-factor settings."
+                    title="Password"
+                    description="Reset the password used to access your account."
                 >
                     <Button
                         asChild

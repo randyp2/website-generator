@@ -1,4 +1,4 @@
-import { Fingerprint, KeyRound, Link2, Monitor, Smartphone } from "lucide-react";
+import { KeyRound, Link2, Monitor, ShieldCheck, Smartphone } from "lucide-react";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 
@@ -45,10 +45,10 @@ const SecuritySettingsPage = () => {
     return (
         <div className="space-y-8">
             <SettingsSection
-                icon={Fingerprint}
+                icon={ShieldCheck}
                 iconClassName="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                 title="Sign-in security"
-                description="Manage your password and second-factor settings."
+                description="Manage the password used to access your account."
                 className="divide-y divide-border/60"
             >
                 <SettingsRow
@@ -58,22 +58,6 @@ const SecuritySettingsPage = () => {
                     description="Set a strong password unique to this account."
                 >
                     <PasswordResetRequest />
-                </SettingsRow>
-
-                <SettingsRow
-                    icon={Fingerprint}
-                    iconClassName="bg-violet-500/10 text-violet-600 dark:text-violet-400"
-                    title="Two-factor authentication"
-                    description="Add a second verification step at login."
-                >
-                    <StatusPill
-                        active={security.twoFactorEnabled}
-                        activeLabel="Enabled"
-                        inactiveLabel="Disabled"
-                    />
-                    <Button variant="outline" size="sm" disabled>
-                        Configure
-                    </Button>
                 </SettingsRow>
             </SettingsSection>
 

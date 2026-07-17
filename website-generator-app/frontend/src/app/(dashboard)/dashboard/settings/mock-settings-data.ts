@@ -17,7 +17,6 @@ export interface SettingsSecuritySessionMock {
 }
 
 export interface SettingsSecurityMock {
-    twoFactorEnabled: boolean;
     connectedAccounts: {
         github: boolean;
         google: boolean;
@@ -60,7 +59,6 @@ export const SETTINGS_PROFILE_MOCK: SettingsProfileMock = {
 };
 
 export const SETTINGS_SECURITY_MOCK: SettingsSecurityMock = {
-    twoFactorEnabled: false,
     connectedAccounts: {
         github: true,
         google: false,
