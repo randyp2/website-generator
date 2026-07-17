@@ -7,6 +7,8 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import static com.webgen.webgen_backend.shared.integration.SupabaseAdminRequestHeaders.create;
+
 @Service
 public class ScreenshotStorageService {
 
@@ -48,9 +50,7 @@ public class ScreenshotStorageService {
         // Upload via Supabase Storage Rest API
         String uploadUrl = supabaseUrl + "/storage/v1/object/" + BUCKET + "/" + storagePath;
 
-        org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
-        headers.set("Authorization", "Bearer " + serviceRoleKey);
-        headers.set("apikey", serviceRoleKey);
+        org.springframework.http.HttpHeaders headers = create(serviceRoleKey);
         headers.setContentType(MediaType.IMAGE_PNG);
         headers.set("x-upsert", "true"); // Upsert to override double uploads
 

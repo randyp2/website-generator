@@ -40,9 +40,9 @@ class AccountDeletionControllerTest {
         mockMvc.perform(delete("/api/v1/account")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"confirmation\":\"DELETE\"}"))
-                .andExpect(status().isAccepted())
-                .andExpect(jsonPath("$.stage").value("OBJECT_STORAGE_DELETED"))
-                .andExpect(jsonPath("$.accountDeleted").value(false));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stage").value("COMPLETED"))
+                .andExpect(jsonPath("$.accountDeleted").value(true));
 
         assertThat(service.profileId).isEqualTo(profileId);
         assertThat(service.request.getConfirmation()).isEqualTo("DELETE");
@@ -55,7 +55,7 @@ class AccountDeletionControllerTest {
         private DeleteAccountRequestDTO request;
 
         private RecordingAccountDeletionService() {
-            super(null, null, null);
+            super(null, null, null, null, null);
         }
 
         @Override
@@ -66,8 +66,8 @@ class AccountDeletionControllerTest {
             this.profileId = profileId;
             this.request = request;
             return AccountDeletionProgressDTO.builder()
-                    .stage(AccountDeletionStage.OBJECT_STORAGE_DELETED)
-                    .accountDeleted(false)
+                    .stage(AccountDeletionStage.COMPLETED)
+                    .accountDeleted(true)
                     .build();
         }
     }

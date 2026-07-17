@@ -17,7 +17,10 @@ vi.mock("@/utils/supabase/client", () => ({
     createClient: createClientMock,
 }));
 
-import { signoutClient } from "./logout-client";
+import {
+    clearDeletedAccountSession,
+    signoutClient,
+} from "./logout-client";
 
 describe("signoutClient", () => {
     beforeEach(() => {
@@ -38,6 +41,20 @@ describe("signoutClient", () => {
         await signoutClient();
 
         expect(signOutMock).toHaveBeenCalledOnce();
+        expect(
+            readOnboardingDraft(window.sessionStorage, "user-1"),
+        ).toBeNull();
+    });
+
+    it("clears only the current browser session after account deletion", async () => {
+        writeOnboardingDraft(window.sessionStorage, "user-1", {
+            form: DEFAULT_FORM,
+            step: 0,
+        });
+
+        await clearDeletedAccountSession();
+
+        expect(signOutMock).toHaveBeenCalledWith({ scope: "local" });
         expect(
             readOnboardingDraft(window.sessionStorage, "user-1"),
         ).toBeNull();

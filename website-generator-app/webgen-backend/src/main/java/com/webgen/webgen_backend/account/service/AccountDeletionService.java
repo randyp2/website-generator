@@ -22,6 +22,8 @@ public class AccountDeletionService {
     private final AccountDeletionStateService accountDeletionStateService;
     private final StripeAccountDeletionService stripeAccountDeletionService;
     private final AccountObjectStorageDeletionService accountObjectStorageDeletionService;
+    private final AccountApplicationDataDeletionService accountApplicationDataDeletionService;
+    private final AccountAuthDeletionService accountAuthDeletionService;
 
     /**
      * Starts or resumes account deletion for the authenticated profile id.
@@ -50,9 +52,18 @@ public class AccountDeletionService {
             stage = accountDeletionStateService.markObjectStorageDeleted(profileId);
         }
 
+        if (!stage.isApplicationDataCleanupComplete()) {
+            accountApplicationDataDeletionService.deleteForAccount(profileId);
+            stage = accountDeletionStateService.markApplicationDataDeleted(profileId);
+        }
+
+        if (!stage.isAccountDeletionComplete()) {
+            stage = accountAuthDeletionService.deleteForAccount(profileId);
+        }
+
         return AccountDeletionProgressDTO.builder()
                 .stage(stage)
-                .accountDeleted(false)
+                .accountDeleted(stage.isAccountDeletionComplete())
                 .build();
     }
 

@@ -33,7 +33,7 @@ public class AccountDeletionController {
         UUID profileId = UUID.fromString(
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
         );
-        return ResponseEntity.accepted().body(
+        return ResponseEntity.ok(
                 accountDeletionService.beginAccountDeletion(profileId, request)
         );
     }

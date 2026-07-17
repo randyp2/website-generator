@@ -38,6 +38,12 @@ public class AccountDeletionRequest {
     @Column(name = "object_storage_deleted_at")
     private OffsetDateTime objectStorageDeletedAt;
 
+    @Column(name = "application_data_deleted_at")
+    private OffsetDateTime applicationDataDeletedAt;
+
+    @Column(name = "auth_user_deleted_at")
+    private OffsetDateTime authUserDeletedAt;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 

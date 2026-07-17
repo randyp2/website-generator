@@ -20,6 +20,10 @@ vi.mock("@/context/UserContext", () => ({
     useUser: useUserMock,
 }));
 
+vi.mock("./components/DeleteAccountDialog", () => ({
+    DeleteAccountDialog: () => <button type="button">Delete account</button>,
+}));
+
 import AccountSettingsPage from "./page";
 
 describe("AccountSettingsPage", () => {
@@ -49,5 +53,8 @@ describe("AccountSettingsPage", () => {
             screen.getByText("authenticated@example.com"),
         ).toBeInTheDocument();
         expect(await screen.findByText(detectedTimezone)).toBeInTheDocument();
+        expect(
+            screen.getByRole("button", { name: "Delete account" }),
+        ).toBeEnabled();
     });
 });

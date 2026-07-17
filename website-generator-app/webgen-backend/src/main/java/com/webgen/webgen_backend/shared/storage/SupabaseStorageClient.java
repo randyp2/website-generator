@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static com.webgen.webgen_backend.shared.integration.SupabaseAdminRequestHeaders.create;
 import static org.springframework.http.HttpStatus.BAD_GATEWAY;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 
@@ -182,9 +183,7 @@ public class SupabaseStorageClient {
     }
 
     private HttpHeaders storageHeaders() {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(serviceRoleKey);
-        headers.set("apikey", serviceRoleKey);
+        HttpHeaders headers = create(serviceRoleKey);
         headers.setContentType(MediaType.APPLICATION_JSON);
         return headers;
     }

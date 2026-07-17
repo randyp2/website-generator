@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
-import { Clock, KeyRound, Mail, ShieldCheck, Trash2, TriangleAlert } from "lucide-react";
+import { Clock, KeyRound, Mail, ShieldCheck, TriangleAlert } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/context/UserContext";
 import { SettingsRow, SettingsSection } from "../components/SettingsSection";
+import { DeleteAccountDialog } from "./components/DeleteAccountDialog";
 
 const subscribeToTimezone = () => () => undefined;
 
@@ -91,10 +92,7 @@ const AccountSettingsPage = () => {
                     <p className="text-sm text-muted-foreground">
                         Your portfolios, uploads, and profile will be removed.
                     </p>
-                    <Button variant="destructive" disabled className="gap-1.5">
-                        <Trash2 className="h-4 w-4" />
-                        Delete account
-                    </Button>
+                    <DeleteAccountDialog />
                 </div>
             </SettingsSection>
         </div>

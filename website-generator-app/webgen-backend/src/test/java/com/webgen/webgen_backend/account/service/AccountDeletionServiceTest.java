@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class AccountDeletionServiceTest {
 
     @Test
-    void deletesBillingAndStorageThenPersistsCompletedStage() {
+    void completesEveryDeletionStageInOrder() {
         UUID profileId = UUID.randomUUID();
         RecordingStateService stateService = new RecordingStateService(
                 new AccountDeletionStateService.DeletionContext(
@@ -27,10 +27,16 @@ class AccountDeletionServiceTest {
                 new RecordingStripeDeletionService();
         RecordingStorageDeletionService storageService =
                 new RecordingStorageDeletionService();
+        RecordingApplicationDataDeletionService applicationDataService =
+                new RecordingApplicationDataDeletionService();
+        RecordingAuthDeletionService authService =
+                new RecordingAuthDeletionService();
         AccountDeletionService service = new AccountDeletionService(
                 stateService,
                 stripeService,
-                storageService
+                storageService,
+                applicationDataService,
+                authService
         );
 
         AccountDeletionProgressDTO progress = service.beginAccountDeletion(
@@ -43,57 +49,36 @@ class AccountDeletionServiceTest {
         assertThat(stateService.stripeCompletedProfileId).isEqualTo(profileId);
         assertThat(storageService.profileId).isEqualTo(profileId);
         assertThat(stateService.storageCompletedProfileId).isEqualTo(profileId);
-        assertThat(progress.getStage()).isEqualTo(AccountDeletionStage.OBJECT_STORAGE_DELETED);
-        assertThat(progress.isAccountDeleted()).isFalse();
+        assertThat(applicationDataService.profileId).isEqualTo(profileId);
+        assertThat(stateService.applicationDataCompletedProfileId).isEqualTo(profileId);
+        assertThat(authService.profileId).isEqualTo(profileId);
+        assertThat(progress.getStage()).isEqualTo(AccountDeletionStage.COMPLETED);
+        assertThat(progress.isAccountDeleted()).isTrue();
     }
 
     @Test
-    void completedStripeStageSkipsStripeAndResumesStorageCleanup() {
+    void applicationDataStageRetriesOnlyAuthDeletion() {
         UUID profileId = UUID.randomUUID();
         RecordingStateService stateService = new RecordingStateService(
                 new AccountDeletionStateService.DeletionContext(
-                        AccountDeletionStage.STRIPE_CUSTOMER_DELETED,
-                        "cus_account"
+                        AccountDeletionStage.APPLICATION_DATA_DELETED,
+                        null
                 )
         );
         RecordingStripeDeletionService stripeService =
                 new RecordingStripeDeletionService();
         RecordingStorageDeletionService storageService =
                 new RecordingStorageDeletionService();
+        RecordingApplicationDataDeletionService applicationDataService =
+                new RecordingApplicationDataDeletionService();
+        RecordingAuthDeletionService authService =
+                new RecordingAuthDeletionService();
         AccountDeletionService service = new AccountDeletionService(
                 stateService,
                 stripeService,
-                storageService
-        );
-
-        AccountDeletionProgressDTO progress = service.beginAccountDeletion(
-                profileId,
-                confirmedRequest()
-        );
-
-        assertThat(stripeService.stripeCustomerId).isNull();
-        assertThat(stateService.stripeCompletedProfileId).isNull();
-        assertThat(storageService.profileId).isEqualTo(profileId);
-        assertThat(progress.getStage()).isEqualTo(AccountDeletionStage.OBJECT_STORAGE_DELETED);
-    }
-
-    @Test
-    void completedStorageStageSkipsEveryExternalCleanup() {
-        UUID profileId = UUID.randomUUID();
-        RecordingStateService stateService = new RecordingStateService(
-                new AccountDeletionStateService.DeletionContext(
-                        AccountDeletionStage.OBJECT_STORAGE_DELETED,
-                        "cus_account"
-                )
-        );
-        RecordingStripeDeletionService stripeService =
-                new RecordingStripeDeletionService();
-        RecordingStorageDeletionService storageService =
-                new RecordingStorageDeletionService();
-        AccountDeletionService service = new AccountDeletionService(
-                stateService,
-                stripeService,
-                storageService
+                storageService,
+                applicationDataService,
+                authService
         );
 
         AccountDeletionProgressDTO progress = service.beginAccountDeletion(
@@ -103,7 +88,46 @@ class AccountDeletionServiceTest {
 
         assertThat(stripeService.stripeCustomerId).isNull();
         assertThat(storageService.profileId).isNull();
-        assertThat(progress.getStage()).isEqualTo(AccountDeletionStage.OBJECT_STORAGE_DELETED);
+        assertThat(applicationDataService.profileId).isNull();
+        assertThat(authService.profileId).isEqualTo(profileId);
+        assertThat(progress.getStage()).isEqualTo(AccountDeletionStage.COMPLETED);
+    }
+
+    @Test
+    void completedStageSkipsEveryCleanup() {
+        UUID profileId = UUID.randomUUID();
+        RecordingStateService stateService = new RecordingStateService(
+                new AccountDeletionStateService.DeletionContext(
+                        AccountDeletionStage.COMPLETED,
+                        null
+                )
+        );
+        RecordingStripeDeletionService stripeService =
+                new RecordingStripeDeletionService();
+        RecordingStorageDeletionService storageService =
+                new RecordingStorageDeletionService();
+        RecordingApplicationDataDeletionService applicationDataService =
+                new RecordingApplicationDataDeletionService();
+        RecordingAuthDeletionService authService =
+                new RecordingAuthDeletionService();
+        AccountDeletionService service = new AccountDeletionService(
+                stateService,
+                stripeService,
+                storageService,
+                applicationDataService,
+                authService
+        );
+
+        AccountDeletionProgressDTO progress = service.beginAccountDeletion(
+                profileId,
+                confirmedRequest()
+        );
+
+        assertThat(stripeService.stripeCustomerId).isNull();
+        assertThat(storageService.profileId).isNull();
+        assertThat(applicationDataService.profileId).isNull();
+        assertThat(authService.profileId).isNull();
+        assertThat(progress.isAccountDeleted()).isTrue();
     }
 
     @Test
@@ -113,10 +137,16 @@ class AccountDeletionServiceTest {
                 new RecordingStripeDeletionService();
         RecordingStorageDeletionService storageService =
                 new RecordingStorageDeletionService();
+        RecordingApplicationDataDeletionService applicationDataService =
+                new RecordingApplicationDataDeletionService();
+        RecordingAuthDeletionService authService =
+                new RecordingAuthDeletionService();
         AccountDeletionService service = new AccountDeletionService(
                 stateService,
                 stripeService,
-                storageService
+                storageService,
+                applicationDataService,
+                authService
         );
         DeleteAccountRequestDTO request = new DeleteAccountRequestDTO();
         request.setConfirmation("delete");
@@ -129,6 +159,8 @@ class AccountDeletionServiceTest {
         assertThat(stateService.startedProfileId).isNull();
         assertThat(stripeService.stripeCustomerId).isNull();
         assertThat(storageService.profileId).isNull();
+        assertThat(applicationDataService.profileId).isNull();
+        assertThat(authService.profileId).isNull();
     }
 
     private DeleteAccountRequestDTO confirmedRequest() {
@@ -143,6 +175,7 @@ class AccountDeletionServiceTest {
         private UUID startedProfileId;
         private UUID stripeCompletedProfileId;
         private UUID storageCompletedProfileId;
+        private UUID applicationDataCompletedProfileId;
 
         private RecordingStateService(DeletionContext context) {
             super(null, null);
@@ -165,6 +198,12 @@ class AccountDeletionServiceTest {
         public AccountDeletionStage markObjectStorageDeleted(UUID profileId) {
             this.storageCompletedProfileId = profileId;
             return AccountDeletionStage.OBJECT_STORAGE_DELETED;
+        }
+
+        @Override
+        public AccountDeletionStage markApplicationDataDeleted(UUID profileId) {
+            this.applicationDataCompletedProfileId = profileId;
+            return AccountDeletionStage.APPLICATION_DATA_DELETED;
         }
     }
 
@@ -195,6 +234,37 @@ class AccountDeletionServiceTest {
         @Override
         public void deleteForAccount(UUID profileId) {
             this.profileId = profileId;
+        }
+    }
+
+    private static final class RecordingApplicationDataDeletionService
+            extends AccountApplicationDataDeletionService {
+
+        private UUID profileId;
+
+        private RecordingApplicationDataDeletionService() {
+            super(null, null);
+        }
+
+        @Override
+        public void deleteForAccount(UUID profileId) {
+            this.profileId = profileId;
+        }
+    }
+
+    private static final class RecordingAuthDeletionService
+            extends AccountAuthDeletionService {
+
+        private UUID profileId;
+
+        private RecordingAuthDeletionService() {
+            super(null, null);
+        }
+
+        @Override
+        public AccountDeletionStage deleteForAccount(UUID profileId) {
+            this.profileId = profileId;
+            return AccountDeletionStage.COMPLETED;
         }
     }
 }

@@ -12,3 +12,11 @@ export async function signoutClient() {
 
     // CANNOT REDIRECT FROM CLIENT ONLY ON SERVER
 }
+
+/** Clears this browser session after permanent backend account deletion. */
+export async function clearDeletedAccountSession(): Promise<void> {
+    const supabase = await createClient();
+
+    await supabase.auth.signOut({ scope: "local" });
+    clearAllOnboardingDrafts(window.sessionStorage);
+}

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Predicate;
 
@@ -85,6 +86,47 @@ public class AccountDeletionStateService {
                 AccountDeletionStage::isObjectStorageCleanupComplete,
                 "Unable to update object storage deletion progress"
         );
+    }
+
+    /** Records that the profile cascade committed successfully. */
+    @Transactional
+    public AccountDeletionStage markApplicationDataDeleted(UUID profileId) {
+        int updatedRows = accountDeletionRequestRepository
+                .markApplicationDataDeleted(profileId);
+        if (updatedRows == 1) {
+            return AccountDeletionStage.APPLICATION_DATA_DELETED;
+        }
+        return currentCompletedStage(
+                profileId,
+                AccountDeletionStage::isApplicationDataCleanupComplete,
+                "Unable to update application data deletion progress"
+        );
+    }
+
+    /** Records that the Auth user is gone and the workflow is complete. */
+    @Transactional
+    public AccountDeletionStage markCompleted(UUID profileId) {
+        int updatedRows = accountDeletionRequestRepository.markCompleted(profileId);
+        if (updatedRows == 1) {
+            return AccountDeletionStage.COMPLETED;
+        }
+        return currentCompletedStage(
+                profileId,
+                AccountDeletionStage::isAccountDeletionComplete,
+                "Unable to complete account deletion"
+        );
+    }
+
+    /** Returns accounts that only need idempotent Auth deletion retried. */
+    @Transactional(readOnly = true)
+    public List<UUID> findPendingAuthDeletionProfileIds() {
+        return accountDeletionRequestRepository
+                .findTop100ByStageOrderByUpdatedAtAsc(
+                        AccountDeletionStage.APPLICATION_DATA_DELETED
+                )
+                .stream()
+                .map(AccountDeletionRequest::getProfileId)
+                .toList();
     }
 
     /**
