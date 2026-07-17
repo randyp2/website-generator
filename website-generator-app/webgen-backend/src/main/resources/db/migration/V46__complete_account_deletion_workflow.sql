@@ -18,11 +18,16 @@ ALTER TABLE public.account_deletion_requests
             'COMPLETED'::text
         ]));
 
--- Portfolios were historically related to profiles only by convention.
--- Make ownership enforceable and cascade the complete portfolio graph.
+-- Portfolios were historically related to profiles only by convention, so
+-- legacy databases can contain rows whose profile has already gone missing.
+-- Preserve those rows while enforcing ownership for new writes. Account
+-- deletion also deletes by user_id explicitly so legacy rows remain removable.
 ALTER TABLE public.portfolios
     ADD CONSTRAINT portfolios_user_id_fkey
-        FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+        FOREIGN KEY (user_id)
+        REFERENCES public.profiles(id)
+        ON DELETE CASCADE
+        NOT VALID;
 
 -- A section-version author can be removed independently of the portfolio.
 ALTER TABLE public.portfolio_section_versions

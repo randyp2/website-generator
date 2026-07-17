@@ -2,6 +2,7 @@ package com.webgen.webgen_backend.account.service;
 
 import com.webgen.webgen_backend.profile.entity.Profile;
 import com.webgen.webgen_backend.profile.repository.ProfileRepository;
+import com.webgen.webgen_backend.portfolio.repository.PortfolioRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 public class AccountApplicationDataDeletionService {
 
     private final ProfileRepository profileRepository;
+    private final PortfolioRepository portfolioRepository;
     private final EntityManager entityManager;
 
     /**
@@ -34,6 +36,7 @@ public class AccountApplicationDataDeletionService {
         }
 
         Profile profile = profileRepository.findByIdForUpdate(profileId).orElse(null);
+        portfolioRepository.deleteAllByUserId(profileId);
         if (profile == null) {
             return;
         }

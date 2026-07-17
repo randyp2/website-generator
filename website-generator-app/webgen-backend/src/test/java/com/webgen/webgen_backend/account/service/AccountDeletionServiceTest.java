@@ -243,7 +243,7 @@ class AccountDeletionServiceTest {
         private UUID profileId;
 
         private RecordingApplicationDataDeletionService() {
-            super(null, null);
+            super(null, null, null);
         }
 
         @Override
