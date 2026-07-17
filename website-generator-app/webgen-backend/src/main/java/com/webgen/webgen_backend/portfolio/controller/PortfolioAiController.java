@@ -40,7 +40,7 @@ public class PortfolioAiController {
 
         rateLimiterService.check("portfolio-generate", userId.toString());
 
-        creditGuardService.assertHasRequiredCredits(
+        creditGuardService.consumeCredits(
                 userId,
                 PortfolioCreditCostPolicy.GENERATE_PORTFOLIO_REQUIRED_CREDITS,
                 "portfolio_generation"

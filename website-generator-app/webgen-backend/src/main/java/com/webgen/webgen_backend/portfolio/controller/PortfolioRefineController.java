@@ -46,7 +46,7 @@ public class PortfolioRefineController {
         );
         rateLimiterService.check("refine-turn", userId.toString());
         portfolioCrudService.verifyOwnership(userId, req.getPortfolioId());
-        creditGuardService.assertHasRequiredCredits(
+        creditGuardService.consumeCredits(
                 userId,
                 PortfolioCreditCostPolicy.REFINE_CLARIFY_REQUIRED_CREDITS,
                 "refine_clarify"
@@ -73,7 +73,7 @@ public class PortfolioRefineController {
         );
         rateLimiterService.check("refine-turn", userId.toString());
         portfolioCrudService.verifyOwnership(userId, req.getPortfolioId());
-        creditGuardService.assertHasRequiredCredits(
+        creditGuardService.consumeCredits(
                 userId,
                 PortfolioCreditCostPolicy.REFINE_PLAN_REQUIRED_CREDITS,
                 "refine_plan"
@@ -99,7 +99,7 @@ public class PortfolioRefineController {
         );
         rateLimiterService.check("refine-build", userId.toString());
         portfolioCrudService.verifyOwnership(userId, req.getPortfolioId());
-        creditGuardService.assertHasRequiredCredits(
+        creditGuardService.consumeCredits(
                 userId,
                 PortfolioCreditCostPolicy.REFINE_BUILD_REQUIRED_CREDITS,
                 "refine_build"

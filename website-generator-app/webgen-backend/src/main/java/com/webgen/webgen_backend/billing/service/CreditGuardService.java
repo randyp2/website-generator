@@ -5,11 +5,11 @@ import java.util.UUID;
 public interface CreditGuardService {
 
     /**
-     * Ensures a profile has the minimum required credits before an operation starts.
+     * Atomically verifies and consumes credits before an operation starts.
      *
      * @param profileId authenticated profile id
-     * @param requiredCredits credits required to proceed
-     * @param operationCode short operation identifier used in error responses
+     * @param credits credits consumed by the operation
+     * @param operationCode short operation identifier used for audit metadata and errors
      */
-    void assertHasRequiredCredits(UUID profileId, int requiredCredits, String operationCode);
+    void consumeCredits(UUID profileId, int credits, String operationCode);
 }
