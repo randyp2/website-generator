@@ -1,8 +1,11 @@
 package com.webgen.webgen_backend.billing.entity;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.webgen.webgen_backend.billing.entity.converter.CreditBucketConverter;
+import com.webgen.webgen_backend.billing.model.CreditBucket;
 import com.webgen.webgen_backend.profile.entity.Profile;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
@@ -47,6 +50,23 @@ public class BillingCreditLedgerEntry {
 
     @Column(name = "credit_operation_id")
     private UUID creditOperationId;
+
+    @Convert(converter = CreditBucketConverter.class)
+    @Column(name = "credit_bucket", nullable = false)
+    private CreditBucket creditBucket = CreditBucket.GENERAL;
+
+    @Column(name = "valid_from")
+    private OffsetDateTime validFrom;
+
+    @Column(name = "expires_at")
+    private OffsetDateTime expiresAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "grant_entry_id")
+    private BillingCreditLedgerEntry grantEntry;
+
+    @Column(name = "grant_key")
+    private String grantKey;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "metadata", nullable = false, columnDefinition = "jsonb")

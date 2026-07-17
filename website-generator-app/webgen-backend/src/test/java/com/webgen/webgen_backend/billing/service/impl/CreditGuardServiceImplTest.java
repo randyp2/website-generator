@@ -2,6 +2,7 @@ package com.webgen.webgen_backend.billing.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.billing.entity.BillingCreditLedgerEntry;
+import com.webgen.webgen_backend.billing.model.CreditBucket;
 import com.webgen.webgen_backend.billing.repository.BillingCreditLedgerEntryRepository;
 import com.webgen.webgen_backend.profile.entity.Profile;
 import com.webgen.webgen_backend.profile.repository.ProfileRepository;
@@ -85,6 +86,7 @@ class CreditGuardServiceImplTest {
         assertThat(entry.getCreditOperationId()).isEqualTo(reservationId);
         assertThat(entry.getProfile()).isSameAs(profile);
         assertThat(entry.getDeltaCredits()).isEqualTo(-6);
+        assertThat(entry.getCreditBucket()).isEqualTo(CreditBucket.GENERAL);
         assertThat(entry.getReason()).isEqualTo("credit_reservation");
         assertThat(entry.getStripeEventId()).isNull();
         assertThat(entry.getCheckoutSessionId()).isNull();
