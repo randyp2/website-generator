@@ -106,7 +106,7 @@ const LaunchWelcomeModal = () => {
                     <div className="space-y-5 px-6 py-7">
                         <DialogHeader className="space-y-2 text-left">
                             <DialogTitle className="text-xl text-white">
-                                Hey {welcomeName},
+                                Dear {welcomeName},
                             </DialogTitle>
                             <DialogDescription className="text-base leading-relaxed text-white/90">
                                 Thanks for being a great friend and trying my
@@ -115,6 +115,11 @@ const LaunchWelcomeModal = () => {
                                 asset verification uploads to your account.
                                 Have fun, and let me know what you think :D
                             </DialogDescription>
+                            <p className="pt-2 text-sm text-white/80">
+                                From,
+                                <br />
+                                Randy
+                            </p>
                         </DialogHeader>
                         <DialogFooter className="sm:justify-start">
                             <Button
