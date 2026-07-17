@@ -23,7 +23,7 @@ export const NavbarMenu: NavbarItem[] = [
   {
     id: 3,
     title: "How It Works",
-    link: "/how-it-works",
+    link: "/docs/how-it-works",
     showInNav: false, // Don't show in navbar (accessed via "Get Started" button)
   },
 ];
