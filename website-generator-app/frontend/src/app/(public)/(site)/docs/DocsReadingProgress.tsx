@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { motion, useMotionValue, useSpring } from "framer-motion"
 import { useEffect, useRef, useState } from "react"
 
 import { DOCS_CONTENT_ID, docSectionsByHref } from "./docs-config"
@@ -19,38 +20,73 @@ const sectionIdFromHref = (href: string) => href.replace(/^#/, "")
  * vertical guide line with the primary color proportionally to progress through
  * the content region, and (2) highlights the section currently in view. Renders
  * nothing on docs that declare no sections.
+ *
+ * The fill is a GPU `scaleY` transform from `origin-top` (not an animated
+ * `height`, which reflows every frame) fed through a spring, so the bar eases
+ * smoothly instead of jumping between scroll samples.
  */
 export const DocsReadingProgress = () => {
   const pathname = usePathname()
   const sections = docSectionsByHref[pathname] ?? []
 
-  const [progress, setProgress] = useState(0)
   const [activeId, setActiveId] = useState("")
+  const progress = useMotionValue(0)
+  const smoothProgress = useSpring(progress, {
+    stiffness: 140,
+    damping: 28,
+    mass: 0.35,
+  })
   const frame = useRef<number | null>(null)
 
   useEffect(() => {
-    if ((docSectionsByHref[pathname] ?? []).length === 0) return
+    const items = docSectionsByHref[pathname] ?? []
+    if (items.length === 0) return
 
     const content = document.getElementById(DOCS_CONTENT_ID)
     if (!content) return
 
-    const updateProgress = () => {
+    const sections = items
+      .map((item) => document.getElementById(sectionIdFromHref(item.href)))
+      .filter((el): el is HTMLElement => el !== null)
+
+    const update = () => {
       frame.current = null
+
       const rect = content.getBoundingClientRect()
       const scrollable = rect.height - window.innerHeight
-      if (scrollable <= 0) {
-        setProgress(1)
-        return
+      progress.set(scrollable <= 0 ? 1 : clamp(-rect.top / scrollable, 0, 1))
+
+      if (sections.length === 0) return
+
+      // Active = the last section whose top has crossed an activation line near
+      // the upper third of the viewport. A bottom-of-page fallback pins the last
+      // section, since sections against the page end can never scroll their top
+      // up to the line.
+      const activationLine = window.innerHeight * 0.3
+      let currentId = sections[0].id
+      for (const section of sections) {
+        if (section.getBoundingClientRect().top - activationLine <= 0) {
+          currentId = section.id
+        } else {
+          break
+        }
       }
-      setProgress(clamp(-rect.top / scrollable, 0, 1))
+      const reachedBottom =
+        window.innerHeight + window.scrollY >=
+        document.documentElement.scrollHeight - 2
+      if (reachedBottom) {
+        currentId = sections[sections.length - 1].id
+      }
+
+      setActiveId((previous) => (previous === currentId ? previous : currentId))
     }
 
     const onScroll = () => {
       if (frame.current !== null) return
-      frame.current = window.requestAnimationFrame(updateProgress)
+      frame.current = window.requestAnimationFrame(update)
     }
 
-    updateProgress()
+    update()
     window.addEventListener("scroll", onScroll, { passive: true })
     window.addEventListener("resize", onScroll)
 
@@ -59,31 +95,7 @@ export const DocsReadingProgress = () => {
       window.removeEventListener("resize", onScroll)
       if (frame.current !== null) window.cancelAnimationFrame(frame.current)
     }
-  }, [pathname])
-
-  useEffect(() => {
-    const elements = (docSectionsByHref[pathname] ?? [])
-      .map((item) => document.getElementById(sectionIdFromHref(item.href)))
-      .filter((el): el is HTMLElement => el !== null)
-    if (elements.length === 0) return
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
-        if (visible.length > 0) {
-          setActiveId(visible[0].target.id)
-        }
-      },
-      // Bias the active region toward the upper third of the viewport so the
-      // highlight tracks the section the reader is actually looking at.
-      { rootMargin: "-20% 0px -70% 0px", threshold: 0 },
-    )
-
-    elements.forEach((element) => observer.observe(element))
-    return () => observer.disconnect()
-  }, [pathname])
+  }, [pathname, progress])
 
   if (sections.length === 0) return null
 
@@ -92,9 +104,9 @@ export const DocsReadingProgress = () => {
       <div className="sticky top-24">
         <div className="relative pl-6">
           <div className="absolute inset-y-0 left-0 w-px bg-border/70" aria-hidden />
-          <div
-            className="absolute left-0 top-0 w-px bg-primary transition-[height] duration-150 ease-out"
-            style={{ height: `${progress * 100}%` }}
+          <motion.div
+            className="absolute inset-y-0 left-0 w-px origin-top bg-primary"
+            style={{ scaleY: smoothProgress }}
             aria-hidden
           />
 

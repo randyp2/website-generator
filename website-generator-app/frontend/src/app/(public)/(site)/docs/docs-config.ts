@@ -41,13 +41,16 @@ export const docSectionsByHref: Record<string, TocItem[]> = {
     { href: "#delivery", label: "Publish and manage" },
   ],
   "/docs/verification-scoring": [
+    { href: "#why-this-exists", label: "Why this exists" },
     { href: "#what-the-score-means", label: "What the score means" },
-    { href: "#current-baseline", label: "Current baseline" },
-    { href: "#how-evidence-adds-progress", label: "How evidence adds progress" },
-    { href: "#profile-rollup", label: "Profile rollup" },
-    { href: "#calibration-snapshot", label: "Calibration snapshot" },
-    { href: "#repository-pair-evaluation", label: "Repository-pair evaluation" },
-    { href: "#reform-status", label: "Reform status" },
+    { href: "#where-claims-start", label: "Where every claim starts" },
+    { href: "#what-counts-as-evidence", label: "What counts as evidence" },
+    { href: "#keeping-evidence-honest", label: "Keeping evidence honest" },
+    { href: "#turning-evidence-into-a-score", label: "Turning evidence into a score" },
+    { href: "#the-expert-tier", label: "The expert tier" },
+    { href: "#profile-rollup", label: "From one claim to the profile" },
+    { href: "#how-i-tested-it", label: "How I tested it" },
+    { href: "#where-it-stands", label: "Where it stands now" },
   ],
 }
 

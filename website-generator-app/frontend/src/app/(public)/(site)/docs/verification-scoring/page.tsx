@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
   title: "Verification scoring",
@@ -84,6 +85,203 @@ const repositoryPairCalibrationRows = [
   ["Cross-language projects", "0.000", "Independent", "Independent", "67"],
 ];
 
+/** Accented panel that groups related equations. */
+const FormulaBlock = ({ children }: { children: ReactNode }) => (
+  <div className="mt-5 space-y-2.5 overflow-x-auto rounded-xl border border-border border-l-2 border-l-primary/60 bg-muted/25 py-5 pl-6 pr-5">
+    {children}
+  </div>
+);
+
+/** One equation line. `lead` enlarges and emphasizes the headline result. */
+const Eq = ({ children, lead = false }: { children: ReactNode; lead?: boolean }) => (
+  <div
+    className={
+      lead
+        ? "flex flex-wrap items-baseline gap-x-2 font-mono text-lg font-semibold leading-relaxed text-foreground sm:text-xl"
+        : "flex flex-wrap items-baseline gap-x-2 font-mono text-sm leading-relaxed text-muted-foreground sm:text-[0.95rem]"
+    }
+  >
+    {children}
+  </div>
+);
+
+/** Highlighted term (result variable or key value) rendered in the brand color. */
+const R = ({ children }: { children: ReactNode }) => (
+  <span className="font-medium text-primary">{children}</span>
+);
+
+/** Superscript sized relative to the surrounding equation. */
+const Sup = ({ children }: { children: ReactNode }) => (
+  <sup className="text-[0.65em]">{children}</sup>
+);
+
+/** Emphasized inline phrase inside prose. */
+const Strong = ({ children }: { children: ReactNode }) => (
+  <strong className="font-semibold text-foreground">{children}</strong>
+);
+
+/** Maps a 0–100 score onto a red (low) to green (high) heat scale. */
+const scoreColorClass = (score: number): string => {
+  if (score < 50) return "text-rose-600 dark:text-rose-400";
+  if (score < 60) return "text-amber-600 dark:text-amber-400";
+  if (score < 70) return "text-yellow-600 dark:text-yellow-400";
+  if (score < 80) return "text-lime-600 dark:text-lime-400";
+  if (score < 90) return "text-green-600 dark:text-green-400";
+  return "text-emerald-600 dark:text-emerald-400";
+};
+
+/** Score value colored by magnitude. Non-numeric values render unstyled. */
+const Score = ({ value }: { value: string }) => {
+  const numeric = Number.parseInt(value, 10);
+  return (
+    <span className={Number.isNaN(numeric) ? "" : `font-medium ${scoreColorClass(numeric)}`}>
+      {value}
+    </span>
+  );
+};
+
+const RECENCY_LAMBDA = 0.00095;
+
+/**
+ * Static, theme-aware plot of the recency decay curve. Points are computed from
+ * the real coefficient, so the chart cannot drift from the documented formula.
+ */
+const RecencyDecayChart = () => {
+  const width = 640;
+  const height = 300;
+  const margin = { top: 16, right: 20, bottom: 40, left: 48 };
+  const innerWidth = width - margin.left - margin.right;
+  const innerHeight = height - margin.top - margin.bottom;
+  const maxDays = 1460; // four years
+
+  const xScale = (days: number) => margin.left + (days / maxDays) * innerWidth;
+  const yScale = (recency: number) => margin.top + (1 - recency) * innerHeight;
+  const baseline = yScale(0);
+
+  const curve = Array.from({ length: 121 }, (_, index) => {
+    const days = (maxDays / 120) * index;
+    return [xScale(days), yScale(Math.exp(-RECENCY_LAMBDA * days))] as const;
+  });
+  const linePath = curve
+    .map(([px, py], index) => `${index === 0 ? "M" : "L"} ${px.toFixed(1)} ${py.toFixed(1)}`)
+    .join(" ");
+  const areaPath = `${linePath} L ${xScale(maxDays).toFixed(1)} ${baseline.toFixed(1)} L ${xScale(0).toFixed(1)} ${baseline.toFixed(1)} Z`;
+
+  const yTicks = [0, 0.25, 0.5, 0.75, 1];
+  const xTicks = [
+    { days: 0, label: "today" },
+    { days: 365, label: "1y" },
+    { days: 730, label: "2y" },
+    { days: 1095, label: "3y" },
+    { days: 1460, label: "4y" },
+  ];
+  const halfLifeX = xScale(730);
+  const halfLifeY = yScale(0.5);
+
+  return (
+    <figure className="mt-6 overflow-x-auto rounded-xl border border-border bg-muted/20 px-4 py-5">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="h-auto w-full min-w-[520px]"
+        role="img"
+        aria-label="Recency multiplier decaying from 1.0 at day zero to about 0.5 at two years and continuing to fade with no hard cutoff."
+      >
+        <defs>
+          <linearGradient id="recencyFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.22" />
+            <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {yTicks.map((tick) => (
+          <g key={`y-${tick}`}>
+            <line
+              x1={margin.left}
+              x2={width - margin.right}
+              y1={yScale(tick)}
+              y2={yScale(tick)}
+              stroke="var(--border)"
+              strokeWidth={1}
+              strokeOpacity={0.6}
+            />
+            <text
+              x={margin.left - 10}
+              y={yScale(tick) + 4}
+              textAnchor="end"
+              fontSize={11}
+              fill="var(--muted-foreground)"
+            >
+              {tick.toFixed(2)}
+            </text>
+          </g>
+        ))}
+
+        {xTicks.map((tick) => (
+          <text
+            key={`x-${tick.days}`}
+            x={xScale(tick.days)}
+            y={baseline + 22}
+            textAnchor="middle"
+            fontSize={11}
+            fill="var(--muted-foreground)"
+          >
+            {tick.label}
+          </text>
+        ))}
+
+        <path d={areaPath} fill="url(#recencyFill)" />
+        <path d={linePath} fill="none" stroke="var(--primary)" strokeWidth={2} />
+
+        {/* Half-life marker */}
+        <line
+          x1={margin.left}
+          x2={halfLifeX}
+          y1={halfLifeY}
+          y2={halfLifeY}
+          stroke="var(--primary)"
+          strokeWidth={1}
+          strokeDasharray="4 4"
+          strokeOpacity={0.7}
+        />
+        <line
+          x1={halfLifeX}
+          x2={halfLifeX}
+          y1={halfLifeY}
+          y2={baseline}
+          stroke="var(--primary)"
+          strokeWidth={1}
+          strokeDasharray="4 4"
+          strokeOpacity={0.7}
+        />
+        <circle cx={halfLifeX} cy={halfLifeY} r={4.5} fill="var(--primary)" />
+        <circle cx={xScale(0)} cy={yScale(1)} r={4.5} fill="var(--primary)" />
+        <text
+          x={halfLifeX + 10}
+          y={halfLifeY - 10}
+          fontSize={12}
+          fontWeight={600}
+          fill="var(--foreground)"
+        >
+          ~2-year half-life
+        </text>
+        <text
+          x={halfLifeX + 10}
+          y={halfLifeY + 6}
+          fontSize={11}
+          fill="var(--muted-foreground)"
+        >
+          recency = 0.50
+        </text>
+      </svg>
+      <figcaption className="mt-3 text-xs leading-6 text-muted-foreground">
+        Recency multiplier as a single piece of evidence ages. Fresh evidence sits
+        at 1.0, drops to about 0.5 near two years, and keeps fading gradually with no
+        hard cutoff.
+      </figcaption>
+    </figure>
+  );
+};
+
 const VerificationScoringPage = () => {
   return (
     <article>
@@ -95,33 +293,90 @@ const VerificationScoringPage = () => {
           Verification scoring
         </h1>
         <p className="mt-5 max-w-3xl leading-7 text-muted-foreground">
-          The score measures progress toward supporting recognized skill claims.
-          It is not a skill grade, expertise rating, or probability that a claim is true.
+          This is the reasoning behind the number on your skill claims: what it
+          measures, and every decision I made turning evidence into a score. I
+          wrote it in the order I actually think about the problem, so you can
+          follow the whole pipeline from a bare claim to a verified one.
         </p>
       </header>
 
       <div className="mt-12 space-y-14">
+        <section
+          id="why-this-exists"
+          className="scroll-mt-28 rounded-2xl border border-primary/40 bg-primary/[0.04] p-6 shadow-[0_0_40px_-12px_color-mix(in_oklab,var(--primary)_75%,transparent)] sm:p-8"
+        >
+          <h2 className="text-2xl font-semibold">Why this exists</h2>
+          <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
+            Verification is one of the core products of PortRN. Anyone can put a
+            skill on a resume, and in a world where claims are cheap to make and hard
+            to check, I did not want PortRN to be just another place to showcase what
+            you say you can do. I wanted it to be a place where you can actually back
+            it up.
+          </p>
+          <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
+            That goal shaped how I built the scoring. I wanted the math to be as
+            deterministic as I could make it. If I handed the whole judgment to an
+            LLM, two problems show up: the same evidence can score differently from
+            one run to the next, and whatever bias the model carries quietly leaks
+            into the result. Neither is acceptable for something that is meant to be
+            trusted. So the scoring itself is deterministic. Once the inputs are
+            fixed, the same evidence always produces the same number, and every point
+            traces back to a rule I can explain.
+          </p>
+          <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
+            But determinism has a ceiling. A fixed formula is good at counting things
+            and bad at judgment, and there are plenty of signals that clearly point to
+            someone being good at what they do that no simple formula will ever catch.
+            For instance, two projects can both list the same dependency, but one is a
+            throwaway starter and the other is a real application with thoughtful
+            structure, tests, and error handling. To a counter they look identical. To
+            anyone actually reading the code, they obviously are not.
+          </p>
+          <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
+            That gap is why the system as a whole is a hybrid rather than pure math.
+            The scoring stays deterministic, but I let a model weigh in on one thing:
+            how much a piece of work you upload genuinely demonstrates a skill. That
+            judgment becomes an input the formulas consume, so it is the one part that
+            is not itself a fixed rule. And even there it is bounded: it can only move
+            you within a capped range. So the model can recognize depth the formula
+            would miss, but it never gets to run the score on its own.
+          </p>
+          <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
+            Below I walk through the choices I made and why, roughly in the order the
+            system applies them.
+          </p>
+        </section>
+
         <section id="what-the-score-means" className="scroll-mt-28">
           <h2 className="text-2xl font-semibold">What the score means</h2>
           <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
-            A score of 50 is a neutral starting point. It means an active skill claim
-            has been matched to the canonical skill dictionary and is ready for
-            evidence. Scores above 50 come from active evidence such as connected
-            repositories or reviewed uploads.
+            Before I get into how the number is built, here is what it actually
+            represents. The score runs from 0 to 100 and tracks one thing: how far
+            along you are in backing a skill claim with real evidence. It is not a
+            grade of how good you are, and it is not the odds that you are telling the
+            truth. Think of it as a progress meter.
+          </p>
+          <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
+            A 50 is the neutral middle. It means I recognized the skill you claimed
+            but you have not shown me anything yet. Everything above 50 has to be
+            earned with evidence. Everything below it means the claim is incomplete or
+            could not be recognized at all.
           </p>
 
           <div className="mt-6 overflow-x-auto rounded-xl border border-border">
             <table className="w-full border-collapse text-left text-sm">
-              <thead className="bg-muted/40">
+              <thead className="bg-muted/50">
                 <tr>
-                  <th className="border-b border-border px-4 py-3 font-medium">Score</th>
-                  <th className="border-b border-border px-4 py-3 font-medium">Meaning</th>
+                  <th className="border-b border-border px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Score</th>
+                  <th className="border-b border-border px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Meaning</th>
                 </tr>
               </thead>
               <tbody>
                 {scoreBands.map(([score, meaning]) => (
-                  <tr key={score} className="border-b border-border last:border-0">
-                    <td className="px-4 py-3 font-mono">{score}</td>
+                  <tr key={score} className="border-b border-border transition-colors odd:bg-muted/20 hover:bg-muted/40 last:border-0">
+                    <td className="px-4 py-3 font-mono">
+                      <Score value={score} />
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground">{meaning}</td>
                   </tr>
                 ))}
@@ -130,61 +385,129 @@ const VerificationScoringPage = () => {
           </div>
         </section>
 
-        <section id="current-baseline" className="scroll-mt-28">
-          <h2 className="text-2xl font-semibold">Current baseline</h2>
-          <pre className="mt-5 overflow-x-auto rounded-xl border border-border bg-muted/30 p-5 text-sm leading-7">
-            <code>{`recognized active claim = 50
-unresolved claim        = no score baseline
-rejected claim          = excluded
-
-manual source           = 50
-resume source           = 50
-imported source         = 50`}</code>
-          </pre>
-          <p className="mt-4 leading-7 text-muted-foreground">
-            Claim source remains visible as provenance, but it no longer changes the
-            baseline. A resume and an imported profile are still self-asserted sources,
-            so neither receives verification credit before evidence exists.
+        <section id="where-claims-start" className="scroll-mt-28">
+          <h2 className="text-2xl font-semibold">Where every claim starts</h2>
+          <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
+            The first decision was where a claim begins before any evidence exists.
+            Early on I let the source change that starting point, so a claim imported
+            from a connected account started higher than one you typed in by hand. I
+            took that out. A claim you typed and a claim pulled from your resume are
+            both just you saying something about yourself, and neither should be worth
+            more than the other until there is proof. So every recognized claim now
+            starts at <Strong>the same neutral 50</Strong>, regardless of where it came from.
           </p>
+          <FormulaBlock>
+            <Eq><R>recognized active claim</R> = 50</Eq>
+            <Eq><R>unresolved claim</R> = no score baseline</Eq>
+            <Eq><R>rejected claim</R> = excluded</Eq>
+            <Eq>manual / resume / imported source = <R>50</R> (source is ignored)</Eq>
+          </FormulaBlock>
           <p className="mt-4 leading-7 text-muted-foreground">
-            Before scoring, extracted wording must match a canonical skill name or
-            alias. Unresolved claims remain visible but do not receive a baseline or
-            evidence lift until the dictionary recognizes them. The versioned skill
-            catalog is maintained in JSON and applied through immutable database
-            migrations so new aliases can also repair existing unresolved claims. The
-            current catalog recognizes common AWS service abbreviations, Supabase,
-            Flyway, RAG pipelines, and LLM API integration terms.
+            One thing has to happen before a claim earns that 50: I have to recognize
+            it. Whatever wording gets extracted is matched against a canonical skill
+            name or alias, and until it resolves, the claim stays visible but sits at
+            no baseline. I keep the skill catalog versioned in JSON and apply it
+            through immutable database migrations, so adding a new alias can also
+            repair claims that were stuck as unresolved. The catalog currently
+            recognizes common AWS service abbreviations, Supabase, Flyway, RAG
+            pipelines, and LLM API integration terms, and it grows as I find gaps.
           </p>
         </section>
 
-        <section id="how-evidence-adds-progress" className="scroll-mt-28">
-          <h2 className="text-2xl font-semibold">How evidence adds progress</h2>
-          <pre className="mt-5 overflow-x-auto rounded-xl border border-border bg-muted/30 p-5 text-sm leading-7">
-            <code>{`connector strength = link confidence × signal weight × authorship × independence × recency
-reviewed strength  = evidence depth × signal weight × recency
-signal strength    = connector strength or reviewed strength
-
-independent signals = strongest signal per evidence group
-effective evidence  = Σ(independent signal strength × 0.75^rank)
-support            = 1 - exp(-0.70 × effective evidence)
-boost progress     = support^1.35
-claim score        = 50 + (claim cap - 50) × boost progress`}</code>
-          </pre>
-          <p className="mt-4 leading-7 text-muted-foreground">
-            Signals are sorted strongest first. Correlated signals are collapsed to
-            the strongest member of each evidence group before the ten-signal limit
-            and rank decay are applied. Connector-only claims are capped at 80.
-            Qualifying AI-reviewed uploads currently unlock the range above 80.
+        <section id="what-counts-as-evidence" className="scroll-mt-28">
+          <h2 className="text-2xl font-semibold">What counts as evidence</h2>
+          <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
+            Once a claim has its baseline, the only thing that moves the score is
+            evidence. But not all evidence is worth the same, and deciding what each
+            kind is worth was one of the bigger calls I made. I start by splitting
+            every signal into two separate questions.
           </p>
 
-          <h3 className="mt-8 text-lg font-semibold">Evidence independence</h3>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-xl border border-border p-5">
+              <h3 className="font-semibold">Match confidence</h3>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Does this artifact actually relate to the claim? This is what decides
+                whether an evidence link gets created in the first place.
+              </p>
+            </div>
+            <div className="rounded-xl border border-border p-5">
+              <h3 className="font-semibold">Evidence depth</h3>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                How much does it genuinely demonstrate the skill? This is what drives
+                score strength, reviewed status, and how far the cap can rise.
+              </p>
+            </div>
+          </div>
+
+          <p className="mt-6 leading-7 text-muted-foreground">
+            On top of that, each type of signal carries its own weight, based on how
+            directly it proves you used the skill rather than just being near it. A
+            dependency in your build file is a deliberate technical choice, so it
+            counts at full strength. A language-plus-text match is broad and easy to
+            inflate, so it counts for less than half. An AI-reviewed upload also passes
+            through at full strength, but for a different reason: the depth score has
+            already captured how much the work demonstrates, so there is nothing left
+            for the weight to discount.
+          </p>
+          <div className="mt-4 overflow-x-auto rounded-xl border border-border">
+            <table className="w-full border-collapse text-left text-sm">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="border-b border-border px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Signal</th>
+                  <th className="border-b border-border px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Current weight</th>
+                </tr>
+              </thead>
+              <tbody>
+                {signalWeights.map(([signal, weight]) => (
+                  <tr key={signal} className="border-b border-border transition-colors odd:bg-muted/20 hover:bg-muted/40 last:border-0">
+                    <td className="px-4 py-3 text-muted-foreground">{signal}</td>
+                    <td className="px-4 py-3 font-mono">{weight}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-6 max-w-3xl leading-7 text-muted-foreground">
+            The weight is just a multiplier on the signal&apos;s confidence or depth,
+            so the easiest way to see what it means is to hold the input fixed. Say
+            three different signals all land at 0.85. Here is what each one actually
+            contributes:
+          </p>
+          <FormulaBlock>
+            <Eq>dependency match: 0.85 · 1.00 = <R>0.85</R></Eq>
+            <Eq>AI document match: 0.85 · 1.00 = <R>0.85</R></Eq>
+            <Eq>language + text: 0.85 · 0.48 = <R>0.41</R></Eq>
+          </FormulaBlock>
+          <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
+            Same input, less than half the contribution for the weakest signal. That
+            gap is the whole reason the weights exist: a broad language sighting has to
+            stack up much higher to move your score as far as a single dependency or a
+            reviewed upload.
+          </p>
+
+          <p className="mt-6 leading-7 text-muted-foreground">
+            A repository topic, name, or description can help me find work that
+            relates to a claim, but you control all three, so I do not let them move
+            your score at all. They stay attached as provenance and nothing more.
+          </p>
+        </section>
+
+        <section id="keeping-evidence-honest" className="scroll-mt-28">
+          <h2 className="text-2xl font-semibold">Keeping evidence honest</h2>
+          <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
+            The hard part of a system like this is not rewarding real work. It is
+            refusing to reward the same work twice, or work that is not really yours.
+            Most of the decisions in this section exist to close those gaps.
+          </p>
+
+          <h3 className="mt-8 text-lg font-semibold">Counting each source once</h3>
           <p className="mt-4 leading-7 text-muted-foreground">
-            An evidence group represents one underlying source. Uploads with matching
-            storage fingerprints and repositories with highly overlapping sampled
-            source cannot create multiple scoring positions for that source. Resolved
-            GitHub lineage remains a correlation signal, but a meaningfully diverged
-            fork can receive gradual independent credit. Only the strongest signal in
-            a collapsed group is retained for a claim.
+            Before I count anything, I group evidence that comes from the same
+            underlying source and keep only the strongest signal from each group. An
+            upload with a matching storage fingerprint and a repository whose sampled
+            source heavily overlaps another cannot each create a separate scoring
+            position for what is really one piece of work.
           </p>
           <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
             <li>
@@ -234,59 +557,57 @@ claim score        = 50 + (claim cap - 50) × boost progress`}</code>
             </li>
           </ul>
 
-          <h3 className="mt-8 text-lg font-semibold">Derivative repository credit</h3>
+          <h3 className="mt-8 text-lg font-semibold">Giving derivatives partial credit</h3>
           <p className="mt-4 leading-7 text-muted-foreground">
-            Similarity is not treated as a code-quality judgment. It only estimates
-            how independently another repository supports the same skill. Meaningful
-            quantity still counts, so derivatives remain separate evidence positions
-            and receive gradual credit for their estimated novel source content.
+            Grouping duplicates raised a fairer question: what about a project that is
+            clearly derived from another but has real new work in it? Collapsing it to
+            nothing felt wrong, so I treat similarity as an estimate of how
+            independently a repository supports the same skill, not a quality
+            judgment. Derivatives stay as separate evidence positions and earn gradual
+            credit for the source content that is genuinely novel.
           </p>
-          <pre className="mt-5 overflow-x-auto rounded-xl border border-border bg-muted/30 p-5 text-sm leading-7">
-            <code>{`shared content ≤ 60%  → independence weight 1.00
-shared content 65%   → independence weight 0.875
-shared content 70%   → independence weight 0.75
-shared content 80%   → independence weight 0.50
-shared content 85%   → independence weight 0.375
-shared content ≥ 90% → same evidence group, no duplicate position
-
-between 60% and 90%:
-weight = 0.25 + 0.75 × ((0.90 - shared content) / 0.30)
-
-resolved lineage fork:
-weight = min(content-based weight, 0.85)`}</code>
-          </pre>
+          <FormulaBlock>
+            <Eq>shared content ≤ 60% → independence weight <R>1.00</R></Eq>
+            <Eq>shared content 65% → independence weight <R>0.875</R></Eq>
+            <Eq>shared content 70% → independence weight <R>0.75</R></Eq>
+            <Eq>shared content 80% → independence weight <R>0.50</R></Eq>
+            <Eq>shared content 85% → independence weight <R>0.375</R></Eq>
+            <Eq>shared content ≥ 90% → grouped as one source</Eq>
+            <Eq lead><R>weight</R> = 0.25 + 0.75 · ((0.90 − shared) / 0.30)</Eq>
+            <Eq>resolved lineage fork: <R>weight</R> = min(weight, 0.85)</Eq>
+          </FormulaBlock>
           <p className="mt-4 leading-7 text-muted-foreground">
             Within a related family, the repository with the largest sampled token
-            count is selected as the primary, followed by authorship and recency as
-            tie-breakers. Other repositories are compared directly with that primary,
-            preventing similarity chains from reducing unrelated work. Formatting,
-            renames, generated output, dependency folders, documentation, and lock-file
-            changes do not manufacture novelty credit. Resolved lineage is treated as
-            a conservative prior rather than permanent duplication. Comparable forks
-            below 90% similarity remain separate, but their independence weight cannot
-            exceed 0.85. Without a comparable fingerprint, the root lineage group is
-            retained as the safe fallback.
+            count becomes the primary, with authorship and recency as tie-breakers.
+            Everything else is compared directly against that primary, so similarity
+            chains cannot quietly reduce unrelated work. Formatting, renames,
+            generated output, dependency folders, documentation, and lock-file changes
+            never manufacture novelty. I treat resolved lineage as a conservative
+            prior rather than permanent duplication: a fork below 90% similarity stays
+            a separate position, but its independence weight cannot exceed 0.85.
           </p>
 
-          <h3 className="mt-8 text-lg font-semibold">GitHub authorship</h3>
+          <h3 className="mt-8 text-lg font-semibold">Discounting work you did not do</h3>
           <p className="mt-4 leading-7 text-muted-foreground">
-            Repository evidence is multiplied by an authorship weight based on commits
-            GitHub attributes to the connected account. The sync reads at most five
-            matching commits for each of the thirty most recently updated repositories.
-            It separates direct commits from merge commits and counts distinct direct
-            contribution days. Uploads and non-repository evidence use a weight of 1.00.
+            A repository sitting in your account is not the same as a repository you
+            built. So I multiply repository evidence by an authorship weight based on
+            the commits GitHub attributes to your account. The sync reads at most five
+            matching commits from each of the thirty most recently updated
+            repositories, separates direct commits from merges, and counts distinct
+            contribution days. Uploads and non-repository evidence use a weight of
+            1.00.
           </p>
           <div className="mt-4 overflow-x-auto rounded-xl border border-border">
             <table className="w-full border-collapse text-left text-sm">
-              <thead className="bg-muted/40">
+              <thead className="bg-muted/50">
                 <tr>
-                  <th className="border-b border-border px-4 py-3 font-medium">Authorship result</th>
-                  <th className="border-b border-border px-4 py-3 font-medium">Weight</th>
+                  <th className="border-b border-border px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Authorship result</th>
+                  <th className="border-b border-border px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Weight</th>
                 </tr>
               </thead>
               <tbody>
                 {authorshipWeights.map(([result, weight]) => (
-                  <tr key={result} className="border-b border-border last:border-0">
+                  <tr key={result} className="border-b border-border transition-colors odd:bg-muted/20 hover:bg-muted/40 last:border-0">
                     <td className="px-4 py-3 text-muted-foreground">{result}</td>
                     <td className="px-4 py-3 font-mono">{weight}</td>
                   </tr>
@@ -295,145 +616,186 @@ weight = min(content-based weight, 0.85)`}</code>
             </table>
           </div>
           <p className="mt-4 leading-7 text-muted-foreground">
-            API failures and scan limits never reduce a score. GitHub may report no
-            matching commits when work uses an unlinked email or alternate identity,
-            so zero-commit results use gradual floors instead of excluding a repository.
-            AI-assisted commits are allowed. The model does not attempt to identify the
-            tools used to create code or infer authorship from commit messages.
+            I was careful to make the failure modes forgiving. API errors and scan
+            limits never reduce a score. GitHub may report no matching commits when
+            work used an unlinked email or a different identity, so zero-commit results
+            use gradual floors instead of excluding a repository outright. AI-assisted
+            commits are allowed, and I make no attempt to guess which tools wrote the
+            code or to infer authorship from commit messages.
+          </p>
+        </section>
+
+        <section id="turning-evidence-into-a-score" className="scroll-mt-28">
+          <h2 className="text-2xl font-semibold">Turning evidence into a score</h2>
+          <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
+            Now the math. Once I have the independent signals for a claim, each with
+            its own strength, I combine them into a single number. I wanted three
+            properties: more evidence should always help, repeated evidence should
+            help less each time, and no pile of weak evidence should ever fake its way
+            to the top.
+          </p>
+          <FormulaBlock>
+            <Eq><R>connector strength</R> = confidence · weight · authorship · independence · recency</Eq>
+            <Eq><R>reviewed strength</R> = evidence depth · weight · recency</Eq>
+            <Eq><R>effective evidence</R> = Σ ( signal strength · 0.75<Sup>rank</Sup> )</Eq>
+            <Eq><R>support</R> = 1 − exp( −0.70 · effective evidence )</Eq>
+            <Eq><R>boost</R> = support<Sup>1.35</Sup></Eq>
+            <Eq lead><R>claim score</R> = 50 + (cap − 50) · boost</Eq>
+          </FormulaBlock>
+          <p className="mt-4 leading-7 text-muted-foreground">
+            I sort the signals strongest first and keep the top ten. Each additional
+            one is discounted geometrically, so the second matters less than the first
+            and the <Strong>tenth barely registers</Strong>, which is what stops someone from stacking
+            near-duplicate signals into a high score. That discounted sum becomes
+            effective evidence, and I run it through a curve that rises quickly at
+            first and then flattens. The result is that going from no evidence to some
+            evidence is meaningful, while piling on marginal signals hits diminishing
+            returns fast.
           </p>
 
-          <h3 className="mt-8 text-lg font-semibold">Gradual reviewed-evidence cap</h3>
-          <pre className="mt-4 overflow-x-auto rounded-xl border border-border bg-muted/30 p-5 text-sm leading-7">
-            <code>{`review progress = clamp((evidence depth - 0.85) / 0.10, 0, 1)
-claim cap       = 80 + round(20 × review progress)`}</code>
-          </pre>
+          <h3 className="mt-8 text-lg font-semibold">Old evidence fades</h3>
+          <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
+            One more factor sits inside every signal&apos;s strength: how old it is. I
+            did not want a great project from six years ago to count exactly the same
+            as the same work shipped last month. But I also did not want a hard cutoff
+            where evidence suddenly stops counting on some arbitrary day, because that
+            would punish people for the timing of their work rather than the work
+            itself. So age applies as a smooth exponential decay.
+          </p>
+          <FormulaBlock>
+            <Eq lead>
+              <R>recency</R> = exp( −0.00095 · age in days )
+            </Eq>
+          </FormulaBlock>
+          <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
+            That coefficient works out to roughly a <Strong>two-year half-life</Strong>.
+            Evidence about two years old counts for about half of what the same
+            evidence would fresh, and it keeps fading gradually from there instead of
+            dropping off a cliff. Anything dated today, or somehow in the future, sits
+            at a clean 1.0 and loses nothing.
+          </p>
+          <RecencyDecayChart />
+        </section>
+
+        <section id="the-expert-tier" className="scroll-mt-28">
+          <h2 className="text-2xl font-semibold">The expert tier</h2>
+          <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
+            There is a ceiling on all of this. Anything proven only by
+            machine-detected connector signals <Strong>max out at 80</Strong>, and
+            that is deliberate. Connector signals can be gamed, and I did not want a
+            well-tagged GitHub account to reach the same place as work that was
+            actually reviewed.
+          </p>
+          <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
+            The range above 80 is the one place the hybrid approach from the top of
+            this page actually shows up. To unlock it, you upload work and a model
+            assesses how deeply it demonstrates the skill. That depth score feeds a
+            fixed formula that gradually raises the ceiling from 80 toward 100.
+          </p>
+          <FormulaBlock>
+            <Eq><R>review progress</R> = clamp( (evidence depth − 0.85) / 0.10, 0, 1 )</Eq>
+            <Eq lead><R>claim cap</R> = 80 + round( 20 · review progress )</Eq>
+          </FormulaBlock>
           <div className="mt-4 overflow-x-auto rounded-xl border border-border">
             <table className="w-full border-collapse text-left text-sm">
-              <thead className="bg-muted/40">
+              <thead className="bg-muted/50">
                 <tr>
-                  <th className="border-b border-border px-4 py-3 font-medium">Evidence depth</th>
-                  <th className="border-b border-border px-4 py-3 font-medium">Available cap</th>
+                  <th className="border-b border-border px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Evidence depth</th>
+                  <th className="border-b border-border px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Available cap</th>
                 </tr>
               </thead>
               <tbody>
                 {evidenceDepthCaps.map(([depth, cap]) => (
-                  <tr key={depth} className="border-b border-border last:border-0">
+                  <tr key={depth} className="border-b border-border transition-colors odd:bg-muted/20 hover:bg-muted/40 last:border-0">
                     <td className="px-4 py-3 font-mono">{depth}</td>
-                    <td className="px-4 py-3 font-mono">{cap}</td>
+                    <td className="px-4 py-3 font-mono">
+                      <Score value={cap} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           <p className="mt-4 leading-7 text-muted-foreground">
-            The cap only defines available headroom. Evidence strength and breadth
-            still determine how much of that headroom the claim earns.
-          </p>
-
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-border p-5">
-              <h3 className="font-semibold">Match confidence</h3>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Measures whether the uploaded artifact actually relates to the claim.
-                It controls whether an evidence link is created.
-              </p>
-            </div>
-            <div className="rounded-xl border border-border p-5">
-              <h3 className="font-semibold">Evidence depth</h3>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Measures substantive demonstrated usage. It controls score strength,
-                reviewed status, and gradual cap progression.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-6 overflow-x-auto rounded-xl border border-border">
-            <table className="w-full border-collapse text-left text-sm">
-              <thead className="bg-muted/40">
-                <tr>
-                  <th className="border-b border-border px-4 py-3 font-medium">Signal</th>
-                  <th className="border-b border-border px-4 py-3 font-medium">Current weight</th>
-                </tr>
-              </thead>
-              <tbody>
-                {signalWeights.map(([signal, weight]) => (
-                  <tr key={signal} className="border-b border-border last:border-0">
-                    <td className="px-4 py-3 text-muted-foreground">{signal}</td>
-                    <td className="px-4 py-3 font-mono">{weight}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="mt-4 leading-7 text-muted-foreground">
-            Repository topics, names, and descriptions can help associate a repository
-            with a skill claim, but they are user-controlled discovery metadata.
-            Metadata-only links remain visible as provenance and do not affect score,
-            evidence counts, or claim status.
+            The cap is only headroom. Even once the ceiling rises, evidence strength
+            and breadth still decide how much of it you actually earn.
           </p>
         </section>
 
         <section id="profile-rollup" className="scroll-mt-28">
-          <h2 className="text-2xl font-semibold">Profile rollup</h2>
-          <pre className="mt-5 overflow-x-auto rounded-xl border border-border bg-muted/30 p-5 text-sm leading-7">
-            <code>{`mean lift = total claim evidence lift / evidenced claims
-coverage  = evidenced recognized claims / recognized claims
-overall   = baseline + mean lift × sqrt(coverage)`}</code>
-          </pre>
+          <h2 className="text-2xl font-semibold">From one claim to the whole profile</h2>
+          <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
+            Everything so far scores a single claim. Your overall number rolls those
+            together, and I had to be careful here. I average the evidence lift only
+            over the claims that actually have evidence, so the skills you have not
+            backed yet cannot drag down the ones you have. Then I re-apply breadth as a
+            gentle multiplier, so supporting more of your profile still scores higher
+            without crushing sparse-but-real evidence toward zero.
+          </p>
+          <FormulaBlock>
+            <Eq><R>mean lift</R> = total evidence lift / evidenced claims</Eq>
+            <Eq><R>coverage</R> = evidenced claims / recognized claims</Eq>
+            <Eq lead><R>overall</R> = baseline + mean lift · √coverage</Eq>
+          </FormulaBlock>
           <p className="mt-4 leading-7 text-muted-foreground">
-            This lets one real piece of evidence create visible progress while still
-            rewarding users who support more of their recognized claims.
+            The effect I was after: one real piece of evidence creates visible
+            progress, while people who back more of their claims are still rewarded for
+            the breadth.
           </p>
         </section>
 
-        <section id="calibration-snapshot" className="scroll-mt-28">
-          <h2 className="text-2xl font-semibold">Calibration snapshot</h2>
+        <section id="how-i-tested-it" className="scroll-mt-28">
+          <h2 className="text-2xl font-semibold">How I tested it</h2>
           <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
-            These deterministic scenarios were run through the real evidence assembler
-            and scoring kernel on July 12, 2026. They validate relative behavior and
-            are not promised scores for individual users.
+            A scoring model is only as trustworthy as the cases you check it against.
+            So I built a deterministic test bench and ran real scenarios through the
+            same evidence assembler and scoring kernel that score live claims. These
+            were run on July 12, 2026. They validate relative behavior and are not
+            promised scores for any individual.
           </p>
           <div className="mt-6 overflow-x-auto rounded-xl border border-border">
             <table className="w-full border-collapse text-left text-sm">
-              <thead className="bg-muted/40">
+              <thead className="bg-muted/50">
                 <tr>
-                  <th className="border-b border-border px-4 py-3 font-medium">Scenario</th>
-                  <th className="border-b border-border px-4 py-3 font-medium">Score</th>
-                  <th className="border-b border-border px-4 py-3 font-medium">Observed behavior</th>
+                  <th className="border-b border-border px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Scenario</th>
+                  <th className="border-b border-border px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Score</th>
+                  <th className="border-b border-border px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Observed behavior</th>
                 </tr>
               </thead>
               <tbody>
                 {calibrationRows.map(([scenario, score, behavior]) => (
-                  <tr key={scenario} className="border-b border-border last:border-0">
+                  <tr key={scenario} className="border-b border-border transition-colors odd:bg-muted/20 hover:bg-muted/40 last:border-0">
                     <td className="px-4 py-3 text-muted-foreground">{scenario}</td>
-                    <td className="px-4 py-3 font-mono">{score}</td>
+                    <td className="px-4 py-3 font-mono">
+                      <Score value={score} />
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground">{behavior}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </section>
 
-        <section id="repository-pair-evaluation" className="scroll-mt-28">
-          <h2 className="text-2xl font-semibold">Real repository-pair evaluation</h2>
-          <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
-            The offline evaluation corpus contains eighteen immutable public repository
-            snapshots and twenty-eight manually reviewed pairs. It covers Java, Python,
-            JavaScript, TypeScript, Rust, mixed-language templates, large monorepositories,
-            exact controls, nearby revisions, derivatives, forks, and independent work.
-            Git tracks repository URLs, commit SHAs, labels, and versioned fingerprint
-            sketches only. No public source checkout is stored in this application repository.
+          <p className="mt-8 max-w-3xl leading-7 text-muted-foreground">
+            Synthetic scenarios only go so far, so I also pulled real public
+            repositories into an offline corpus and hand-reviewed pairs of them to
+            make sure the independence logic behaves on actual code. It holds eighteen
+            immutable public repository snapshots and twenty-eight reviewed pairs,
+            covering Java, Python, JavaScript, TypeScript, Rust, mixed-language
+            templates, large monorepositories, exact controls, nearby revisions,
+            derivatives, forks, and independent work. Git tracks repository URLs,
+            commit SHAs, labels, and versioned fingerprint sketches only; no public
+            source checkout is stored in this application repository.
           </p>
           <div className="mt-6 overflow-x-auto rounded-xl border border-border">
             <table className="w-full border-collapse text-left text-sm">
-              <thead className="bg-muted/40">
+              <thead className="bg-muted/50">
                 <tr>
-                  <th className="border-b border-border px-4 py-3 font-medium">Pair</th>
-                  <th className="border-b border-border px-4 py-3 font-medium">Shared</th>
-                  <th className="border-b border-border px-4 py-3 font-medium">Reviewed</th>
-                  <th className="border-b border-border px-4 py-3 font-medium">Current model</th>
-                  <th className="border-b border-border px-4 py-3 font-medium">Score</th>
+                  <th className="border-b border-border px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pair</th>
+                  <th className="border-b border-border px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Shared</th>
+                  <th className="border-b border-border px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reviewed</th>
+                  <th className="border-b border-border px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Current model</th>
+                  <th className="border-b border-border px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Score</th>
                 </tr>
               </thead>
               <tbody>
@@ -444,34 +806,40 @@ overall   = baseline + mean lift × sqrt(coverage)`}</code>
                   predicted,
                   score,
                 ]) => (
-                  <tr key={pair} className="border-b border-border last:border-0">
+                  <tr key={pair} className="border-b border-border transition-colors odd:bg-muted/20 hover:bg-muted/40 last:border-0">
                     <td className="px-4 py-3 text-muted-foreground">{pair}</td>
                     <td className="px-4 py-3 font-mono">{shared}</td>
                     <td className="px-4 py-3 text-muted-foreground">{reviewed}</td>
                     <td className="px-4 py-3 text-muted-foreground">{predicted}</td>
-                    <td className="px-4 py-3 font-mono">{score}</td>
+                    <td className="px-4 py-3 font-mono">
+                      <Score value={score} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           <p className="mt-4 leading-7 text-muted-foreground">
-            Twenty-seven of twenty-eight reviewed pairs match the current scoring
-            behavior, with zero false duplicate classifications. Exact copies, nearby
-            revisions, unrelated controls, templates, and large monorepositories
-            separate safely. The maintained lineage fork receives 0.85 independence
-            weight instead of being collapsed. The remaining review case is a heavily
-            restructured derivative below the 60% content threshold, so it receives full
-            credit rather than risking an unfair reduction. These results support freezing
-            the current similarity thresholds for the MVP.
+            <Strong>Twenty-seven of twenty-eight</Strong> reviewed pairs match the
+            current scoring behavior, with <Strong>zero false duplicate
+            classifications</Strong>. Exact copies, nearby
+            revisions, unrelated controls, templates, and large monorepositories all
+            separate safely, and the maintained lineage fork receives 0.85 independence
+            weight instead of being collapsed. The one remaining case is a heavily
+            restructured derivative below the 60% content threshold, so it gets full
+            credit rather than an unfair reduction. That is enough for me to freeze the
+            current similarity thresholds for the MVP.
           </p>
         </section>
 
-        <section id="reform-status" className="scroll-mt-28">
-          <h2 className="text-2xl font-semibold">Reform status</h2>
+        <section id="where-it-stands" className="scroll-mt-28">
+          <h2 className="text-2xl font-semibold">Where it stands now</h2>
+          <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
+            Here is what I consider settled and what I am still working on.
+          </p>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <div className="rounded-xl border border-border p-5">
-              <h3 className="font-semibold">Completed</h3>
+              <h3 className="font-semibold">Settled</h3>
               <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
                 <li>Defined the number as verification progress.</li>
                 <li>Set every recognized active claim to a neutral baseline of 50.</li>
