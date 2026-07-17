@@ -109,8 +109,11 @@ const LaunchWelcomeModal = () => {
                                 Hey {welcomeName},
                             </DialogTitle>
                             <DialogDescription className="text-base leading-relaxed text-white/90">
-                                ty for being a great friend and trying my app
-                                out. Have fun and lmk your thoughts :D
+                                Thanks for being a great friend and trying my
+                                app. As a token of my appreciation, I added 1
+                                portfolio generation, 2 refinements, and 15
+                                asset verification uploads to your account.
+                                Have fun, and let me know what you think :D
                             </DialogDescription>
                         </DialogHeader>
                         <DialogFooter className="sm:justify-start">
