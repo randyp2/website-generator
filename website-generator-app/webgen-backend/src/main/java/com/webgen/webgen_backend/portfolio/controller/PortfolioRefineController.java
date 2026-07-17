@@ -48,10 +48,9 @@ public class PortfolioRefineController {
         );
         rateLimiterService.check("refine-turn", userId.toString());
         portfolioCrudService.verifyOwnership(userId, req.getPortfolioId());
-        UUID creditReservationId = creditGuardService.reserveCredits(
+        UUID creditReservationId = creditGuardService.reserveUsage(
                 userId,
-                PortfolioCreditCostPolicy.REFINE_CLARIFY_REQUIRED_CREDITS,
-                "refine_clarify"
+                PortfolioCreditCostPolicy.REFINE_CLARIFY_USAGE
         ).orElse(null);
 
         try {
@@ -80,10 +79,9 @@ public class PortfolioRefineController {
         );
         rateLimiterService.check("refine-turn", userId.toString());
         portfolioCrudService.verifyOwnership(userId, req.getPortfolioId());
-        UUID creditReservationId = creditGuardService.reserveCredits(
+        UUID creditReservationId = creditGuardService.reserveUsage(
                 userId,
-                PortfolioCreditCostPolicy.REFINE_PLAN_REQUIRED_CREDITS,
-                "refine_plan"
+                PortfolioCreditCostPolicy.REFINE_PLAN_USAGE
         ).orElse(null);
 
         try {
@@ -111,10 +109,9 @@ public class PortfolioRefineController {
         );
         rateLimiterService.check("refine-build", userId.toString());
         portfolioCrudService.verifyOwnership(userId, req.getPortfolioId());
-        UUID creditReservationId = creditGuardService.reserveCredits(
+        UUID creditReservationId = creditGuardService.reserveUsage(
                 userId,
-                PortfolioCreditCostPolicy.REFINE_BUILD_REQUIRED_CREDITS,
-                "refine_build"
+                PortfolioCreditCostPolicy.REFINE_BUILD_USAGE
         ).orElse(null);
 
         try {

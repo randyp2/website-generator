@@ -41,10 +41,9 @@ public class PortfolioStyleController {
         );
         rateLimiterService.check("style-chat", userId.toString());
         portfolioCrudService.verifyOwnership(userId, req.getPortfolioId());
-        UUID creditReservationId = creditGuardService.reserveCredits(
+        UUID creditReservationId = creditGuardService.reserveUsage(
                 userId,
-                PortfolioCreditCostPolicy.STYLE_CHAT_REQUIRED_CREDITS,
-                "style_chat"
+                PortfolioCreditCostPolicy.STYLE_CHAT_USAGE
         ).orElse(null);
 
         try {

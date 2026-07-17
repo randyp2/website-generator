@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.webgen.webgen_backend.billing.entity.BillingCreditLedgerEntry;
 import com.webgen.webgen_backend.billing.model.CreditBucket;
+import com.webgen.webgen_backend.billing.model.CreditUsagePolicy;
 import com.webgen.webgen_backend.billing.repository.BillingCreditLedgerEntryRepository;
 import com.webgen.webgen_backend.billing.service.BillingAllowanceGrantService;
 import com.webgen.webgen_backend.billing.service.CreditGuardService;
@@ -62,6 +63,20 @@ public class CreditGuardServiceImpl implements CreditGuardService {
                 OffsetDateTime.now(ZoneOffset.UTC)
         );
         return Optional.of(reservationId);
+    }
+
+    @Override
+    @Transactional
+    public Optional<UUID> reserveUsage(UUID profileId, CreditUsagePolicy policy) {
+        if (policy == null) {
+            throw new IllegalArgumentException("Credit usage policy is required");
+        }
+        return reserveUsage(
+                profileId,
+                policy.allowanceBucket(),
+                policy.fallbackCredits(),
+                policy.operationCode()
+        );
     }
 
     @Override

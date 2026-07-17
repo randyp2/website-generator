@@ -3,6 +3,7 @@ package com.webgen.webgen_backend.billing.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.billing.entity.BillingCreditLedgerEntry;
 import com.webgen.webgen_backend.billing.model.CreditBucket;
+import com.webgen.webgen_backend.billing.model.CreditUsagePolicy;
 import com.webgen.webgen_backend.billing.model.webhook.StripeInvoiceSnapshotModel;
 import com.webgen.webgen_backend.billing.repository.BillingCreditLedgerEntryRepository;
 import com.webgen.webgen_backend.billing.service.BillingAllowanceGrantService;
@@ -144,9 +145,11 @@ class CreditGuardServiceImplTest {
 
         UUID reservationId = service.reserveUsage(
                 profileId,
-                CreditBucket.PORTFOLIO_GENERATION,
-                10,
-                "portfolio_generation"
+                new CreditUsagePolicy(
+                        CreditBucket.PORTFOLIO_GENERATION,
+                        10,
+                        "portfolio_generation"
+                )
         ).orElseThrow();
 
         assertThat(state.invocations).containsExactly(

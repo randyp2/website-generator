@@ -42,10 +42,9 @@ public class PortfolioAiController {
 
         rateLimiterService.check("portfolio-generate", userId.toString());
 
-        UUID creditReservationId = creditGuardService.reserveCredits(
+        UUID creditReservationId = creditGuardService.reserveUsage(
                 userId,
-                PortfolioCreditCostPolicy.GENERATE_PORTFOLIO_REQUIRED_CREDITS,
-                "portfolio_generation"
+                PortfolioCreditCostPolicy.GENERATE_PORTFOLIO_USAGE
         ).orElse(null);
 
         try {

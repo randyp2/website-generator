@@ -188,10 +188,9 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
                         upload.getContentType()
                 );
 
-        UUID creditReservationId = creditGuardService.reserveCredits(
+        UUID creditReservationId = creditGuardService.reserveUsage(
                 profileId,
-                VerificationCreditCostPolicy.ASSET_VERIFICATION_REQUIRED_CREDITS,
-                "asset_verification"
+                VerificationCreditCostPolicy.ASSET_VERIFICATION_USAGE
         ).orElse(null);
 
         //--- Transition lifecycle status and persist finalize metadata

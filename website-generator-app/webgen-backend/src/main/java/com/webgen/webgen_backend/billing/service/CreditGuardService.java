@@ -1,6 +1,7 @@
 package com.webgen.webgen_backend.billing.service;
 
 import com.webgen.webgen_backend.billing.model.CreditBucket;
+import com.webgen.webgen_backend.billing.model.CreditUsagePolicy;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -33,6 +34,25 @@ public interface CreditGuardService {
             String operationCode
     ) {
         return reserveCredits(profileId, fallbackCredits, operationCode);
+    }
+
+    /**
+     * Reserves usage according to a feature's declared allowance and fallback policy.
+     *
+     * @param profileId authenticated profile id
+     * @param policy feature billing policy
+     * @return reservation id, or empty when credit enforcement is disabled
+     */
+    default Optional<UUID> reserveUsage(UUID profileId, CreditUsagePolicy policy) {
+        if (policy == null) {
+            throw new IllegalArgumentException("Credit usage policy is required");
+        }
+        return reserveUsage(
+                profileId,
+                policy.allowanceBucket(),
+                policy.fallbackCredits(),
+                policy.operationCode()
+        );
     }
 
     /**
