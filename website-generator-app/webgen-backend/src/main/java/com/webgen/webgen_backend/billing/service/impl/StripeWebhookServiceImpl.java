@@ -229,7 +229,7 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
                 }
             }
 
-            // --- Invoice events refresh subscription status; paid invoices also grant plan credits.
+            // Invoice events refresh subscription status; paid invoices also grant plan allowances.
             case INVOICE_PAID, INVOICE_PAYMENT_FAILED -> {
                 StripeInvoiceSnapshotModel snapshot = buildInvoiceSnapshot(
                         stripeEventId,
@@ -243,7 +243,7 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
                     billingInvoiceService.syncInvoiceSnapshot(snapshot);
                     billingSubscriptionSyncService.syncInvoiceSnapshot(snapshot);
                     if (normalizedType == StripeWebhookEventType.INVOICE_PAID) {
-                        billingCreditLedgerService.applyInvoicePaidCredits(snapshot);
+                        billingCreditLedgerService.applyInvoicePaidAllowances(snapshot);
                     }
                 }
             }

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.webgen.webgen_backend.billing.entity.BillingCreditLedgerEntry;
 import com.webgen.webgen_backend.billing.model.CreditBucket;
 import com.webgen.webgen_backend.billing.repository.BillingCreditLedgerEntryRepository;
+import com.webgen.webgen_backend.billing.service.BillingAllowanceGrantService;
 import com.webgen.webgen_backend.billing.service.CreditGuardService;
 import com.webgen.webgen_backend.profile.entity.Profile;
 import com.webgen.webgen_backend.profile.repository.ProfileRepository;
@@ -36,6 +37,7 @@ public class CreditGuardServiceImpl implements CreditGuardService {
 
     private final BillingCreditLedgerEntryRepository billingCreditLedgerEntryRepository;
     private final ProfileRepository profileRepository;
+    private final BillingAllowanceGrantService billingAllowanceGrantService;
     private final ObjectMapper objectMapper;
     private final Environment environment;
 
@@ -75,8 +77,12 @@ public class CreditGuardServiceImpl implements CreditGuardService {
         }
         validateUsageRequest(profileId, allowanceBucket, fallbackCredits);
 
-        Profile profile = lockProfile(profileId);
         OffsetDateTime reservationTime = OffsetDateTime.now(ZoneOffset.UTC);
+        billingAllowanceGrantService.ensureCurrentSubscriptionAllowances(
+                profileId,
+                reservationTime
+        );
+        Profile profile = lockProfile(profileId);
         Optional<UUID> allowanceReservation = reserveActiveAllowance(
                 profile,
                 allowanceBucket,

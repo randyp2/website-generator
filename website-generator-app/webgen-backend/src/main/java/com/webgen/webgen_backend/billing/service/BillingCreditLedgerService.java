@@ -13,9 +13,9 @@ public interface BillingCreditLedgerService {
     void fulfillCheckoutSessionCompleted(StripeCheckoutSessionCompletedModel snapshot);
 
     /**
-     * Applies invoice.paid credit grants when a subscription enters a billable period.
+     * Applies invoice.paid allowance grants when a subscription enters a billable period.
      *
      * @param snapshot normalized invoice snapshot extracted from Stripe webhook payload
      */
-    void applyInvoicePaidCredits(StripeInvoiceSnapshotModel snapshot);
+    void applyInvoicePaidAllowances(StripeInvoiceSnapshotModel snapshot);
 }

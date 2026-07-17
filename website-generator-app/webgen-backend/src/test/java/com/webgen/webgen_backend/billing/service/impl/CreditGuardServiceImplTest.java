@@ -3,7 +3,9 @@ package com.webgen.webgen_backend.billing.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.billing.entity.BillingCreditLedgerEntry;
 import com.webgen.webgen_backend.billing.model.CreditBucket;
+import com.webgen.webgen_backend.billing.model.webhook.StripeInvoiceSnapshotModel;
 import com.webgen.webgen_backend.billing.repository.BillingCreditLedgerEntryRepository;
+import com.webgen.webgen_backend.billing.service.BillingAllowanceGrantService;
 import com.webgen.webgen_backend.profile.entity.Profile;
 import com.webgen.webgen_backend.profile.repository.ProfileRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +15,7 @@ import org.springframework.mock.env.MockEnvironment;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.lang.reflect.Proxy;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -147,6 +150,7 @@ class CreditGuardServiceImplTest {
         ).orElseThrow();
 
         assertThat(state.invocations).containsExactly(
+                "ensure_subscription_allowances",
                 "lock_profile",
                 "find_active_grants",
                 "compute_grant_balance",
@@ -192,6 +196,7 @@ class CreditGuardServiceImplTest {
         ).orElseThrow();
 
         assertThat(state.invocations).containsExactly(
+                "ensure_subscription_allowances",
                 "lock_profile",
                 "find_active_grants",
                 "compute_grant_balance",
@@ -214,6 +219,7 @@ class CreditGuardServiceImplTest {
         ).orElseThrow();
 
         assertThat(state.invocations).containsExactly(
+                "ensure_subscription_allowances",
                 "lock_profile",
                 "find_active_grants",
                 "compute_balance",
@@ -242,6 +248,7 @@ class CreditGuardServiceImplTest {
         });
 
         assertThat(state.invocations).containsExactly(
+                "ensure_subscription_allowances",
                 "lock_profile",
                 "find_active_grants",
                 "compute_balance"
@@ -409,9 +416,29 @@ class CreditGuardServiceImplTest {
         return new CreditGuardServiceImpl(
                 ledgerRepository(state),
                 profileRepository(state),
+                allowanceGrantService(state),
                 new ObjectMapper(),
                 environment
         );
+    }
+
+    private BillingAllowanceGrantService allowanceGrantService(RepositoryState state) {
+        return new BillingAllowanceGrantService() {
+            @Override
+            public void applyPaidInvoiceAllowances(StripeInvoiceSnapshotModel snapshot) {
+                throw new UnsupportedOperationException("Not used by credit guard tests");
+            }
+
+            @Override
+            public void ensureCurrentSubscriptionAllowances(
+                    UUID requestedProfileId,
+                    OffsetDateTime activeAt
+            ) {
+                state.invocations.add("ensure_subscription_allowances");
+                assertThat(requestedProfileId).isEqualTo(profileId);
+                assertThat(activeAt).isNotNull();
+            }
+        };
     }
 
     private BillingCreditLedgerEntryRepository ledgerRepository(RepositoryState state) {
