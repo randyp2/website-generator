@@ -3,12 +3,14 @@ import {
   ArrowRight,
   Bot,
   FileText,
-  Layers3,
-  LayoutTemplate,
   Rocket,
   ShieldCheck,
   Sparkles,
 } from "lucide-react"
+
+import { OnThisPageNav, type TocItem } from "./OnThisPageNav"
+
+const CONTENT_ID = "how-it-works-content"
 
 const workflow = [
   {
@@ -72,7 +74,7 @@ const workflow = [
   },
 ]
 
-const toc = [
+const toc: TocItem[] = [
   { href: "#overview", label: "Overview" },
   { href: "#inputs", label: "Start with structure" },
   { href: "#generation", label: "Generate the first version" },
@@ -99,7 +101,7 @@ export default function HowItWorksPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <section className="border-b border-border/70">
-        <div className="px-6 py-16 sm:px-10 lg:px-14 xl:px-20">
+        <div className="px-8 py-16 sm:px-14 lg:px-24 xl:px-36">
           <div className="max-w-4xl">
             <p className="text-sm font-medium tracking-[0.22em] text-muted-foreground uppercase">
               Product Docs
@@ -115,8 +117,8 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
-      <div className="grid gap-12 px-6 py-10 sm:px-10 lg:grid-cols-[minmax(0,1fr)_240px] lg:px-14 xl:px-20">
-        <div className="min-w-0">
+      <div className="grid gap-12 px-8 py-10 sm:px-14 lg:grid-cols-[minmax(0,1fr)_240px] lg:px-24 xl:px-36">
+        <div id={CONTENT_ID} className="min-w-0">
           <section
             id="overview"
             className="border-b border-border/70 pb-12 scroll-mt-28"
@@ -137,7 +139,7 @@ export default function HowItWorksPage() {
               {principles.map((item) => (
                 <div
                   key={item.title}
-                  className="border border-border/70 bg-card/[0.32] px-5 py-5"
+                  className="rounded-xl border border-border/70 bg-card/[0.32] px-5 py-5"
                 >
                   <div className="flex items-start gap-3">
                     <ShieldCheck className="mt-0.5 size-4 text-primary" />
@@ -177,7 +179,7 @@ export default function HowItWorksPage() {
                     </p>
                   </div>
 
-                  <div className="border border-border/70 bg-card/[0.3] px-5 py-5">
+                  <div className="rounded-xl border border-border/70 bg-card/[0.3] px-5 py-5">
                     <div className="flex items-center gap-3 text-sm font-medium text-foreground">
                       <Icon className="size-4 text-primary" />
                       Workflow note
@@ -197,15 +199,15 @@ export default function HowItWorksPage() {
           })}
 
           <section className="py-12">
-            <div className="flex flex-col gap-6 border border-border/70 bg-card/[0.24] px-6 py-6 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex flex-col gap-6 rounded-2xl bg-[linear-gradient(125deg,#4a3620_0%,#554023_36%,#8a6733_70%,#c99846_100%)] px-8 py-8 shadow-lg shadow-black/25 ring-1 ring-white/10 sm:flex-row sm:items-end sm:justify-between">
               <div className="max-w-2xl">
-                <p className="text-sm uppercase tracking-[0.22em] text-muted-foreground">
+                <p className="text-sm uppercase tracking-[0.22em] text-amber-100/70">
                   Next step
                 </p>
-                <h2 className="mt-4 text-2xl font-semibold tracking-tight text-foreground">
+                <h2 className="mt-4 text-2xl font-semibold tracking-tight text-white">
                   Start from the main builder flow when you are ready.
                 </h2>
-                <p className="mt-4 text-sm leading-7 text-muted-foreground">
+                <p className="mt-4 text-sm leading-7 text-amber-50/80">
                   Create an account or return to your workspace to upload your resume,
                   choose a template, and continue through the guided portfolio pipeline.
                 </p>
@@ -214,58 +216,23 @@ export default function HowItWorksPage() {
               <div className="flex flex-wrap gap-3">
                 <Link
                   href="/"
-                  className="public-action-button public-action-button-outline"
+                  className="public-action-button rounded-xl border border-white/25 text-white transition-colors hover:bg-white/10"
                 >
                   Go to home
                 </Link>
                 <Link
                   href="/dashboard"
-                  className="public-action-button public-action-button-primary"
+                  className="group public-action-button rounded-xl bg-white font-medium text-[#554023] transition-colors hover:bg-amber-50"
                 >
                   Open dashboard
-                  <ArrowRight className="size-4" />
+                  <ArrowRight className="size-4 transition-transform duration-200 ease-out group-hover:translate-x-1" />
                 </Link>
               </div>
             </div>
           </section>
         </div>
 
-        <aside className="hidden lg:block">
-          <div className="sticky top-24 border-l border-border/70 pl-6">
-            <p className="text-xs font-semibold tracking-[0.22em] text-muted-foreground uppercase">
-              On this page
-            </p>
-            <nav className="mt-5 space-y-3">
-              {toc.map((item, index) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="group flex items-center gap-3 text-sm text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  <span className="text-xs text-muted-foreground/70">
-                    0{index + 1}
-                  </span>
-                  <span>{item.label}</span>
-                </Link>
-              ))}
-            </nav>
-
-            <div className="mt-10 border border-border/70 bg-card/[0.28] px-4 py-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <Layers3 className="size-4 text-primary" />
-                Workflow summary
-              </div>
-              <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                Input content, generate structure, refine output, then publish from the
-                saved dashboard flow.
-              </p>
-              <div className="mt-4 flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                <LayoutTemplate className="size-3.5" />
-                Resume to portfolio
-              </div>
-            </div>
-          </div>
-        </aside>
+        <OnThisPageNav items={toc} contentId={CONTENT_ID} />
       </div>
     </div>
   )
