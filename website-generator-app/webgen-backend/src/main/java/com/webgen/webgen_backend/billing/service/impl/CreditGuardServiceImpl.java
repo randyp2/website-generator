@@ -2,6 +2,7 @@ package com.webgen.webgen_backend.billing.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.webgen.webgen_backend.billing.config.BillingCreditProperties;
 import com.webgen.webgen_backend.billing.entity.BillingCreditLedgerEntry;
 import com.webgen.webgen_backend.billing.model.CreditBucket;
 import com.webgen.webgen_backend.billing.model.CreditUsagePolicy;
@@ -12,8 +13,6 @@ import com.webgen.webgen_backend.billing.service.CreditGuardService;
 import com.webgen.webgen_backend.profile.entity.Profile;
 import com.webgen.webgen_backend.profile.repository.ProfileRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.env.Environment;
-import org.springframework.core.env.Profiles;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,12 +41,12 @@ public class CreditGuardServiceImpl implements CreditGuardService {
     private final BillingEntitlementGrantService billingEntitlementGrantService;
     private final BillingAllowanceGrantService billingAllowanceGrantService;
     private final ObjectMapper objectMapper;
-    private final Environment environment;
+    private final BillingCreditProperties billingCreditProperties;
 
     @Override
     @Transactional
     public Optional<UUID> reserveCredits(UUID profileId, int credits, String operationCode) {
-        if (environment.acceptsProfiles(Profiles.of("dev"))) {
+        if (!billingCreditProperties.isEnforcementEnabled()) {
             return Optional.empty();
         }
         if (credits <= 0) {
@@ -89,7 +88,7 @@ public class CreditGuardServiceImpl implements CreditGuardService {
             int fallbackCredits,
             String operationCode
     ) {
-        if (environment.acceptsProfiles(Profiles.of("dev"))) {
+        if (!billingCreditProperties.isEnforcementEnabled()) {
             return Optional.empty();
         }
         validateUsageRequest(profileId, allowanceBucket, fallbackCredits);

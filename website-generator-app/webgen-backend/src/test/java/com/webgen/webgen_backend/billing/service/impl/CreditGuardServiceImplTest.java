@@ -1,6 +1,7 @@
 package com.webgen.webgen_backend.billing.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.webgen.webgen_backend.billing.config.BillingCreditProperties;
 import com.webgen.webgen_backend.billing.entity.BillingCreditLedgerEntry;
 import com.webgen.webgen_backend.billing.model.CreditBucket;
 import com.webgen.webgen_backend.billing.model.CreditUsagePolicy;
@@ -13,7 +14,6 @@ import com.webgen.webgen_backend.profile.repository.ProfileRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
-import org.springframework.mock.env.MockEnvironment;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.lang.reflect.Proxy;
@@ -41,9 +41,9 @@ class CreditGuardServiceImplTest {
     }
 
     @Test
-    void reserveCreditsSkipsReservationWhenDevProfileIsActive() {
+    void reserveCreditsSkipsReservationWhenEnforcementIsDisabled() {
         RepositoryState state = new RepositoryState(0);
-        CreditGuardServiceImpl service = serviceWithProfiles(state, "dev");
+        CreditGuardServiceImpl service = serviceWithEnforcement(state, false);
 
         Optional<UUID> reservationId = service.reserveCredits(
                 profileId,
@@ -59,7 +59,7 @@ class CreditGuardServiceImplTest {
     @Test
     void reserveCreditsRejectsInsufficientBalanceWithoutWritingDebit() {
         RepositoryState state = new RepositoryState(5);
-        CreditGuardServiceImpl service = serviceWithProfiles(state, "test");
+        CreditGuardServiceImpl service = serviceWithEnforcement(state, true);
 
         assertThatThrownBy(() -> service.reserveCredits(
                 profileId,
@@ -77,7 +77,7 @@ class CreditGuardServiceImplTest {
     @Test
     void reserveCreditsLocksProfileAndAppendsNegativeLedgerDelta() {
         RepositoryState state = new RepositoryState(10);
-        CreditGuardServiceImpl service = serviceWithProfiles(state, "test");
+        CreditGuardServiceImpl service = serviceWithEnforcement(state, true);
 
         UUID reservationId = service.reserveCredits(profileId, 6, "refine_build").orElseThrow();
 
@@ -107,7 +107,7 @@ class CreditGuardServiceImplTest {
     @Test
     void reserveCreditsSkipsNonPositiveAmounts() {
         RepositoryState state = new RepositoryState(10);
-        CreditGuardServiceImpl service = serviceWithProfiles(state, "test");
+        CreditGuardServiceImpl service = serviceWithEnforcement(state, true);
 
         Optional<UUID> reservationId = service.reserveCredits(profileId, 0, "style_chat");
 
@@ -117,9 +117,9 @@ class CreditGuardServiceImplTest {
     }
 
     @Test
-    void reserveUsageSkipsReservationWhenDevProfileIsActive() {
+    void reserveUsageSkipsReservationWhenEnforcementIsDisabled() {
         RepositoryState state = new RepositoryState(0);
-        CreditGuardServiceImpl service = serviceWithProfiles(state, "dev");
+        CreditGuardServiceImpl service = serviceWithEnforcement(state, false);
 
         Optional<UUID> reservationId = service.reserveUsage(
                 profileId,
@@ -142,7 +142,7 @@ class CreditGuardServiceImplTest {
         );
         state.activeGrants.add(grant);
         state.grantBalances.put(grant.getId(), 3);
-        CreditGuardServiceImpl service = serviceWithProfiles(state, "test");
+        CreditGuardServiceImpl service = serviceWithEnforcement(state, true);
 
         UUID reservationId = service.reserveUsage(
                 profileId,
@@ -191,7 +191,7 @@ class CreditGuardServiceImplTest {
         state.activeGrants.add(availableGrant);
         state.grantBalances.put(exhaustedGrant.getId(), 0);
         state.grantBalances.put(availableGrant.getId(), 2);
-        CreditGuardServiceImpl service = serviceWithProfiles(state, "test");
+        CreditGuardServiceImpl service = serviceWithEnforcement(state, true);
 
         service.reserveUsage(
                 profileId,
@@ -215,7 +215,7 @@ class CreditGuardServiceImplTest {
     @Test
     void reserveUsageFallsBackToGeneralCreditsWhenAllowanceIsUnavailable() {
         RepositoryState state = new RepositoryState(10);
-        CreditGuardServiceImpl service = serviceWithProfiles(state, "test");
+        CreditGuardServiceImpl service = serviceWithEnforcement(state, true);
 
         service.reserveUsage(
                 profileId,
@@ -242,7 +242,7 @@ class CreditGuardServiceImplTest {
     @Test
     void reserveUsageRejectsWhenAllowanceAndGeneralCreditsAreUnavailable() {
         RepositoryState state = new RepositoryState(9);
-        CreditGuardServiceImpl service = serviceWithProfiles(state, "test");
+        CreditGuardServiceImpl service = serviceWithEnforcement(state, true);
 
         assertThatThrownBy(() -> service.reserveUsage(
                 profileId,
@@ -269,7 +269,7 @@ class CreditGuardServiceImplTest {
         UUID reservationId = UUID.randomUUID();
         RepositoryState state = new RepositoryState(4);
         state.existingEntry = reservation(reservationId, 6);
-        CreditGuardServiceImpl service = serviceWithProfiles(state, "test");
+        CreditGuardServiceImpl service = serviceWithEnforcement(state, true);
 
         service.refundCredits(reservationId, "OpenAiException: upstream unavailable");
 
@@ -305,7 +305,7 @@ class CreditGuardServiceImplTest {
         RepositoryState state = new RepositoryState(4);
         state.existingEntry = reservation(reservationId, 6);
         state.refundExists = true;
-        CreditGuardServiceImpl service = serviceWithProfiles(state, "test");
+        CreditGuardServiceImpl service = serviceWithEnforcement(state, true);
 
         service.refundCredits(reservationId, "duplicate worker failure");
 
@@ -327,7 +327,7 @@ class CreditGuardServiceImplTest {
         );
         state.grantBalances.put(grant.getId(), 14);
         state.existingEntry = allowanceReservation(reservationId, grant);
-        CreditGuardServiceImpl service = serviceWithProfiles(state, "test");
+        CreditGuardServiceImpl service = serviceWithEnforcement(state, true);
 
         service.refundCredits(reservationId, "verification failed");
 
@@ -362,7 +362,7 @@ class CreditGuardServiceImplTest {
         );
         state.existingEntry = allowanceReservation(reservationId, grant);
         state.refundExists = true;
-        CreditGuardServiceImpl service = serviceWithProfiles(state, "test");
+        CreditGuardServiceImpl service = serviceWithEnforcement(state, true);
 
         service.refundCredits(reservationId, "duplicate worker failure");
 
@@ -415,19 +415,19 @@ class CreditGuardServiceImplTest {
         return reservation;
     }
 
-    private CreditGuardServiceImpl serviceWithProfiles(
+    private CreditGuardServiceImpl serviceWithEnforcement(
             RepositoryState state,
-            String... profiles
+            boolean enforcementEnabled
     ) {
-        MockEnvironment environment = new MockEnvironment();
-        environment.setActiveProfiles(profiles);
+        BillingCreditProperties properties = new BillingCreditProperties();
+        properties.setEnforcementEnabled(enforcementEnabled);
         return new CreditGuardServiceImpl(
                 ledgerRepository(state),
                 profileRepository(state),
                 entitlementGrantService(state),
                 allowanceGrantService(state),
                 new ObjectMapper(),
-                environment
+                properties
         );
     }
 
