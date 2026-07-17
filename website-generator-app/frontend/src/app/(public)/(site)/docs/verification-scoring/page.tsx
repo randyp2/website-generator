@@ -149,7 +149,7 @@ const RECENCY_LAMBDA = 0.00095;
 const RecencyDecayChart = () => {
   const width = 640;
   const height = 300;
-  const margin = { top: 16, right: 20, bottom: 40, left: 48 };
+  const margin = { top: 16, right: 20, bottom: 58, left: 66 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
   const maxDays = 1460; // four years
@@ -229,6 +229,29 @@ const RecencyDecayChart = () => {
           </text>
         ))}
 
+        {/* Axis titles */}
+        <text
+          x={margin.left + innerWidth / 2}
+          y={baseline + 44}
+          textAnchor="middle"
+          fontSize={12}
+          fontWeight={500}
+          fill="var(--muted-foreground)"
+        >
+          Age of evidence
+        </text>
+        <text
+          transform={`rotate(-90 16 ${margin.top + innerHeight / 2})`}
+          x={16}
+          y={margin.top + innerHeight / 2}
+          textAnchor="middle"
+          fontSize={12}
+          fontWeight={500}
+          fill="var(--muted-foreground)"
+        >
+          Recency multiplier
+        </text>
+
         <path d={areaPath} fill="url(#recencyFill)" />
         <path d={linePath} fill="none" stroke="var(--primary)" strokeWidth={2} />
 
@@ -257,7 +280,7 @@ const RecencyDecayChart = () => {
         <circle cx={xScale(0)} cy={yScale(1)} r={4.5} fill="var(--primary)" />
         <text
           x={halfLifeX + 10}
-          y={halfLifeY - 10}
+          y={halfLifeY - 26}
           fontSize={12}
           fontWeight={600}
           fill="var(--foreground)"
@@ -266,7 +289,7 @@ const RecencyDecayChart = () => {
         </text>
         <text
           x={halfLifeX + 10}
-          y={halfLifeY + 6}
+          y={halfLifeY - 11}
           fontSize={11}
           fill="var(--muted-foreground)"
         >
