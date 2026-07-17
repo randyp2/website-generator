@@ -6,6 +6,7 @@ import com.webgen.webgen_backend.billing.model.CreditBucket;
 import com.webgen.webgen_backend.billing.repository.BillingCreditLedgerEntryRepository;
 import com.webgen.webgen_backend.billing.repository.BillingSubscriptionRepository;
 import com.webgen.webgen_backend.billing.service.BillingAllowanceGrantService;
+import com.webgen.webgen_backend.billing.service.BillingEntitlementGrantService;
 import com.webgen.webgen_backend.billing.service.BillingStatusReader;
 import com.webgen.webgen_backend.profile.dto.ProfileBillingDTO;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ public class BillingStatusReaderImpl implements BillingStatusReader {
 
     private final BillingSubscriptionRepository billingSubscriptionRepository;
     private final BillingCreditLedgerEntryRepository billingCreditLedgerEntryRepository;
+    private final BillingEntitlementGrantService billingEntitlementGrantService;
     private final BillingAllowanceGrantService billingAllowanceGrantService;
     private final StripeProperties stripeProperties;
 
@@ -38,12 +40,14 @@ public class BillingStatusReaderImpl implements BillingStatusReader {
             return null;
         }
 
+        OffsetDateTime activeAt = OffsetDateTime.now(ZoneOffset.UTC);
+        billingEntitlementGrantService.ensureCurrentEntitlements(profileId, activeAt);
+
         Optional<BillingSubscription> activeOptional = billingSubscriptionRepository
                 .findFirstByProfile_IdAndStatusInOrderByCurrentPeriodEndDesc(
                         profileId,
                         ACTIVE_SUBSCRIPTION_STATUSES
                 );
-        OffsetDateTime activeAt = OffsetDateTime.now(ZoneOffset.UTC);
         if (activeOptional.isPresent()) {
             billingAllowanceGrantService.ensureCurrentSubscriptionAllowances(profileId, activeAt);
         }

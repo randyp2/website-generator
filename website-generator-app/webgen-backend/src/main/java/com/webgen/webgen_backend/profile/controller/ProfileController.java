@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.profile.controller;
 
+import com.webgen.webgen_backend.auth.model.AuthenticatedUserDetails;
 import com.webgen.webgen_backend.profile.dto.ProfileMeDTO;
 import com.webgen.webgen_backend.profile.dto.UpdateProfileRequestDTO;
 import com.webgen.webgen_backend.profile.dto.UsernameAvailabilityResponseDTO;
@@ -26,7 +27,10 @@ public class ProfileController {
     @GetMapping("/me")
     public ResponseEntity<ProfileMeDTO> getMyProfile() {
         UUID profileId = resolveAuthenticatedUserId();
-        return ResponseEntity.ok(profileService.getOrCreateMyProfile(profileId));
+        return ResponseEntity.ok(profileService.getOrCreateMyProfile(
+                profileId,
+                resolveAuthenticatedEmail()
+        ));
     }
 
     @PatchMapping("/me")
@@ -51,5 +55,13 @@ public class ProfileController {
         return UUID.fromString(
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
         );
+    }
+
+    private String resolveAuthenticatedEmail() {
+        Object details = SecurityContextHolder.getContext().getAuthentication().getDetails();
+        if (details instanceof AuthenticatedUserDetails authenticatedUserDetails) {
+            return authenticatedUserDetails.getEmail();
+        }
+        return null;
     }
 }

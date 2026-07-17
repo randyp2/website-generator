@@ -118,6 +118,18 @@ public class JWTService {
         return signedJWT.getJWTClaimsSet().getSubject();
     }
 
+    /**
+     * Extracts the authenticated account email from an already validated JWT.
+     *
+     * @param token raw JWT string
+     * @return email claim, or null when the provider omitted it
+     * @throws Exception if the token cannot be parsed
+     */
+    public String extractEmail(String token) throws Exception {
+        SignedJWT signedJWT = SignedJWT.parse(token);
+        return signedJWT.getJWTClaimsSet().getStringClaim("email");
+    }
+
     /* ============== HELPER FUNCTIONS ============== */
 
     /*

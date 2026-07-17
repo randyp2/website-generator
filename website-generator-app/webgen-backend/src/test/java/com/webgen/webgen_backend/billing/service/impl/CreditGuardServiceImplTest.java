@@ -7,6 +7,7 @@ import com.webgen.webgen_backend.billing.model.CreditUsagePolicy;
 import com.webgen.webgen_backend.billing.model.webhook.StripeInvoiceSnapshotModel;
 import com.webgen.webgen_backend.billing.repository.BillingCreditLedgerEntryRepository;
 import com.webgen.webgen_backend.billing.service.BillingAllowanceGrantService;
+import com.webgen.webgen_backend.billing.service.BillingEntitlementGrantService;
 import com.webgen.webgen_backend.profile.entity.Profile;
 import com.webgen.webgen_backend.profile.repository.ProfileRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -153,6 +154,7 @@ class CreditGuardServiceImplTest {
         ).orElseThrow();
 
         assertThat(state.invocations).containsExactly(
+                "ensure_entitlements",
                 "ensure_subscription_allowances",
                 "lock_profile",
                 "find_active_grants",
@@ -199,6 +201,7 @@ class CreditGuardServiceImplTest {
         ).orElseThrow();
 
         assertThat(state.invocations).containsExactly(
+                "ensure_entitlements",
                 "ensure_subscription_allowances",
                 "lock_profile",
                 "find_active_grants",
@@ -222,6 +225,7 @@ class CreditGuardServiceImplTest {
         ).orElseThrow();
 
         assertThat(state.invocations).containsExactly(
+                "ensure_entitlements",
                 "ensure_subscription_allowances",
                 "lock_profile",
                 "find_active_grants",
@@ -251,6 +255,7 @@ class CreditGuardServiceImplTest {
         });
 
         assertThat(state.invocations).containsExactly(
+                "ensure_entitlements",
                 "ensure_subscription_allowances",
                 "lock_profile",
                 "find_active_grants",
@@ -419,10 +424,19 @@ class CreditGuardServiceImplTest {
         return new CreditGuardServiceImpl(
                 ledgerRepository(state),
                 profileRepository(state),
+                entitlementGrantService(state),
                 allowanceGrantService(state),
                 new ObjectMapper(),
                 environment
         );
+    }
+
+    private BillingEntitlementGrantService entitlementGrantService(RepositoryState state) {
+        return (requestedProfileId, activeAt) -> {
+            state.invocations.add("ensure_entitlements");
+            assertThat(requestedProfileId).isEqualTo(profileId);
+            assertThat(activeAt).isNotNull();
+        };
     }
 
     private BillingAllowanceGrantService allowanceGrantService(RepositoryState state) {

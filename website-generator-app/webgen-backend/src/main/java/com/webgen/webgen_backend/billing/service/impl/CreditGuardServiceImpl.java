@@ -7,6 +7,7 @@ import com.webgen.webgen_backend.billing.model.CreditBucket;
 import com.webgen.webgen_backend.billing.model.CreditUsagePolicy;
 import com.webgen.webgen_backend.billing.repository.BillingCreditLedgerEntryRepository;
 import com.webgen.webgen_backend.billing.service.BillingAllowanceGrantService;
+import com.webgen.webgen_backend.billing.service.BillingEntitlementGrantService;
 import com.webgen.webgen_backend.billing.service.CreditGuardService;
 import com.webgen.webgen_backend.profile.entity.Profile;
 import com.webgen.webgen_backend.profile.repository.ProfileRepository;
@@ -38,6 +39,7 @@ public class CreditGuardServiceImpl implements CreditGuardService {
 
     private final BillingCreditLedgerEntryRepository billingCreditLedgerEntryRepository;
     private final ProfileRepository profileRepository;
+    private final BillingEntitlementGrantService billingEntitlementGrantService;
     private final BillingAllowanceGrantService billingAllowanceGrantService;
     private final ObjectMapper objectMapper;
     private final Environment environment;
@@ -93,6 +95,7 @@ public class CreditGuardServiceImpl implements CreditGuardService {
         validateUsageRequest(profileId, allowanceBucket, fallbackCredits);
 
         OffsetDateTime reservationTime = OffsetDateTime.now(ZoneOffset.UTC);
+        billingEntitlementGrantService.ensureCurrentEntitlements(profileId, reservationTime);
         billingAllowanceGrantService.ensureCurrentSubscriptionAllowances(
                 profileId,
                 reservationTime

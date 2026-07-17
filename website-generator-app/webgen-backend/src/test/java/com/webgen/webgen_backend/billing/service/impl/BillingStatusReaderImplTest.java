@@ -7,6 +7,7 @@ import com.webgen.webgen_backend.billing.model.webhook.StripeInvoiceSnapshotMode
 import com.webgen.webgen_backend.billing.repository.BillingCreditLedgerEntryRepository;
 import com.webgen.webgen_backend.billing.repository.BillingSubscriptionRepository;
 import com.webgen.webgen_backend.billing.service.BillingAllowanceGrantService;
+import com.webgen.webgen_backend.billing.service.BillingEntitlementGrantService;
 import com.webgen.webgen_backend.profile.dto.ProfileBillingDTO;
 import com.webgen.webgen_backend.profile.entity.Profile;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,6 +55,8 @@ class BillingStatusReaderImplTest {
         assertThat(billing.getAssetVerificationAllowanceRemaining()).isEqualTo(49);
         assertThat(billing.getActivePlanKey()).isEqualTo("website_generator_pro");
         assertThat(billing.getActivePriceKey()).isEqualTo("WEBSITE_GENERATOR_PRO_MONTHLY");
+        assertThat(state.entitlementProfileId).isEqualTo(profileId);
+        assertThat(state.entitlementActiveAt).isNotNull();
         assertThat(state.allowanceProfileId).isEqualTo(profileId);
         assertThat(state.allowanceActiveAt).isNotNull();
     }
@@ -90,9 +93,17 @@ class BillingStatusReaderImplTest {
         return new BillingStatusReaderImpl(
                 subscriptionRepository(state),
                 ledgerRepository(state),
+                entitlementGrantService(state),
                 allowanceGrantService(state),
                 stripeProperties
         );
+    }
+
+    private BillingEntitlementGrantService entitlementGrantService(RepositoryState state) {
+        return (requestedProfileId, activeAt) -> {
+            state.entitlementProfileId = requestedProfileId;
+            state.entitlementActiveAt = activeAt;
+        };
     }
 
     private BillingSubscription subscription() {
@@ -201,6 +212,8 @@ class BillingStatusReaderImplTest {
                 new EnumMap<>(CreditBucket.class);
         private BillingSubscription activeSubscription;
         private int generalCredits;
+        private UUID entitlementProfileId;
+        private OffsetDateTime entitlementActiveAt;
         private UUID allowanceProfileId;
         private OffsetDateTime allowanceActiveAt;
     }

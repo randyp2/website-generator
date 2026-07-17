@@ -52,9 +52,10 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Override
     @Transactional
-    public ProfileMeDTO getOrCreateMyProfile(UUID profileId) {
+    public ProfileMeDTO getOrCreateMyProfile(UUID profileId, String authenticatedEmail) {
         accountDeletionStateService.assertAccountActive(profileId);
         Profile profile = getOrCreateProfile(profileId);
+        profile = syncAuthenticatedEmail(profile, authenticatedEmail);
         profile = syncOnboardingComplete(profile);
         return withBilling(profileMapper.toMeDto(profile), profileId);
     }
@@ -172,6 +173,30 @@ public class ProfileServiceImpl implements ProfileService {
                     profile.setOnboardingComplete(false);
                     return profileRepository.save(profile);
                 });
+    }
+
+    private Profile syncAuthenticatedEmail(Profile profile, String authenticatedEmail) {
+        String normalizedEmail = normalizeAuthenticatedEmail(authenticatedEmail);
+        if (normalizedEmail == null || normalizedEmail.equals(profile.getEmail())) {
+            return profile;
+        }
+
+        profile.setEmail(normalizedEmail);
+        return profileRepository.save(profile);
+    }
+
+    private String normalizeAuthenticatedEmail(String authenticatedEmail) {
+        if (authenticatedEmail == null) {
+            return null;
+        }
+
+        String normalized = authenticatedEmail.trim().toLowerCase(Locale.ROOT);
+        if (normalized.length() < 3
+                || normalized.length() > 320
+                || normalized.indexOf('@') <= 0) {
+            return null;
+        }
+        return normalized;
     }
 
     private Profile syncOnboardingComplete(Profile profile) {
