@@ -14,7 +14,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -110,6 +112,144 @@ class CreditGuardServiceImplTest {
     }
 
     @Test
+    void reserveUsageSkipsReservationWhenDevProfileIsActive() {
+        RepositoryState state = new RepositoryState(0);
+        CreditGuardServiceImpl service = serviceWithProfiles(state, "dev");
+
+        Optional<UUID> reservationId = service.reserveUsage(
+                profileId,
+                CreditBucket.PORTFOLIO_GENERATION,
+                10,
+                "portfolio_generation"
+        );
+
+        assertThat(reservationId).isEmpty();
+        assertThat(state.invocations).isEmpty();
+        assertThat(state.savedEntries).isEmpty();
+    }
+
+    @Test
+    void reserveUsagePrefersActiveAllowanceOverGeneralCredits() {
+        RepositoryState state = new RepositoryState(100);
+        BillingCreditLedgerEntry grant = allowanceGrant(
+                CreditBucket.PORTFOLIO_GENERATION,
+                3
+        );
+        state.activeGrants.add(grant);
+        state.grantBalances.put(grant.getId(), 3);
+        CreditGuardServiceImpl service = serviceWithProfiles(state, "test");
+
+        UUID reservationId = service.reserveUsage(
+                profileId,
+                CreditBucket.PORTFOLIO_GENERATION,
+                10,
+                "portfolio_generation"
+        ).orElseThrow();
+
+        assertThat(state.invocations).containsExactly(
+                "lock_profile",
+                "find_active_grants",
+                "compute_grant_balance",
+                "save_entry"
+        );
+        assertThat(state.requestedBucket).isEqualTo(CreditBucket.PORTFOLIO_GENERATION);
+
+        BillingCreditLedgerEntry reservation = state.savedEntries.getFirst();
+        assertThat(reservation.getId()).isEqualTo(reservationId);
+        assertThat(reservation.getDeltaCredits()).isEqualTo(-1);
+        assertThat(reservation.getReason()).isEqualTo("allowance_reservation");
+        assertThat(reservation.getCreditBucket()).isEqualTo(CreditBucket.PORTFOLIO_GENERATION);
+        assertThat(reservation.getGrantEntry()).isSameAs(grant);
+        assertThat(reservation.getCreditOperationId()).isEqualTo(reservationId);
+        assertThat(reservation.getMetadata().path("allowance_units_reserved").asInt())
+                .isEqualTo(1);
+        assertThat(reservation.getMetadata().path("balance_before").asInt()).isEqualTo(3);
+        assertThat(reservation.getMetadata().path("balance_after").asInt()).isEqualTo(2);
+    }
+
+    @Test
+    void reserveUsageSkipsExhaustedGrantBeforeUsingNextGrant() {
+        RepositoryState state = new RepositoryState(100);
+        BillingCreditLedgerEntry exhaustedGrant = allowanceGrant(
+                CreditBucket.PORTFOLIO_REFINEMENT,
+                2
+        );
+        BillingCreditLedgerEntry availableGrant = allowanceGrant(
+                CreditBucket.PORTFOLIO_REFINEMENT,
+                3
+        );
+        state.activeGrants.add(exhaustedGrant);
+        state.activeGrants.add(availableGrant);
+        state.grantBalances.put(exhaustedGrant.getId(), 0);
+        state.grantBalances.put(availableGrant.getId(), 2);
+        CreditGuardServiceImpl service = serviceWithProfiles(state, "test");
+
+        service.reserveUsage(
+                profileId,
+                CreditBucket.PORTFOLIO_REFINEMENT,
+                6,
+                "portfolio_refinement"
+        ).orElseThrow();
+
+        assertThat(state.invocations).containsExactly(
+                "lock_profile",
+                "find_active_grants",
+                "compute_grant_balance",
+                "compute_grant_balance",
+                "save_entry"
+        );
+        assertThat(state.savedEntries.getFirst().getGrantEntry()).isSameAs(availableGrant);
+    }
+
+    @Test
+    void reserveUsageFallsBackToGeneralCreditsWhenAllowanceIsUnavailable() {
+        RepositoryState state = new RepositoryState(10);
+        CreditGuardServiceImpl service = serviceWithProfiles(state, "test");
+
+        service.reserveUsage(
+                profileId,
+                CreditBucket.PORTFOLIO_GENERATION,
+                10,
+                "portfolio_generation"
+        ).orElseThrow();
+
+        assertThat(state.invocations).containsExactly(
+                "lock_profile",
+                "find_active_grants",
+                "compute_balance",
+                "save_entry"
+        );
+        BillingCreditLedgerEntry reservation = state.savedEntries.getFirst();
+        assertThat(reservation.getDeltaCredits()).isEqualTo(-10);
+        assertThat(reservation.getReason()).isEqualTo("credit_reservation");
+        assertThat(reservation.getCreditBucket()).isEqualTo(CreditBucket.GENERAL);
+        assertThat(reservation.getGrantEntry()).isNull();
+    }
+
+    @Test
+    void reserveUsageRejectsWhenAllowanceAndGeneralCreditsAreUnavailable() {
+        RepositoryState state = new RepositoryState(9);
+        CreditGuardServiceImpl service = serviceWithProfiles(state, "test");
+
+        assertThatThrownBy(() -> service.reserveUsage(
+                profileId,
+                CreditBucket.PORTFOLIO_GENERATION,
+                10,
+                "portfolio_generation"
+        )).isInstanceOfSatisfying(ResponseStatusException.class, exception -> {
+            assertThat(exception.getStatusCode()).isEqualTo(HttpStatus.PAYMENT_REQUIRED);
+            assertThat(exception.getReason()).contains("Required: 10, available: 9");
+        });
+
+        assertThat(state.invocations).containsExactly(
+                "lock_profile",
+                "find_active_grants",
+                "compute_balance"
+        );
+        assertThat(state.savedEntries).isEmpty();
+    }
+
+    @Test
     void refundCreditsLocksProfileAndAppendsCompensatingDelta() {
         UUID reservationId = UUID.randomUUID();
         RepositoryState state = new RepositoryState(4);
@@ -132,6 +272,8 @@ class CreditGuardServiceImplTest {
         assertThat(refund.getProfile()).isSameAs(profile);
         assertThat(refund.getDeltaCredits()).isEqualTo(6);
         assertThat(refund.getReason()).isEqualTo("credit_refund");
+        assertThat(refund.getCreditBucket()).isEqualTo(CreditBucket.GENERAL);
+        assertThat(refund.getGrantEntry()).isNull();
         assertThat(refund.getMetadata().path("reservation_id").asText())
                 .isEqualTo(reservationId.toString());
         assertThat(refund.getMetadata().path("operation_code").asText()).isEqualTo("refine_build");
@@ -160,6 +302,64 @@ class CreditGuardServiceImplTest {
         assertThat(state.savedEntries).isEmpty();
     }
 
+    @Test
+    void refundCreditsRestoresAllowanceToItsOriginalGrant() {
+        UUID reservationId = UUID.randomUUID();
+        RepositoryState state = new RepositoryState(100);
+        BillingCreditLedgerEntry grant = allowanceGrant(
+                CreditBucket.ASSET_VERIFICATION,
+                15
+        );
+        state.grantBalances.put(grant.getId(), 14);
+        state.existingEntry = allowanceReservation(reservationId, grant);
+        CreditGuardServiceImpl service = serviceWithProfiles(state, "test");
+
+        service.refundCredits(reservationId, "verification failed");
+
+        assertThat(state.invocations).containsExactly(
+                "find_entry",
+                "lock_profile",
+                "refund_exists",
+                "compute_grant_balance",
+                "save_entry"
+        );
+        assertThat(state.checkedRefundReason).isEqualTo("allowance_refund");
+
+        BillingCreditLedgerEntry refund = state.savedEntries.getFirst();
+        assertThat(refund.getDeltaCredits()).isEqualTo(1);
+        assertThat(refund.getReason()).isEqualTo("allowance_refund");
+        assertThat(refund.getCreditBucket()).isEqualTo(CreditBucket.ASSET_VERIFICATION);
+        assertThat(refund.getGrantEntry()).isSameAs(grant);
+        assertThat(refund.getCreditOperationId()).isEqualTo(reservationId);
+        assertThat(refund.getMetadata().path("allowance_units_refunded").asInt())
+                .isEqualTo(1);
+        assertThat(refund.getMetadata().path("balance_before").asInt()).isEqualTo(14);
+        assertThat(refund.getMetadata().path("balance_after").asInt()).isEqualTo(15);
+    }
+
+    @Test
+    void refundCreditsDoesNotAppendDuplicateAllowanceRefund() {
+        UUID reservationId = UUID.randomUUID();
+        RepositoryState state = new RepositoryState(100);
+        BillingCreditLedgerEntry grant = allowanceGrant(
+                CreditBucket.PORTFOLIO_GENERATION,
+                3
+        );
+        state.existingEntry = allowanceReservation(reservationId, grant);
+        state.refundExists = true;
+        CreditGuardServiceImpl service = serviceWithProfiles(state, "test");
+
+        service.refundCredits(reservationId, "duplicate worker failure");
+
+        assertThat(state.invocations).containsExactly(
+                "find_entry",
+                "lock_profile",
+                "refund_exists"
+        );
+        assertThat(state.checkedRefundReason).isEqualTo("allowance_refund");
+        assertThat(state.savedEntries).isEmpty();
+    }
+
     private BillingCreditLedgerEntry reservation(UUID reservationId, int credits) {
         BillingCreditLedgerEntry entry = new BillingCreditLedgerEntry();
         entry.setId(reservationId);
@@ -169,6 +369,35 @@ class CreditGuardServiceImplTest {
         entry.setReason("credit_reservation");
         entry.setMetadata(new ObjectMapper().createObjectNode().put("operation_code", "refine_build"));
         return entry;
+    }
+
+    private BillingCreditLedgerEntry allowanceGrant(CreditBucket bucket, int units) {
+        BillingCreditLedgerEntry grant = new BillingCreditLedgerEntry();
+        grant.setId(UUID.randomUUID());
+        grant.setProfile(profile);
+        grant.setDeltaCredits(units);
+        grant.setCreditBucket(bucket);
+        grant.setReason("allowance_grant");
+        grant.setGrantKey("test:" + grant.getId());
+        grant.setMetadata(new ObjectMapper().createObjectNode());
+        return grant;
+    }
+
+    private BillingCreditLedgerEntry allowanceReservation(
+            UUID reservationId,
+            BillingCreditLedgerEntry grant
+    ) {
+        BillingCreditLedgerEntry reservation = new BillingCreditLedgerEntry();
+        reservation.setId(reservationId);
+        reservation.setCreditOperationId(reservationId);
+        reservation.setProfile(profile);
+        reservation.setDeltaCredits(-1);
+        reservation.setReason("allowance_reservation");
+        reservation.setCreditBucket(grant.getCreditBucket());
+        reservation.setGrantEntry(grant);
+        reservation.setMetadata(new ObjectMapper().createObjectNode()
+                .put("operation_code", "asset_verification"));
+        return reservation;
     }
 
     private CreditGuardServiceImpl serviceWithProfiles(
@@ -194,12 +423,22 @@ class CreditGuardServiceImplTest {
                         state.invocations.add("compute_balance");
                         yield state.balance;
                     }
+                    case "findActiveAllowanceGrantsForUpdate" -> {
+                        state.invocations.add("find_active_grants");
+                        state.requestedBucket = (CreditBucket) args[1];
+                        yield List.copyOf(state.activeGrants);
+                    }
+                    case "computeRemainingUnitsByGrantEntryId" -> {
+                        state.invocations.add("compute_grant_balance");
+                        yield state.grantBalances.getOrDefault((UUID) args[0], 0);
+                    }
                     case "findById" -> {
                         state.invocations.add("find_entry");
                         yield Optional.ofNullable(state.existingEntry);
                     }
                     case "existsByCreditOperationIdAndReason" -> {
                         state.invocations.add("refund_exists");
+                        state.checkedRefundReason = (String) args[1];
                         yield state.refundExists;
                     }
                     case "save" -> {
@@ -242,7 +481,11 @@ class CreditGuardServiceImplTest {
         private final int balance;
         private final List<String> invocations = new ArrayList<>();
         private final List<BillingCreditLedgerEntry> savedEntries = new ArrayList<>();
+        private final List<BillingCreditLedgerEntry> activeGrants = new ArrayList<>();
+        private final Map<UUID, Integer> grantBalances = new HashMap<>();
         private BillingCreditLedgerEntry existingEntry;
+        private CreditBucket requestedBucket;
+        private String checkedRefundReason;
         private boolean refundExists;
 
         private RepositoryState(int balance) {

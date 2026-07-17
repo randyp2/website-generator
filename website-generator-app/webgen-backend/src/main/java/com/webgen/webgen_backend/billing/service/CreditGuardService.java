@@ -1,5 +1,7 @@
 package com.webgen.webgen_backend.billing.service;
 
+import com.webgen.webgen_backend.billing.model.CreditBucket;
+
 import java.util.Optional;
 import java.util.UUID;
 
@@ -16,9 +18,27 @@ public interface CreditGuardService {
     Optional<UUID> reserveCredits(UUID profileId, int credits, String operationCode);
 
     /**
-     * Appends an idempotent compensating credit entry for a failed operation.
+     * Atomically reserves one active feature allowance or falls back to general credits.
      *
-     * @param reservationId reservation returned by {@link #reserveCredits(UUID, int, String)}
+     * @param profileId authenticated profile id
+     * @param allowanceBucket feature allowance consumed before general credits
+     * @param fallbackCredits general credits required when no allowance remains
+     * @param operationCode short operation identifier used for audit metadata and errors
+     * @return reservation id, or empty when credit enforcement is disabled
+     */
+    default Optional<UUID> reserveUsage(
+            UUID profileId,
+            CreditBucket allowanceBucket,
+            int fallbackCredits,
+            String operationCode
+    ) {
+        return reserveCredits(profileId, fallbackCredits, operationCode);
+    }
+
+    /**
+     * Appends an idempotent compensating entry to the reservation's original bucket.
+     *
+     * @param reservationId reservation returned by a reserve method on this service
      * @param failureReason concise failure detail stored for billing audit
      */
     void refundCredits(UUID reservationId, String failureReason);
