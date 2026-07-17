@@ -56,8 +56,11 @@ public class ClarifierServiceImpl implements ClarifierService {
         }
 
         if (context == null) {
-            // First turn — mint a new session
-            sessionId = UUID.randomUUID().toString();
+            // The controller pre-mints paid session ids. Direct service callers
+            // still receive an id for backward-compatible internal use.
+            if (sessionId == null || sessionId.isBlank()) {
+                sessionId = UUID.randomUUID().toString();
+            }
             context = newContext();
             System.out.println(">>> [CLARIFIER] New session created");
         }

@@ -451,6 +451,11 @@ export const useRefineChat = ({
 
             const data = (await response.json()) as ClarifyResponse;
 
+            if (response.status === 410) {
+                setSessionId(null);
+                throw new RefineSessionExpiredError();
+            }
+
             // Store the sessionId returned by the backend (minted on first call)
             if (data.sessionId) {
                 setSessionId(data.sessionId);

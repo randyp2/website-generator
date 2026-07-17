@@ -207,8 +207,7 @@ class GenerationWorkerTest {
         @Override
         public BuilderResponseDTO build(
                 BuilderRequestDTO req,
-                UUID userId,
-                UUID creditReservationId
+                UUID userId
         ) {
             throw new UnsupportedOperationException();
         }

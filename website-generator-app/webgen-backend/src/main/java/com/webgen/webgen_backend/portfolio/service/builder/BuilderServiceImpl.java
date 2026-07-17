@@ -66,8 +66,7 @@ public class BuilderServiceImpl implements BuilderService {
     @Override
     public BuilderResponseDTO build(
             BuilderRequestDTO req,
-            UUID userId,
-            UUID creditReservationId
+            UUID userId
     ) {
         System.out.println(">>> [BUILDER] build() started");
         if (req == null || req.getPortfolioId() == null)
@@ -151,7 +150,6 @@ public class BuilderServiceImpl implements BuilderService {
                     msg.setJobId(jobId);
                     msg.setPortfolioId(req.getPortfolioId().toString());
                     msg.setUserId(userId.toString());
-                    msg.setCreditReservationId(creditReservationId);
                     msg.setTotalSections(actionablePlans.size());
                     msg.setMode(SectionGenerationMessage.Mode.REFINE);
                     msg.setRefinePlan(plan);

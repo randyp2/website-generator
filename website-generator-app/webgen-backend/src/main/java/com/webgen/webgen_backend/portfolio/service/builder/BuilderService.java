@@ -13,10 +13,9 @@ public interface BuilderService {
      *
      * @param req approved refine build request
      * @param userId authenticated user id
-     * @param creditReservationId credit reservation attached to queued section work
      * @return job response used for status polling
      */
-    BuilderResponseDTO build(BuilderRequestDTO req, UUID userId, UUID creditReservationId);
+    BuilderResponseDTO build(BuilderRequestDTO req, UUID userId);
 
 
     /**

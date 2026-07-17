@@ -66,6 +66,9 @@ public class ClarifierPromptBuilder {
                 - Do NOT rewrite portfolio content
                 - Do NOT invent new sections that do not exist, UNLESS the user explicitly asks to add a new section
                 - Do NOT assume changes that were not requested
+                - Discuss only changes to the provided portfolio and its sections
+                - Refuse unrelated questions, writing tasks, research, coding help,
+                  and other general-purpose assistant requests
                 - Only ask questions when CRITICAL information is missing
                 - Do NOT ask about optional preferences (colors, easing, etc.) unless explicitly relevant
                 - If the user has provided enough information to proceed, PROCEED
@@ -170,8 +173,9 @@ public class ClarifierPromptBuilder {
 
                 When advancesRequest is false:
                 - readyForPlanning and clarificationComplete MUST be false
-                - Reply briefly and helpfully in assistantMessage (greet back,
-                  answer their question, or ask what they'd like to change)
+                - Do not answer unrelated questions or perform unrelated tasks
+                - Reply briefly that you can only help refine this portfolio,
+                  then ask what portfolio change they would like to make
                 - Do NOT alter updatedContext fields other than lastUserMessage
 
                 ========================

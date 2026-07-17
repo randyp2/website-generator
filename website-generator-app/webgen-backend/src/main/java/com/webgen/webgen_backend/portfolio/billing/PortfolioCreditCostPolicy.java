@@ -10,9 +10,7 @@ public final class PortfolioCreditCostPolicy {
     }
 
     public static final int STYLE_CHAT_REQUIRED_CREDITS = 1;
-    public static final int REFINE_CLARIFY_REQUIRED_CREDITS = 1;
-    public static final int REFINE_PLAN_REQUIRED_CREDITS = 2;
-    public static final int REFINE_BUILD_REQUIRED_CREDITS = 6;
+    public static final int REFINEMENT_SESSION_REQUIRED_CREDITS = 9;
     public static final int GENERATE_PORTFOLIO_REQUIRED_CREDITS = 10;
 
     public static final CreditUsagePolicy STYLE_CHAT_USAGE = new CreditUsagePolicy(
@@ -20,20 +18,10 @@ public final class PortfolioCreditCostPolicy {
             STYLE_CHAT_REQUIRED_CREDITS,
             "style_chat"
     );
-    public static final CreditUsagePolicy REFINE_CLARIFY_USAGE = new CreditUsagePolicy(
+    public static final CreditUsagePolicy REFINEMENT_SESSION_USAGE = new CreditUsagePolicy(
             CreditBucket.PORTFOLIO_REFINEMENT,
-            REFINE_CLARIFY_REQUIRED_CREDITS,
-            "refine_clarify"
-    );
-    public static final CreditUsagePolicy REFINE_PLAN_USAGE = new CreditUsagePolicy(
-            CreditBucket.PORTFOLIO_REFINEMENT,
-            REFINE_PLAN_REQUIRED_CREDITS,
-            "refine_plan"
-    );
-    public static final CreditUsagePolicy REFINE_BUILD_USAGE = new CreditUsagePolicy(
-            CreditBucket.PORTFOLIO_REFINEMENT,
-            REFINE_BUILD_REQUIRED_CREDITS,
-            "refine_build"
+            REFINEMENT_SESSION_REQUIRED_CREDITS,
+            "portfolio_refinement"
     );
     public static final CreditUsagePolicy GENERATE_PORTFOLIO_USAGE = new CreditUsagePolicy(
             CreditBucket.PORTFOLIO_GENERATION,

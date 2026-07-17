@@ -6,22 +6,23 @@ import com.webgen.webgen_backend.portfolio.dto.clarifier.ClarifierRequestDTO;
 import com.webgen.webgen_backend.portfolio.dto.clarifier.ClarifierResponseDTO;
 import com.webgen.webgen_backend.portfolio.dto.planner.PlannerRequestDTO;
 import com.webgen.webgen_backend.portfolio.dto.planner.PlannerResponseDTO;
-import com.webgen.webgen_backend.billing.service.CreditGuardService;
-import com.webgen.webgen_backend.portfolio.billing.PortfolioCreditCostPolicy;
 import com.webgen.webgen_backend.portfolio.service.builder.BuilderService;
 import com.webgen.webgen_backend.portfolio.service.clarifier.ClarifierService;
 import com.webgen.webgen_backend.portfolio.service.crud.PortfolioCrudService;
 import com.webgen.webgen_backend.portfolio.service.planner.PlannerService;
 import com.webgen.webgen_backend.portfolio.service.refine.RefineChatTurnHistoryService;
+import com.webgen.webgen_backend.portfolio.service.refine.RefinementSessionService;
+import com.webgen.webgen_backend.shared.ratelimit.RateLimiterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
-import com.webgen.webgen_backend.shared.ratelimit.RateLimiterService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 
@@ -31,13 +32,15 @@ import java.util.UUID;
 @Slf4j
 public class PortfolioRefineController {
 
+    private static final int MAX_CLARIFIER_PROMPT_LENGTH = 4_000;
+
     private final ClarifierService clarifierService;
     private final PlannerService plannerService;
     private final BuilderService builderService;
     private final PortfolioCrudService portfolioCrudService;
-    private final CreditGuardService creditGuardService;
     private final RateLimiterService rateLimiterService;
     private final RefineChatTurnHistoryService refineChatTurnHistoryService;
+    private final RefinementSessionService refinementSessionService;
 
     @PostMapping("/clarify")
     public ResponseEntity<ClarifierResponseDTO> clarify(
@@ -47,11 +50,14 @@ public class PortfolioRefineController {
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
         );
         rateLimiterService.check("refine-turn", userId.toString());
+        validateClarifierRequest(req);
         portfolioCrudService.verifyOwnership(userId, req.getPortfolioId());
-        UUID creditReservationId = creditGuardService.reserveUsage(
+        UUID sessionId = refinementSessionService.beginClarifierTurn(
                 userId,
-                PortfolioCreditCostPolicy.REFINE_CLARIFY_USAGE
-        ).orElse(null);
+                req.getPortfolioId(),
+                req.getSessionId()
+        );
+        req.setSessionId(sessionId.toString());
 
         try {
             long startedAtMillis = System.currentTimeMillis();
@@ -63,9 +69,14 @@ public class PortfolioRefineController {
                     response,
                     elapsedSeconds(startedAtMillis)
             );
+            refinementSessionService.completeClarifierTurn(
+                    userId,
+                    req.getPortfolioId(),
+                    sessionId.toString()
+            );
             return ResponseEntity.ok(response);
         } catch (RuntimeException failure) {
-            refundReservation(creditReservationId, failure);
+            failAiTurn(userId, req.getPortfolioId(), sessionId.toString(), failure);
             throw failure;
         }
     }
@@ -79,10 +90,11 @@ public class PortfolioRefineController {
         );
         rateLimiterService.check("refine-turn", userId.toString());
         portfolioCrudService.verifyOwnership(userId, req.getPortfolioId());
-        UUID creditReservationId = creditGuardService.reserveUsage(
+        refinementSessionService.beginPlannerTurn(
                 userId,
-                PortfolioCreditCostPolicy.REFINE_PLAN_USAGE
-        ).orElse(null);
+                req.getPortfolioId(),
+                req.getSessionId()
+        );
 
         try {
             long startedAtMillis = System.currentTimeMillis();
@@ -93,9 +105,14 @@ public class PortfolioRefineController {
                     response,
                     elapsedSeconds(startedAtMillis)
             );
+            refinementSessionService.completePlannerTurn(
+                    userId,
+                    req.getPortfolioId(),
+                    req.getSessionId()
+            );
             return ResponseEntity.ok(response);
         } catch (RuntimeException failure) {
-            refundReservation(creditReservationId, failure);
+            failAiTurn(userId, req.getPortfolioId(), req.getSessionId(), failure);
             throw failure;
         }
     }
@@ -109,16 +126,17 @@ public class PortfolioRefineController {
         );
         rateLimiterService.check("refine-build", userId.toString());
         portfolioCrudService.verifyOwnership(userId, req.getPortfolioId());
-        UUID creditReservationId = creditGuardService.reserveUsage(
+        refinementSessionService.beginBuild(
                 userId,
-                PortfolioCreditCostPolicy.REFINE_BUILD_USAGE
-        ).orElse(null);
+                req.getPortfolioId(),
+                req.getSessionId()
+        );
 
         try {
-            BuilderResponseDTO response = builderService.build(req, userId, creditReservationId);
+            BuilderResponseDTO response = builderService.build(req, userId);
             return ResponseEntity.ok(response);
         } catch (RuntimeException failure) {
-            refundReservation(creditReservationId, failure);
+            failBuild(userId, req.getPortfolioId(), req.getSessionId(), failure);
             throw failure;
         }
     }
@@ -127,15 +145,54 @@ public class PortfolioRefineController {
         return Math.max(0, (int) ((System.currentTimeMillis() - startedAtMillis) / 1000));
     }
 
-    private void refundReservation(UUID reservationId, RuntimeException failure) {
-        if (reservationId == null) {
-            return;
+    private void validateClarifierRequest(ClarifierRequestDTO request) {
+        if (request == null
+                || request.getPortfolioId() == null
+                || request.getUserPrompt() == null
+                || request.getUserPrompt().isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "portfolioId and userPrompt are required"
+            );
         }
+        if (request.getUserPrompt().length() > MAX_CLARIFIER_PROMPT_LENGTH) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Refinement messages cannot exceed 4000 characters"
+            );
+        }
+    }
+
+    private void failAiTurn(
+            UUID userId,
+            UUID portfolioId,
+            String sessionId,
+            RuntimeException failure
+    ) {
         try {
-            creditGuardService.refundCredits(reservationId, failureCode(failure));
-        } catch (RuntimeException refundFailure) {
-            failure.addSuppressed(refundFailure);
-            log.error("Failed to refund credit reservation {}", reservationId, refundFailure);
+            refinementSessionService.failAiTurn(
+                    userId,
+                    portfolioId,
+                    sessionId,
+                    failureCode(failure)
+            );
+        } catch (RuntimeException sessionFailure) {
+            failure.addSuppressed(sessionFailure);
+            log.error("Failed to release refinement session {}", sessionId, sessionFailure);
+        }
+    }
+
+    private void failBuild(
+            UUID userId,
+            UUID portfolioId,
+            String sessionId,
+            RuntimeException failure
+    ) {
+        try {
+            refinementSessionService.failBuild(userId, portfolioId, sessionId);
+        } catch (RuntimeException sessionFailure) {
+            failure.addSuppressed(sessionFailure);
+            log.error("Failed to reopen refinement build {}", sessionId, sessionFailure);
         }
     }
 
