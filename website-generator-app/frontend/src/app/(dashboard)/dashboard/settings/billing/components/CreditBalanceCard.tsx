@@ -37,7 +37,7 @@ export const CreditBalanceCard = ({ credits }: CreditBalanceCardProps) => {
                     {credits.nextRefreshLabel}
                 </p>
                 <Button asChild variant="outline">
-                    <Link href="/dashboard/billing">Buy credit packs</Link>
+                    <Link href="/pricing">Buy credit packs</Link>
                 </Button>
             </CardContent>
         </Card>

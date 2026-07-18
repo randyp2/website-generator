@@ -66,7 +66,7 @@ export const CurrentPlanCard = ({ plan }: CurrentPlanCardProps) => {
 
                 <div className="flex flex-wrap gap-2">
                     <Button asChild>
-                        <Link href="/dashboard/billing">Upgrade plan</Link>
+                        <Link href="/pricing">Upgrade plan</Link>
                     </Button>
                     <Button variant="outline" disabled={!plan.manageEnabled}>
                         Manage subscription

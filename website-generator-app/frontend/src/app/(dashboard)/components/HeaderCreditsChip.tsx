@@ -154,7 +154,7 @@ const HeaderCreditsChip = () => {
                     </div>
 
                     <Button asChild size="sm" className="w-full rounded-lg">
-                        <Link href="/dashboard/billing">Plans and credits</Link>
+                        <Link href="/pricing">Plans and credits</Link>
                     </Button>
                 </div>
             </PopoverContent>

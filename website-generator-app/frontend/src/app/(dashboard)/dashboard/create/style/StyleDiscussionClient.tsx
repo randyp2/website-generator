@@ -113,7 +113,7 @@ const StyleDiscussionClient = ({
 
     const handleAddCredits = () => {
         closeInsufficientCreditsModal();
-        router.push("/dashboard/billing");
+        router.push("/pricing");
     };
 
     return (

@@ -161,7 +161,7 @@ const AIRefinementPage: React.FC = () => {
 
     const handleAddRefinementCredits = (): void => {
         closeInsufficientCreditsModal();
-        router.push("/dashboard/billing");
+        router.push("/pricing");
     };
 
     // ========================================================================
