@@ -118,7 +118,7 @@ const LaunchWelcomeModal = () => {
                             <DialogDescription className="text-base leading-relaxed text-white/90">
                                 Thanks for being a great friend and trying my
                                 app. As a token of my appreciation, I added 1
-                                portfolio generation, 2 refinements, and 15
+                                portfolio generation, 1 refinement, and 15
                                 asset verification uploads to your account.
                                 Have fun, and let me know what you think :D
                             </DialogDescription>

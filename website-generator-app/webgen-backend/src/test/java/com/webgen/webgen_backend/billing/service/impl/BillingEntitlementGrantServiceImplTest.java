@@ -80,7 +80,7 @@ class BillingEntitlementGrantServiceImplTest {
         assertThat(state.requestedEmail).isEqualTo("launch.user@example.com");
         assertThat(state.entriesByGrantKey).hasSize(3);
         assertGrant(state, CreditBucket.PORTFOLIO_GENERATION, 1, "promotion_grant");
-        assertGrant(state, CreditBucket.PORTFOLIO_REFINEMENT, 2, "promotion_grant");
+        assertGrant(state, CreditBucket.PORTFOLIO_REFINEMENT, 1, "promotion_grant");
         assertGrant(state, CreditBucket.ASSET_VERIFICATION, 15, "free_tier_grant");
         assertThat(state.eligibility.getClaimedProfile()).isSameAs(profile);
         assertThat(state.eligibility.getClaimedAt()).isEqualTo(GRANTED_AT);

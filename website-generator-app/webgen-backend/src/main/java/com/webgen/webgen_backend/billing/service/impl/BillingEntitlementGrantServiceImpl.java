@@ -30,7 +30,7 @@ public class BillingEntitlementGrantServiceImpl implements BillingEntitlementGra
     private static final String REASON_PROMOTION_GRANT = "promotion_grant";
     private static final int FREE_ASSET_VERIFICATION_UNITS = 15;
     private static final int LAUNCH_GENERATION_UNITS = 1;
-    private static final int LAUNCH_REFINEMENT_UNITS = 2;
+    private static final int LAUNCH_REFINEMENT_UNITS = 1;
 
     private final ProfileRepository profileRepository;
     private final BillingCreditLedgerEntryRepository billingCreditLedgerEntryRepository;
