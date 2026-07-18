@@ -1,13 +1,12 @@
 package com.webgen.webgen_backend.portfolio.service.clarifier;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.portfolio.dto.clarifier.ClarifierRequestDTO;
 import com.webgen.webgen_backend.portfolio.dto.clarifier.ClarifierResponseDTO;
 import com.webgen.webgen_backend.portfolio.model.clarifier.ChangeIntensity;
 import com.webgen.webgen_backend.portfolio.model.clarifier.ClarifierConstraints;
+import com.webgen.webgen_backend.portfolio.model.clarifier.ClarifierConversationMessage;
 import com.webgen.webgen_backend.portfolio.model.clarifier.ClarifierContext;
-import com.webgen.webgen_backend.portfolio.service.clarifier.ClarifierService;
+import com.webgen.webgen_backend.portfolio.model.clarifier.ClarifierSessionState;
 import com.webgen.webgen_backend.portfolio.service.parser.ClarifierResponseParser;
 import com.webgen.webgen_backend.portfolio.service.prompt.ClarifierPromptBuilder;
 import jakarta.annotation.Resource;
@@ -15,12 +14,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatModel;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -30,11 +28,9 @@ public class ClarifierServiceImpl implements ClarifierService {
     private OpenAiChatModel openAiChatModel;
     private final ClarifierPromptBuilder clarifierPromptBuilder;
     private final ClarifierResponseParser clarifierResponseParser;
-    private final RedisTemplate<String, String> redisTemplate;
-    private final ObjectMapper objectMapper;
-
-    private static final String KEY_PREFIX = "clarifier:context:";
-    private static final Duration TTL = Duration.ofMinutes(30);
+    private final ClarifierSessionStore clarifierSessionStore;
+    private final ClarifierConversationHistoryPolicy conversationHistoryPolicy;
+    private final ClarifierReplyPolicy clarifierReplyPolicy;
 
     @Override
     public ClarifierResponseDTO clarify(ClarifierRequestDTO req) {
@@ -48,22 +44,24 @@ public class ClarifierServiceImpl implements ClarifierService {
 
         // Resolve session: use existing sessionId or generate a new one
         String sessionId = req.getSessionId();
-        ClarifierContext context = null;
+        ClarifierSessionState sessionState = null;
 
         if (sessionId != null && !sessionId.isBlank()) {
-            context = loadContext(sessionId);
-            System.out.println(">>> [CLARIFIER] Existing session context found: " + (context != null));
+            sessionState = clarifierSessionStore.find(sessionId);
+            System.out.println(">>> [CLARIFIER] Existing session context found: " + (sessionState != null));
         }
 
-        if (context == null) {
+        if (sessionState == null) {
             // The controller pre-mints paid session ids. Direct service callers
             // still receive an id for backward-compatible internal use.
             if (sessionId == null || sessionId.isBlank()) {
                 sessionId = UUID.randomUUID().toString();
             }
-            context = newContext();
+            sessionState = new ClarifierSessionState(newContext(), List.of());
             System.out.println(">>> [CLARIFIER] New session created");
         }
+        ClarifierContext context = sessionState.context();
+        List<ClarifierConversationMessage> recentMessages = sessionState.recentMessages();
 
         System.out.println(">>> [CLARIFIER] Loaded context with turnCount=" + context.getTurnCount()
                 + ", confidence=" + context.getConfidenceScore()
@@ -76,7 +74,8 @@ public class ClarifierServiceImpl implements ClarifierService {
                 req.getUserPrompt(),
                 req.getSections(),
                 context,
-                req.getAssets()
+                req.getAssets(),
+                recentMessages
         );
         System.out.println(">>> [CLARIFIER] Prompt built in " + (System.currentTimeMillis() - promptStart) + "ms");
 
@@ -98,6 +97,14 @@ public class ClarifierServiceImpl implements ClarifierService {
 
         // Update context from the model's response
         ClarifierContext updatedContext = clarifierResponseParser.getUpdatedContext();
+
+        clarifierReplyPolicy.reconcile(
+                context,
+                updatedContext,
+                recentMessages,
+                req.getUserPrompt(),
+                parsed
+        );
 
         // --- Turn counting is per clarification CYCLE, not per session: a turn
         // that delivered a plan closes its cycle, so the next message gets a
@@ -151,7 +158,16 @@ public class ClarifierServiceImpl implements ClarifierService {
         // Persist the final decision so the next message knows whether it
         // starts a new cycle
         updatedContext.setLastTurnReadyForPlanning(parsed.isReadyForPlanning());
-        saveContext(sessionId, updatedContext);
+        List<ClarifierConversationMessage> updatedMessages =
+                conversationHistoryPolicy.appendExchange(
+                        recentMessages,
+                        req.getUserPrompt(),
+                        parsed.getAssistantMessage()
+                );
+        clarifierSessionStore.save(
+                sessionId,
+                new ClarifierSessionState(updatedContext, updatedMessages)
+        );
 
         // Always return the sessionId so the frontend can pass it on subsequent calls
         parsed.setSessionId(sessionId);
@@ -163,7 +179,8 @@ public class ClarifierServiceImpl implements ClarifierService {
 
     @Override
     public ClarifierContext getContext(String sessionId) {
-        return loadContext(sessionId);
+        ClarifierSessionState sessionState = clarifierSessionStore.find(sessionId);
+        return sessionState == null ? null : sessionState.context();
     }
 
     // Return a default initialized clarifierContext
@@ -191,25 +208,4 @@ public class ClarifierServiceImpl implements ClarifierService {
         return context;
     }
 
-    private void saveContext(String sessionId, ClarifierContext context) {
-        try {
-            String json = objectMapper.writeValueAsString(context);
-            String key = KEY_PREFIX + sessionId;
-            redisTemplate.opsForValue().set(key, json, TTL);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to serialize clarifier context", e);
-        }
-    }
-
-    private ClarifierContext loadContext(String sessionId) {
-        String key = KEY_PREFIX + sessionId;
-        String json = redisTemplate.opsForValue().get(key);
-        if (json == null) return null;
-        try {
-            return objectMapper.readValue(json, ClarifierContext.class);
-        } catch (JsonProcessingException e) {
-            System.err.println(">>> [CLARIFIER] Failed to deserialize context for session: " + sessionId);
-            return null;
-        }
-    }
 }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.portfolio.dto.common.AssetDTO;
 import com.webgen.webgen_backend.portfolio.dto.clarifier.SectionSummaryDTO;
+import com.webgen.webgen_backend.portfolio.model.clarifier.ClarifierConversationMessage;
 import com.webgen.webgen_backend.portfolio.model.clarifier.ClarifierContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -22,11 +23,13 @@ public class ClarifierPromptBuilder {
             String userPrompt,
             List<SectionSummaryDTO> sections,
             ClarifierContext context,
-            List<AssetDTO> assets
+            List<AssetDTO> assets,
+            List<ClarifierConversationMessage> recentMessages
     ) {
         String sectionsJson = safeJson(sections);
         String contextJson = safeJson(context);
         String assetsJson = safeJson(assets);
+        String recentMessagesJson = safeJson(recentMessages);
 
         SystemMessage system  = new SystemMessage("""
                 You are an AI clarification assistant inside the PortfolioAI system.
@@ -42,6 +45,7 @@ public class ClarifierPromptBuilder {
                 1. The user’s latest clarification message
                 2. A summary of existing portfolio sections
                 3. The current ClarifierContext (may be empty on first turn)
+                4. Up to three recent user/assistant exchanges
 
                 ========================
                 YOUR RESPONSIBILITIES
@@ -231,6 +235,9 @@ public class ClarifierPromptBuilder {
                 AVAILABLE ASSETS (images/videos the user has uploaded):
                 %s
 
+                RECENT CONVERSATION (oldest to newest):
+                %s
+
                 LATEST USER MESSAGE:
                 %s
 
@@ -243,6 +250,7 @@ public class ClarifierPromptBuilder {
                     contextJson,
                     sectionsJson,
                     assetsJson,
+                    recentMessagesJson,
                     safe(userPrompt)
                 ));
 
