@@ -20,7 +20,6 @@ class CreditUsagePolicyTest {
         assertThat(List.of(
                 PortfolioCreditCostPolicy.GENERATE_PORTFOLIO_USAGE,
                 PortfolioCreditCostPolicy.REFINEMENT_SESSION_USAGE,
-                PortfolioCreditCostPolicy.STYLE_CHAT_USAGE,
                 VerificationCreditCostPolicy.ASSET_VERIFICATION_USAGE
         )).extracting(
                 CreditUsagePolicy::allowanceBucket,
@@ -29,7 +28,6 @@ class CreditUsagePolicyTest {
         ).containsExactly(
                 tuple(CreditBucket.PORTFOLIO_GENERATION, 10, "portfolio_generation"),
                 tuple(CreditBucket.PORTFOLIO_REFINEMENT, 9, "portfolio_refinement"),
-                tuple(CreditBucket.PORTFOLIO_REFINEMENT, 1, "style_chat"),
                 tuple(CreditBucket.ASSET_VERIFICATION, 1, "asset_verification")
         );
     }
