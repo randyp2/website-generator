@@ -1,6 +1,6 @@
 package com.webgen.webgen_backend.portfolio.dto.crud;
 
-import com.webgen.webgen_backend.portfolio.dto.common.AssetDTO;
+import com.webgen.webgen_backend.portfolio.dto.upload.PortfolioUploadedAssetDTO;
 import lombok.Data;
 
 import java.util.List;
@@ -9,7 +9,7 @@ import java.util.List;
 public class UploadPortfolioRequestDTO {
     private String resumeRawFileBucket;
     private String resumeRawFilePath;
-    private List<AssetDTO> assets;
+    private List<PortfolioUploadedAssetDTO> assets;
     private String templateId;
     private String lastStep;
 }

@@ -130,6 +130,22 @@ public class ResumeParserService  {
         return parsedResumeMapper.toDto(finalParsed);
     }
 
+    /**
+     * Parses a size-validated object downloaded from private storage.
+     * The adapter keeps the existing PDF and DOCX extraction pipeline unchanged.
+     */
+    public ParsedResumeDTO parseResume(
+            byte[] content,
+            String originalFilename,
+            String contentType,
+            Boolean llmFallbackOverride
+    ) {
+        return parseResume(
+                new ByteArrayMultipartFile(originalFilename, contentType, content),
+                llmFallbackOverride
+        );
+    }
+
     private String fallbackParsingMethod(boolean confidenceAcceptable, boolean qualityAcceptable) {
         if (confidenceAcceptable && !qualityAcceptable) {
             return "regex_low_quality";

@@ -52,18 +52,6 @@ public interface PortfolioCrudService {
     void deletePortfolio(UUID userId, UUID portfolioId);
 
     /**
-     * Save storage upload results (resume + assets) to the DB and optionally update
-     * portfolio fields
-     * 
-     * @param userId      - UUID of the authenticated user (for ownership check)
-     * @param portfolioId - UUID of the portfolio to attach uploads to
-     * @param req         - Storage URLs and metadata forwarded from Next.js
-     * @return UploadPortfolioResponseDTO - Updated portfolio, saved resume, and
-     *         count of assets
-     */
-    UploadPortfolioResponseDTO saveUploads(UUID userId, UUID portfolioId, UploadPortfolioRequestDTO req);
-
-    /**
      * Upsert and save resume info
      *
      * @param userId     - UUID of the authenticated user (for ownership check)

@@ -8,6 +8,9 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.client.ExpectedCount.once;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
@@ -90,5 +93,94 @@ class SupabaseStorageClientTest {
 
         assertThatThrownBy(() -> client.deletePrefix("private_resumes", " "))
                 .isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
+    void createsSignedUploadTokenForExactPath() {
+        RestTemplate restTemplate = new RestTemplate();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
+        SupabaseStorageClient client = new SupabaseStorageClient(
+                restTemplate,
+                PROJECT_URL,
+                SERVICE_ROLE_KEY
+        );
+
+        server.expect(once(), requestTo(
+                        PROJECT_URL + "/storage/v1/object/upload/sign/private_resumes/resumes/portfolio/resume.pdf"
+                ))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(header("apikey", SERVICE_ROLE_KEY))
+                .andExpect(content().json("{}"))
+                .andRespond(withSuccess("""
+                        {
+                          "url": "/object/upload/sign/private_resumes/resumes/portfolio/resume.pdf?token=signed-token"
+                        }
+                        """, MediaType.APPLICATION_JSON));
+
+        SupabaseStorageClient.SignedUpload upload = client.createSignedUpload(
+                "private_resumes",
+                "resumes/portfolio/resume.pdf"
+        );
+
+        assertThat(upload.bucket()).isEqualTo("private_resumes");
+        assertThat(upload.path()).isEqualTo("resumes/portfolio/resume.pdf");
+        assertThat(upload.token()).isEqualTo("signed-token");
+        server.verify();
+    }
+
+    @Test
+    void readsObjectMetadataBeforeDownloading() {
+        RestTemplate restTemplate = new RestTemplate();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
+        SupabaseStorageClient client = new SupabaseStorageClient(
+                restTemplate,
+                PROJECT_URL,
+                SERVICE_ROLE_KEY
+        );
+
+        server.expect(once(), requestTo(
+                        PROJECT_URL + "/storage/v1/object/info/private_resumes/resumes/portfolio/resume.pdf"
+                ))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withSuccess("""
+                        {
+                          "size": 2048,
+                          "content_type": "application/pdf"
+                        }
+                        """, MediaType.APPLICATION_JSON));
+
+        Optional<SupabaseStorageClient.ObjectInfo> info = client.getObjectInfo(
+                "private_resumes",
+                "resumes/portfolio/resume.pdf"
+        );
+
+        assertThat(info).contains(
+                new SupabaseStorageClient.ObjectInfo(2048, "application/pdf")
+        );
+        server.verify();
+    }
+
+    @Test
+    void downloadsPrivateObjectWithAdminHeaders() {
+        RestTemplate restTemplate = new RestTemplate();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
+        SupabaseStorageClient client = new SupabaseStorageClient(
+                restTemplate,
+                PROJECT_URL,
+                SERVICE_ROLE_KEY
+        );
+
+        server.expect(once(), requestTo(
+                        PROJECT_URL + "/storage/v1/object/private_resumes/resumes/portfolio/resume.pdf"
+                ))
+                .andExpect(method(HttpMethod.GET))
+                .andExpect(header("apikey", SERVICE_ROLE_KEY))
+                .andRespond(withSuccess(new byte[]{1, 2, 3}, MediaType.APPLICATION_PDF));
+
+        assertThat(client.downloadObject(
+                "private_resumes",
+                "resumes/portfolio/resume.pdf"
+        )).containsExactly(1, 2, 3);
+        server.verify();
     }
 }

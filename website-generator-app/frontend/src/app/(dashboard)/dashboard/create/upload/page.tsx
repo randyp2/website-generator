@@ -15,6 +15,12 @@ import {
     createManualResumeTemplate,
     MANUAL_RESUME_SOURCE_KEY,
 } from "@/utils/resume/manualResumeTemplate";
+import {
+    finalizePortfolioUploads,
+    parseUploadedResume,
+    uploadPortfolioFiles,
+    type PortfolioUploadCandidate,
+} from "@/lib/portfolio/portfolioUploadClient";
 
 const UploadPage: React.FC = () => {
     const router = useRouter();
@@ -129,6 +135,7 @@ const UploadPage: React.FC = () => {
     const [pendingVideoFiles, setPendingVideoFiles] = useState<UploadedFile[]>(
         [],
     );
+    const [isUploading, setIsUploading] = useState(false);
 
     /**
      * HANDLER: File upload for resume, media, and video files
@@ -398,42 +405,17 @@ const UploadPage: React.FC = () => {
     };
 
     /**
-     * Sends the uploaded resume to the backend for parsing
-     * This will extract structured data from the resume (name, email, skills, etc.)
+     * Parses the finalized private resume in the background while the user
+     * moves to review. Only the portfolio ID crosses the Next.js boundary.
      */
-    const parseResume = async (file: File, sourceKey?: string) => {
-        const formData = new FormData();
-        formData.append("file", file);
-
-        const response = await fetch("/api/resume/parse", {
-            method: "POST",
-            body: formData,
-        });
-
-        if (!response.ok) {
-            throw new Error("Failed to parse resume");
-        }
-
-        const data = await response.json();
-        console.log("Parsed resume data:", data);
-
-        // Store parsed data in Zustand store
-        if (data.success && data.data) {
-            setParsedResumeData(data.data);
-            setParsedResumeSourceKey(
-                sourceKey ?? getResumeSourceKey(file),
-            );
-            console.log("Resume data saved to store");
-        }
-    };
-
-    /**
-     * Fire-and-forget parsing that runs in the background
-     * Updates Zustand state when complete/error occurs
-     */
-    const parseResumeInBackground = async (file: File, sourceKey: string) => {
+    const parseResumeInBackground = async (
+        portfolioId: string,
+        sourceKey: string,
+    ) => {
         try {
-            await parseResume(file, sourceKey);
+            const parsedResume = await parseUploadedResume(portfolioId);
+            setParsedResumeData(parsedResume);
+            setParsedResumeSourceKey(sourceKey);
         } catch (error) {
             console.error("Background resume parsing failed:", error);
             setParsingError("Failed to parse resume. Please enter information manually.");
@@ -442,10 +424,10 @@ const UploadPage: React.FC = () => {
         }
     };
 
-    // Handler to navigate to next page
+    /** Uploads directly to storage, finalizes references, then opens review. */
     const handleContinue = async () => {
-        //  --- Call API Route to update Supbase Database
-        // Extract current state values
+        if (isUploading) return;
+        setIsUploading(true);
         try {
             const { templateId, portfolioId, resumeFile, mediaFiles, videoFiles } =
                 usePortfolioStore.getState();
@@ -455,52 +437,53 @@ const UploadPage: React.FC = () => {
                 return;
             }
 
-            // -- Construct form data to send to API route
-            const formData = new FormData();
-            formData.append("templateId", templateId);
-            formData.append("portfolioId", portfolioId);
-            if (resumeFile) {
-                formData.append("resumeFile", resumeFile.file);
-            }
-
-            mediaFiles.forEach((mediaFile) => {
-                formData.append("mediaFiles", mediaFile.file);
+            const candidates: PortfolioUploadCandidate[] = [
+                ...(resumeFile
+                    ? [{ clientId: "resume", kind: "resume" as const, upload: resumeFile }]
+                    : []),
+                ...mediaFiles.map((upload, index) => ({
+                    clientId: `image-${index}`,
+                    kind: "image" as const,
+                    upload,
+                })),
+                ...videoFiles.map((upload, index) => ({
+                    clientId: `video-${index}`,
+                    kind: "video" as const,
+                    upload,
+                })),
+            ];
+            const instructions = await uploadPortfolioFiles(portfolioId, candidates);
+            const resumeInstruction = instructions.get("resume");
+            const assets = candidates
+                .filter((candidate): candidate is PortfolioUploadCandidate & {
+                    kind: "image" | "video";
+                } => candidate.kind !== "resume")
+                .map((candidate) => {
+                    const instruction = instructions.get(candidate.clientId);
+                    if (!instruction) {
+                        throw new Error("Missing finalized upload instructions.");
+                    }
+                    const name = candidate.upload.file.name;
+                    const title = candidate.upload.title ?? "";
+                    const description = candidate.upload.description ?? "";
+                    return {
+                        kind: candidate.kind,
+                        storageBucket: instruction.bucket,
+                        storagePath: instruction.path,
+                        title,
+                        description,
+                        label: title || name,
+                        sectionHint: candidate.upload.sectionHint ?? "",
+                        alt: description || title || name,
+                    };
+                });
+            const data = await finalizePortfolioUploads(portfolioId, {
+                resumeRawFileBucket: resumeInstruction?.bucket ?? null,
+                resumeRawFilePath: resumeInstruction?.path ?? null,
+                assets,
+                templateId,
+                lastStep: "review",
             });
-
-            videoFiles.forEach((videoFile) => {
-                formData.append("videoFiles", videoFile.file);
-            });
-
-            const mediaMeta = mediaFiles.map((mediaFile) => ({
-                title: mediaFile.title ?? "",
-                description: mediaFile.description ?? "",
-                sectionHint: mediaFile.sectionHint ?? "",
-            }));
-
-            const videoMeta = videoFiles.map((videoFile) => ({
-                title: videoFile.title ?? "",
-                description: videoFile.description ?? "",
-                sectionHint: videoFile.sectionHint ?? "",
-            }));
-
-            formData.append("mediaMeta", JSON.stringify(mediaMeta));
-            formData.append("videoMeta", JSON.stringify(videoMeta));
-
-            // -- Call the API route to create portfolio
-            const res = await fetch("/api/portfolio/create", {
-                method: "POST",
-                body: formData,
-            });
-
-            if (!res.ok) {
-                const error = await res.json();
-                console.error("API Error:", error);
-                alert("Upload failes: " + error.error);
-                return;
-            }
-
-            const data = await res.json();
-            console.log("UPLOADED RESPONSE: ", data);
 
             const createdPortfolioId = data.portfolio?.id ?? data.portfolioId;
 
@@ -509,38 +492,37 @@ const UploadPage: React.FC = () => {
                 return;
             }
 
-            // Save portfolio ID to Zustand store for later use
             setPortfolioId(createdPortfolioId);
 
-            // -- Fire-and-forget resume parsing (don't await)
-            // Start parsing in background if not already parsed
             if (resumeFile) {
                 const resumeSourceKey = getResumeSourceKey(resumeFile.file);
                 setIsParsingResume(true);
                 setParsingError(null);
-                // Fire and forget - don't await
-                parseResumeInBackground(resumeFile.file, resumeSourceKey);
+                void parseResumeInBackground(createdPortfolioId, resumeSourceKey);
             } else {
                 setParsedResumeData(createManualResumeTemplate());
                 setParsedResumeSourceKey(MANUAL_RESUME_SOURCE_KEY);
                 setParsingError(null);
             }
 
-            // -- Navigate IMMEDIATELY - don't wait for parsing
             router.push(
                 `/dashboard/create/review?portfolioId=${createdPortfolioId}`,
             );
         } catch (error) {
             console.error("Error during portfolio creation:", error);
             alert(
-                "An error occurred while creating the portfolio. Please try again.",
+                error instanceof Error
+                    ? error.message
+                    : "An error occurred while uploading your files. Please try again.",
             );
-            return;
+        } finally {
+            setIsUploading(false);
         }
     };
 
     // Handler to skip upload and navigate to next page
     const handleSkip = () => {
+        if (isUploading) return;
         const { portfolioId } = usePortfolioStore.getState();
         if (portfolioId) {
             fetch(`/api/portfolio/${portfolioId}/update`, {
@@ -633,7 +615,8 @@ const UploadPage: React.FC = () => {
                                     damping: 30,
                                 }}
                                 onClick={handleSkip}
-                                className="hover:cursor-pointer px-6 py-3 bg-white/5 backdrop-blur-xl border border-white/20 text-white/90 rounded-full font-semibold shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                                disabled={isUploading}
+                                className="hover:cursor-pointer px-6 py-3 bg-white/5 backdrop-blur-xl border border-white/20 text-white/90 rounded-full font-semibold shadow-[0_0_20px_rgba(255,255,255,0.1)] disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 Skip for now
                             </motion.button>
@@ -654,9 +637,10 @@ const UploadPage: React.FC = () => {
                                     damping: 30,
                                 }}
                                 onClick={handleContinue}
-                                className="hover:cursor-pointer px-8 py-4 bg-white/10 backdrop-blur-xl border border-white/20 text-white rounded-full font-bold shadow-[0_0_30px_rgba(255,255,255,0.15)] flex items-center gap-3"
+                                disabled={isUploading}
+                                className="hover:cursor-pointer px-8 py-4 bg-white/10 backdrop-blur-xl border border-white/20 text-white rounded-full font-bold shadow-[0_0_30px_rgba(255,255,255,0.15)] flex items-center gap-3 disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                                Continue to revise/edit
+                                {isUploading ? "Uploading..." : "Continue to revise/edit"}
                                 <FiArrowRight className="w-5 h-5" />
                             </motion.button>
                         </div>

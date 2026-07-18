@@ -1,6 +1,7 @@
 package com.webgen.webgen_backend.shared.storage;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -17,6 +18,8 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.util.Map;
+import java.util.Optional;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -149,6 +152,117 @@ public class SupabaseStorageClient {
         }
     }
 
+    /**
+     * Creates a short-lived token that permits one upload to an exact object path.
+     *
+     * @param bucket Supabase Storage bucket
+     * @param objectPath exact object path selected by the server
+     * @return upload token and normalized storage coordinates
+     */
+    public SignedUpload createSignedUpload(String bucket, String objectPath) {
+        validateConfiguration();
+        String normalizedBucket = requireSegment(bucket, "Storage bucket is required");
+        String normalizedPath = requirePrefix(objectPath);
+        URI uri = storageObjectUri("object/upload/sign", normalizedBucket, normalizedPath);
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(Map.of(), storageHeaders());
+
+        try {
+            ResponseEntity<SignedUploadResponse> response = restTemplate.exchange(
+                    uri,
+                    HttpMethod.POST,
+                    request,
+                    SignedUploadResponse.class
+            );
+            String relativeUrl = response.getBody() == null ? null : response.getBody().url();
+            String token = StringUtils.hasText(relativeUrl)
+                    ? UriComponentsBuilder.fromUriString(relativeUrl)
+                    .build()
+                    .getQueryParams()
+                    .getFirst("token")
+                    : null;
+            if (!StringUtils.hasText(token)) {
+                throw new ResponseStatusException(
+                        BAD_GATEWAY,
+                        "Supabase Storage did not return an upload token"
+                );
+            }
+            return new SignedUpload(normalizedBucket, normalizedPath, token);
+        } catch (HttpStatusCodeException exception) {
+            throw storageFailure("Unable to create Supabase signed upload", exception);
+        } catch (RestClientException exception) {
+            throw storageFailure("Unable to create Supabase signed upload", exception);
+        }
+    }
+
+    /**
+     * Reads object metadata without downloading the object body.
+     *
+     * @return empty when the object does not exist
+     */
+    public Optional<ObjectInfo> getObjectInfo(String bucket, String objectPath) {
+        validateConfiguration();
+        String normalizedBucket = requireSegment(bucket, "Storage bucket is required");
+        String normalizedPath = requirePrefix(objectPath);
+        URI uri = storageObjectUri("object/info", normalizedBucket, normalizedPath);
+
+        try {
+            ResponseEntity<ObjectInfoResponse> response = restTemplate.exchange(
+                    uri,
+                    HttpMethod.GET,
+                    new HttpEntity<>(storageHeaders()),
+                    ObjectInfoResponse.class
+            );
+            ObjectInfoResponse body = response.getBody();
+            if (body == null) {
+                return Optional.empty();
+            }
+            return Optional.of(new ObjectInfo(
+                    body.resolvedSize(),
+                    body.resolvedContentType()
+            ));
+        } catch (HttpStatusCodeException exception) {
+            if (exception.getStatusCode().value() == 404) {
+                return Optional.empty();
+            }
+            throw storageFailure("Unable to inspect Supabase Storage object", exception);
+        } catch (RestClientException exception) {
+            throw storageFailure("Unable to inspect Supabase Storage object", exception);
+        }
+    }
+
+    /**
+     * Downloads a bounded object for trusted server-side processing.
+     * Callers must inspect and enforce the object size before invoking this method.
+     */
+    public byte[] downloadObject(String bucket, String objectPath) {
+        validateConfiguration();
+        String normalizedBucket = requireSegment(bucket, "Storage bucket is required");
+        String normalizedPath = requirePrefix(objectPath);
+        URI uri = storageObjectUri("object", normalizedBucket, normalizedPath);
+
+        try {
+            ResponseEntity<byte[]> response = restTemplate.exchange(
+                    uri,
+                    HttpMethod.GET,
+                    new HttpEntity<>(storageHeaders()),
+                    byte[].class
+            );
+            return response.getBody() == null ? new byte[0] : response.getBody();
+        } catch (RestClientException exception) {
+            throw storageFailure("Unable to download Supabase Storage object", exception);
+        }
+    }
+
+    /** Returns the canonical public URL for an object in a public bucket. */
+    public String publicObjectUrl(String bucket, String objectPath) {
+        validateConfiguration();
+        return storageObjectUri(
+                "object/public",
+                requireSegment(bucket, "Storage bucket is required"),
+                requirePrefix(objectPath)
+        ).toString();
+    }
+
     private List<StorageObject> listPage(
             String bucket,
             String prefix,
@@ -194,6 +308,20 @@ public class SupabaseStorageClient {
                 .pathSegment("storage", "v1");
         for (String segment : pathSegments) {
             builder.pathSegment(segment);
+        }
+        return builder.build().encode().toUri();
+    }
+
+    private URI storageObjectUri(String action, String bucket, String objectPath) {
+        UriComponentsBuilder builder = UriComponentsBuilder
+                .fromUriString(projectUrl)
+                .pathSegment("storage", "v1");
+        for (String actionSegment : action.split("/")) {
+            builder.pathSegment(actionSegment);
+        }
+        builder.pathSegment(bucket);
+        for (String objectSegment : objectPath.split("/")) {
+            builder.pathSegment(objectSegment);
         }
         return builder.build().encode().toUri();
     }
@@ -263,6 +391,37 @@ public class SupabaseStorageClient {
     }
 
     private record DeleteObjectsRequest(List<String> prefixes) {
+    }
+
+    /** Coordinates needed by the browser Supabase client for a signed upload. */
+    public record SignedUpload(String bucket, String path, String token) {
+    }
+
+    /** Storage-reported properties used to validate an uploaded object. */
+    public record ObjectInfo(long sizeBytes, String contentType) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record SignedUploadResponse(String url) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record ObjectInfoResponse(
+            Long size,
+            @JsonProperty("content_type") String contentType,
+            Map<String, Object> metadata
+    ) {
+        private long resolvedSize() {
+            if (size != null) return size;
+            Object metadataSize = metadata == null ? null : metadata.get("size");
+            return metadataSize instanceof Number number ? number.longValue() : -1L;
+        }
+
+        private String resolvedContentType() {
+            if (StringUtils.hasText(contentType)) return contentType;
+            Object metadataType = metadata == null ? null : metadata.get("mimetype");
+            return metadataType instanceof String value ? value : null;
+        }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

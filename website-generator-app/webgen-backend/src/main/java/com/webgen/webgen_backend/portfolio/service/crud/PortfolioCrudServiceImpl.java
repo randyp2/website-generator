@@ -6,7 +6,6 @@ import com.webgen.webgen_backend.portfolio.dto.common.AssetDTO;
 import com.webgen.webgen_backend.portfolio.dto.common.ResumeDTO;
 import com.webgen.webgen_backend.portfolio.dto.common.SectionDTO;
 import com.webgen.webgen_backend.portfolio.dto.crud.*;
-import com.webgen.webgen_backend.portfolio.entity.Asset;
 import com.webgen.webgen_backend.portfolio.entity.GeneratedVersion;
 import com.webgen.webgen_backend.portfolio.entity.Portfolio;
 import com.webgen.webgen_backend.portfolio.entity.PortfolioSection;
@@ -157,61 +156,6 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
 
         portfolioRepository.deleteById(portfolioId);
-    }
-
-    @Override
-    public UploadPortfolioResponseDTO saveUploads(UUID userId, UUID portfolioId, UploadPortfolioRequestDTO req) {
-        accountDeletionStateService.assertAccountActive(userId);
-        // Ownership check
-        Portfolio portfolio = portfolioRepository.findById(portfolioId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio not found"));
-        if (!portfolio.getUserId().equals(userId))
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
-
-        // Upsert resume (safe for re-uploads)
-        Resume resume = resumeRepository.findByPortfolioId(portfolioId).orElse(new Resume());
-        if (resume.getId() == null) {
-            resume.setId(UUID.randomUUID());
-            resume.setPortfolio(portfolio);
-            resume.setCreatedAt(OffsetDateTime.now());
-        }
-        resume.setRawFileBucket(req.getResumeRawFileBucket());
-        resume.setRawFilePath(req.getResumeRawFilePath());
-        resumeRepository.save(resume);
-
-        // Insert assets
-        OffsetDateTime now = OffsetDateTime.now();
-        List<Asset> savedAssets = new ArrayList<>();
-        if (req.getAssets() != null) {
-            for (AssetDTO assetDto : req.getAssets()) {
-                Asset asset = new Asset();
-                asset.setId(UUID.randomUUID());
-                asset.setPortfolio(portfolio);
-                asset.setFileUrl(assetDto.getUrl());
-                asset.setFileType(assetDto.getType());
-                asset.setTitle(assetDto.getTitle());
-                asset.setDescription(assetDto.getDescription());
-                asset.setLabel(assetDto.getLabel());
-                asset.setSectionHint(assetDto.getSectionHint());
-                asset.setAlt(assetDto.getAlt());
-                asset.setCreatedAt(now);
-                savedAssets.add(assetRepository.save(asset));
-            }
-        }
-
-        // Update optional portfolio fields
-        if (req.getTemplateId() != null)
-            portfolio.setTemplateId(req.getTemplateId());
-        if (req.getLastStep() != null)
-            portfolio.setLastStep(req.getLastStep());
-        Portfolio saved = portfolioRepository.save(portfolio);
-
-        // Build response
-        UploadPortfolioResponseDTO response = new UploadPortfolioResponseDTO();
-        response.setPortfolio(portfolioMapper.toDto(saved));
-        response.setResume(resumeMapper.toDto(resume));
-        response.setAssetsUploaded(savedAssets.size());
-        return response;
     }
 
     @Override
