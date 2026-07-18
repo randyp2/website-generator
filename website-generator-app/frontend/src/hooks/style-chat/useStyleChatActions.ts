@@ -119,7 +119,6 @@ export const useStyleChatActions = ({
                     mergeIncomingStylePreferences(data);
                 }
             } catch (error) {
-                console.error("Style chat error:", error);
                 if (error instanceof StyleChatRequestError) {
                     handleStyleChatFailure(
                         error.failure,
@@ -127,6 +126,7 @@ export const useStyleChatActions = ({
                     );
                     return;
                 }
+                console.error("Style chat error:", error);
                 addToast({
                     type: "error",
                     title: "Style chat unavailable",

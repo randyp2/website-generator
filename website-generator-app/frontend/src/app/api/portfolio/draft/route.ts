@@ -6,6 +6,17 @@ type DraftRequestBody = {
     templateId?: string;
 };
 
+const readBackendError = (payload: unknown): string | null => {
+    if (!payload || typeof payload !== "object") return null;
+
+    const errorPayload = payload as Record<string, unknown>;
+    for (const key of ["detail", "message", "error"] as const) {
+        const value = errorPayload[key];
+        if (typeof value === "string" && value.trim()) return value.trim();
+    }
+    return null;
+};
+
 export const POST = async (req: Request) => {
     try {
         const supabase = await createServerSupabaseClient();
@@ -43,9 +54,22 @@ export const POST = async (req: Request) => {
         });
 
         if (!res.ok) {
-            console.error("Backend draft creation failed:", res.status);
+            const errorPayload: unknown = await res.json().catch(() => null);
+            const insufficientCredits = res.status === 402;
+            if (!insufficientCredits) {
+                console.error("Backend draft creation failed:", res.status);
+            }
             return NextResponse.json(
-                { error: "Failed to create draft" },
+                {
+                    ...(insufficientCredits && {
+                        code: "INSUFFICIENT_CREDITS",
+                    }),
+                    error:
+                        readBackendError(errorPayload) ??
+                        (insufficientCredits
+                            ? "A portfolio generation allowance or at least 10 credits is required."
+                            : "Failed to create draft"),
+                },
                 { status: res.status },
             );
         }
