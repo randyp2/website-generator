@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { PortfolioStyleChat } from "@/components/chat/PortfolioStyleChat";
 import { useStyleChat } from "@/hooks/useStyleChat";
+import { useToast } from "@/hooks/useToast";
 import type { InitialStyleChatHistoryState } from "@/types/style-chat";
 import { isPristineManualResumeTemplate } from "@/utils/resume/manualResumeTemplate";
 import { InsufficientCreditsModal } from "./components/InsufficientCreditsModal";
@@ -15,12 +16,28 @@ interface StyleDiscussionClientProps {
     initialStyleChatHistory: InitialStyleChatHistoryState;
 }
 
-const patchLastStep = (portfolioId: string, lastStep: string) =>
-    fetch(`/api/portfolio/${portfolioId}/update`, {
+const patchLastStep = async (
+    portfolioId: string,
+    lastStep: string,
+): Promise<void> => {
+    const response = await fetch(`/api/portfolio/${portfolioId}/update`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ last_step: lastStep }),
-    }).catch(() => null);
+    });
+
+    if (response.ok) return;
+
+    const payload: unknown = await response.json().catch(() => null);
+    const message =
+        typeof payload === "object" &&
+        payload !== null &&
+        typeof (payload as Record<string, unknown>).error === "string"
+            ? String((payload as Record<string, unknown>).error)
+            : "Failed to save your progress.";
+
+    throw new Error(message);
+};
 
 const StyleDiscussionClient = ({
     templateId,
@@ -28,6 +45,7 @@ const StyleDiscussionClient = ({
     initialStyleChatHistory,
 }: StyleDiscussionClientProps) => {
     const router = useRouter();
+    const { addToast } = useToast();
 
     const handlePortfolioCreated = useCallback(
         (createdPortfolioId: string) => {
@@ -79,11 +97,17 @@ const StyleDiscussionClient = ({
             const nextStep = hasReviewableResume ? "review" : "upload";
             await patchLastStep(portfolioId, nextStep);
             router.push(`/dashboard/create/${nextStep}?portfolioId=${portfolioId}`);
-        } catch {
-            if (portfolioId) {
-                await patchLastStep(portfolioId, "upload");
-            }
-            router.push(`/dashboard/create/upload?portfolioId=${portfolioId}`);
+        } catch (error) {
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : "Failed to save your progress.";
+            console.error("Failed to continue from style step:", error);
+            addToast({
+                type: "error",
+                title: "Unable to continue",
+                description: message,
+            });
         }
     };
 
