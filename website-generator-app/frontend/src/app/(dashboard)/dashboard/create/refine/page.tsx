@@ -65,6 +65,7 @@ const AIRefinementPage: React.FC = () => {
     });
     const {
         isGenerating,
+        completedRefinementRevision,
         currentPlan,
         isPlanApproved,
         sendMessage,
@@ -182,6 +183,7 @@ const AIRefinementPage: React.FC = () => {
                                 onApprovePlan={handleApprovePlan}
                                 onKeepChatting={handleKeepChatting}
                                 portfolioId={portfolioId}
+                                versionsRefreshKey={completedRefinementRevision}
                                 onVersionActivated={handleVersionActivated}
                                 onDownload={handleDownloadHtml}
                                 isDownloading={isDownloading}
@@ -220,6 +222,7 @@ const AIRefinementPage: React.FC = () => {
                     onApprovePlan={handleApprovePlan}
                     onKeepChatting={handleKeepChatting}
                     portfolioId={portfolioId}
+                    versionsRefreshKey={completedRefinementRevision}
                     onVersionActivated={handleVersionActivated}
                     onDownload={handleDownloadHtml}
                     isDownloading={isDownloading}

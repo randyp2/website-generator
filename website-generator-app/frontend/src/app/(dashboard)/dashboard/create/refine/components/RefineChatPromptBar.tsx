@@ -31,6 +31,7 @@ interface RefineChatPromptBarProps {
     onApprovePlan?: () => void;
     onKeepChatting?: () => void;
     portfolioId: string | null;
+    versionsRefreshKey?: number;
     onVersionActivated?: () => void;
     onDownload: () => Promise<void>;
     isDownloading?: boolean;
@@ -59,6 +60,7 @@ export const RefineChatPromptBar: React.FC<RefineChatPromptBarProps> = ({
     onApprovePlan,
     onKeepChatting,
     portfolioId,
+    versionsRefreshKey = 0,
     onVersionActivated,
     onDownload,
     isDownloading = false,
@@ -71,13 +73,22 @@ export const RefineChatPromptBar: React.FC<RefineChatPromptBarProps> = ({
     const [isTimelineOpen, setIsTimelineOpen] = useState(false);
     const [showTimelineTrigger, setShowTimelineTrigger] = useState(true);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const previousVersionsRefreshKeyRef = useRef(versionsRefreshKey);
 
     const {
         versions,
         isLoading: isLoadingVersions,
+        refetch: refetchVersions,
         activateVersion,
         isActivating,
     } = useVersions(portfolioId);
+
+    useEffect(() => {
+        if (previousVersionsRefreshKeyRef.current === versionsRefreshKey) return;
+
+        previousVersionsRefreshKeyRef.current = versionsRefreshKey;
+        void refetchVersions();
+    }, [refetchVersions, versionsRefreshKey]);
 
     useEffect(() => {
         const nextUrls = new Map<string, string>();

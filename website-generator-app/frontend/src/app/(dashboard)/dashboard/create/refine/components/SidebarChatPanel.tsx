@@ -19,6 +19,7 @@ interface SidebarChatPanelProps {
     onApprovePlan?: () => void;
     onKeepChatting?: () => void;
     portfolioId: string | null;
+    versionsRefreshKey?: number;
     onVersionActivated?: () => void;
     onDownload: () => Promise<void>;
     isDownloading?: boolean;
@@ -37,6 +38,7 @@ export const SidebarChatPanel: React.FC<SidebarChatPanelProps> = ({
     onApprovePlan,
     onKeepChatting,
     portfolioId,
+    versionsRefreshKey = 0,
     onVersionActivated,
     onDownload,
     isDownloading = false,
@@ -72,6 +74,7 @@ export const SidebarChatPanel: React.FC<SidebarChatPanelProps> = ({
                 uploadedFiles={uploadedFiles}
                 isGenerating={isGenerating}
                 portfolioId={portfolioId}
+                versionsRefreshKey={versionsRefreshKey}
                 isDownloading={isDownloading}
                 layoutMode={layoutMode}
                 onSendMessage={onSendMessage}

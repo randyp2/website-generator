@@ -56,6 +56,7 @@ interface LoadPortfolioResponse {
 
 interface UseRefineChatResult {
     isGenerating: boolean;
+    completedRefinementRevision: number;
     currentPlan: SectionPlan[] | null;
     isPlanApproved: boolean;
     sendMessage: (prompt: string, files: File[]) => Promise<void>;
@@ -104,6 +105,8 @@ export const useRefineChat = ({
 }: UseRefineChatParams): UseRefineChatResult => {
     const queryClient = useQueryClient();
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
+    const [completedRefinementRevision, setCompletedRefinementRevision] =
+        useState<number>(0);
     const [currentPlan, setCurrentPlan] = useState<SectionPlan[] | null>(null);
     const [isPlanApproved, setIsPlanApproved] = useState<boolean>(false);
     const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -298,6 +301,7 @@ export const useRefineChat = ({
                     setCurrentPlan(null);
                     setIsGenerating(false);
                     setIsPlanApproved(false);
+                    setCompletedRefinementRevision((revision) => revision + 1);
                     // Clear session so next refinement starts fresh
                     setSessionId(null);
                 }
@@ -668,6 +672,7 @@ export const useRefineChat = ({
 
     return {
         isGenerating,
+        completedRefinementRevision,
         currentPlan,
         isPlanApproved,
         sendMessage,
