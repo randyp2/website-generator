@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -83,20 +84,26 @@ const LaunchWelcomeModal = () => {
         }
     };
     const welcomeName = getLaunchWelcomeName(profile?.fullName);
+    const confettiOverlay =
+        showConfetti && viewport.width > 0 && typeof document !== "undefined"
+            ? createPortal(
+                  <Confetti
+                      width={viewport.width}
+                      height={viewport.height}
+                      recycle={false}
+                      numberOfPieces={300}
+                      gravity={0.25}
+                      initialVelocityY={18}
+                      className="pointer-events-none"
+                      style={{ position: "fixed", inset: 0, zIndex: 9999 }}
+                  />,
+                  document.body,
+              )
+            : null;
 
     return (
         <>
-            {showConfetti && viewport.width > 0 ? (
-                <Confetti
-                    width={viewport.width}
-                    height={viewport.height}
-                    recycle={false}
-                    numberOfPieces={300}
-                    gravity={0.25}
-                    initialVelocityY={18}
-                    className="pointer-events-none fixed inset-0 z-[60]"
-                />
-            ) : null}
+            {confettiOverlay}
 
             <Dialog open={isOpen} onOpenChange={handleOpenChange}>
                 <DialogContent

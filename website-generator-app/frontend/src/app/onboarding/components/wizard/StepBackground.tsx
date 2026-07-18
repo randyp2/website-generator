@@ -9,9 +9,15 @@ import {
 } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 import { type StepBackgroundProps } from "../../types";
 import { FieldLabel, ONBOARDING_INPUT_CLASS } from "./FieldLabel";
+
+const BACKGROUND_INPUT_CLASS = cn(
+    ONBOARDING_INPUT_CLASS,
+    "autofill:bg-background [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_var(--background)] [&:-webkit-autofill]:[-webkit-text-fill-color:var(--foreground)]",
+);
 
 export const StepBackground = ({
     form,
@@ -25,7 +31,7 @@ export const StepBackground = ({
                 value={form.location}
                 onChange={onFieldChange("location")}
                 placeholder="San Francisco, CA"
-                className={ONBOARDING_INPUT_CLASS}
+                className={BACKGROUND_INPUT_CLASS}
             />
         </div>
         <div className="space-y-2">
@@ -35,7 +41,7 @@ export const StepBackground = ({
                 value={form.school}
                 onChange={onFieldChange("school")}
                 placeholder="University name"
-                className={ONBOARDING_INPUT_CLASS}
+                className={BACKGROUND_INPUT_CLASS}
             />
         </div>
         <div className="space-y-2">
@@ -45,7 +51,7 @@ export const StepBackground = ({
                 value={form.degree}
                 onChange={onFieldChange("degree")}
                 placeholder="B.S. Computer Science"
-                className={ONBOARDING_INPUT_CLASS}
+                className={BACKGROUND_INPUT_CLASS}
             />
         </div>
         <div className="space-y-2">
@@ -55,7 +61,7 @@ export const StepBackground = ({
                 value={form.jobTitle}
                 onChange={onFieldChange("jobTitle")}
                 placeholder="Frontend Engineer"
-                className={ONBOARDING_INPUT_CLASS}
+                className={BACKGROUND_INPUT_CLASS}
             />
         </div>
         <div className="space-y-2">
@@ -69,7 +75,7 @@ export const StepBackground = ({
                 value={form.company}
                 onChange={onFieldChange("company")}
                 placeholder="Company name"
-                className={ONBOARDING_INPUT_CLASS}
+                className={BACKGROUND_INPUT_CLASS}
             />
         </div>
     </div>
