@@ -6,7 +6,10 @@ import type { PersistedStyleChatMessage } from "@/types/style-chat";
 
 import {
     deriveStyleChatPanelState,
+    isInsufficientCreditsFailure,
     normalizeInitialStyleChatHistory,
+    parseStyleChatFailure,
+    StyleChatRequestError,
     toAssistantStyleMessage,
 } from "./style-chat-utils";
 
@@ -24,6 +27,24 @@ const recommendedPalette: ColorPresetRecommendation = {
 };
 
 describe("style-chat utils", () => {
+    describe("request failures", () => {
+        it("preserves draft eligibility failures for the credits modal", async () => {
+            const failure = await parseStyleChatFailure(
+                Response.json(
+                    { error: "Insufficient credits for portfolio generation" },
+                    { status: 402 },
+                ),
+                "Failed to create draft",
+            );
+            const error = new StyleChatRequestError(failure);
+
+            expect(isInsufficientCreditsFailure(error.failure)).toBe(true);
+            expect(error.message).toBe(
+                "Insufficient credits for portfolio generation",
+            );
+        });
+    });
+
     describe("normalizeInitialStyleChatHistory", () => {
         it("treats undefined initial history as unresolved", () => {
             expect(normalizeInitialStyleChatHistory(undefined)).toEqual({

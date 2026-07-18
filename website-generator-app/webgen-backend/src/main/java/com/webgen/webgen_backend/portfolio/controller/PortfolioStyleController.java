@@ -1,5 +1,7 @@
 package com.webgen.webgen_backend.portfolio.controller;
 
+import com.webgen.webgen_backend.billing.service.CreditGuardService;
+import com.webgen.webgen_backend.portfolio.billing.PortfolioCreditCostPolicy;
 import com.webgen.webgen_backend.portfolio.dto.style.StyleChatRequestDTO;
 import com.webgen.webgen_backend.portfolio.dto.style.StyleChatResponseDTO;
 import com.webgen.webgen_backend.portfolio.dto.style.StyleSuggestionsRequestDTO;
@@ -28,6 +30,7 @@ public class PortfolioStyleController {
     private final StyleSuggestionsService styleSuggestionsService;
     private final PortfolioCrudService portfolioCrudService;
     private final RateLimiterService rateLimiterService;
+    private final CreditGuardService creditGuardService;
 
     @PostMapping("/chat")
     public ResponseEntity<?> chat(@RequestBody StyleChatRequestDTO req) {
@@ -36,6 +39,10 @@ public class PortfolioStyleController {
         );
         rateLimiterService.check("style-chat", userId.toString());
         portfolioCrudService.verifyOwnership(userId, req.getPortfolioId());
+        creditGuardService.assertUsageAvailable(
+                userId,
+                PortfolioCreditCostPolicy.GENERATE_PORTFOLIO_USAGE
+        );
 
         try {
             StyleChatResponseDTO response = styleChatService.chat(req);

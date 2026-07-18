@@ -9,6 +9,19 @@ import java.util.UUID;
 public interface CreditGuardService {
 
     /**
+     * Verifies that a feature allowance or the configured general-credit
+     * fallback is currently available without reserving or consuming either.
+     * The operation must still call {@link #reserveUsage(UUID, CreditUsagePolicy)}
+     * immediately before starting billable work.
+     *
+     * @param profileId authenticated profile id
+     * @param policy feature billing policy
+     * @throws org.springframework.web.server.ResponseStatusException with HTTP
+     * 402 when neither source can cover the operation
+     */
+    void assertUsageAvailable(UUID profileId, CreditUsagePolicy policy);
+
+    /**
      * Atomically verifies and reserves credits before an operation starts.
      *
      * @param profileId authenticated profile id

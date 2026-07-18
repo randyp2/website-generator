@@ -1,5 +1,7 @@
 package com.webgen.webgen_backend.portfolio.controller;
 
+import com.webgen.webgen_backend.billing.service.CreditGuardService;
+import com.webgen.webgen_backend.portfolio.billing.PortfolioCreditCostPolicy;
 import com.webgen.webgen_backend.portfolio.dto.common.ResumeDTO;
 import com.webgen.webgen_backend.portfolio.dto.crud.*;
 import com.webgen.webgen_backend.portfolio.dto.upload.CreatePortfolioUploadPresignRequestDTO;
@@ -25,6 +27,7 @@ public class PortfolioCrudController {
     private final PortfolioCrudService portfolioCrudService;
     private final PortfolioUploadService portfolioUploadService;
     private final RateLimiterService rateLimiterService;
+    private final CreditGuardService creditGuardService;
 
     @GetMapping("/list")
     public ResponseEntity<PortfolioListDTO> listPortfolios() {
@@ -45,6 +48,10 @@ public class PortfolioCrudController {
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
         );
         rateLimiterService.check("portfolio-draft", userId.toString());
+        creditGuardService.assertUsageAvailable(
+                userId,
+                PortfolioCreditCostPolicy.GENERATE_PORTFOLIO_USAGE
+        );
         PortfolioDTO response = portfolioCrudService.createDraft(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

@@ -7,7 +7,9 @@ import type { StyleChatResponse } from "@/types/style";
 
 import {
     mergeStylePreferences,
+    StyleChatRequestError,
     toAssistantStyleMessage,
+    type StyleChatRequestFailure,
 } from "./style-chat-utils";
 
 interface UseStyleChatActionsParams {
@@ -19,6 +21,10 @@ interface UseStyleChatActionsParams {
         fallbackMessage: string,
         failureTitle: string,
     ) => Promise<StyleChatResponse | null>;
+    handleStyleChatFailure: (
+        failure: StyleChatRequestFailure,
+        title: string,
+    ) => void;
     setStyleMessages: Dispatch<SetStateAction<Message[]>>;
     styleMessages: Message[];
 }
@@ -30,6 +36,7 @@ export const useStyleChatActions = ({
     activePortfolioId,
     ensurePortfolioDraft,
     isReadyForInteraction,
+    handleStyleChatFailure,
     requestStyleChat,
     setStyleMessages,
     styleMessages,
@@ -113,6 +120,13 @@ export const useStyleChatActions = ({
                 }
             } catch (error) {
                 console.error("Style chat error:", error);
+                if (error instanceof StyleChatRequestError) {
+                    handleStyleChatFailure(
+                        error.failure,
+                        "Portfolio creation unavailable",
+                    );
+                    return;
+                }
                 addToast({
                     type: "error",
                     title: "Style chat unavailable",
@@ -129,6 +143,7 @@ export const useStyleChatActions = ({
             addToast,
             appendAssistantMessage,
             ensurePortfolioDraft,
+            handleStyleChatFailure,
             isReadyForInteraction,
             mergeIncomingStylePreferences,
             requestStyleChat,

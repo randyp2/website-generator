@@ -2,7 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
 
-import { DEFAULT_TEMPLATE_ID } from "./style-chat-utils";
+import {
+    DEFAULT_TEMPLATE_ID,
+    parseStyleChatFailure,
+    StyleChatRequestError,
+} from "./style-chat-utils";
 
 interface UseStyleChatDraftParams {
     routePortfolioId: string | null;
@@ -61,8 +65,11 @@ export const useStyleChatDraft = ({
             });
 
             if (!response.ok) {
-                const errorBody = await response.json().catch(() => null);
-                throw new Error(errorBody?.error ?? "Failed to create draft");
+                const failure = await parseStyleChatFailure(
+                    response,
+                    "Failed to create draft",
+                );
+                throw new StyleChatRequestError(failure);
             }
 
             const data = await response.json();

@@ -54,7 +54,8 @@ export const InsufficientCreditsModal = ({
                     color: "rgba(255, 255, 255, 0.78)",
                 }}
             >
-                You need more credits to continue with style chat.
+                You need a portfolio generation allowance or at least 10
+                credits to start another portfolio.
             </p>
 
             <div

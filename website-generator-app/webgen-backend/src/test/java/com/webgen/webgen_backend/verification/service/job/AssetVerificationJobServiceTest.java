@@ -3,6 +3,7 @@ package com.webgen.webgen_backend.verification.service.job;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.account.repository.AccountDeletionRequestRepository;
 import com.webgen.webgen_backend.account.service.AccountDeletionStateService;
+import com.webgen.webgen_backend.billing.model.CreditUsagePolicy;
 import com.webgen.webgen_backend.billing.service.CreditGuardService;
 import com.webgen.webgen_backend.verification.dto.job.AssetVerificationEnqueueDTO;
 import com.webgen.webgen_backend.verification.entity.AssetVerificationJob;
@@ -273,6 +274,11 @@ class AssetVerificationJobServiceTest {
     private static final class CreditGuardState implements CreditGuardService {
         private UUID refundedReservationId;
         private String failureReason;
+
+        @Override
+        public void assertUsageAvailable(UUID profileId, CreditUsagePolicy policy) {
+            throw new UnsupportedOperationException("Not used by this test");
+        }
 
         @Override
         public Optional<UUID> reserveCredits(UUID profileId, int credits, String operationCode) {

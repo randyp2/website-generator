@@ -70,6 +70,7 @@ export const useStyleChatRequest = () => {
     return {
         isInsufficientCreditsModalOpen,
         closeInsufficientCreditsModal,
+        handleStyleChatFailure,
         requestStyleChat,
     };
 };

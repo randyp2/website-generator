@@ -70,6 +70,11 @@ class CreditUsagePolicyTest {
         }
 
         @Override
+        public void assertUsageAvailable(UUID profileId, CreditUsagePolicy policy) {
+            throw new UnsupportedOperationException("Not used by this test");
+        }
+
+        @Override
         public Optional<UUID> reserveCredits(UUID profileId, int credits, String operationCode) {
             throw new UnsupportedOperationException("Typed policy must use reserveUsage");
         }

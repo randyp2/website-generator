@@ -45,6 +45,46 @@ public class CreditGuardServiceImpl implements CreditGuardService {
 
     @Override
     @Transactional
+    public void assertUsageAvailable(UUID profileId, CreditUsagePolicy policy) {
+        if (!billingCreditProperties.isEnforcementEnabled()) {
+            return;
+        }
+        if (policy == null) {
+            throw new IllegalArgumentException("Credit usage policy is required");
+        }
+        validateUsageRequest(
+                profileId,
+                policy.allowanceBucket(),
+                policy.fallbackCredits()
+        );
+
+        OffsetDateTime activeAt = OffsetDateTime.now(ZoneOffset.UTC);
+        billingEntitlementGrantService.ensureCurrentEntitlements(profileId, activeAt);
+        billingAllowanceGrantService.ensureCurrentSubscriptionAllowances(profileId, activeAt);
+
+        int allowanceBalance = billingCreditLedgerEntryRepository.computeActiveAllowanceBalance(
+                profileId,
+                policy.allowanceBucket(),
+                activeAt
+        );
+        if (allowanceBalance > 0) {
+            return;
+        }
+
+        int availableCredits = balanceOrZero(
+                billingCreditLedgerEntryRepository.computeBalanceByProfileId(profileId)
+        );
+        if (availableCredits < policy.fallbackCredits()) {
+            throw insufficientCredits(
+                    policy.operationCode(),
+                    policy.fallbackCredits(),
+                    availableCredits
+            );
+        }
+    }
+
+    @Override
+    @Transactional
     public Optional<UUID> reserveCredits(UUID profileId, int credits, String operationCode) {
         if (!billingCreditProperties.isEnforcementEnabled()) {
             return Optional.empty();

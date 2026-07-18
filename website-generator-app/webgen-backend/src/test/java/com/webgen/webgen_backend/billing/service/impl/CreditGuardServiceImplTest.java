@@ -57,6 +57,102 @@ class CreditGuardServiceImplTest {
     }
 
     @Test
+    void availabilityCheckSkipsBillingReadsWhenEnforcementIsDisabled() {
+        RepositoryState state = new RepositoryState(0);
+        CreditGuardServiceImpl service = serviceWithEnforcement(state, false);
+
+        service.assertUsageAvailable(
+                profileId,
+                new CreditUsagePolicy(
+                        CreditBucket.PORTFOLIO_GENERATION,
+                        10,
+                        "portfolio_generation"
+                )
+        );
+
+        assertThat(state.invocations).isEmpty();
+        assertThat(state.savedEntries).isEmpty();
+    }
+
+    @Test
+    void availabilityCheckAcceptsAnActiveAllowanceWithoutConsumingIt() {
+        RepositoryState state = new RepositoryState(0);
+        BillingCreditLedgerEntry grant = allowanceGrant(
+                CreditBucket.PORTFOLIO_GENERATION,
+                1
+        );
+        state.activeGrants.add(grant);
+        state.grantBalances.put(grant.getId(), 1);
+        CreditGuardServiceImpl service = serviceWithEnforcement(state, true);
+
+        service.assertUsageAvailable(
+                profileId,
+                new CreditUsagePolicy(
+                        CreditBucket.PORTFOLIO_GENERATION,
+                        10,
+                        "portfolio_generation"
+                )
+        );
+
+        assertThat(state.invocations).containsExactly(
+                "ensure_entitlements",
+                "ensure_subscription_allowances",
+                "compute_active_allowance_balance"
+        );
+        assertThat(state.requestedBucket).isEqualTo(CreditBucket.PORTFOLIO_GENERATION);
+        assertThat(state.savedEntries).isEmpty();
+    }
+
+    @Test
+    void availabilityCheckAcceptsEnoughGeneralCreditsWithoutConsumingThem() {
+        RepositoryState state = new RepositoryState(10);
+        CreditGuardServiceImpl service = serviceWithEnforcement(state, true);
+
+        service.assertUsageAvailable(
+                profileId,
+                new CreditUsagePolicy(
+                        CreditBucket.PORTFOLIO_GENERATION,
+                        10,
+                        "portfolio_generation"
+                )
+        );
+
+        assertThat(state.invocations).containsExactly(
+                "ensure_entitlements",
+                "ensure_subscription_allowances",
+                "compute_active_allowance_balance",
+                "compute_balance"
+        );
+        assertThat(state.savedEntries).isEmpty();
+    }
+
+    @Test
+    void availabilityCheckRejectsWhenNoGenerationFundingIsAvailable() {
+        RepositoryState state = new RepositoryState(9);
+        CreditGuardServiceImpl service = serviceWithEnforcement(state, true);
+
+        assertThatThrownBy(() -> service.assertUsageAvailable(
+                profileId,
+                new CreditUsagePolicy(
+                        CreditBucket.PORTFOLIO_GENERATION,
+                        10,
+                        "portfolio_generation"
+                )
+        )).isInstanceOfSatisfying(ResponseStatusException.class, exception -> {
+            assertThat(exception.getStatusCode()).isEqualTo(HttpStatus.PAYMENT_REQUIRED);
+            assertThat(exception.getReason()).contains("Required: 10, available: 9");
+        });
+
+        assertThat(state.invocations).containsExactly(
+                "ensure_entitlements",
+                "ensure_subscription_allowances",
+                "compute_active_allowance_balance",
+                "compute_balance"
+        );
+        assertThat(state.savedEntries).isEmpty();
+    }
+
+    @Test
     void reserveCreditsRejectsInsufficientBalanceWithoutWritingDebit() {
         RepositoryState state = new RepositoryState(5);
         CreditGuardServiceImpl service = serviceWithEnforcement(state, true);
@@ -463,6 +559,16 @@ class CreditGuardServiceImplTest {
                 BillingCreditLedgerEntryRepository.class.getClassLoader(),
                 new Class[]{BillingCreditLedgerEntryRepository.class},
                 (proxy, method, args) -> switch (method.getName()) {
+                    case "computeActiveAllowanceBalance" -> {
+                        state.invocations.add("compute_active_allowance_balance");
+                        state.requestedBucket = (CreditBucket) args[1];
+                        yield state.activeGrants.stream()
+                                .mapToInt(grant -> Math.max(
+                                        0,
+                                        state.grantBalances.getOrDefault(grant.getId(), 0)
+                                ))
+                                .sum();
+                    }
                     case "computeBalanceByProfileId" -> {
                         state.invocations.add("compute_balance");
                         yield state.balance;

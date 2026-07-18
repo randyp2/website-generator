@@ -22,6 +22,17 @@ export type StyleChatRequestFailure = {
     status: number;
 };
 
+/** Carries a parsed API failure across the draft and chat hook boundaries. */
+export class StyleChatRequestError extends Error {
+    readonly failure: StyleChatRequestFailure;
+
+    constructor(failure: StyleChatRequestFailure) {
+        super(failure.message);
+        this.name = "StyleChatRequestError";
+        this.failure = failure;
+    }
+}
+
 export interface StyleChatPanelState {
     recommendedBodyFont: string | undefined;
     recommendedColorPresets: ColorPresetRecommendation[];

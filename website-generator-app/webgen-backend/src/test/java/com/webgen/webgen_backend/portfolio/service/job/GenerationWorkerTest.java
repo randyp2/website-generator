@@ -1,6 +1,7 @@
 package com.webgen.webgen_backend.portfolio.service.job;
 
 import com.rabbitmq.client.Channel;
+import com.webgen.webgen_backend.billing.model.CreditUsagePolicy;
 import com.webgen.webgen_backend.billing.service.CreditGuardService;
 import com.webgen.webgen_backend.portfolio.dto.PortfolioGenerateRequestDTO;
 import com.webgen.webgen_backend.portfolio.dto.SectionRefineRequestDTO;
@@ -223,6 +224,11 @@ class GenerationWorkerTest {
     private static final class StubCreditGuardService implements CreditGuardService {
         private UUID refundedReservationId;
         private String failureReason;
+
+        @Override
+        public void assertUsageAvailable(UUID profileId, CreditUsagePolicy policy) {
+            throw new UnsupportedOperationException("Not used by this test");
+        }
 
         @Override
         public Optional<UUID> reserveCredits(UUID profileId, int credits, String operationCode) {

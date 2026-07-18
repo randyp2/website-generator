@@ -1,6 +1,7 @@
 package com.webgen.webgen_backend.portfolio.service.refine;
 
 import com.webgen.webgen_backend.billing.model.CreditBucket;
+import com.webgen.webgen_backend.billing.model.CreditUsagePolicy;
 import com.webgen.webgen_backend.billing.service.CreditGuardService;
 import com.webgen.webgen_backend.portfolio.entity.PortfolioRefinementSession;
 import com.webgen.webgen_backend.portfolio.exception.RefineSessionExpiredException;
@@ -201,6 +202,11 @@ class RefinementSessionServiceTest {
         private String operationCode;
         private UUID refundedReservationId;
         private String failureReason;
+
+        @Override
+        public void assertUsageAvailable(UUID profileId, CreditUsagePolicy policy) {
+            throw new UnsupportedOperationException("Not used by this test");
+        }
 
         @Override
         public Optional<UUID> reserveCredits(UUID profileId, int credits, String operationCode) {
