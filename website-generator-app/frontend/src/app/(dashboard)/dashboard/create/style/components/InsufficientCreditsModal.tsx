@@ -3,11 +3,13 @@
 interface InsufficientCreditsModalProps {
     onClose: () => void;
     onAddCredits: () => void;
+    description?: string;
 }
 
 export const InsufficientCreditsModal = ({
     onClose,
     onAddCredits,
+    description = "You need a portfolio generation allowance or at least 10 credits to start another portfolio.",
 }: InsufficientCreditsModalProps) => (
     <div
         style={{
@@ -54,8 +56,7 @@ export const InsufficientCreditsModal = ({
                     color: "rgba(255, 255, 255, 0.78)",
                 }}
             >
-                You need a portfolio generation allowance or at least 10
-                credits to start another portfolio.
+                {description}
             </p>
 
             <div

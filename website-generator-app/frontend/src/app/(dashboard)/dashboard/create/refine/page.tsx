@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Preview } from "./components/Preview";
 import { ChatHistoryOverlay } from "./components/ChatHistoryOverlay";
 import { SidebarChatPanel } from "./components/SidebarChatPanel";
@@ -15,11 +16,13 @@ import PublishChangesChip from "./components/PublishChangesChip";
 import { normalizeMessages } from "./lib/message-helpers";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
 import { downloadPortfolioHtml } from "@/utils/downloadHtml";
+import { InsufficientCreditsModal } from "../style/components/InsufficientCreditsModal";
 
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 const AIRefinementPage: React.FC = () => {
+    const router = useRouter();
     // Zustand store - All portfolio creation state
     const {
         portfolioId,
@@ -66,6 +69,8 @@ const AIRefinementPage: React.FC = () => {
     const {
         isGenerating,
         completedRefinementRevision,
+        isInsufficientCreditsModalOpen,
+        closeInsufficientCreditsModal,
         currentPlan,
         isPlanApproved,
         sendMessage,
@@ -152,6 +157,11 @@ const AIRefinementPage: React.FC = () => {
         } finally {
             setIsDownloading(false);
         }
+    };
+
+    const handleAddRefinementCredits = (): void => {
+        closeInsufficientCreditsModal();
+        router.push("/dashboard/billing");
     };
 
     // ========================================================================
@@ -245,6 +255,14 @@ const AIRefinementPage: React.FC = () => {
                     onPublish={publishChanges}
                 />
             </div>
+
+            {isInsufficientCreditsModalOpen && (
+                <InsufficientCreditsModal
+                    description="You need a portfolio refinement allowance or at least 9 credits to start another refinement session."
+                    onClose={closeInsufficientCreditsModal}
+                    onAddCredits={handleAddRefinementCredits}
+                />
+            )}
         </div>
     );
 };

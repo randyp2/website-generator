@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { invalidateProfileMeQuery } from "@/hooks/useProfileMeQuery";
 import type {
@@ -44,6 +44,7 @@ interface BuilderResponse {
 
 interface ClarifyResponse {
     assistantMessage?: string;
+    code?: string;
     sessionId?: string;
     readyForPlanning?: boolean;
     error?: string;
@@ -57,6 +58,8 @@ interface LoadPortfolioResponse {
 interface UseRefineChatResult {
     isGenerating: boolean;
     completedRefinementRevision: number;
+    isInsufficientCreditsModalOpen: boolean;
+    closeInsufficientCreditsModal: () => void;
     currentPlan: SectionPlan[] | null;
     isPlanApproved: boolean;
     sendMessage: (prompt: string, files: File[]) => Promise<void>;
@@ -107,10 +110,15 @@ export const useRefineChat = ({
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
     const [completedRefinementRevision, setCompletedRefinementRevision] =
         useState<number>(0);
+    const [isInsufficientCreditsModalOpen, setIsInsufficientCreditsModalOpen] =
+        useState<boolean>(false);
     const [currentPlan, setCurrentPlan] = useState<SectionPlan[] | null>(null);
     const [isPlanApproved, setIsPlanApproved] = useState<boolean>(false);
     const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const hasResumedRef = useRef(false);
+    const closeInsufficientCreditsModal = useCallback((): void => {
+        setIsInsufficientCreditsModalOpen(false);
+    }, []);
     const refreshBillingAfterRefund = (): void => {
         void invalidateProfileMeQuery(queryClient);
         setTimeout(
@@ -466,6 +474,16 @@ export const useRefineChat = ({
             }
 
             if (!response.ok) {
+                const insufficientCredits =
+                    response.status === 402 ||
+                    data.code === "INSUFFICIENT_CREDITS";
+                if (insufficientCredits) {
+                    setMessages((prev) =>
+                        prev.filter((message) => message.id !== tempAiMessage.id),
+                    );
+                    setIsInsufficientCreditsModalOpen(true);
+                    return;
+                }
                 throw new Error(data.error ?? "Clarification request failed.");
             }
 
@@ -673,6 +691,8 @@ export const useRefineChat = ({
     return {
         isGenerating,
         completedRefinementRevision,
+        isInsufficientCreditsModalOpen,
+        closeInsufficientCreditsModal,
         currentPlan,
         isPlanApproved,
         sendMessage,

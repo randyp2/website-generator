@@ -5,6 +5,17 @@ import { enforceRateLimit } from "@/lib/rate-limit/enable-rate-limit";
 import { refineRateLimit } from "@/lib/rate-limit/ratelimit";
 import { getBackendUrlOrNull } from "@/lib/server-env";
 
+const readBackendError = (payload: unknown): string | null => {
+    if (!payload || typeof payload !== "object") return null;
+
+    const errorPayload = payload as Record<string, unknown>;
+    for (const key of ["detail", "message", "error"] as const) {
+        const value = errorPayload[key];
+        if (typeof value === "string" && value.trim()) return value.trim();
+    }
+    return null;
+};
+
 export async function POST(
     req: Request,
     context: { params: Promise<{ id: string }> },
@@ -106,12 +117,18 @@ export async function POST(
         }
 
         if (!res.ok) {
-            const errorMessage =
-                typeof data === "object" && data && "error" in data
-                    ? (data as { error?: string }).error
-                    : "Clarify request failed";
+            const insufficientCredits = res.status === 402;
             return NextResponse.json(
-                { error: errorMessage },
+                {
+                    ...(insufficientCredits && {
+                        code: "INSUFFICIENT_CREDITS",
+                    }),
+                    error:
+                        readBackendError(data) ??
+                        (insufficientCredits
+                            ? "A portfolio refinement allowance or at least 9 credits is required."
+                            : "Clarify request failed"),
+                },
                 { status: res.status },
             );
         }
