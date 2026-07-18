@@ -1,6 +1,7 @@
 package com.webgen.webgen_backend.portfolio.service.style;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.webgen.webgen_backend.portfolio.dto.style.StyleColorPresetDTO;
 import com.webgen.webgen_backend.portfolio.model.style.CompiledStylePreferences;
 import com.webgen.webgen_backend.portfolio.model.style.StyleContext;
 import com.webgen.webgen_backend.portfolio.model.style.StyleQAPair;
@@ -11,6 +12,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -43,6 +45,13 @@ class RedisStyleContextStoreTest {
         context.setCurrentQuestionNumber(7);
         context.setStyleDiscoveryComplete(true);
         context.setDesignGoal("playful spiderman portfolio");
+        context.setRecommendedColorPresets(List.of(new StyleColorPresetDTO(
+                "Hero",
+                "High contrast superhero palette.",
+                Map.of("primary", "#ff0000")
+        )));
+        context.setRecommendedHeadingFont("Bangers");
+        context.setRecommendedBodyFont("Inter");
         StyleQAPair qa = new StyleQAPair();
         qa.setQuestionNumber(4);
         qa.setQuestion("Tone?");
@@ -65,6 +74,9 @@ class RedisStyleContextStoreTest {
         assertTrue(loaded.isStyleDiscoveryComplete());
         assertEquals("Minimal", loaded.getConversationHistory().get(0).getAnswer());
         assertEquals("minimal", loaded.getCompiledStylePreferences().getTone());
+        assertEquals("Hero", loaded.getRecommendedColorPresets().get(0).getName());
+        assertEquals("Bangers", loaded.getRecommendedHeadingFont());
+        assertEquals("Inter", loaded.getRecommendedBodyFont());
     }
 
     @Test

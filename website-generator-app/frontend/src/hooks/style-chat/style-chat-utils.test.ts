@@ -98,7 +98,7 @@ describe("style-chat utils", () => {
             });
         });
 
-        it("keeps pickers closed when a user selection follows", () => {
+        it("keeps the color picker open while a user message is pending", () => {
             const assistantMessage = toAssistantStyleMessage({
                 assistantMessage: "Pick a palette.",
                 questionNumber: 2,
@@ -118,6 +118,34 @@ describe("style-chat utils", () => {
                 deriveStyleChatPanelState([assistantMessage, userMessage]),
             ).toEqual({
                 recommendedBodyFont: undefined,
+                recommendedColorPresets: [recommendedPalette],
+                recommendedHeadingFont: undefined,
+                showColorPicker: true,
+                showTypographyPicker: false,
+            });
+        });
+
+        it("closes the active picker after the next assistant phase begins", () => {
+            const pickerMessage = toAssistantStyleMessage({
+                assistantMessage: "Pick typography.",
+                questionNumber: 2,
+                totalQuestions: 4,
+                isComplete: false,
+                showTypographyPicker: true,
+                recommendedHeadingFont: "Inter",
+                recommendedBodyFont: "Source Serif 4",
+            });
+            const nextPhaseMessage = toAssistantStyleMessage({
+                assistantMessage: "Now pick a layout.",
+                questionNumber: 3,
+                totalQuestions: 4,
+                isComplete: false,
+            });
+
+            expect(
+                deriveStyleChatPanelState([pickerMessage, nextPhaseMessage]),
+            ).toEqual({
+                recommendedBodyFont: undefined,
                 recommendedColorPresets: [],
                 recommendedHeadingFont: undefined,
                 showColorPicker: false,
@@ -135,8 +163,16 @@ describe("style-chat utils", () => {
                 recommendedHeadingFont: "Inter",
                 recommendedBodyFont: "Source Serif 4",
             });
+            const userMessage: Message = {
+                id: "user-font-question-1",
+                role: "user",
+                content: "Why do these fonts work together?",
+                timestamp: new Date("2026-07-02T12:02:00.000Z"),
+            };
 
-            expect(deriveStyleChatPanelState([message])).toEqual({
+            expect(
+                deriveStyleChatPanelState([message, userMessage]),
+            ).toEqual({
                 recommendedBodyFont: "Source Serif 4",
                 recommendedColorPresets: [],
                 recommendedHeadingFont: "Inter",

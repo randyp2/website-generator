@@ -49,6 +49,36 @@ public class StyleChatPromptBuilder {
         return new Prompt(List.of(system, user));
     }
 
+    /**
+     * Answers a question about the required color selection without allowing
+     * the model to advance or implicitly choose on the user's behalf.
+     */
+    public Prompt buildColorClarificationPrompt(String userMessage, StyleContext context) {
+        return buildRequiredSelectionClarificationPrompt(
+                userMessage,
+                context,
+                "color palette",
+                safeJson(context.getRecommendedColorPresets())
+        );
+    }
+
+    /**
+     * Answers a question about the required font selection without allowing
+     * the model to advance or implicitly choose on the user's behalf.
+     */
+    public Prompt buildTypographyClarificationPrompt(String userMessage, StyleContext context) {
+        Map<String, String> recommendations = Map.of(
+                "heading", safe(context.getRecommendedHeadingFont()),
+                "body", safe(context.getRecommendedBodyFont())
+        );
+        return buildRequiredSelectionClarificationPrompt(
+                userMessage,
+                context,
+                "typography",
+                safeJson(recommendations)
+        );
+    }
+
     public Prompt buildPrompt(String userMessage, StyleContext context) {
         SystemMessage system = new SystemMessage(PromptResourceLoader.render(
                 PROMPT_DIR + "style-chat-system.md",
@@ -89,6 +119,25 @@ public class StyleChatPromptBuilder {
                 PROMPT_DIR + "style-revision-user.md",
                 Map.of("userMessage", safe(userMessage))));
 
+        return new Prompt(List.of(system, user));
+    }
+
+    private Prompt buildRequiredSelectionClarificationPrompt(
+            String userMessage,
+            StyleContext context,
+            String selectionType,
+            String currentOptions
+    ) {
+        SystemMessage system = new SystemMessage(PromptResourceLoader.render(
+                PROMPT_DIR + "required-selection-clarification-system.md",
+                Map.of(
+                        "selectionType", selectionType,
+                        "designGoal", safe(context.getDesignGoal()),
+                        "currentOptions", currentOptions
+                )));
+        UserMessage user = new UserMessage(PromptResourceLoader.render(
+                PROMPT_DIR + "required-selection-clarification-user.md",
+                Map.of("userMessage", safe(userMessage))));
         return new Prompt(List.of(system, user));
     }
 

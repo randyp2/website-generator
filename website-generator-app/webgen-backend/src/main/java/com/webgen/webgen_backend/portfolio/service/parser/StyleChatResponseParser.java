@@ -33,6 +33,11 @@ public class StyleChatResponseParser {
             List<String> suggestions
     ) {}
 
+    public record StylePickerClarificationResult(
+            String assistantMessage,
+            List<String> suggestions
+    ) {}
+
     public StyleChatParseResult parse(String rawJson) {
         try {
             JsonNode root = objectMapper.readTree(rawJson);
@@ -90,6 +95,18 @@ public class StyleChatResponseParser {
             );
         } catch (Exception e) {
             throw new IllegalArgumentException("Failed to parse AI Style Revision response JSON", e);
+        }
+    }
+
+    public StylePickerClarificationResult parsePickerClarification(String rawJson) {
+        try {
+            JsonNode root = objectMapper.readTree(rawJson);
+            return new StylePickerClarificationResult(
+                    root.path("assistantMessage").asText(""),
+                    parseSuggestions(root.path("suggestions"))
+            );
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Failed to parse AI picker clarification response JSON", e);
         }
     }
 

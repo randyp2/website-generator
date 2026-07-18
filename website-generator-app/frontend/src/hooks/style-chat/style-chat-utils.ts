@@ -233,8 +233,15 @@ export const normalizeRecommendedPresets = (
 export const deriveStyleChatPanelState = (
     messages: Message[],
 ): StyleChatPanelState => {
-    const lastMessage = messages.at(-1);
-    if (!lastMessage || lastMessage.role !== "ai") {
+    let lastAssistantMessage: Message | undefined;
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+        if (messages[index].role === "ai") {
+            lastAssistantMessage = messages[index];
+            break;
+        }
+    }
+
+    if (!lastAssistantMessage) {
         return {
             recommendedBodyFont: undefined,
             recommendedColorPresets: [],
@@ -245,16 +252,20 @@ export const deriveStyleChatPanelState = (
     }
 
     return {
-        recommendedBodyFont: lastMessage.showTypographyPicker
-            ? lastMessage.recommendedBodyFont
+        recommendedBodyFont: lastAssistantMessage.showTypographyPicker
+            ? lastAssistantMessage.recommendedBodyFont
             : undefined,
-        recommendedColorPresets: lastMessage.showColorPicker
-            ? normalizeRecommendedPresets(lastMessage.recommendedColorPresets)
+        recommendedColorPresets: lastAssistantMessage.showColorPicker
+            ? normalizeRecommendedPresets(
+                  lastAssistantMessage.recommendedColorPresets,
+              )
             : [],
-        recommendedHeadingFont: lastMessage.showTypographyPicker
-            ? lastMessage.recommendedHeadingFont
+        recommendedHeadingFont: lastAssistantMessage.showTypographyPicker
+            ? lastAssistantMessage.recommendedHeadingFont
             : undefined,
-        showColorPicker: Boolean(lastMessage.showColorPicker),
-        showTypographyPicker: Boolean(lastMessage.showTypographyPicker),
+        showColorPicker: Boolean(lastAssistantMessage.showColorPicker),
+        showTypographyPicker: Boolean(
+            lastAssistantMessage.showTypographyPicker,
+        ),
     };
 };

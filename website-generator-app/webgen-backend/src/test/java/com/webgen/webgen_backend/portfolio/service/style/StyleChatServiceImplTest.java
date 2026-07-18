@@ -1,6 +1,7 @@
 package com.webgen.webgen_backend.portfolio.service.style;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.webgen.webgen_backend.portfolio.dto.style.StyleColorPresetDTO;
 import com.webgen.webgen_backend.portfolio.dto.style.StyleChatRequestDTO;
 import com.webgen.webgen_backend.portfolio.dto.style.StyleChatResponseDTO;
 import com.webgen.webgen_backend.portfolio.model.style.CompiledStylePreferences;
@@ -25,6 +26,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -54,6 +56,64 @@ class StyleChatServiceImplTest {
         chatModel = mock(OpenAiChatModel.class);
         ReflectionTestUtils.setField(service, "chatModel", chatModel);
         portfolioId = UUID.randomUUID();
+    }
+
+    @Test
+    void colorClarificationKeepsRequiredPickerActive() {
+        StyleColorPresetDTO preset = new StyleColorPresetDTO(
+                "Warm Editorial",
+                "Warm neutrals with a confident accent.",
+                Map.of(
+                        "primary", "#a05a2c",
+                        "secondary", "#56351e",
+                        "accent", "#e0a458",
+                        "background", "#fffaf2",
+                        "text", "#24180f",
+                        "muted", "#8c7768"
+                )
+        );
+        StyleContext context = seedRequiredPickerContext(1);
+        context.setRecommendedColorPresets(List.of(preset));
+        contextStore.save(portfolioId, context);
+        stubModelResponse("""
+                {
+                  "assistantMessage": "The warmer option supports your editorial direction. Choose or customize a palette below to continue.",
+                  "suggestions": null
+                }
+                """);
+
+        StyleChatResponseDTO response = service.chat(conversationRequest("Which option feels warmer?"));
+
+        assertEquals(1, response.getQuestionNumber());
+        assertTrue(response.isShowColorPicker());
+        assertFalse(response.isShowTypographyPicker());
+        assertEquals(List.of(preset), response.getRecommendedColorPresets());
+        assertEquals(1, service.getContext(portfolioId).getCurrentQuestionNumber());
+        assertNull(service.getContext(portfolioId).getColorSelections());
+    }
+
+    @Test
+    void typographyClarificationKeepsRequiredPickerActive() {
+        StyleContext context = seedRequiredPickerContext(2);
+        context.setRecommendedHeadingFont("Space Grotesk");
+        context.setRecommendedBodyFont("Inter");
+        contextStore.save(portfolioId, context);
+        stubModelResponse("""
+                {
+                  "assistantMessage": "Space Grotesk is more distinctive while Inter keeps body copy readable. Confirm your fonts below to continue.",
+                  "suggestions": null
+                }
+                """);
+
+        StyleChatResponseDTO response = service.chat(conversationRequest("Why do these fonts work together?"));
+
+        assertEquals(2, response.getQuestionNumber());
+        assertFalse(response.isShowColorPicker());
+        assertTrue(response.isShowTypographyPicker());
+        assertEquals("Space Grotesk", response.getRecommendedHeadingFont());
+        assertEquals("Inter", response.getRecommendedBodyFont());
+        assertEquals(2, service.getContext(portfolioId).getCurrentQuestionNumber());
+        assertNull(service.getContext(portfolioId).getFontSelections());
     }
 
     @Test
@@ -278,6 +338,18 @@ class StyleChatServiceImplTest {
         context.setDesignGoal("playful spiderman portfolio");
         context.setConversationHistory(new ArrayList<>());
         contextStore.save(portfolioId, context);
+    }
+
+    private StyleContext seedRequiredPickerContext(int currentQuestionNumber) {
+        StyleContext context = new StyleContext();
+        context.setCurrentQuestionNumber(currentQuestionNumber);
+        context.setTotalQuestions(10);
+        context.setCurrentQuestion(
+                currentQuestionNumber == 1 ? "Color palette selection" : "Typography selection"
+        );
+        context.setDesignGoal("warm editorial portfolio");
+        context.setConversationHistory(new ArrayList<>());
+        return context;
     }
 
     /** Live-object store so tests can seed and inspect contexts directly. */
