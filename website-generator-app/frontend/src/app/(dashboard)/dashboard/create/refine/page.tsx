@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { InsufficientCreditsModal } from "@/components/billing/InsufficientCreditsModal";
 import { Preview } from "./components/Preview";
 import { ChatHistoryOverlay } from "./components/ChatHistoryOverlay";
 import { SidebarChatPanel } from "./components/SidebarChatPanel";
@@ -16,7 +17,6 @@ import PublishChangesChip from "./components/PublishChangesChip";
 import { normalizeMessages } from "./lib/message-helpers";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
 import { downloadPortfolioHtml } from "@/utils/downloadHtml";
-import { InsufficientCreditsModal } from "../style/components/InsufficientCreditsModal";
 
 // ============================================================================
 // MAIN COMPONENT

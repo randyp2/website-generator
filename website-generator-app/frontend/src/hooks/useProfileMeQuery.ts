@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-query";
 
 export type ProfileMeBillingSnapshot = {
+    creditEnforcementEnabled?: boolean | null;
     creditBalance?: number | null;
     portfolioGenerationAllowanceRemaining?: number | null;
     portfolioRefinementAllowanceRemaining?: number | null;
@@ -91,6 +92,28 @@ export const fetchProfileMe = async (): Promise<ProfileMeResponse> => {
     }
 
     return (await response.json()) as ProfileMeResponse;
+};
+
+/**
+ * Returns cached profile billing when it contains the enforcement contract,
+ * otherwise refreshes it before an optimistic billable UI state begins.
+ */
+export const getProfileMeForUsageGuard = async (
+    queryClient: QueryClient,
+): Promise<ProfileMeResponse | null> => {
+    const cached = queryClient.getQueryData<ProfileMeResponse>(profileMeQueryKey);
+    if (typeof cached?.billing?.creditEnforcementEnabled === "boolean") {
+        return cached;
+    }
+
+    try {
+        return await queryClient.fetchQuery({
+            queryKey: profileMeQueryKey,
+            queryFn: fetchProfileMe,
+        });
+    } catch {
+        return null;
+    }
 };
 
 export const updateProfileMe = async (

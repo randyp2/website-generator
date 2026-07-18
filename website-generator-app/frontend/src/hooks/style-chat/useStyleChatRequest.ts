@@ -1,8 +1,12 @@
 import { useCallback, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
-import { invalidateProfileMeQuery } from "@/hooks/useProfileMeQuery";
+import {
+    getProfileMeForUsageGuard,
+    invalidateProfileMeQuery,
+} from "@/hooks/useProfileMeQuery";
 import { useToast } from "@/hooks/useToast";
+import { hasBillingUsageAvailable } from "@/lib/billing/usage-availability";
 import type { StyleChatResponse } from "@/types/style";
 
 import {
@@ -23,6 +27,24 @@ export const useStyleChatRequest = () => {
     const closeInsufficientCreditsModal = useCallback(() => {
         setIsInsufficientCreditsModalOpen(false);
     }, []);
+
+    const ensurePortfolioGenerationAccess = useCallback(
+        async (): Promise<boolean> => {
+            const profile = await getProfileMeForUsageGuard(queryClient);
+            if (
+                hasBillingUsageAvailable(
+                    profile?.billing,
+                    "portfolio_generation",
+                )
+            ) {
+                return true;
+            }
+
+            setIsInsufficientCreditsModalOpen(true);
+            return false;
+        },
+        [queryClient],
+    );
 
     const handleStyleChatFailure = useCallback(
         (failure: StyleChatRequestFailure, title: string): void => {
@@ -70,6 +92,7 @@ export const useStyleChatRequest = () => {
     return {
         isInsufficientCreditsModalOpen,
         closeInsufficientCreditsModal,
+        ensurePortfolioGenerationAccess,
         handleStyleChatFailure,
         requestStyleChat,
     };

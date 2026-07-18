@@ -29,28 +29,74 @@ export interface UploadResult {
 interface UseClaimEvidenceUploadResult {
     isTransferring: boolean;
     deletingUploadId: string | null;
-    upload: (claimId: string, file: File) => Promise<UploadResult>;
+    isInsufficientCreditsModalOpen: boolean;
+    closeInsufficientCreditsModal: () => void;
+    upload: (claimId: string, file: File) => Promise<UploadResult | null>;
     deleteUpload: (claimId: string, uploadId: string) => Promise<void>;
 }
 
-const readErrorMessage = async (
+interface UploadRequestFailure {
+    code?: string;
+    message: string;
+    status: number;
+}
+
+interface UploadErrorPayload {
+    code?: unknown;
+    error?: unknown;
+    message?: unknown;
+}
+
+const readUploadFailure = async (
     response: Response,
     fallback: string,
-): Promise<string> => {
-    try {
-        const body = (await response.json()) as { error?: unknown };
-        return typeof body.error === "string" ? body.error : fallback;
-    } catch {
-        return fallback;
-    }
+): Promise<UploadRequestFailure> => {
+    const body =
+        ((await response.json().catch(() => null)) as UploadErrorPayload | null) ??
+        null;
+    const error = typeof body?.error === "string" ? body.error.trim() : "";
+    const message = typeof body?.message === "string" ? body.message.trim() : "";
+    const code = typeof body?.code === "string" ? body.code.trim() : "";
+
+    return {
+        status: response.status,
+        code: code || undefined,
+        message: error || message || fallback,
+    };
 };
+
+const isInsufficientCreditsFailure = (
+    failure: UploadRequestFailure,
+): boolean =>
+    failure.status === 402 || failure.code === "INSUFFICIENT_CREDITS";
 
 export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
     const queryClient = useQueryClient();
     const [isTransferring, setIsTransferring] = useState(false);
     const [deletingUploadId, setDeletingUploadId] = useState<string | null>(null);
+    const [isInsufficientCreditsModalOpen, setIsInsufficientCreditsModalOpen] =
+        useState(false);
 
-    const upload = useCallback(async (claimId: string, file: File): Promise<UploadResult> => {
+    const closeInsufficientCreditsModal = useCallback((): void => {
+        setIsInsufficientCreditsModalOpen(false);
+    }, []);
+
+    const handleUploadFailure = useCallback(
+        async (response: Response, fallback: string): Promise<void> => {
+            const failure = await readUploadFailure(response, fallback);
+            if (isInsufficientCreditsFailure(failure)) {
+                setIsInsufficientCreditsModalOpen(true);
+                return;
+            }
+            throw new Error(failure.message);
+        },
+        [],
+    );
+
+    const upload = useCallback(async (
+        claimId: string,
+        file: File,
+    ): Promise<UploadResult | null> => {
         const descriptor = buildClaimEvidenceUploadDescriptorFromFile(file);
         const validationError = validateClaimEvidenceUploadDescriptor(descriptor);
         if (validationError) {
@@ -71,9 +117,11 @@ export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
             );
 
             if (!presignRes.ok) {
-                throw new Error(
-                    await readErrorMessage(presignRes, "Failed to get upload URL"),
+                await handleUploadFailure(
+                    presignRes,
+                    "Failed to get upload URL",
                 );
+                return null;
             }
 
             const { uploadId, uploadUrl, requiredHeaders } =
@@ -104,9 +152,11 @@ export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
             void invalidateProfileMeQuery(queryClient);
 
             if (!finalizeRes.ok) {
-                throw new Error(
-                    await readErrorMessage(finalizeRes, "Failed to confirm upload"),
+                await handleUploadFailure(
+                    finalizeRes,
+                    "Failed to confirm upload",
                 );
+                return null;
             }
 
             const finalizePayload =
@@ -124,7 +174,7 @@ export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
         }
 
         return { uploadId: capturedUploadId, jobId: verificationJobId };
-    }, [queryClient]);
+    }, [handleUploadFailure, queryClient]);
 
     const deleteUpload = useCallback(
         async (claimId: string, uploadId: string): Promise<void> => {
@@ -142,9 +192,11 @@ export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
                 );
 
                 if (!deleteRes.ok) {
-                    throw new Error(
-                        await readErrorMessage(deleteRes, "Failed to delete upload"),
+                    const failure = await readUploadFailure(
+                        deleteRes,
+                        "Failed to delete upload",
                     );
+                    throw new Error(failure.message);
                 }
 
                 void invalidateClaimVerificationQueries(queryClient, claimId);
@@ -155,5 +207,12 @@ export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
         [queryClient],
     );
 
-    return { isTransferring, deletingUploadId, upload, deleteUpload };
+    return {
+        isTransferring,
+        deletingUploadId,
+        isInsufficientCreditsModalOpen,
+        closeInsufficientCreditsModal,
+        upload,
+        deleteUpload,
+    };
 };

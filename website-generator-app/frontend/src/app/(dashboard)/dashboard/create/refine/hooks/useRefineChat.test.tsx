@@ -11,6 +11,7 @@ import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
+import { profileMeQueryKey } from "@/hooks/useProfileMeQuery";
 import type { Message } from "@/types/preview";
 import { useRefineChat } from "./useRefineChat";
 
@@ -39,17 +40,14 @@ describe("useRefineChat", () => {
         vi.restoreAllMocks();
     });
 
-    it("opens the credits modal without logging an expected 402 as an error", async () => {
-        fetchMock.mockResolvedValue(
-            Response.json(
-                {
-                    code: "INSUFFICIENT_CREDITS",
-                    error:
-                        "A portfolio refinement allowance or at least 9 credits is required.",
-                },
-                { status: 402 },
-            ),
-        );
+    it("opens the credits modal without entering thinking for known insufficient usage", async () => {
+        queryClient.setQueryData(profileMeQueryKey, {
+            billing: {
+                creditEnforcementEnabled: true,
+                creditBalance: 0,
+                portfolioRefinementAllowanceRemaining: 0,
+            },
+        });
         const consoleError = vi
             .spyOn(console, "error")
             .mockImplementation(() => undefined);
@@ -90,6 +88,8 @@ describe("useRefineChat", () => {
             role: "user",
             content: "Update the hero",
         });
+        expect(messages[0]?.isGenerating).not.toBe(true);
+        expect(fetchMock).not.toHaveBeenCalled();
         expect(consoleError).not.toHaveBeenCalled();
 
         act(() => result.current.closeInsufficientCreditsModal());

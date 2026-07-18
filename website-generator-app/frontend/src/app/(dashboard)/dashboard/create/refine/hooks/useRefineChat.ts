@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { invalidateProfileMeQuery } from "@/hooks/useProfileMeQuery";
+import {
+    getProfileMeForUsageGuard,
+    invalidateProfileMeQuery,
+} from "@/hooks/useProfileMeQuery";
+import { hasBillingUsageAvailable } from "@/lib/billing/usage-availability";
 import type {
     CompletedSectionsResponse,
     GlobalTheme,
@@ -88,6 +92,13 @@ class RefinePlanConflictError extends Error {
     }
 }
 
+/** Raised when the authoritative build reservation rejects billing access. */
+class RefineInsufficientCreditsError extends Error {
+    constructor() {
+        super("Insufficient credits for portfolio refinement.");
+    }
+}
+
 const STATUS_LABELS: Record<string, string> = {
     QUEUED: "Queued...",
     PROCESSING: "Processing...",
@@ -119,6 +130,20 @@ export const useRefineChat = ({
     const closeInsufficientCreditsModal = useCallback((): void => {
         setIsInsufficientCreditsModalOpen(false);
     }, []);
+    const ensurePortfolioRefinementAccess = async (): Promise<boolean> => {
+        const profile = await getProfileMeForUsageGuard(queryClient);
+        if (
+            hasBillingUsageAvailable(
+                profile?.billing,
+                "portfolio_refinement",
+            )
+        ) {
+            return true;
+        }
+
+        setIsInsufficientCreditsModalOpen(true);
+        return false;
+    };
     const refreshBillingAfterRefund = (): void => {
         void invalidateProfileMeQuery(queryClient);
         setTimeout(
@@ -151,6 +176,9 @@ export const useRefineChat = ({
         void invalidateProfileMeQuery(queryClient);
 
         if (!response.ok) {
+            if (response.status === 402) {
+                throw new RefineInsufficientCreditsError();
+            }
             if (response.status === 410) {
                 setSessionId(null);
                 throw new RefineSessionExpiredError();
@@ -183,6 +211,9 @@ export const useRefineChat = ({
         void invalidateProfileMeQuery(queryClient);
 
         if (!response.ok) {
+            if (response.status === 402) {
+                throw new RefineInsufficientCreditsError();
+            }
             if (response.status === 410) {
                 setSessionId(null);
                 throw new RefineSessionExpiredError();
@@ -380,6 +411,15 @@ export const useRefineChat = ({
                 buildingMessage.timestamp,
             );
         } catch (error: unknown) {
+            if (error instanceof RefineInsufficientCreditsError) {
+                setMessages((prev) =>
+                    prev.filter((message) => message.id !== buildingMessage.id),
+                );
+                setIsInsufficientCreditsModalOpen(true);
+                setIsGenerating(false);
+                setIsPlanApproved(false);
+                return;
+            }
             console.error("Build error:", error);
             setIsPlanApproved(false);
             // A conflicting plan is unusable: drop it so the user re-plans
@@ -416,6 +456,7 @@ export const useRefineChat = ({
         if (isApproval) {
             const approvalMessage: Message = createUserMessage("approve");
             setMessages((prev) => [...prev, approvalMessage]);
+            if (!(await ensurePortfolioRefinementAccess())) return;
             await approvePlanAndBuild();
             return;
         }
@@ -434,7 +475,10 @@ export const useRefineChat = ({
         const userMessage: Message = createUserMessage(prompt);
         const tempAiMessage: Message = createGeneratingMessage("ai-temp");
 
-        setMessages((prev) => [...prev, userMessage, tempAiMessage]);
+        setMessages((prev) => [...prev, userMessage]);
+        if (!(await ensurePortfolioRefinementAccess())) return;
+
+        setMessages((prev) => [...prev, tempAiMessage]);
 
         for (let index = 0; index < mediaFilesCount; index += 1) {
             removeMediaFile(0);
@@ -581,6 +625,15 @@ export const useRefineChat = ({
                         );
                     }
                 } catch (error: unknown) {
+                    if (error instanceof RefineInsufficientCreditsError) {
+                        setMessages((prev) =>
+                            prev.filter(
+                                (message) => message.id !== planningMessage.id,
+                            ),
+                        );
+                        setIsInsufficientCreditsModalOpen(true);
+                        return;
+                    }
                     console.error("Planning error:", error);
                     const errorMessage: Message = createAiMessage(
                         error instanceof RefineSessionExpiredError

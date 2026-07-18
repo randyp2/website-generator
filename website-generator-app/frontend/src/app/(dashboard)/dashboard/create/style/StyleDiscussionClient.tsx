@@ -4,11 +4,11 @@ import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 import { PortfolioStyleChat } from "@/components/chat/PortfolioStyleChat";
+import { InsufficientCreditsModal } from "@/components/billing/InsufficientCreditsModal";
 import { useStyleChat } from "@/hooks/useStyleChat";
 import { useToast } from "@/hooks/useToast";
 import type { InitialStyleChatHistoryState } from "@/types/style-chat";
 import { isPristineManualResumeTemplate } from "@/utils/resume/manualResumeTemplate";
-import { InsufficientCreditsModal } from "./components/InsufficientCreditsModal";
 
 interface StyleDiscussionClientProps {
     templateId: string | null;

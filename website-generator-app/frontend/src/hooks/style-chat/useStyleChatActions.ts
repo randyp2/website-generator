@@ -15,6 +15,7 @@ import {
 interface UseStyleChatActionsParams {
     activePortfolioId: string | null;
     ensurePortfolioDraft: () => Promise<string>;
+    ensurePortfolioGenerationAccess: () => Promise<boolean>;
     isReadyForInteraction: boolean;
     requestStyleChat: (
         payload: object,
@@ -35,6 +36,7 @@ interface UseStyleChatActionsParams {
 export const useStyleChatActions = ({
     activePortfolioId,
     ensurePortfolioDraft,
+    ensurePortfolioGenerationAccess,
     isReadyForInteraction,
     handleStyleChatFailure,
     requestStyleChat,
@@ -88,6 +90,8 @@ export const useStyleChatActions = ({
                     timestamp: new Date(),
                 },
             ]);
+
+            if (!(await ensurePortfolioGenerationAccess())) return;
 
             setIsSendingStyle(true);
             try {
@@ -143,6 +147,7 @@ export const useStyleChatActions = ({
             addToast,
             appendAssistantMessage,
             ensurePortfolioDraft,
+            ensurePortfolioGenerationAccess,
             handleStyleChatFailure,
             isReadyForInteraction,
             mergeIncomingStylePreferences,
@@ -174,6 +179,7 @@ export const useStyleChatActions = ({
             ]);
 
             if (!activePortfolioId) return;
+            if (!(await ensurePortfolioGenerationAccess())) return;
 
             setIsSendingStyle(true);
             try {
@@ -218,6 +224,7 @@ export const useStyleChatActions = ({
             activePortfolioId,
             addToast,
             appendAssistantMessage,
+            ensurePortfolioGenerationAccess,
             isReadyForInteraction,
             mergeIncomingStylePreferences,
             requestStyleChat,
@@ -244,6 +251,7 @@ export const useStyleChatActions = ({
             ]);
 
             if (!activePortfolioId) return;
+            if (!(await ensurePortfolioGenerationAccess())) return;
 
             setIsSendingStyle(true);
             try {
@@ -280,6 +288,7 @@ export const useStyleChatActions = ({
             activePortfolioId,
             addToast,
             appendAssistantMessage,
+            ensurePortfolioGenerationAccess,
             isReadyForInteraction,
             mergeIncomingStylePreferences,
             requestStyleChat,
@@ -303,6 +312,7 @@ export const useStyleChatActions = ({
             ]);
 
             if (!activePortfolioId) return;
+            if (!(await ensurePortfolioGenerationAccess())) return;
 
             setIsSendingStyle(true);
             try {
@@ -336,6 +346,7 @@ export const useStyleChatActions = ({
             activePortfolioId,
             addToast,
             appendAssistantMessage,
+            ensurePortfolioGenerationAccess,
             isReadyForInteraction,
             mergeIncomingStylePreferences,
             requestStyleChat,

@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.billing.service.impl;
 
+import com.webgen.webgen_backend.billing.config.BillingCreditProperties;
 import com.webgen.webgen_backend.billing.config.StripeProperties;
 import com.webgen.webgen_backend.billing.entity.BillingSubscription;
 import com.webgen.webgen_backend.billing.model.CreditBucket;
@@ -34,6 +35,7 @@ public class BillingStatusReaderImpl implements BillingStatusReader {
     private final BillingEntitlementGrantService billingEntitlementGrantService;
     private final BillingAllowanceGrantService billingAllowanceGrantService;
     private final StripeProperties stripeProperties;
+    private final BillingCreditProperties billingCreditProperties;
 
     @Override
     @Transactional
@@ -75,16 +77,8 @@ public class BillingStatusReaderImpl implements BillingStatusReader {
                 .map(eligibility -> eligibility.getCampaignKey())
                 .orElse(null);
 
-        if (activeOptional.isEmpty()
-                && !StringUtils.hasText(activePromotionKey)
-                && balanceOrZero(creditBalance) == 0
-                && generationAllowance == 0
-                && refinementAllowance == 0
-                && verificationAllowance == 0) {
-            return null;
-        }
-
         ProfileBillingDTO.ProfileBillingDTOBuilder builder = ProfileBillingDTO.builder()
+                .creditEnforcementEnabled(billingCreditProperties.isEnforcementEnabled())
                 .activePromotionKey(activePromotionKey)
                 .creditBalance(balanceOrZero(creditBalance))
                 .portfolioGenerationAllowanceRemaining(generationAllowance)

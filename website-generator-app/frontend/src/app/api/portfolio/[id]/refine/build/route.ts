@@ -134,12 +134,20 @@ export async function POST(
         }
 
         if (!res.ok) {
+            const insufficientCredits = res.status === 402;
             const errorMessage =
                 typeof data === "object" && data && "error" in data
                     ? (data as { error?: string }).error
-                    : "Build request failed";
+                    : insufficientCredits
+                        ? "A portfolio refinement allowance or at least 9 credits is required."
+                        : "Build request failed";
             return NextResponse.json(
-                { error: errorMessage },
+                {
+                    ...(insufficientCredits && {
+                        code: "INSUFFICIENT_CREDITS",
+                    }),
+                    error: errorMessage,
+                },
                 { status: res.status },
             );
         }

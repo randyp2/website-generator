@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.billing.service.impl;
 
+import com.webgen.webgen_backend.billing.config.BillingCreditProperties;
 import com.webgen.webgen_backend.billing.config.StripeProperties;
 import com.webgen.webgen_backend.billing.entity.BillingPromotionEligibility;
 import com.webgen.webgen_backend.billing.entity.BillingSubscription;
@@ -95,25 +96,49 @@ class BillingStatusReaderImplTest {
     }
 
     @Test
-    void returnsNullWhenNoBillingValueExists() {
+    void returnsZeroedBillingSnapshotForFreeUsers() {
         RepositoryState state = new RepositoryState();
 
         ProfileBillingDTO billing = service(state).read(profileId);
 
-        assertThat(billing).isNull();
+        assertThat(billing).isNotNull();
+        assertThat(billing.getCreditEnforcementEnabled()).isTrue();
+        assertThat(billing.getCreditBalance()).isZero();
+        assertThat(billing.getPortfolioGenerationAllowanceRemaining()).isZero();
+        assertThat(billing.getPortfolioRefinementAllowanceRemaining()).isZero();
         assertThat(state.allowanceProfileId).isNull();
     }
 
+    @Test
+    void reportsDisabledCreditEnforcementForDevelopmentMode() {
+        RepositoryState state = new RepositoryState();
+
+        ProfileBillingDTO billing = service(state, false).read(profileId);
+
+        assertThat(billing).isNotNull();
+        assertThat(billing.getCreditEnforcementEnabled()).isFalse();
+    }
+
     private BillingStatusReaderImpl service(RepositoryState state) {
+        return service(state, true);
+    }
+
+    private BillingStatusReaderImpl service(
+            RepositoryState state,
+            boolean enforcementEnabled
+    ) {
         StripeProperties stripeProperties = new StripeProperties();
         stripeProperties.getPrice().setWebsiteGeneratorProMonthly(MONTHLY_PRICE_ID);
+        BillingCreditProperties billingCreditProperties = new BillingCreditProperties();
+        billingCreditProperties.setEnforcementEnabled(enforcementEnabled);
         return new BillingStatusReaderImpl(
                 subscriptionRepository(state),
                 ledgerRepository(state),
                 promotionRepository(state),
                 entitlementGrantService(state),
                 allowanceGrantService(state),
-                stripeProperties
+                stripeProperties,
+                billingCreditProperties
         );
     }
 

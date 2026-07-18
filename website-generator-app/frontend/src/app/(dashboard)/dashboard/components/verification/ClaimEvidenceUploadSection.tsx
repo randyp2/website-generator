@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { AlertTriangle, CheckCircle2, ChevronRight, FileText, Loader2, Upload, X } from "lucide-react";
+import { InsufficientCreditsModal } from "@/components/billing/InsufficientCreditsModal";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/useToast";
 import { CLAIM_EVIDENCE_ACCEPT_ATTR } from "@/lib/verification/claimEvidenceUploadPolicy";
@@ -65,9 +67,16 @@ const ClaimEvidenceUploadSection = ({
     onSelectAssetSummary,
     onUploadComplete,
 }: ClaimEvidenceUploadSectionProps) => {
+    const router = useRouter();
     const { addToast } = useToast();
-    const { isTransferring, deletingUploadId, upload, deleteUpload } =
-        useClaimEvidenceUpload();
+    const {
+        isTransferring,
+        deletingUploadId,
+        isInsufficientCreditsModalOpen,
+        closeInsufficientCreditsModal,
+        upload,
+        deleteUpload,
+    } = useClaimEvidenceUpload();
     const {
         uploads,
         refetch: refetchUploads,
@@ -97,6 +106,8 @@ const ClaimEvidenceUploadSection = ({
         e.target.value = "";
         try {
             const result = await upload(claimId, file);
+            if (!result) return;
+
             await refetchUploads();
             onUploadComplete?.(result.uploadId, result.jobId, file.name);
             addToast({
@@ -114,6 +125,11 @@ const ClaimEvidenceUploadSection = ({
                         : "Something went wrong. Please try again.",
             });
         }
+    };
+
+    const handleAddCredits = (): void => {
+        closeInsufficientCreditsModal();
+        router.push("/pricing");
     };
 
     const handleDeleteUpload = async (uploadId: string, fileName: string) => {
@@ -349,6 +365,13 @@ const ClaimEvidenceUploadSection = ({
                         </>
                     )}
                 </div>
+            )}
+            {isInsufficientCreditsModalOpen && (
+                <InsufficientCreditsModal
+                    description="You need an asset verification allowance or at least 1 credit to analyze another evidence upload."
+                    onClose={closeInsufficientCreditsModal}
+                    onAddCredits={handleAddCredits}
+                />
             )}
         </div>
     );

@@ -66,6 +66,7 @@ export function useStyleChat(params: {
     const {
         isInsufficientCreditsModalOpen,
         closeInsufficientCreditsModal,
+        ensurePortfolioGenerationAccess,
         handleStyleChatFailure,
         requestStyleChat,
     } = useStyleChatRequest();
@@ -78,6 +79,7 @@ export function useStyleChat(params: {
     } = useStyleChatActions({
         activePortfolioId,
         ensurePortfolioDraft,
+        ensurePortfolioGenerationAccess,
         handleStyleChatFailure,
         isReadyForInteraction,
         requestStyleChat,
