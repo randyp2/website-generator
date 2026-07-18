@@ -15,12 +15,12 @@ INSERT INTO public.billing_credit_ledger_entries (
 )
 SELECT
     gen_random_uuid(),
-    grant.profile_id,
+    launch_grant.profile_id,
     -1,
     'promotion_adjustment',
-    grant.id,
-    grant.credit_bucket,
-    grant.id,
+    launch_grant.id,
+    launch_grant.credit_bucket,
+    launch_grant.id,
     jsonb_build_object(
         'campaign_key', 'launch_access_2026',
         'credit_bucket', 'portfolio_refinement',
@@ -29,14 +29,14 @@ SELECT
         'adjusted_by_migration', 'V53'
     ),
     now()
-FROM public.billing_credit_ledger_entries AS grant
-WHERE grant.reason = 'promotion_grant'
-  AND grant.credit_bucket = 'portfolio_refinement'
-  AND grant.delta_credits = 2
-  AND grant.metadata ->> 'campaign_key' = 'launch_access_2026'
+FROM public.billing_credit_ledger_entries AS launch_grant
+WHERE launch_grant.reason = 'promotion_grant'
+  AND launch_grant.credit_bucket = 'portfolio_refinement'
+  AND launch_grant.delta_credits = 2
+  AND launch_grant.metadata ->> 'campaign_key' = 'launch_access_2026'
   AND NOT EXISTS (
       SELECT 1
       FROM public.billing_credit_ledger_entries AS adjustment
-      WHERE adjustment.credit_operation_id = grant.id
+      WHERE adjustment.credit_operation_id = launch_grant.id
         AND adjustment.reason = 'promotion_adjustment'
   );
