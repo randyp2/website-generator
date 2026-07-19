@@ -61,7 +61,6 @@
         "react-resizable-panels": "^4.7.3",
         "recharts": "^3.8.1",
         "remark-breaks": "^4.0.0",
-        "resend": "^6.9.4",
         "tailwind-merge": "^2.6.1",
         "three": "^0.182.0",
         "undici": "^7.24.5",
