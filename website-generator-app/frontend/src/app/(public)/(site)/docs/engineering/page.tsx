@@ -8,7 +8,6 @@ import {
   Code2,
   CreditCard,
   Database,
-  ExternalLink,
   GitBranch,
   Layers3,
   LockKeyhole,
@@ -288,29 +287,14 @@ const EngineeringPage = () => (
         </p>
 
         <figure className="mt-6 overflow-hidden rounded-2xl border border-border bg-white">
-          <Link
-            href="/images/docs/portfolio-generation-architecture.svg"
-            target="_blank"
-            rel="noreferrer"
-            className="group block"
-            aria-label="Open the portfolio generation architecture diagram at full size"
-          >
-            <Image
-              src="/images/docs/portfolio-generation-architecture.svg"
-              alt="Portfolio generation target architecture showing the request path, Redis job state, RabbitMQ exchanges and queues, generation workers, section workers, OpenAI, and persistent portfolio storage."
-              width={2048}
-              height={1152}
-              unoptimized
-              className="h-auto w-full transition-opacity group-hover:opacity-95"
-            />
-          </Link>
-          <figcaption className="flex flex-col gap-2 border-t border-border bg-background px-4 py-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-            <span>Target-state portfolio generation architecture.</span>
-            <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
-              Open full size
-              <ExternalLink className="size-3.5" />
-            </span>
-          </figcaption>
+          <Image
+            src="/images/docs/portfolio-generation-architecture.svg"
+            alt="Portfolio generation target architecture showing the request path, Redis job state, RabbitMQ exchanges and queues, generation workers, section workers, OpenAI, and persistent portfolio storage."
+            width={2048}
+            height={1152}
+            unoptimized
+            className="h-auto w-full"
+          />
         </figure>
 
         <div className="mt-5 rounded-xl border border-amber-500/30 bg-amber-500/[0.06] p-5">
