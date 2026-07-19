@@ -23,28 +23,42 @@ import {
 const Confetti = dynamic(() => import("react-confetti"), { ssr: false });
 const WELCOME_GRADIENT =
     "linear-gradient(125deg, #4a3620 0%, #554023 36%, #8a6733 70%, #c99846 100%)";
+type WelcomeStatus = "unchecked" | "pending" | "shown" | "skipped";
 
 const LaunchWelcomeModal = () => {
     const { data: profile } = useProfileMeQuery();
-    const hasCheckedWelcome = useRef<boolean>(false);
+    const welcomeStatus = useRef<WelcomeStatus>("unchecked");
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const [showConfetti, setShowConfetti] = useState<boolean>(false);
     const [viewport, setViewport] = useState({ width: 0, height: 0 });
 
     useEffect(() => {
-        if (!profile || hasCheckedWelcome.current) {
+        if (
+            !profile ||
+            welcomeStatus.current === "shown" ||
+            welcomeStatus.current === "skipped"
+        ) {
             return;
         }
 
-        hasCheckedWelcome.current = true;
-        const isPending = consumeLaunchWelcomePending();
-        if (
-            isPending &&
-            isLaunchPromotion(profile.billing?.activePromotionKey)
-        ) {
+        if (welcomeStatus.current === "unchecked") {
+            const shouldShowWelcome =
+                consumeLaunchWelcomePending() &&
+                isLaunchPromotion(profile.billing?.activePromotionKey);
+            welcomeStatus.current = shouldShowWelcome ? "pending" : "skipped";
+        }
+
+        if (welcomeStatus.current !== "pending") {
+            return;
+        }
+
+        const openTimer = window.setTimeout(() => {
+            welcomeStatus.current = "shown";
             setIsOpen(true);
             setShowConfetti(true);
-        }
+        }, 0);
+
+        return () => window.clearTimeout(openTimer);
     }, [profile]);
 
     useEffect(() => {
