@@ -3,6 +3,7 @@ package com.webgen.webgen_backend.billing.service.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.webgen.webgen_backend.billing.dto.BillingCreditPurchaseDTO;
 import com.webgen.webgen_backend.billing.entity.BillingCreditLedgerEntry;
 import com.webgen.webgen_backend.billing.model.webhook.StripeCheckoutSessionSnapshotModel;
 import com.webgen.webgen_backend.billing.model.webhook.StripeInvoiceSnapshotModel;
@@ -13,6 +14,7 @@ import com.webgen.webgen_backend.billing.service.BillingCreditLedgerService;
 import com.webgen.webgen_backend.profile.entity.Profile;
 import com.webgen.webgen_backend.profile.repository.ProfileRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +23,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -37,6 +40,8 @@ public class BillingCreditLedgerServiceImpl implements BillingCreditLedgerServic
     private static final int CREDIT_PACK_LARGE_CREDITS = 2000;
 
     private static final String REASON_CREDIT_PACK_PURCHASE = "credit_pack_purchase";
+    private static final int DEFAULT_HISTORY_LIMIT = 20;
+    private static final int MAX_HISTORY_LIMIT = 100;
 
     private final BillingCreditLedgerEntryRepository billingCreditLedgerEntryRepository;
     private final ProfileRepository profileRepository;
@@ -110,6 +115,28 @@ public class BillingCreditLedgerServiceImpl implements BillingCreditLedgerServic
         billingAllowanceGrantService.applyPaidInvoiceAllowances(snapshot);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<BillingCreditPurchaseDTO> listRecentCreditPurchases(
+            UUID profileId,
+            Integer limit
+    ) {
+        if (profileId == null) {
+            return List.of();
+        }
+
+        int normalizedLimit = normalizeHistoryLimit(limit);
+        return billingCreditLedgerEntryRepository
+                .findByProfile_IdAndReasonOrderByCreatedAtDesc(
+                        profileId,
+                        REASON_CREDIT_PACK_PURCHASE,
+                        PageRequest.of(0, normalizedLimit)
+                )
+                .stream()
+                .map(this::toCreditPurchaseDto)
+                .toList();
+    }
+
     private Profile resolveProfile(UUID profileId, String stripeCustomerId) {
         if (profileId != null) {
             return profileRepository.findByIdForUpdate(profileId)
@@ -162,10 +189,57 @@ public class BillingCreditLedgerServiceImpl implements BillingCreditLedgerServic
         metadata.put("plan_key", nullSafeText(snapshot.getPlanKey()));
         metadata.put("stripe_customer_id", nullSafeText(snapshot.getStripeCustomerId()));
         metadata.put("stripe_subscription_id", nullSafeText(snapshot.getStripeSubscriptionId()));
+        metadata.put("payment_intent_id", nullSafeText(snapshot.getPaymentIntentId()));
+        if (snapshot.getAmountTotal() != null) {
+            metadata.put("amount_total", snapshot.getAmountTotal());
+        }
+        metadata.put("currency", normalizeLower(snapshot.getCurrency()));
 
         JsonNode sourceMetadata = objectOrEmpty(snapshot.getMetadata());
         metadata.set("checkout_metadata", sourceMetadata);
         return metadata;
+    }
+
+    private BillingCreditPurchaseDTO toCreditPurchaseDto(BillingCreditLedgerEntry entry) {
+        JsonNode metadata = objectOrEmpty(entry.getMetadata());
+        return BillingCreditPurchaseDTO.builder()
+                .ledgerEntryId(entry.getId())
+                .checkoutSessionId(entry.getCheckoutSessionId())
+                .paymentIntentId(nullableText(metadata, "payment_intent_id"))
+                .paymentStatus(nullableText(metadata, "payment_status"))
+                .priceKey(nullableText(metadata, "price_key"))
+                .priceId(nullableText(metadata, "price_id"))
+                .credits(entry.getDeltaCredits())
+                .amountPaid(nullableLong(metadata, "amount_total"))
+                .currency(nullableText(metadata, "currency"))
+                .purchasedAt(entry.getCreatedAt())
+                .build();
+    }
+
+    private int normalizeHistoryLimit(Integer limit) {
+        if (limit == null || limit <= 0) {
+            return DEFAULT_HISTORY_LIMIT;
+        }
+        return Math.min(limit, MAX_HISTORY_LIMIT);
+    }
+
+    private String nullableText(JsonNode source, String fieldName) {
+        if (source == null || source.isMissingNode() || source.isNull()) {
+            return null;
+        }
+        JsonNode value = source.path(fieldName);
+        if (!value.isTextual() || value.asText().isBlank()) {
+            return null;
+        }
+        return value.asText().trim();
+    }
+
+    private Long nullableLong(JsonNode source, String fieldName) {
+        if (source == null || source.isMissingNode() || source.isNull()) {
+            return null;
+        }
+        JsonNode value = source.path(fieldName);
+        return value.isIntegralNumber() ? value.asLong() : null;
     }
 
     private boolean isConfirmedPayment(StripeCheckoutSessionSnapshotModel snapshot) {

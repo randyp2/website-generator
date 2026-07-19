@@ -1,6 +1,7 @@
 package com.webgen.webgen_backend.billing.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.webgen.webgen_backend.billing.dto.BillingCreditPurchaseDTO;
 import com.webgen.webgen_backend.billing.entity.BillingCreditLedgerEntry;
 import com.webgen.webgen_backend.billing.model.CreditBucket;
 import com.webgen.webgen_backend.billing.model.webhook.StripeCheckoutSessionSnapshotModel;
@@ -69,6 +70,22 @@ class BillingCreditLedgerServiceImplTest {
         assertThat(entry.getMetadata().path("source_event_type").asText())
                 .isEqualTo("checkout.session.completed");
         assertThat(entry.getMetadata().path("payment_status").asText()).isEqualTo("paid");
+        assertThat(entry.getMetadata().path("amount_total").asLong()).isEqualTo(4_900L);
+        assertThat(entry.getMetadata().path("currency").asText()).isEqualTo("usd");
+
+        List<BillingCreditPurchaseDTO> purchases = service.listRecentCreditPurchases(
+                profileId,
+                20
+        );
+        assertThat(purchases).singleElement().satisfies(purchase -> {
+            assertThat(purchase.getLedgerEntryId()).isEqualTo(entry.getId());
+            assertThat(purchase.getCheckoutSessionId()).isEqualTo("cs_paid");
+            assertThat(purchase.getPaymentIntentId()).isEqualTo("pi_test");
+            assertThat(purchase.getPriceKey()).isEqualTo("CREDIT_PACK_MEDIUM");
+            assertThat(purchase.getCredits()).isEqualTo(500);
+            assertThat(purchase.getAmountPaid()).isEqualTo(4_900L);
+            assertThat(purchase.getCurrency()).isEqualTo("usd");
+        });
 
         service.fulfillCheckoutSession(snapshot(
                 "evt_duplicate_delivery",
@@ -162,6 +179,9 @@ class BillingCreditLedgerServiceImplTest {
                 .priceId("price_test")
                 .priceKey(priceKey)
                 .purchaseType("credits")
+                .paymentIntentId("pi_test")
+                .amountTotal(4_900L)
+                .currency("usd")
                 .metadata(new ObjectMapper().createObjectNode().put("source", "test"))
                 .occurredAt(OffsetDateTime.now(ZoneOffset.UTC))
                 .build();
@@ -175,6 +195,11 @@ class BillingCreditLedgerServiceImplTest {
                     case "existsByStripeEventId" -> state.eventIds.contains(args[0]);
                     case "existsByCheckoutSessionIdAndReason" ->
                             state.checkoutSessionIds.contains(args[0]);
+                    case "findByProfile_IdAndReasonOrderByCreatedAtDesc" ->
+                            state.savedEntries.stream()
+                                    .filter(entry -> entry.getProfile().getId().equals(args[0]))
+                                    .filter(entry -> entry.getReason().equals(args[1]))
+                                    .toList();
                     case "save" -> {
                         BillingCreditLedgerEntry entry = (BillingCreditLedgerEntry) args[0];
                         state.savedEntries.add(entry);

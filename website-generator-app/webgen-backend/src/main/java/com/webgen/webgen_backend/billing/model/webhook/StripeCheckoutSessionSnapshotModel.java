@@ -27,6 +27,9 @@ public class StripeCheckoutSessionSnapshotModel {
     private String priceKey;
     private String purchaseType;
     private String planKey;
+    private String paymentIntentId;
+    private Long amountTotal;
+    private String currency;
     private JsonNode metadata;
     private OffsetDateTime occurredAt;
 }

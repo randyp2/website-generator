@@ -315,6 +315,9 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
                 .priceKey(priceKey)
                 .purchaseType(metadataText(metadata, "purchase_type"))
                 .planKey(metadataText(metadata, "plan_key"))
+                .paymentIntentId(extractObjectRefId(objectNode, "payment_intent"))
+                .amountTotal(longValue(objectNode, "amount_total"))
+                .currency(textValue(objectNode, "currency"))
                 .metadata(metadata)
                 .occurredAt(occurredAt)
                 .build();

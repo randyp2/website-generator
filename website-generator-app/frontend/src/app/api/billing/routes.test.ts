@@ -20,6 +20,7 @@ vi.mock("@/utils/supabase/server", () => ({
 }));
 
 import { POST as createCheckoutSession } from "./checkout/session/route";
+import { GET as listCreditPurchases } from "./credit-purchases/route";
 import { GET as listInvoices } from "./invoices/route";
 import { POST as createPortalSession } from "./portal/session/route";
 
@@ -108,6 +109,27 @@ describe("billing API routes", () => {
             RequestInit,
         ];
         expect(path).toBe("/api/v1/billing/invoices?limit=25");
+        expect(options.method).toBe("GET");
+        expect(new Headers(options.headers).get("Authorization")).toBe(
+            "Bearer access-token",
+        );
+    });
+
+    it("lists credit purchases through the authenticated backend helper", async () => {
+        fetchBackendMock.mockResolvedValue(Response.json([]));
+        const request = new Request(
+            "http://localhost/api/billing/credit-purchases?limit=25",
+        );
+
+        const response = await listCreditPurchases(request);
+
+        expect(response.status).toBe(200);
+        expect(fetchBackendMock).toHaveBeenCalledOnce();
+        const [path, options] = fetchBackendMock.mock.calls[0] as [
+            string,
+            RequestInit,
+        ];
+        expect(path).toBe("/api/v1/billing/credit-purchases?limit=25");
         expect(options.method).toBe("GET");
         expect(new Headers(options.headers).get("Authorization")).toBe(
             "Bearer access-token",

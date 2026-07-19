@@ -3,6 +3,7 @@ package com.webgen.webgen_backend.billing.repository;
 import com.webgen.webgen_backend.billing.entity.BillingCreditLedgerEntry;
 import com.webgen.webgen_backend.billing.model.CreditBucket;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -16,6 +17,12 @@ import java.util.UUID;
 public interface BillingCreditLedgerEntryRepository extends JpaRepository<BillingCreditLedgerEntry, UUID> {
 
     List<BillingCreditLedgerEntry> findByProfileIdOrderByCreatedAtDesc(UUID profileId);
+
+    List<BillingCreditLedgerEntry> findByProfile_IdAndReasonOrderByCreatedAtDesc(
+            UUID profileId,
+            String reason,
+            Pageable pageable
+    );
 
     boolean existsByStripeEventId(String stripeEventId);
 

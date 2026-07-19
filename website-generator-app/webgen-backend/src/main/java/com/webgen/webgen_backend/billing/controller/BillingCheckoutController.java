@@ -1,10 +1,12 @@
 package com.webgen.webgen_backend.billing.controller;
 
+import com.webgen.webgen_backend.billing.dto.BillingCreditPurchaseDTO;
+import com.webgen.webgen_backend.billing.dto.BillingInvoiceDTO;
 import com.webgen.webgen_backend.billing.dto.CreateCheckoutSessionRequestDTO;
 import com.webgen.webgen_backend.billing.dto.CreateCheckoutSessionResponseDTO;
 import com.webgen.webgen_backend.billing.dto.CreatePortalSessionResponseDTO;
-import com.webgen.webgen_backend.billing.dto.BillingInvoiceDTO;
 import com.webgen.webgen_backend.billing.service.BillingCheckoutService;
+import com.webgen.webgen_backend.billing.service.BillingCreditLedgerService;
 import com.webgen.webgen_backend.billing.service.BillingInvoiceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +28,7 @@ public class BillingCheckoutController {
 
     private final BillingCheckoutService billingCheckoutService;
     private final BillingInvoiceService billingInvoiceService;
+    private final BillingCreditLedgerService billingCreditLedgerService;
 
     @PostMapping("/checkout/session")
     public ResponseEntity<CreateCheckoutSessionResponseDTO> createCheckoutSession(
@@ -52,6 +55,16 @@ public class BillingCheckoutController {
         UUID profileId = resolveAuthenticatedUserId();
         return ResponseEntity.ok(
                 billingInvoiceService.listRecentInvoices(profileId, limit)
+        );
+    }
+
+    @GetMapping("/credit-purchases")
+    public ResponseEntity<List<BillingCreditPurchaseDTO>> listMyCreditPurchases(
+            @RequestParam(required = false) Integer limit
+    ) {
+        UUID profileId = resolveAuthenticatedUserId();
+        return ResponseEntity.ok(
+                billingCreditLedgerService.listRecentCreditPurchases(profileId, limit)
         );
     }
 

@@ -1,6 +1,8 @@
+import { CREDIT_PACKS } from "@/data/billing-catalog";
 import type {
+    BillingCreditPurchaseApiItem,
+    BillingHistoryItem,
     BillingInvoiceApiItem,
-    BillingInvoiceHistoryItem,
 } from "./types";
 
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
@@ -20,27 +22,78 @@ const toEpochMs = (value: string | null): number | null => {
 
 export const normalizeInvoice = (
     candidate: BillingInvoiceApiItem,
-): BillingInvoiceHistoryItem => ({
-    invoiceId: candidate.invoiceId?.trim() ?? "",
-    status: candidate.status?.trim().toLowerCase() ?? "unknown",
-    amountPaid:
-        typeof candidate.amountPaid === "number" ? candidate.amountPaid : null,
-    amountDue:
-        typeof candidate.amountDue === "number" ? candidate.amountDue : null,
-    currency: candidate.currency?.trim().toUpperCase() ?? null,
-    viewUrl:
-        candidate.hostedInvoiceUrl?.trim() ??
-        candidate.invoicePdfUrl?.trim() ??
-        null,
-    occurredAt: candidate.occurredAt ?? null,
-    createdAt: candidate.createdAt ?? null,
-    updatedAt: candidate.updatedAt ?? null,
-});
+): BillingHistoryItem => {
+    const invoiceId = candidate.invoiceId?.trim() ?? "";
+    return {
+        id: `invoice:${invoiceId}`,
+        kind: "invoice",
+        referenceId: invoiceId,
+        activityLabel: null,
+        status: candidate.status?.trim().toLowerCase() ?? "unknown",
+        amountPaid:
+            typeof candidate.amountPaid === "number"
+                ? candidate.amountPaid
+                : null,
+        amountDue:
+            typeof candidate.amountDue === "number"
+                ? candidate.amountDue
+                : null,
+        currency: candidate.currency?.trim().toUpperCase() ?? null,
+        fallbackAmountLabel: null,
+        viewUrl:
+            candidate.hostedInvoiceUrl?.trim() ??
+            candidate.invoicePdfUrl?.trim() ??
+            null,
+        occurredAt: candidate.occurredAt ?? null,
+        createdAt: candidate.createdAt ?? null,
+        updatedAt: candidate.updatedAt ?? null,
+    };
+};
 
-export const sortInvoicesByRecency = (
-    invoices: BillingInvoiceHistoryItem[],
-): BillingInvoiceHistoryItem[] => {
-    return [...invoices].sort((left, right) => {
+export const normalizeCreditPurchase = (
+    candidate: BillingCreditPurchaseApiItem,
+): BillingHistoryItem => {
+    const priceKey = candidate.priceKey?.trim() ?? "";
+    const pack = CREDIT_PACKS.find((item) => item.priceKey === priceKey) ?? null;
+    const credits =
+        typeof candidate.credits === "number" ? candidate.credits : pack?.credits;
+    const ledgerEntryId = candidate.ledgerEntryId?.trim() ?? "";
+    const checkoutSessionId = candidate.checkoutSessionId?.trim() ?? "";
+    const paymentIntentId = candidate.paymentIntentId?.trim() ?? "";
+    const purchasedAt = candidate.purchasedAt ?? null;
+    const creditLabel =
+        typeof credits === "number"
+            ? `${credits.toLocaleString()} credits`
+            : "Credit pack";
+
+    return {
+        id: `credit-purchase:${ledgerEntryId || checkoutSessionId}`,
+        kind: "credit_purchase",
+        referenceId: paymentIntentId || checkoutSessionId || ledgerEntryId,
+        activityLabel: pack ? `${pack.name} · ${creditLabel}` : creditLabel,
+        status:
+            candidate.paymentStatus?.trim().toLowerCase() ===
+            "no_payment_required"
+                ? "paid"
+                : (candidate.paymentStatus?.trim().toLowerCase() ?? "paid"),
+        amountPaid:
+            typeof candidate.amountPaid === "number"
+                ? candidate.amountPaid
+                : null,
+        amountDue: null,
+        currency: candidate.currency?.trim().toUpperCase() ?? null,
+        fallbackAmountLabel: pack?.priceLabel ?? null,
+        viewUrl: null,
+        occurredAt: purchasedAt,
+        createdAt: purchasedAt,
+        updatedAt: null,
+    };
+};
+
+export const sortHistoryByRecency = (
+    items: BillingHistoryItem[],
+): BillingHistoryItem[] => {
+    return [...items].sort((left, right) => {
         const leftTimestamp =
             toEpochMs(left.occurredAt) ??
             toEpochMs(left.createdAt) ??
@@ -56,16 +109,16 @@ export const sortInvoicesByRecency = (
     });
 };
 
-export const filterInvoicesWithinPastYear = (
-    invoices: BillingInvoiceHistoryItem[],
-): BillingInvoiceHistoryItem[] => {
+export const filterHistoryWithinPastYear = (
+    items: BillingHistoryItem[],
+): BillingHistoryItem[] => {
     const cutoffMs = Date.now() - ONE_YEAR_MS;
 
-    return invoices.filter((invoice) => {
+    return items.filter((item) => {
         const timestamp =
-            toEpochMs(invoice.occurredAt) ??
-            toEpochMs(invoice.createdAt) ??
-            toEpochMs(invoice.updatedAt);
+            toEpochMs(item.occurredAt) ??
+            toEpochMs(item.createdAt) ??
+            toEpochMs(item.updatedAt);
 
         if (timestamp == null) {
             return false;
@@ -75,15 +128,13 @@ export const filterInvoicesWithinPastYear = (
     });
 };
 
-export const formatInvoiceAmount = (
-    invoice: BillingInvoiceHistoryItem,
-): string => {
-    const amountMinor = invoice.amountPaid ?? invoice.amountDue;
+export const formatHistoryAmount = (item: BillingHistoryItem): string => {
+    const amountMinor = item.amountPaid ?? item.amountDue;
     if (amountMinor == null) {
-        return "--";
+        return item.fallbackAmountLabel ?? "--";
     }
 
-    const formattedCurrency = invoice.currency ?? "USD";
+    const formattedCurrency = item.currency ?? "USD";
 
     return new Intl.NumberFormat("en-US", {
         style: "currency",
@@ -91,9 +142,9 @@ export const formatInvoiceAmount = (
     }).format(amountMinor / 100);
 };
 
-export const formatInvoiceDateTime = (invoice: BillingInvoiceHistoryItem): string => {
+export const formatHistoryDateTime = (item: BillingHistoryItem): string => {
     const timestamp =
-        invoice.occurredAt ?? invoice.createdAt ?? invoice.updatedAt ?? null;
+        item.occurredAt ?? item.createdAt ?? item.updatedAt ?? null;
     const parsed = timestamp ? new Date(timestamp) : null;
 
     if (!parsed || Number.isNaN(parsed.getTime())) {
@@ -109,11 +160,11 @@ export const formatInvoiceDateTime = (invoice: BillingInvoiceHistoryItem): strin
     }).format(parsed);
 };
 
-export const formatInvoiceReference = (
-    invoiceId: string,
+const formatStripeReference = (
+    referenceId: string,
     rowIndex: number,
 ): string => {
-    const normalized = invoiceId.trim().toUpperCase();
+    const normalized = referenceId.trim().toUpperCase();
     if (!normalized) {
         return `INVOICE-${rowIndex + 1}`;
     }
@@ -124,6 +175,16 @@ export const formatInvoiceReference = (
     }
 
     return `${withoutPrefix.slice(0, 10)}-${withoutPrefix.slice(-4)}`;
+};
+
+export const formatHistoryReference = (
+    item: BillingHistoryItem,
+    rowIndex: number,
+): string => {
+    if (item.activityLabel) {
+        return item.activityLabel;
+    }
+    return `Invoice ${formatStripeReference(item.referenceId, rowIndex)}`;
 };
 
 export const formatStatusLabel = (status: string): string => {

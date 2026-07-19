@@ -3,6 +3,7 @@ package com.webgen.webgen_backend.billing.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stripe.net.Webhook;
 import com.webgen.webgen_backend.billing.config.StripeProperties;
+import com.webgen.webgen_backend.billing.dto.BillingCreditPurchaseDTO;
 import com.webgen.webgen_backend.billing.dto.BillingInvoiceDTO;
 import com.webgen.webgen_backend.billing.dto.webhook.StripeWebhookProcessRequestDTO;
 import com.webgen.webgen_backend.billing.dto.webhook.StripeWebhookProcessResponseDTO;
@@ -78,6 +79,9 @@ class StripeWebhookServiceImplTest {
             assertThat(snapshot.getProfileId()).isEqualTo(profileId);
             assertThat(snapshot.getPriceKey()).isEqualTo("CREDIT_PACK_SMALL");
             assertThat(snapshot.getPriceId()).isEqualTo("price_small");
+            assertThat(snapshot.getPaymentIntentId()).isEqualTo("pi_test");
+            assertThat(snapshot.getAmountTotal()).isEqualTo(1_200L);
+            assertThat(snapshot.getCurrency()).isEqualTo("usd");
         });
         assertThat(webhookEventStateService.processedRowId).isNotNull();
     }
@@ -131,7 +135,10 @@ class StripeWebhookServiceImplTest {
                       "object": "checkout.session",
                       "client_reference_id": "%s",
                       "customer": "cus_test",
+                      "payment_intent": "pi_test",
                       "payment_status": "%s",
+                      "amount_total": 1200,
+                      "currency": "usd",
                       "metadata": {
                         "profile_id": "%s",
                         "purchase_type": "credits",
@@ -207,6 +214,14 @@ class StripeWebhookServiceImplTest {
 
         @Override
         public void applyInvoicePaidAllowances(StripeInvoiceSnapshotModel snapshot) {
+        }
+
+        @Override
+        public List<BillingCreditPurchaseDTO> listRecentCreditPurchases(
+                UUID profileId,
+                Integer limit
+        ) {
+            return List.of();
         }
     }
 

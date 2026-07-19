@@ -1,14 +1,22 @@
 import type {
+    BillingCreditPurchaseApiItem,
+    BillingHistoryItem,
     BillingInvoiceApiItem,
-    BillingInvoiceHistoryItem,
 } from "./types";
-import { normalizeInvoice, sortInvoicesByRecency } from "./helpers";
+import {
+    normalizeCreditPurchase,
+    normalizeInvoice,
+    sortHistoryByRecency,
+} from "./helpers";
 
-interface FetchBillingInvoicesOptions {
+interface FetchBillingHistoryOptions {
     limit?: number;
 }
 
-const toInvoicesUrl = (options?: FetchBillingInvoicesOptions): string => {
+const toBillingUrl = (
+    resource: "invoices" | "credit-purchases",
+    options?: FetchBillingHistoryOptions,
+): string => {
     const rawLimit = options?.limit;
     const limit =
         typeof rawLimit === "number" && rawLimit > 0
@@ -16,14 +24,14 @@ const toInvoicesUrl = (options?: FetchBillingInvoicesOptions): string => {
             : null;
 
     if (!limit) {
-        return "/api/billing/invoices";
+        return `/api/billing/${resource}`;
     }
 
-    return `/api/billing/invoices?limit=${encodeURIComponent(String(limit))}`;
+    return `/api/billing/${resource}?limit=${encodeURIComponent(String(limit))}`;
 };
 
 const extractErrorMessage = async (response: Response): Promise<string> => {
-    const fallback = "Unable to load billing invoices.";
+    const fallback = "Unable to load billing history.";
 
     const payload =
         ((await response.json().catch(() => null)) as
@@ -37,10 +45,8 @@ const extractErrorMessage = async (response: Response): Promise<string> => {
     return payload.error;
 };
 
-export const fetchBillingInvoices = async (
-    options?: FetchBillingInvoicesOptions,
-): Promise<BillingInvoiceHistoryItem[]> => {
-    const response = await fetch(toInvoicesUrl(options), {
+const fetchBillingRows = async <T>(url: string): Promise<T[]> => {
+    const response = await fetch(url, {
         method: "GET",
         cache: "no-store",
     });
@@ -49,13 +55,24 @@ export const fetchBillingInvoices = async (
         throw new Error(await extractErrorMessage(response));
     }
 
-    const payload =
-        ((await response.json().catch(() => [])) as BillingInvoiceApiItem[]) ??
-        [];
+    const payload = ((await response.json().catch(() => [])) as T[]) ?? [];
+    return Array.isArray(payload) ? payload : [];
+};
 
-    if (!Array.isArray(payload)) {
-        return [];
-    }
+export const fetchBillingHistory = async (
+    options?: FetchBillingHistoryOptions,
+): Promise<BillingHistoryItem[]> => {
+    const [invoices, creditPurchases] = await Promise.all([
+        fetchBillingRows<BillingInvoiceApiItem>(
+            toBillingUrl("invoices", options),
+        ),
+        fetchBillingRows<BillingCreditPurchaseApiItem>(
+            toBillingUrl("credit-purchases", options),
+        ),
+    ]);
 
-    return sortInvoicesByRecency(payload.map(normalizeInvoice));
+    return sortHistoryByRecency([
+        ...invoices.map(normalizeInvoice),
+        ...creditPurchases.map(normalizeCreditPurchase),
+    ]);
 };
