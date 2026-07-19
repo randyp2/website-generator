@@ -21,7 +21,6 @@ import {
 } from "@/lib/billing/launch-promotion";
 
 const Confetti = dynamic(() => import("react-confetti"), { ssr: false });
-const CONFETTI_DURATION_MS = 3_000;
 const WELCOME_GRADIENT =
     "linear-gradient(125deg, #4a3620 0%, #554023 36%, #8a6733 70%, #c99846 100%)";
 
@@ -65,18 +64,6 @@ const LaunchWelcomeModal = () => {
         return () => window.removeEventListener("resize", updateViewport);
     }, [isOpen]);
 
-    useEffect(() => {
-        if (!showConfetti) {
-            return;
-        }
-
-        const timer = window.setTimeout(
-            () => setShowConfetti(false),
-            CONFETTI_DURATION_MS,
-        );
-        return () => window.clearTimeout(timer);
-    }, [showConfetti]);
-
     const handleOpenChange = (nextOpen: boolean): void => {
         setIsOpen(nextOpen);
         if (!nextOpen) {
@@ -94,6 +81,7 @@ const LaunchWelcomeModal = () => {
                       numberOfPieces={300}
                       gravity={0.25}
                       initialVelocityY={18}
+                      onConfettiComplete={() => setShowConfetti(false)}
                       className="pointer-events-none"
                       style={{ position: "fixed", inset: 0, zIndex: 9999 }}
                   />,

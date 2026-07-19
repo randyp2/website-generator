@@ -82,11 +82,6 @@ const SuccessCard: React.FC = () => {
     const [showConfetti, setShowConfetti] = useState(true);
 
     useEffect(() => {
-        const timer = setTimeout(() => setShowConfetti(false), 3000);
-        return () => clearTimeout(timer);
-    }, []);
-
-    useEffect(() => {
         let attempts = 0;
         void invalidateProfileMeQuery(queryClient);
 
@@ -111,6 +106,7 @@ const SuccessCard: React.FC = () => {
                     numberOfPieces={300}
                     gravity={0.25}
                     initialVelocityY={18}
+                    onConfettiComplete={() => setShowConfetti(false)}
                     className="pointer-events-none fixed inset-0 z-50"
                 />
             )}
