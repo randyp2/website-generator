@@ -57,8 +57,8 @@ export const ProcessSection: React.FC = () => {
                     <div className="relative overflow-visible">
                         <div className="relative h-[645px] w-[1150px] max-w-none translate-x-28 overflow-hidden rounded-2xl border border-border shadow-[0_0_40px_rgba(245,158,11,0.35),0_0_70px_rgba(146,64,14,0.25)] lg:translate-x-20">
                             <Image
-                                src="/images/dashboard_preview.png"
-                                alt="Dashboard preview"
+                                src="/images/how-it-works-dashboard.webp"
+                                alt="PortRN dashboard showing published portfolios and site details"
                                 fill
                                 sizes="(min-width: 1024px) 1150px, 90vw"
                                 className="object-cover"

@@ -9,28 +9,28 @@ import { Button } from "@/components/ui/button"
 
 const images = [
   {
-    src: "/images/hero/example1.png",
-    alt: "Portfolio example - neon city street",
+    src: "/images/hero/closing-desktop-01.webp",
+    alt: "Dark interactive portfolio with a bold typographic introduction",
   },
   {
-    src: "/images/hero/example2.png",
-    alt: "Portfolio example - night street with glowing signs",
+    src: "/images/hero/closing-mobile-01.webp",
+    alt: "Green terminal-inspired portfolio in a portrait preview",
   },
   {
-    src: "/images/hero/example3.png",
-    alt: "Portfolio example - Tokyo crosswalk at dusk",
+    src: "/images/hero/closing-desktop-02.webp",
+    alt: "Playful illustrated portfolio with profile and game board panels",
   },
   {
-    src: "/images/hero/example4.png",
-    alt: "Portfolio example - Tokyo alleyway with signage",
+    src: "/images/hero/closing-mobile-02.webp",
+    alt: "Dark engineering portfolio in a portrait preview",
   },
   {
-    src: "/images/hero/example5.png",
-    alt: "Portfolio example - street crowd with bright lights",
+    src: "/images/hero/closing-desktop-03.webp",
+    alt: "Dark portfolio hero with glowing planetary artwork",
   },
   {
-    src: "/images/hero/example10.png",
-    alt: "Portfolio example - urban cityscape",
+    src: "/images/hero/closing-desktop-04.webp",
+    alt: "Light cyberpunk portfolio with skills and project cards",
   },
 ]
 
