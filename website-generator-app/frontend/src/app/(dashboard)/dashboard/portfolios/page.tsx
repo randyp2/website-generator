@@ -2,7 +2,6 @@
 
 import React, { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Image from "next/image";
 
 import {
   FiPlus,
@@ -30,6 +29,7 @@ import {
   usePortfolioUpdateMutation,
 } from "../hooks/usePortfolioListQuery";
 import { resolveResumePath } from "../utils/portfolioUtils";
+import { PortfolioCardScreenshot } from "./components/PortfolioCardScreenshot";
 
 interface Portfolio {
   id: string;
@@ -345,30 +345,10 @@ const PortfolioManager: React.FC = () => {
               <div className="overflow-visible rounded-2xl border border-border bg-card/80 backdrop-blur-xl shadow-lg transition-all hover:border-primary/30 hover:shadow-xl">
                 {/* Thumbnail image */}
                 <div className="relative h-48 overflow-hidden">
-                  {portfolio.thumbnail ? (
-                    <>
-                      <Image
-                        src={portfolio.thumbnail}
-                        alt={`${portfolio.title} preview`}
-                        fill
-                        unoptimized
-                        className="absolute inset-0 h-full w-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-linear-to-t from-black/45 via-black/10 to-transparent" />
-                      <div className="absolute -top-20 right-[-20%] h-40 w-40 rounded-full bg-background/40 blur-3xl" />
-                    </>
-                  ) : (
-                    <div className="flex h-full items-center justify-center bg-muted/40 px-8 text-center">
-                      <div className="space-y-1.5">
-                        <p className="text-sm font-medium text-foreground">
-                          We&apos;re retrieving your screenshot.
-                        </p>
-                        <p className="text-xs leading-relaxed text-muted-foreground">
-                          Please refresh or try again in a few seconds.
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                  <PortfolioCardScreenshot
+                    screenshotUrl={portfolio.thumbnail}
+                    portfolioTitle={portfolio.title}
+                  />
 
                   {/* Quick Actions Overlay (on hover) */}
                   <AnimatePresence>
