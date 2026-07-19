@@ -40,6 +40,19 @@ export const docSectionsByHref: Record<string, TocItem[]> = {
     { href: "#refinement", label: "Refine with guided edits" },
     { href: "#delivery", label: "Publish and manage" },
   ],
+  "/docs/engineering": [
+    { href: "#why-write-about-the-code", label: "Why write about the code" },
+    { href: "#the-first-version", label: "The first version" },
+    { href: "#why-not-sse", label: "Why not SSE" },
+    { href: "#portfolio-generation", label: "Portfolio generation" },
+    { href: "#target-architecture", label: "Target architecture" },
+    { href: "#what-runs-today", label: "What runs today" },
+    { href: "#billing-idempotency", label: "Billing idempotency" },
+    { href: "#verification-jobs", label: "Recoverable verification" },
+    { href: "#security-boundaries", label: "Security boundaries" },
+    { href: "#code-map", label: "Code map" },
+    { href: "#tradeoffs", label: "Tradeoffs" },
+  ],
   "/docs/verification-scoring": [
     { href: "#why-this-exists", label: "Why this exists" },
     { href: "#what-the-score-means", label: "What the score means" },
@@ -79,6 +92,17 @@ export const docsNavGroups: DocNavGroup[] = [
         title: "Verification scoring",
         description:
           "How verification progress is calculated from evidence, authorship, and independence.",
+      },
+    ],
+  },
+  {
+    title: "Engineering",
+    items: [
+      {
+        href: "/docs/engineering",
+        title: "Engineering notes",
+        description:
+          "The interesting problems behind PortRN, starting with asynchronous portfolio generation.",
       },
     ],
   },
