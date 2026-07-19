@@ -34,7 +34,7 @@ import { resolveResumePath } from "../utils/portfolioUtils";
 interface Portfolio {
   id: string;
   title: string;
-  thumbnail: string;
+  thumbnail: string | null;
   status: string;
   lastEdited: string;
   url: string | null;
@@ -71,13 +71,10 @@ const resolvePortfolioUrl = (
   return null;
 };
 
-const DEFAULT_PORTFOLIO_CARD_IMAGE =
-  "https://images.unsplash.com/photo-1545665277-5937489579f2?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
-
-const getPortfolioCardImage = (portfolio: PortfolioListItem): string =>
+const getPortfolioCardImage = (portfolio: PortfolioListItem): string | null =>
   portfolio.screenshot_url?.trim() ||
   portfolio.screenshotUrl?.trim() ||
-  DEFAULT_PORTFOLIO_CARD_IMAGE;
+  null;
 
 const resolveExplorePath = (portfolio: PortfolioListItem): string | null => {
   const slug = portfolio.slug?.trim();
@@ -348,15 +345,30 @@ const PortfolioManager: React.FC = () => {
               <div className="overflow-visible rounded-2xl border border-border bg-card/80 backdrop-blur-xl shadow-lg transition-all hover:border-primary/30 hover:shadow-xl">
                 {/* Thumbnail image */}
                 <div className="relative h-48 overflow-hidden">
-                  <Image
-                    src={portfolio.thumbnail || DEFAULT_PORTFOLIO_CARD_IMAGE}
-                    alt={`${portfolio.title} preview`}
-                    fill
-                    unoptimized
-                    className="absolute inset-0 h-full w-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-linear-to-t from-black/45 via-black/10 to-transparent" />
-                  <div className="absolute -top-20 right-[-20%] h-40 w-40 rounded-full bg-background/40 blur-3xl" />
+                  {portfolio.thumbnail ? (
+                    <>
+                      <Image
+                        src={portfolio.thumbnail}
+                        alt={`${portfolio.title} preview`}
+                        fill
+                        unoptimized
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-linear-to-t from-black/45 via-black/10 to-transparent" />
+                      <div className="absolute -top-20 right-[-20%] h-40 w-40 rounded-full bg-background/40 blur-3xl" />
+                    </>
+                  ) : (
+                    <div className="flex h-full items-center justify-center bg-muted/40 px-8 text-center">
+                      <div className="space-y-1.5">
+                        <p className="text-sm font-medium text-foreground">
+                          We&apos;re retrieving your screenshot.
+                        </p>
+                        <p className="text-xs leading-relaxed text-muted-foreground">
+                          Please refresh or try again in a few seconds.
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Quick Actions Overlay (on hover) */}
                   <AnimatePresence>
