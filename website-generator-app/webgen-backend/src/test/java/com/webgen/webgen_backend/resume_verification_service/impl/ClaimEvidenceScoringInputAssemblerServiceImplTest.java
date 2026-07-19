@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.resume_verification_service.impl;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.webgen.webgen_backend.profile.entity.Profile;
 import com.webgen.webgen_backend.verification.entity.*;
 import com.webgen.webgen_backend.verification.repository.ClaimEvidenceLinkRepository;
@@ -7,6 +8,7 @@ import com.webgen.webgen_backend.verification.repository.EvidenceRepository;
 import com.webgen.webgen_backend.verification.service.scoring.model.EvidenceLinkSignal;
 import com.webgen.webgen_backend.verification.service.scoring.model.SkillClaimInput;
 import com.webgen.webgen_backend.verification.service.impl.ClaimEvidenceScoringInputAssemblerServiceImpl;
+import com.webgen.webgen_backend.verification.service.scoring.IndependentEvidenceSelector;
 import com.webgen.webgen_backend.verification.service.scoring.VerificationSignalPolicy;
 import org.junit.jupiter.api.Test;
 
@@ -36,14 +38,15 @@ class ClaimEvidenceScoringInputAssemblerServiceImplTest {
             UUID evidenceId = new UUID(0L, i + 1L);
             OffsetDateTime capturedAt = asOf.minusDays(i);
 
-            links.add(buildLink(profileId, claimId, evidenceId, "name_match", "1.0"));
+            links.add(buildLink(profileId, claimId, evidenceId, "dependency_match", "1.0"));
             evidenceRows.add(buildEvidence(profileId, evidenceId, null, capturedAt, "repo-" + i));
         }
 
         ClaimEvidenceScoringInputAssemblerServiceImpl assembler = new ClaimEvidenceScoringInputAssemblerServiceImpl(
                 stubClaimEvidenceLinkRepository(links),
                 stubEvidenceRepository(evidenceRows),
-                new VerificationSignalPolicy()
+                new VerificationSignalPolicy(),
+                new IndependentEvidenceSelector()
         );
 
         List<SkillClaimInput> out = assembler.assembleSkillClaimInputs(
@@ -60,7 +63,7 @@ class ClaimEvidenceScoringInputAssemblerServiceImplTest {
         assertThat(signals.getFirst().evidenceId()).isEqualTo(new UUID(0L, 1L));
         assertThat(signals.getLast().evidenceId()).isEqualTo(new UUID(0L, 10L));
         assertThat(signals).allSatisfy(signal -> assertThat(signal.linkTypeWeight())
-                .isEqualByComparingTo("0.72"));
+                .isEqualByComparingTo("1.00"));
     }
 
     @Test
@@ -78,9 +81,9 @@ class ClaimEvidenceScoringInputAssemblerServiceImplTest {
         UUID idC = new UUID(0L, 2L);
 
         List<ClaimEvidenceLink> links = List.of(
-                buildLink(profileId, claimId, idA, "topic_match", "0.9"),
-                buildLink(profileId, claimId, idB, "topic_match", "0.9"),
-                buildLink(profileId, claimId, idC, "topic_match", "0.9")
+                buildLink(profileId, claimId, idA, "dependency_match", "0.9"),
+                buildLink(profileId, claimId, idB, "dependency_match", "0.9"),
+                buildLink(profileId, claimId, idC, "dependency_match", "0.9")
         );
 
         List<Evidence> evidenceRows = List.of(
@@ -92,7 +95,8 @@ class ClaimEvidenceScoringInputAssemblerServiceImplTest {
         ClaimEvidenceScoringInputAssemblerServiceImpl assembler = new ClaimEvidenceScoringInputAssemblerServiceImpl(
                 stubClaimEvidenceLinkRepository(links),
                 stubEvidenceRepository(evidenceRows),
-                new VerificationSignalPolicy()
+                new VerificationSignalPolicy(),
+                new IndependentEvidenceSelector()
         );
 
         List<SkillClaimInput> out = assembler.assembleSkillClaimInputs(
@@ -130,7 +134,8 @@ class ClaimEvidenceScoringInputAssemblerServiceImplTest {
         ClaimEvidenceScoringInputAssemblerServiceImpl assembler = new ClaimEvidenceScoringInputAssemblerServiceImpl(
                 stubClaimEvidenceLinkRepository(List.of(link)),
                 stubEvidenceRepository(List.of(evidence)),
-                new VerificationSignalPolicy()
+                new VerificationSignalPolicy(),
+                new IndependentEvidenceSelector()
         );
 
         List<SkillClaimInput> out = assembler.assembleSkillClaimInputs(
@@ -147,6 +152,174 @@ class ClaimEvidenceScoringInputAssemblerServiceImplTest {
         assertThat(signal.ageDays()).isZero();
         assertThat(signal.recencyDecay()).isEqualByComparingTo("1.00000000");
         assertThat(signal.decayedStrength()).isEqualByComparingTo("0.50000000");
+    }
+
+    @Test
+    void reviewedUploadUsesEvidenceDepthInsteadOfMatchConfidenceForStrength() {
+        UUID profileId = UUID.randomUUID();
+        UUID claimId = UUID.randomUUID();
+        UUID skillId = UUID.randomUUID();
+        UUID evidenceId = UUID.randomUUID();
+        OffsetDateTime asOf = OffsetDateTime.parse("2026-04-16T00:00:00Z");
+
+        ClaimEvidenceLink link = buildLink(
+                profileId, claimId, evidenceId, "llm_document_match", "0.97");
+        link.setEvidenceDepth(new BigDecimal("0.32"));
+        Evidence evidence = buildEvidence(profileId, evidenceId, asOf, asOf, "portfolio.pdf");
+        evidence.setProvider("manual_upload");
+
+        ClaimEvidenceScoringInputAssemblerServiceImpl assembler = new ClaimEvidenceScoringInputAssemblerServiceImpl(
+                stubClaimEvidenceLinkRepository(List.of(link)),
+                stubEvidenceRepository(List.of(evidence)),
+                new VerificationSignalPolicy(),
+                new IndependentEvidenceSelector());
+
+        EvidenceLinkSignal signal = assembler.assembleSkillClaimInputs(
+                        profileId,
+                        List.of(buildClaim(profileId, claimId, skillId, "React")),
+                        Map.of(skillId, buildSkill(skillId, "React", "engineering", "1.0")),
+                        asOf)
+                .getFirst().evidenceLinks().getFirst();
+
+        assertThat(signal.linkConfidence()).isEqualByComparingTo("0.97");
+        assertThat(signal.evidenceDepth()).isEqualByComparingTo("0.32");
+        assertThat(signal.decayedStrength()).isEqualByComparingTo("0.32000000");
+    }
+
+    @Test
+    void keepsOnlyStrongestSignalFromEachEvidenceGroupBeforeTopK() {
+        UUID profileId = UUID.randomUUID();
+        UUID claimId = UUID.randomUUID();
+        UUID skillId = UUID.randomUUID();
+        OffsetDateTime asOf = OffsetDateTime.parse("2026-04-16T00:00:00Z");
+        UUID strongId = new UUID(0L, 1L);
+        UUID duplicateId = new UUID(0L, 2L);
+        UUID independentId = new UUID(0L, 3L);
+
+        List<ClaimEvidenceLink> links = List.of(
+                buildLink(profileId, claimId, strongId, "dependency_match", "0.95"),
+                buildLink(profileId, claimId, duplicateId, "dependency_match", "0.90"),
+                buildLink(profileId, claimId, independentId, "language_plus_text_match", "0.80"));
+        Evidence strong = buildEvidence(profileId, strongId, asOf, asOf, "strong");
+        Evidence duplicate = buildEvidence(profileId, duplicateId, asOf, asOf, "duplicate");
+        Evidence independent = buildEvidence(profileId, independentId, asOf, asOf, "independent");
+        strong.setEvidenceGroupKey("manual_upload:etag:same-object");
+        duplicate.setEvidenceGroupKey("manual_upload:etag:same-object");
+        independent.setEvidenceGroupKey("github:repository:42");
+
+        ClaimEvidenceScoringInputAssemblerServiceImpl assembler =
+                new ClaimEvidenceScoringInputAssemblerServiceImpl(
+                        stubClaimEvidenceLinkRepository(links),
+                        stubEvidenceRepository(List.of(strong, duplicate, independent)),
+                        new VerificationSignalPolicy(),
+                        new IndependentEvidenceSelector());
+
+        List<EvidenceLinkSignal> signals = assembler.assembleSkillClaimInputs(
+                        profileId,
+                        List.of(buildClaim(profileId, claimId, skillId, "React")),
+                        Map.of(skillId, buildSkill(skillId, "React", "engineering", "1.0")),
+                        asOf)
+                .getFirst().evidenceLinks();
+
+        assertThat(signals).extracting(EvidenceLinkSignal::evidenceId)
+                .containsExactly(strongId, independentId);
+        assertThat(signals).extracting(EvidenceLinkSignal::evidenceGroupKey)
+                .containsExactly("manual_upload:etag:same-object", "github:repository:42");
+    }
+
+    @Test
+    void appliesAuthorshipWeightToGithubRepositoryStrength() {
+        UUID profileId = UUID.randomUUID();
+        UUID claimId = UUID.randomUUID();
+        UUID skillId = UUID.randomUUID();
+        UUID evidenceId = UUID.randomUUID();
+        OffsetDateTime asOf = OffsetDateTime.parse("2026-04-16T00:00:00Z");
+        ClaimEvidenceLink link = buildLink(
+                profileId, claimId, evidenceId, "dependency_match", "1.0");
+        Evidence evidence = buildEvidence(profileId, evidenceId, asOf, asOf, "fork");
+        ObjectNode metadata = com.fasterxml.jackson.databind.node.JsonNodeFactory.instance.objectNode();
+        metadata.putObject("authorship").put("weight", new BigDecimal("0.30"));
+        evidence.setMetadata(metadata);
+
+        ClaimEvidenceScoringInputAssemblerServiceImpl assembler =
+                new ClaimEvidenceScoringInputAssemblerServiceImpl(
+                        stubClaimEvidenceLinkRepository(List.of(link)),
+                        stubEvidenceRepository(List.of(evidence)),
+                        new VerificationSignalPolicy(),
+                        new IndependentEvidenceSelector());
+
+        EvidenceLinkSignal signal = assembler.assembleSkillClaimInputs(
+                        profileId,
+                        List.of(buildClaim(profileId, claimId, skillId, "React")),
+                        Map.of(skillId, buildSkill(skillId, "React", "engineering", "1.0")),
+                        asOf)
+                .getFirst().evidenceLinks().getFirst();
+
+        assertThat(signal.decayedStrength()).isEqualByComparingTo("0.30000000");
+    }
+
+    @Test
+    void appliesRepositoryIndependenceWeightSeparatelyFromAuthorship() {
+        UUID profileId = UUID.randomUUID();
+        UUID claimId = UUID.randomUUID();
+        UUID skillId = UUID.randomUUID();
+        UUID evidenceId = UUID.randomUUID();
+        OffsetDateTime asOf = OffsetDateTime.parse("2026-04-16T00:00:00Z");
+        ClaimEvidenceLink link = buildLink(
+                profileId, claimId, evidenceId, "dependency_match", "1.0");
+        Evidence evidence = buildEvidence(profileId, evidenceId, asOf, asOf, "derivative");
+        ObjectNode metadata = com.fasterxml.jackson.databind.node.JsonNodeFactory.instance.objectNode();
+        metadata.putObject("authorship").put("weight", new BigDecimal("0.80"));
+        metadata.putObject("repositoryIndependence").put("weight", new BigDecimal("0.50"));
+        evidence.setMetadata(metadata);
+
+        ClaimEvidenceScoringInputAssemblerServiceImpl assembler =
+                new ClaimEvidenceScoringInputAssemblerServiceImpl(
+                        stubClaimEvidenceLinkRepository(List.of(link)),
+                        stubEvidenceRepository(List.of(evidence)),
+                        new VerificationSignalPolicy(),
+                        new IndependentEvidenceSelector());
+
+        EvidenceLinkSignal signal = assembler.assembleSkillClaimInputs(
+                        profileId,
+                        List.of(buildClaim(profileId, claimId, skillId, "React")),
+                        Map.of(skillId, buildSkill(skillId, "React", "engineering", "1.0")),
+                        asOf)
+                .getFirst().evidenceLinks().getFirst();
+
+        assertThat(signal.decayedStrength()).isEqualByComparingTo("0.40000000");
+    }
+
+    @Test
+    void excludesMetadataOnlyMatchesFromScoringInputs() {
+        UUID profileId = UUID.randomUUID();
+        UUID claimId = UUID.randomUUID();
+        UUID skillId = UUID.randomUUID();
+        UUID descriptionEvidenceId = UUID.randomUUID();
+        UUID nameEvidenceId = UUID.randomUUID();
+        OffsetDateTime asOf = OffsetDateTime.parse("2026-04-16T00:00:00Z");
+        List<ClaimEvidenceLink> links = List.of(
+                buildLink(profileId, claimId, descriptionEvidenceId, "description_match", "0.90"),
+                buildLink(profileId, claimId, nameEvidenceId, "name_match", "0.90"));
+        List<Evidence> evidenceRows = List.of(
+                buildEvidence(profileId, descriptionEvidenceId, asOf, asOf, "description"),
+                buildEvidence(profileId, nameEvidenceId, asOf, asOf, "name"));
+
+        ClaimEvidenceScoringInputAssemblerServiceImpl assembler =
+                new ClaimEvidenceScoringInputAssemblerServiceImpl(
+                        stubClaimEvidenceLinkRepository(links),
+                        stubEvidenceRepository(evidenceRows),
+                        new VerificationSignalPolicy(),
+                        new IndependentEvidenceSelector());
+
+        List<EvidenceLinkSignal> signals = assembler.assembleSkillClaimInputs(
+                        profileId,
+                        List.of(buildClaim(profileId, claimId, skillId, "React")),
+                        Map.of(skillId, buildSkill(skillId, "React", "engineering", "1.0")),
+                        asOf)
+                .getFirst().evidenceLinks();
+
+        assertThat(signals).isEmpty();
     }
 
     @SuppressWarnings("unchecked")

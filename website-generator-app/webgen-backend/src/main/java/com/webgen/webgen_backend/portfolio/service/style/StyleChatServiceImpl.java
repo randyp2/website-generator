@@ -21,17 +21,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 public class StyleChatServiceImpl implements StyleChatService {
     private static final Logger log = LoggerFactory.getLogger(StyleChatServiceImpl.class);
-    // @Resource(name = "styleChatModel")
-    // private OpenAiChatModel openAiChatModel;
-    @Resource(name = "geminiStyleChatModel")
-    private GoogleGenAiChatModel geminiChatModel;
+    @Resource(name = "styleChatModel")
+    private OpenAiChatModel chatModel;
+    // @Resource(name = "geminiStyleChatModel")
+    // private GoogleGenAiChatModel geminiChatModel;
     private final StyleChatPromptBuilder styleChatPromptBuilder;
     private final StyleChatResponseParser styleChatResponseParser;
 
@@ -54,22 +53,26 @@ public class StyleChatServiceImpl implements StyleChatService {
     private static final String DEFAULT_HEADING_FONT = "Space Grotesk";
     private static final String DEFAULT_BODY_FONT = "Inter";
 
-    // In memory context store (swap for DB/Redis later)
-    private final Map<UUID, StyleContext> contextStore = new ConcurrentHashMap<>();
+    private final StyleContextStore contextStore;
 
     @Override
     public StyleChatResponseDTO chat(StyleChatRequestDTO req) {
         if (req == null || req.getPortfolioId() == null)
             throw new IllegalArgumentException("portfolioId is required!");
 
-        // Load or create context
-        StyleContext context = contextStore.computeIfAbsent(
-                req.getPortfolioId(),
-                id -> newContext()
-        );
+        // Load or create context; every handler persists it before returning.
+        StyleContext context = contextStore.find(req.getPortfolioId());
+        if (context == null) {
+            context = newContext();
+        }
 
-        // If already complete, return cached result
+        // After completion the chat becomes a revision loop: user messages can
+        // adjust the compiled preferences. Without a message (e.g. a state
+        // re-sync) the cached completion is returned unchanged.
         if (context.isStyleDiscoveryComplete()) {
+            if (req.getUserMessage() != null && !req.getUserMessage().isBlank()) {
+                return handleRevision(req, context);
+            }
             return buildCompleteResponse(context);
         }
 
@@ -78,14 +81,26 @@ public class StyleChatServiceImpl implements StyleChatService {
             return handleThemeGoal(req, context);
         }
 
-        // Phase 2: Color selection — user submits color picker selections (Q1 → Q2)
-        if (context.getCurrentQuestionNumber() == 1 && req.getColorSelections() != null) {
-            return handleColorSelection(req, context);
+        // Required picker phases accept questions, but only structured choices
+        // are allowed to advance the workflow.
+        if (context.getCurrentQuestionNumber() == 1) {
+            if (req.getColorSelections() != null && !req.getColorSelections().isEmpty()) {
+                return handleColorSelection(req, context);
+            }
+            if (req.getUserMessage() != null && !req.getUserMessage().isBlank()) {
+                return handleColorClarification(req, context);
+            }
+            throw new IllegalArgumentException("colorSelections or userMessage is required during color selection");
         }
 
-        // Phase 3: Typography selection — user submits font picker selections (Q2 → Q3)
-        if (context.getCurrentQuestionNumber() == 2 && req.getFontSelections() != null && !req.getFontSelections().isEmpty()) {
-            return handleFontSelection(req, context);
+        if (context.getCurrentQuestionNumber() == 2) {
+            if (req.getFontSelections() != null && !req.getFontSelections().isEmpty()) {
+                return handleFontSelection(req, context);
+            }
+            if (req.getUserMessage() != null && !req.getUserMessage().isBlank()) {
+                return handleTypographyClarification(req, context);
+            }
+            throw new IllegalArgumentException("fontSelections or userMessage is required during typography selection");
         }
 
         // Phase 4: Layout selection — user picks a layout style (Q3 → Q4)
@@ -102,7 +117,7 @@ public class StyleChatServiceImpl implements StyleChatService {
 
     @Override
     public StyleContext getContext(UUID portfolioId) {
-        return contextStore.get(portfolioId);
+        return contextStore.find(portfolioId);
     }
 
     private StyleChatResponseDTO handleThemeGoal(StyleChatRequestDTO req, StyleContext context) {
@@ -118,10 +133,11 @@ public class StyleChatServiceImpl implements StyleChatService {
         context.getConversationHistory().add(q0);
 
         context.setLastUserMessage(req.getUserMessage());
-        contextStore.put(req.getPortfolioId(), context);
 
         // Ask AI for top custom palette recommendations based on the user's goal.
         List<StyleColorPresetDTO> recommendedColorPresets = recommendColorPresets(req.getUserMessage());
+        context.setRecommendedColorPresets(recommendedColorPresets);
+        contextStore.save(req.getPortfolioId(), context);
 
         // Build response and show color picker.
         StyleChatResponseDTO dto = new StyleChatResponseDTO();
@@ -150,27 +166,36 @@ public class StyleChatServiceImpl implements StyleChatService {
     }
 
     private StyleChatResponseDTO handleColorSelection(StyleChatRequestDTO req, StyleContext context) {
-        // Store color selections
-        context.setColorSelections(req.getColorSelections());
+        Map<String, String> colorSelections = normalizeColors(req.getColorSelections());
+        if (colorSelections == null) {
+            throw new IllegalArgumentException(
+                    "colorSelections must contain valid primary, secondary, accent, background, text, and muted hex colors"
+            );
+        }
+
+        context.setColorSelections(colorSelections);
+        context.setRecommendedColorPresets(null);
 
         // Record as Q&A pair
         StyleQAPair q1 = new StyleQAPair();
         q1.setQuestionNumber(1);
         q1.setQuestion("Color palette selection");
-        q1.setAnswer(formatColorSelections(req.getColorSelections()));
+        q1.setAnswer(formatColorSelections(colorSelections));
         context.getConversationHistory().add(q1);
 
         // Get AI font recommendations (small focused call)
         StyleChatResponseParser.FontRecommendation fontRec = recommendFonts(context.getDesignGoal());
         String recHeading = fontRec != null ? fontRec.headingFont() : DEFAULT_HEADING_FONT;
         String recBody = fontRec != null ? fontRec.bodyFont() : DEFAULT_BODY_FONT;
+        context.setRecommendedHeadingFont(recHeading);
+        context.setRecommendedBodyFont(recBody);
 
         // Advance to Q2 (typography) — deterministic, no conversational LLM call
         context.setCurrentQuestionNumber(2);
         context.setTypographyPickerShown(true);
         context.setCurrentQuestion("Typography selection");
         context.setLastUserMessage(null);
-        contextStore.put(req.getPortfolioId(), context);
+        contextStore.save(req.getPortfolioId(), context);
 
         // Build response — show typography picker directly
         StyleChatResponseDTO dto = new StyleChatResponseDTO();
@@ -194,21 +219,55 @@ public class StyleChatServiceImpl implements StyleChatService {
         return dto;
     }
 
+    private StyleChatResponseDTO handleColorClarification(StyleChatRequestDTO req, StyleContext context) {
+        List<StyleColorPresetDTO> recommendations = context.getRecommendedColorPresets();
+        if (recommendations == null || recommendations.isEmpty()) {
+            recommendations = recommendColorPresets(context.getDesignGoal());
+            context.setRecommendedColorPresets(recommendations);
+        }
+
+        Prompt prompt = styleChatPromptBuilder.buildColorClarificationPrompt(req.getUserMessage(), context);
+        ChatResponse response = chatModel.call(prompt);
+        StyleChatResponseParser.StylePickerClarificationResult clarification =
+                styleChatResponseParser.parsePickerClarification(response.getResult().getOutput().getText());
+
+        context.setLastUserMessage(req.getUserMessage());
+        contextStore.save(req.getPortfolioId(), context);
+
+        StyleChatResponseDTO dto = buildPendingPickerResponse(
+                context,
+                clarification.assistantMessage(),
+                clarification.suggestions()
+        );
+        dto.setShowColorPicker(true);
+        dto.setRecommendedColorPresets(recommendations);
+        logResponseDto("color-clarification-return", dto);
+        return dto;
+    }
+
     private StyleChatResponseDTO handleFontSelection(StyleChatRequestDTO req, StyleContext context) {
-        // Store font selections
-        context.setFontSelections(req.getFontSelections());
+        Map<String, String> fontSelections = normalizeFontSelections(req.getFontSelections());
+        if (fontSelections == null) {
+            throw new IllegalArgumentException(
+                    "fontSelections must contain non-blank heading and body font names"
+            );
+        }
+
+        context.setFontSelections(fontSelections);
+        context.setRecommendedHeadingFont(null);
+        context.setRecommendedBodyFont(null);
 
         // Record as Q&A pair
         StyleQAPair qa = new StyleQAPair();
         qa.setQuestionNumber(2);
         qa.setQuestion("Typography selection");
-        qa.setAnswer(formatFontSelections(req.getFontSelections()));
+        qa.setAnswer(formatFontSelections(fontSelections));
         context.getConversationHistory().add(qa);
 
         // Advance to Q3 (layout) — deterministic, no LLM call
         context.setCurrentQuestionNumber(3);
         context.setCurrentQuestion("Layout style selection");
-        contextStore.put(req.getPortfolioId(), context);
+        contextStore.save(req.getPortfolioId(), context);
 
         // Build response — show layout picker directly
         StyleChatResponseDTO dto = new StyleChatResponseDTO();
@@ -237,6 +296,65 @@ public class StyleChatServiceImpl implements StyleChatService {
         return dto;
     }
 
+    private StyleChatResponseDTO handleTypographyClarification(StyleChatRequestDTO req, StyleContext context) {
+        ensureTypographyRecommendations(context);
+
+        Prompt prompt = styleChatPromptBuilder.buildTypographyClarificationPrompt(req.getUserMessage(), context);
+        ChatResponse response = chatModel.call(prompt);
+        StyleChatResponseParser.StylePickerClarificationResult clarification =
+                styleChatResponseParser.parsePickerClarification(response.getResult().getOutput().getText());
+
+        context.setLastUserMessage(req.getUserMessage());
+        contextStore.save(req.getPortfolioId(), context);
+
+        StyleChatResponseDTO dto = buildPendingPickerResponse(
+                context,
+                clarification.assistantMessage(),
+                clarification.suggestions()
+        );
+        dto.setShowTypographyPicker(true);
+        dto.setRecommendedHeadingFont(context.getRecommendedHeadingFont());
+        dto.setRecommendedBodyFont(context.getRecommendedBodyFont());
+        logResponseDto("typography-clarification-return", dto);
+        return dto;
+    }
+
+    private StyleChatResponseDTO buildPendingPickerResponse(
+            StyleContext context,
+            String assistantMessage,
+            List<String> suggestions
+    ) {
+        StyleChatResponseDTO dto = new StyleChatResponseDTO();
+        dto.setAssistantMessage(
+                assistantMessage == null || assistantMessage.isBlank()
+                        ? "I can help with that. Review the options below and confirm your choice when you are ready."
+                        : assistantMessage
+        );
+        dto.setQuestionNumber(context.getCurrentQuestionNumber());
+        dto.setTotalQuestions(TOTAL_QUESTIONS);
+        dto.setComplete(false);
+        dto.setSuggestions(suggestions);
+        dto.setStylePreferences(buildProgressStylePreferences(context));
+        return dto;
+    }
+
+    private void ensureTypographyRecommendations(StyleContext context) {
+        if (context.getRecommendedHeadingFont() != null
+                && !context.getRecommendedHeadingFont().isBlank()
+                && context.getRecommendedBodyFont() != null
+                && !context.getRecommendedBodyFont().isBlank()) {
+            return;
+        }
+
+        StyleChatResponseParser.FontRecommendation recommendation = recommendFonts(context.getDesignGoal());
+        context.setRecommendedHeadingFont(
+                recommendation != null ? recommendation.headingFont() : DEFAULT_HEADING_FONT
+        );
+        context.setRecommendedBodyFont(
+                recommendation != null ? recommendation.bodyFont() : DEFAULT_BODY_FONT
+        );
+    }
+
     private StyleChatResponseDTO handleLayoutSelection(StyleChatRequestDTO req, StyleContext context) {
         // Store layout selection
         context.setLayoutSelection(req.getLayoutSelection());
@@ -251,12 +369,12 @@ public class StyleChatServiceImpl implements StyleChatService {
         // Advance to Q4 — now start the free-form AI conversation
         context.setCurrentQuestionNumber(4);
         context.setLastUserMessage(req.getLayoutSelection());
-        contextStore.put(req.getPortfolioId(), context);
+        contextStore.save(req.getPortfolioId(), context);
 
         // Call AI for first free-form question (about remaining topics: tone, animations, etc.)
         String layoutMessage = "I selected the " + req.getLayoutSelection() + " layout.";
         Prompt prompt = styleChatPromptBuilder.buildPrompt(layoutMessage, context);
-        ChatResponse response = geminiChatModel.call(prompt);
+        ChatResponse response = chatModel.call(prompt);
         StyleChatResponseParser.StyleChatParseResult parseResult = styleChatResponseParser.parse(
                 response.getResult().getOutput().getText()
         );
@@ -264,7 +382,7 @@ public class StyleChatServiceImpl implements StyleChatService {
 
         // Update context with AI's question
         context.setCurrentQuestion(parsed.getAssistantMessage());
-        contextStore.put(req.getPortfolioId(), context);
+        contextStore.save(req.getPortfolioId(), context);
 
         // Build response
         parsed.setQuestionNumber(4);
@@ -285,7 +403,7 @@ public class StyleChatServiceImpl implements StyleChatService {
 
         // Build prompt and call AI
         Prompt prompt = styleChatPromptBuilder.buildPrompt(req.getUserMessage(), context);
-        ChatResponse response = geminiChatModel.call(prompt);
+        ChatResponse response = chatModel.call(prompt);
         StyleChatResponseParser.StyleChatParseResult parseResult = styleChatResponseParser.parse(
                 response.getResult().getOutput().getText()
         );
@@ -319,7 +437,7 @@ public class StyleChatServiceImpl implements StyleChatService {
                         parsed.getAssistantMessage()
                 );
             } else {
-                contextStore.put(req.getPortfolioId(), context);
+                contextStore.save(req.getPortfolioId(), context);
 
                 // Do NOT advance - return redirect message at same question number
                 parsed.setQuestionNumber(context.getCurrentQuestionNumber());
@@ -345,9 +463,13 @@ public class StyleChatServiceImpl implements StyleChatService {
                 : req.getUserMessage());
         context.getConversationHistory().add(qa);
 
-        // Check if Q10 just answered (completion)
-        if (context.getCurrentQuestionNumber() >= TOTAL_QUESTIONS) {
-            return handleCompletion(context, parsed, parseResult.compiledPreferences());
+        // Complete when Q10 was just answered, or earlier when the model
+        // signals it has everything by returning compiled preferences. The
+        // counter stays as the upper bound; compiled preferences are the
+        // model's explicit early-completion signal (see StyleChatPromptBuilder).
+        boolean modelSignaledCompletion = parseResult.compiledPreferences() != null;
+        if (context.getCurrentQuestionNumber() >= TOTAL_QUESTIONS || modelSignaledCompletion) {
+            return handleCompletion(req.getPortfolioId(), context, parsed, parseResult.compiledPreferences());
         }
 
         // Advance to next question server-side
@@ -355,7 +477,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         context.setCurrentQuestionNumber(nextQuestion);
         context.setCurrentQuestion(parsed.getAssistantMessage());
 
-        contextStore.put(req.getPortfolioId(), context);
+        contextStore.save(req.getPortfolioId(), context);
 
         parsed.setQuestionNumber(nextQuestion);
         parsed.setTotalQuestions(TOTAL_QUESTIONS);
@@ -369,6 +491,7 @@ public class StyleChatServiceImpl implements StyleChatService {
     }
 
     private StyleChatResponseDTO handleCompletion(
+            UUID portfolioId,
             StyleContext context,
             StyleChatResponseDTO parsed,
             CompiledStylePreferences parsedCompiledPreferences
@@ -399,9 +522,10 @@ public class StyleChatServiceImpl implements StyleChatService {
         }
 
         context.setCompiledStylePreferences(compiled);
+        contextStore.save(portfolioId, context);
 
         // Convert compiled preferences to Map<String, String>
-        Map<String, String> stylePrefsMap = compiledToMap(compiled);
+        Map<String, String> stylePrefsMap = compiledToMap(compiled, context);
 
         parsed.setQuestionNumber(TOTAL_QUESTIONS);
         parsed.setTotalQuestions(TOTAL_QUESTIONS);
@@ -417,13 +541,60 @@ public class StyleChatServiceImpl implements StyleChatService {
         return parsed;
     }
 
+    /**
+     * Revision turn after style discovery completed. When the model applies a
+     * change it returns the full preferences object; non-blank fields are
+     * merged into the context so a partial echo can never erase existing data.
+     * The response is complete only when preferences actually changed, so the
+     * frontend re-renders the summary card exactly on applied revisions and
+     * keeps plain back-and-forth as regular chat messages.
+     */
+    private StyleChatResponseDTO handleRevision(StyleChatRequestDTO req, StyleContext context) {
+        context.setLastUserMessage(req.getUserMessage());
+
+        Prompt prompt = styleChatPromptBuilder.buildRevisionPrompt(req.getUserMessage(), context);
+        ChatResponse response = chatModel.call(prompt);
+        StyleChatResponseParser.StyleRevisionParseResult parsed = styleChatResponseParser.parseRevision(
+                response.getResult().getOutput().getText()
+        );
+
+        boolean preferencesUpdated = parsed.updatedPreferences() != null;
+        List<String> updatedFields = List.of();
+        if (preferencesUpdated) {
+            CompiledStylePreferences base = context.getCompiledStylePreferences() != null
+                    ? context.getCompiledStylePreferences()
+                    : new CompiledStylePreferences();
+            CompiledStylePreferences.MergeResult result =
+                    CompiledStylePreferences.mergeNonBlank(base, parsed.updatedPreferences());
+            context.setCompiledStylePreferences(result.merged());
+            updatedFields = result.changedFields();
+        }
+        contextStore.save(req.getPortfolioId(), context);
+
+        StyleChatResponseDTO dto = new StyleChatResponseDTO();
+        dto.setAssistantMessage(parsed.assistantMessage());
+        dto.setQuestionNumber(TOTAL_QUESTIONS);
+        dto.setTotalQuestions(TOTAL_QUESTIONS);
+        dto.setComplete(preferencesUpdated);
+        dto.setSuggestions(parsed.suggestions());
+        if (preferencesUpdated) {
+            dto.setStylePreferences(compiledToMap(context.getCompiledStylePreferences(), context));
+            dto.setUpdatedStyleFields(updatedFields);
+        }
+
+        debugContext(preferencesUpdated ? "REVISION APPLIED" : "REVISION DISCUSSION", context);
+        logResponseDto("revision-return", dto);
+
+        return dto;
+    }
+
     private StyleChatResponseDTO buildCompleteResponse(StyleContext context) {
         StyleChatResponseDTO dto = new StyleChatResponseDTO();
         dto.setAssistantMessage("Your style profile is already complete!");
         dto.setQuestionNumber(TOTAL_QUESTIONS);
         dto.setTotalQuestions(TOTAL_QUESTIONS);
         dto.setComplete(true);
-        dto.setStylePreferences(compiledToMap(context.getCompiledStylePreferences()));
+        dto.setStylePreferences(compiledToMap(context.getCompiledStylePreferences(), context));
         logResponseDto("already-complete-return", dto);
         return dto;
     }
@@ -436,12 +607,15 @@ public class StyleChatServiceImpl implements StyleChatService {
         context.setCurrentQuestion(null);
         context.setDesignGoal(null);
         context.setColorSelections(null);
+        context.setRecommendedColorPresets(null);
         context.setConversationHistory(new ArrayList<>());
         context.setCompiledStylePreferences(null);
         context.setLastUserMessage(null);
         context.setInvalidAttemptsForCurrentQuestion(0);
         context.setFontSelections(null);
         context.setTypographyPickerShown(false);
+        context.setRecommendedHeadingFont(null);
+        context.setRecommendedBodyFont(null);
         context.setLayoutSelection(null);
         return context;
     }
@@ -449,7 +623,7 @@ public class StyleChatServiceImpl implements StyleChatService {
     private StyleChatResponseParser.FontRecommendation recommendFonts(String designGoal) {
         try {
             Prompt prompt = styleChatPromptBuilder.buildFontRecommendationPrompt(designGoal);
-            ChatResponse response = geminiChatModel.call(prompt);
+            ChatResponse response = chatModel.call(prompt);
             String rawJson = response.getResult().getOutput().getText();
             StyleChatResponseParser.FontRecommendation rec = styleChatResponseParser.parseFontRecommendation(rawJson);
             if (rec != null) return rec;
@@ -473,6 +647,19 @@ public class StyleChatServiceImpl implements StyleChatService {
                 .orElse("none");
     }
 
+    private Map<String, String> normalizeFontSelections(Map<String, String> fonts) {
+        if (fonts == null || fonts.isEmpty()) return null;
+
+        String heading = safe(fonts.get("heading")).trim();
+        String body = safe(fonts.get("body")).trim();
+        if (heading.isBlank() || body.isBlank()) return null;
+
+        LinkedHashMap<String, String> normalized = new LinkedHashMap<>();
+        normalized.put("heading", heading);
+        normalized.put("body", body);
+        return normalized;
+    }
+
     private String formatColorSelections(Map<String, String> colors) {
         if (colors == null || colors.isEmpty()) return "none";
         return colors.entrySet().stream()
@@ -491,7 +678,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         map.put("typography", context.getFontSelections() == null ? "" : formatFontSelections(context.getFontSelections()));
         map.put("animationStyle", "");
         map.put("whitespace", "");
-        map.put("imageryStyle", "");
+        map.put("visualRichness", "");
         map.put("interactiveElements", "");
         map.put("customNotes", buildProgressNotes(context));
         return map;
@@ -516,7 +703,7 @@ public class StyleChatServiceImpl implements StyleChatService {
         return notes.toString();
     }
 
-    private Map<String, String> compiledToMap(CompiledStylePreferences prefs) {
+    private Map<String, String> compiledToMap(CompiledStylePreferences prefs, StyleContext context) {
         if (prefs == null) return new HashMap<>();
         Map<String, String> map = new LinkedHashMap<>();
         map.put("colorScheme", safe(prefs.getColorScheme()));
@@ -527,10 +714,27 @@ public class StyleChatServiceImpl implements StyleChatService {
         map.put("typography", safe(prefs.getTypography()));
         map.put("animationStyle", safe(prefs.getAnimationStyle()));
         map.put("whitespace", safe(prefs.getWhitespace()));
-        map.put("imageryStyle", safe(prefs.getImageryStyle()));
+        map.put("visualRichness", safe(prefs.getVisualRichness()));
         map.put("interactiveElements", safe(prefs.getInteractiveElements()));
-        map.put("customNotes", safe(prefs.getCustomNotes()));
+        map.put("customNotes", withPrimaryGoal(safe(prefs.getCustomNotes()), context));
         return map;
+    }
+
+    /*
+     * Guarantees the user's first message (their design goal) reaches portfolio
+     * generation verbatim. The compile model summarizes the conversation and may
+     * drop or paraphrase the goal, so it is prepended to customNotes here
+     * deterministically. Idempotent: skipped when the notes already contain it.
+     */
+    private String withPrimaryGoal(String customNotes, StyleContext context) {
+        String goal = context == null ? null : context.getDesignGoal();
+        if (goal == null || goal.isBlank()) return customNotes;
+
+        String trimmedGoal = goal.trim();
+        if (customNotes.contains(trimmedGoal)) return customNotes;
+
+        String prefix = "Primary style goal: " + trimmedGoal;
+        return customNotes.isBlank() ? prefix : prefix + " | " + customNotes;
     }
 
     private String safe(String value) {
@@ -540,7 +744,7 @@ public class StyleChatServiceImpl implements StyleChatService {
     private List<StyleColorPresetDTO> recommendColorPresets(String designGoal) {
         try {
             Prompt prompt = styleChatPromptBuilder.buildColorRecommendationPrompt(designGoal);
-            ChatResponse response = geminiChatModel.call(prompt);
+            ChatResponse response = chatModel.call(prompt);
             String rawJson = response.getResult().getOutput().getText();
             List<StyleColorPresetDTO> parsed = styleChatResponseParser.parseRecommendedColorPresets(rawJson);
             List<StyleColorPresetDTO> normalized = normalizeColorPresets(parsed);
@@ -722,7 +926,7 @@ public class StyleChatServiceImpl implements StyleChatService {
               .append(": ").append(qa.getAnswer()).append("\n");
         }
         if (context.getCompiledStylePreferences() != null) {
-            sb.append("║  Compiled Preferences: ").append(compiledToMap(context.getCompiledStylePreferences())).append("\n");
+            sb.append("║  Compiled Preferences: ").append(compiledToMap(context.getCompiledStylePreferences(), context)).append("\n");
         }
         sb.append("╚══════════════════════════════════════════════════════════╝");
         log.info(sb.toString());

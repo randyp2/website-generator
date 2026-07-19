@@ -8,11 +8,16 @@ import java.time.OffsetDateTime;
 @Data
 @Builder
 public class ProfileBillingDTO {
+    private Boolean creditEnforcementEnabled;
     private String activePriceKey;
     private String activePlanKey;
+    private String activePromotionKey;
     private String status;
     private OffsetDateTime currentPeriodEnd;
     private OffsetDateTime cancelAt;
     private Boolean cancelAtPeriodEnd;
     private Integer creditBalance;
+    private Integer portfolioGenerationAllowanceRemaining;
+    private Integer portfolioRefinementAllowanceRemaining;
+    private Integer assetVerificationAllowanceRemaining;
 }

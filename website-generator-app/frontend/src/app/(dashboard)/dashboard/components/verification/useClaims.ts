@@ -1,8 +1,9 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback } from "react"
 
 import type { ClaimDTO } from "@/types/claim"
+import { useVerificationClaimsQuery } from "./verification.query"
 
 interface UseClaimsReturn {
   claims: ClaimDTO[]
@@ -11,39 +12,27 @@ interface UseClaimsReturn {
   refetch: () => void
 }
 
+const getErrorMessage = (error: unknown, fallback: string): string =>
+  error instanceof Error ? error.message : fallback
+
 const useClaims = (): UseClaimsReturn => {
-  const [claims, setClaims] = useState<ClaimDTO[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const {
+    data,
+    error,
+    isError,
+    isFetching,
+    refetch: refetchClaims,
+  } = useVerificationClaimsQuery()
+  const refetch = useCallback(() => {
+    void refetchClaims()
+  }, [refetchClaims])
 
-  const fetchClaims = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      const res = await fetch("/api/profile/resume-verification/claims")
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch claims")
-      }
-
-      const data: ClaimDTO[] = await res.json()
-      setClaims(data)
-    } catch (err) {
-      console.error("Error fetching claims:", err)
-      setError(
-        err instanceof Error ? err.message : "Failed to fetch claims",
-      )
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchClaims()
-  }, [fetchClaims])
-
-  return { claims, isLoading, error, refetch: fetchClaims }
+  return {
+    claims: data ?? [],
+    isLoading: isFetching,
+    error: isError ? getErrorMessage(error, "Failed to fetch claims") : null,
+    refetch,
+  }
 }
 
 export default useClaims

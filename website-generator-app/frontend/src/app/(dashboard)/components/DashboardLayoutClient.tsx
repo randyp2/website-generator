@@ -8,6 +8,8 @@ import { SidebarProvider, useSidebar } from "@/context/SidebarContext";
 import { usePathname } from "next/navigation";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import HeaderCreditsChip from "./HeaderCreditsChip";
+import LaunchWelcomeModal from "./LaunchWelcomeModal";
+import { NotificationsMenu } from "@/components/notifications/NotificationsMenu";
 
 interface DashboardLayoutClientProps {
   children: React.ReactNode;
@@ -61,6 +63,7 @@ const DashboardLayoutClientInner: React.FC<DashboardLayoutClientProps> = ({
   const { collapsed, setCollapsed } = useSidebar();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const isViewportLockedPage = pathname.includes("/dashboard/create/refine");
 
   const handleToggleCollapse = () => {
     setCollapsed(!collapsed);
@@ -70,6 +73,8 @@ const DashboardLayoutClientInner: React.FC<DashboardLayoutClientProps> = ({
 
   return (
     <>
+      <LaunchWelcomeModal />
+
       {/* Sidebar Navigation */}
       <SidebarNavigation
         collapsed={collapsed}
@@ -79,7 +84,7 @@ const DashboardLayoutClientInner: React.FC<DashboardLayoutClientProps> = ({
 
       {/* Main Content Area - adjusts margin based on sidebar state */}
       <main
-        className={`${collapsed ? "md:ml-[72px]" : "md:ml-[248px]"} h-full overflow-hidden bg-sidebar py-2 md:py-3 transition-[margin] duration-300 ease-in-out`}
+        className={`${collapsed ? "md:ml-[72px]" : "md:ml-[248px]"} h-full overflow-hidden bg-sidebar pt-2 md:pt-3 transition-[margin] duration-300 ease-in-out`}
       >
         <div className="flex h-full flex-col overflow-hidden rounded-2xl bg-background">
           <header className="z-30 border-b border-border bg-background">
@@ -140,10 +145,19 @@ const DashboardLayoutClientInner: React.FC<DashboardLayoutClientProps> = ({
                 </nav>
               </div>
 
-              <HeaderCreditsChip />
+              <div className="ml-3 flex shrink-0 items-center gap-2">
+                <NotificationsMenu />
+                <HeaderCreditsChip />
+              </div>
             </div>
           </header>
-          <div className="flex-1 overflow-y-auto overscroll-none py-1 md:py-1.5">
+          <div
+            className={
+              isViewportLockedPage
+                ? "min-h-0 flex-1 overflow-hidden"
+                : "flex-1 overflow-y-auto overscroll-none pt-1 md:pt-1.5"
+            }
+          >
             <DashboardMotionWrapper>{children}</DashboardMotionWrapper>
           </div>
         </div>

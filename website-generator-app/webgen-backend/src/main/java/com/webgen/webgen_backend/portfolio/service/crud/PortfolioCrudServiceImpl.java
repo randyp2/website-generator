@@ -1,11 +1,11 @@
 package com.webgen.webgen_backend.portfolio.service.crud;
 
+import com.webgen.webgen_backend.account.service.AccountDeletionStateService;
 import com.webgen.webgen_backend.shared.config.RabbitMQConfig;
 import com.webgen.webgen_backend.portfolio.dto.common.AssetDTO;
 import com.webgen.webgen_backend.portfolio.dto.common.ResumeDTO;
 import com.webgen.webgen_backend.portfolio.dto.common.SectionDTO;
 import com.webgen.webgen_backend.portfolio.dto.crud.*;
-import com.webgen.webgen_backend.portfolio.entity.Asset;
 import com.webgen.webgen_backend.portfolio.entity.GeneratedVersion;
 import com.webgen.webgen_backend.portfolio.entity.Portfolio;
 import com.webgen.webgen_backend.portfolio.entity.PortfolioSection;
@@ -15,6 +15,9 @@ import com.webgen.webgen_backend.portfolio.mapper.PortfolioMapper;
 import com.webgen.webgen_backend.resume.mapper.ResumeMapper;
 import com.webgen.webgen_backend.portfolio.service.crud.PortfolioCrudService;
 import com.webgen.webgen_backend.portfolio.service.job.ScreenshotMessage;
+import com.webgen.webgen_backend.portfolio.service.verification.SiteOwnershipPublishGuard;
+import com.webgen.webgen_backend.portfolio.service.verification.VerifiedSiteOwnership;
+import com.webgen.webgen_backend.portfolio.service.version.VersionSnapshotReader;
 import com.webgen.webgen_backend.portfolio.repository.AssetRepository;
 import com.webgen.webgen_backend.portfolio.repository.GeneratedVersionRepository;
 import com.webgen.webgen_backend.portfolio.repository.PortfolioRepository;
@@ -23,17 +26,24 @@ import com.webgen.webgen_backend.profile.repository.ProfileRepository;
 import com.webgen.webgen_backend.resume.repository.ResumeRepository;
 import com.webgen.webgen_backend.shared.util.ExternalUrlSafetyValidator;
 import com.webgen.webgen_backend.shared.util.SlugUtil;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -52,6 +62,10 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
     private final AssetMapper assetMapper;
 
     private final RabbitTemplate rabbitTemplate;
+    private final ObjectMapper objectMapper;
+    private final VersionSnapshotReader versionSnapshotReader;
+    private final SiteOwnershipPublishGuard siteOwnershipPublishGuard;
+    private final AccountDeletionStateService accountDeletionStateService;
 
     private static final int MAX_PORTFOLIO_DESCRIPTION_LENGTH = 1000;
 
@@ -92,6 +106,7 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
 
     @Override
     public PortfolioDTO createDraft(UUID userId, CreatePortfolioRequestDTO request) {
+        accountDeletionStateService.assertAccountActive(userId);
         Portfolio portfolio = new Portfolio();
         portfolio.setId(UUID.randomUUID());
         portfolio.setUserId(userId);
@@ -100,6 +115,7 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         portfolio.setStatus("draft");
         portfolio.setLastStep("style");
         portfolio.setStyleChatHistory(new ArrayList<>());
+        portfolio.setRefineChatHistory(new ArrayList<>());
         portfolio.setSourceType(PublishRequestDTO.SourceType.GENERATED.name());
 
         Portfolio saved = portfolioRepository.save(portfolio);
@@ -122,6 +138,8 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
             portfolio.setTemplateId(request.getTemplateId());
         if (request.getStyleChatHistory() != null)
             portfolio.setStyleChatHistory(request.getStyleChatHistory());
+        if (request.getRefineChatHistory() != null)
+            portfolio.setRefineChatHistory(request.getRefineChatHistory());
         if (request.getDescription() != null)
             portfolio.setDescription(normalizeDescription(request.getDescription()));
 
@@ -138,60 +156,6 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
 
         portfolioRepository.deleteById(portfolioId);
-    }
-
-    @Override
-    public UploadPortfolioResponseDTO saveUploads(UUID userId, UUID portfolioId, UploadPortfolioRequestDTO req) {
-        // Ownership check
-        Portfolio portfolio = portfolioRepository.findById(portfolioId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio not found"));
-        if (!portfolio.getUserId().equals(userId))
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
-
-        // Upsert resume (safe for re-uploads)
-        Resume resume = resumeRepository.findByPortfolioId(portfolioId).orElse(new Resume());
-        if (resume.getId() == null) {
-            resume.setId(UUID.randomUUID());
-            resume.setPortfolio(portfolio);
-            resume.setCreatedAt(OffsetDateTime.now());
-        }
-        resume.setRawFileBucket(req.getResumeRawFileBucket());
-        resume.setRawFilePath(req.getResumeRawFilePath());
-        resumeRepository.save(resume);
-
-        // Insert assets
-        OffsetDateTime now = OffsetDateTime.now();
-        List<Asset> savedAssets = new ArrayList<>();
-        if (req.getAssets() != null) {
-            for (AssetDTO assetDto : req.getAssets()) {
-                Asset asset = new Asset();
-                asset.setId(UUID.randomUUID());
-                asset.setPortfolio(portfolio);
-                asset.setFileUrl(assetDto.getUrl());
-                asset.setFileType(assetDto.getType());
-                asset.setTitle(assetDto.getTitle());
-                asset.setDescription(assetDto.getDescription());
-                asset.setLabel(assetDto.getLabel());
-                asset.setSectionHint(assetDto.getSectionHint());
-                asset.setAlt(assetDto.getAlt());
-                asset.setCreatedAt(now);
-                savedAssets.add(assetRepository.save(asset));
-            }
-        }
-
-        // Update optional portfolio fields
-        if (req.getTemplateId() != null)
-            portfolio.setTemplateId(req.getTemplateId());
-        if (req.getLastStep() != null)
-            portfolio.setLastStep(req.getLastStep());
-        Portfolio saved = portfolioRepository.save(portfolio);
-
-        // Build response
-        UploadPortfolioResponseDTO response = new UploadPortfolioResponseDTO();
-        response.setPortfolio(portfolioMapper.toDto(saved));
-        response.setResume(resumeMapper.toDto(resume));
-        response.setAssetsUploaded(savedAssets.size());
-        return response;
     }
 
     @Override
@@ -266,9 +230,13 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         response.setPortfolioId(portfolio.getId().toString());
         response.setTemplateId(portfolio.getTemplateId());
         response.setTitle(portfolio.getTitle());
+        response.setStatus(portfolio.getStatus());
+        response.setActiveVersionId(portfolio.getActiveVersionId());
+        response.setPublishedVersionId(portfolio.getPublishedVersionId());
         response.setSections(sections);
         response.setGlobalTheme(globalTheme);
         response.setAssistantMessage(assistantMessage);
+        response.setRefineChatHistory(portfolio.getRefineChatHistory());
         return response;
     }
 
@@ -291,6 +259,7 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
                     dto.setPromptUsed(v.getPromptUsed());
                     dto.setPreviewUrl(v.getPreviewUrl());
                     dto.setActive(v.getId().equals(portfolio.getActiveVersionId()));
+                    dto.setPublished(v.getId().equals(portfolio.getPublishedVersionId()));
                     return dto;
                 })
                 .toList();
@@ -310,6 +279,7 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
     }
 
     @Override
+    @Transactional
     public ActivateVersionResponseDTO activateVersion(UUID userId, UUID portfolioId, UUID versionId) {
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio not found"));
@@ -317,8 +287,18 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         if (!portfolio.getUserId().equals(userId))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
 
-        generatedVersionRepository.findByIdAndPortfolio_Id(versionId, portfolioId)
+        GeneratedVersion version = generatedVersionRepository.findByIdAndPortfolio_Id(versionId, portfolioId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Version not found"));
+
+        // Activation is a real restore: live sections must always equal the
+        // active version, or the editor and refine pipeline would keep working
+        // on code the user believes they rolled away from
+        List<SectionDTO> snapshotSections = versionSnapshotReader.readSections(version);
+        if (snapshotSections.isEmpty())
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "This version has no restorable snapshot");
+
+        restoreSectionsFromSnapshot(portfolio, snapshotSections);
 
         portfolio.setActiveVersionId(versionId);
         portfolio.setUpdatedAt(OffsetDateTime.now());
@@ -328,7 +308,75 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
     }
 
     @Override
+    public ActivateVersionResponseDTO publishActiveVersion(UUID userId, UUID portfolioId) {
+        accountDeletionStateService.assertAccountActive(userId);
+        Portfolio portfolio = portfolioRepository.findById(portfolioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio not found"));
+
+        if (!portfolio.getUserId().equals(userId))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+
+        if (!"publish".equals(portfolio.getStatus()))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Portfolio is not published; use the publish flow first");
+
+        UUID activeVersionId = portfolio.getActiveVersionId();
+        if (activeVersionId == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Portfolio has no version to publish");
+
+        portfolio.setPublishedVersionId(activeVersionId);
+        portfolio.setUpdatedAt(OffsetDateTime.now()); // last publish date
+        portfolioRepository.save(portfolio);
+
+        // Live content changed: refresh the explore-card screenshot
+        queueScreenshotJob(portfolio.getId(), portfolio.getSlug(), null, portfolio.getPublishedVersionId());
+
+        return new ActivateVersionResponseDTO(portfolioId, activeVersionId);
+    }
+
+    /*
+     * Replaces the live portfolio_sections rows with the snapshot contents:
+     * sections absent from the snapshot are deleted, present ones are upserted
+     * by sectionKey. Mirrors the upsert in the refine persistence barrier.
+     */
+    private void restoreSectionsFromSnapshot(Portfolio portfolio, List<SectionDTO> snapshotSections) {
+        OffsetDateTime now = OffsetDateTime.now();
+
+        List<PortfolioSection> existingSections =
+                portfolioSectionRepository.findAllByPortfolioIdOrderByOrderIndexAsc(portfolio.getId());
+        Map<String, PortfolioSection> existingByKey = existingSections.stream()
+                .collect(Collectors.toMap(PortfolioSection::getSectionKey, s -> s));
+        Set<String> snapshotKeys = snapshotSections.stream()
+                .map(SectionDTO::getSectionKey)
+                .collect(Collectors.toSet());
+
+        for (PortfolioSection existing : existingSections) {
+            if (!snapshotKeys.contains(existing.getSectionKey()))
+                portfolioSectionRepository.delete(existing);
+        }
+
+        for (SectionDTO dto : snapshotSections) {
+            PortfolioSection section = existingByKey.get(dto.getSectionKey());
+            if (section == null) {
+                section = new PortfolioSection();
+                section.setId(UUID.randomUUID());
+                section.setPortfolio(portfolio);
+                section.setSectionKey(dto.getSectionKey());
+                section.setCreatedAt(now);
+                section.setSource("ai");
+            }
+            section.setTitle(dto.getTitle());
+            section.setContentJson(dto.getContentJson());
+            section.setReactSource(dto.getReactSource());
+            section.setOrderIndex(dto.getOrderIndex() != null ? dto.getOrderIndex() : 0);
+            section.setUpdatedAt(now);
+            portfolioSectionRepository.save(section);
+        }
+    }
+
+    @Override
     public PublishResponseDTO publishPortfolio(UUID userId, PublishRequestDTO request) {
+        accountDeletionStateService.assertAccountActive(userId);
         request = Objects.requireNonNull(request, "request must not be null");
 
         // Default to GENERATED if empty request
@@ -387,10 +435,13 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         portfolio.setExternalUrl(null);
         portfolio.setStatus("publish");
         portfolio.setLastStep("publish");
+        // Pin what visitors see to the version being published; later
+        // refinements stay private until publishActiveVersion re-pins
+        portfolio.setPublishedVersionId(portfolio.getActiveVersionId());
         portfolio.setUpdatedAt(OffsetDateTime.now()); // last publish date
         portfolioRepository.save(portfolio);
 
-        queueScreenshotJob(portfolio.getId(), slug, null);
+        queueScreenshotJob(portfolio.getId(), slug, null, portfolio.getPublishedVersionId());
         return buildPublishResponse(portfolio, PublishRequestDTO.SourceType.GENERATED);
     }
 
@@ -409,6 +460,11 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         }
+        VerifiedSiteOwnership siteOwnership = siteOwnershipPublishGuard.requireVerified(
+                userId,
+                request.getSiteVerificationId(),
+                normalizedExternalUrl
+        );
 
         String requestedTitle = request.getTitle() != null ? request.getTitle().trim() : "";
         String title = requestedTitle.isBlank() ? "External Portfolio" : requestedTitle;
@@ -425,9 +481,12 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         portfolio.setSlug(slug);
         portfolio.setLastStep("publish");
         portfolio.setStyleChatHistory(new ArrayList<>());
+        portfolio.setRefineChatHistory(new ArrayList<>());
         portfolio.setDescription(normalizeDescription(request.getDescription()));
         portfolio.setSourceType(PublishRequestDTO.SourceType.EXTERNAL.name());
         portfolio.setExternalUrl(normalizedExternalUrl);
+        portfolio.setSiteVerificationId(siteOwnership.verificationId());
+        portfolio.setScreenshotUrl(siteOwnership.previewUrl());
 
         OffsetDateTime now = OffsetDateTime.now();
         portfolio.setCreatedAt(now);
@@ -436,9 +495,12 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         // Save external portfolio as a new row
         Portfolio saved = portfolioRepository.save(portfolio);
 
-        // Queue screenshot message
-        // - For external publish we use targetUrl to capture remote website
-        queueScreenshotJob(saved.getId(), saved.getSlug(), saved.getExternalUrl());
+        // A completed pre-publication capture is reused immediately. Publishing
+        // remains non-blocking when it is absent, with the existing portfolio
+        // capture acting as the fallback.
+        if (saved.getScreenshotUrl() == null || saved.getScreenshotUrl().isBlank()) {
+            queueScreenshotJob(saved.getId(), saved.getSlug(), saved.getExternalUrl(), null);
+        }
 
         return buildPublishResponse(saved, PublishRequestDTO.SourceType.EXTERNAL);
     }
@@ -491,12 +553,12 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
      * @param slug publish slug associated with screenshot
      * @param targetUrl external url for capture, null when using internal slug route
      */
-    private void queueScreenshotJob(UUID portfolioId, String slug, String targetUrl) {
-        ScreenshotMessage screenshotMsg = new ScreenshotMessage(
-                UUID.randomUUID().toString(),
+    private void queueScreenshotJob(UUID portfolioId, String slug, String targetUrl, UUID publishedVersionId) {
+        ScreenshotMessage screenshotMsg = ScreenshotMessage.forPortfolio(
                 portfolioId.toString(),
                 slug,
-                targetUrl
+                targetUrl,
+                publishedVersionId != null ? publishedVersionId.toString() : null
         );
 
         rabbitTemplate.convertAndSend(

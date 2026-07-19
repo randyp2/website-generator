@@ -3,9 +3,11 @@ package com.webgen.webgen_backend.resume.controller;
 
 import com.webgen.webgen_backend.resume.dto.ParsedResumeDTO;
 import com.webgen.webgen_backend.resume.service.ResumeParserService;
+import com.webgen.webgen_backend.shared.ratelimit.RateLimiterService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -15,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class ResumeController {
 
     private final ResumeParserService resumeParserService;
+    private final RateLimiterService rateLimiterService;
 
     // Parses a resume PDF and return structured data
     // Pass ?llmFallback=false to skip the LLM fallback (regex-only, zero token cost)
@@ -27,6 +30,8 @@ public class ResumeController {
             @RequestPart("file") MultipartFile file,
             @RequestParam(value = "llmFallback", required = false) Boolean llmFallback
     ) {
+        String userId = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        rateLimiterService.check("resume-parse", userId);
         ParsedResumeDTO parsedResumeDto = resumeParserService.parseResume(file, llmFallback);
         return ResponseEntity.ok(parsedResumeDto);
     }

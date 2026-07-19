@@ -11,6 +11,8 @@ export type VerificationSubTab =
     | "evidence";
 
 const QUERY_KEY = "verificationTab";
+/** Optional param carrying an evidence id to auto-open on the evidence tab. */
+const EVIDENCE_QUERY_KEY = "evidence";
 const DEFAULT_TAB: VerificationSubTab = "resume-review";
 
 const isVerificationSubTab = (
@@ -47,7 +49,38 @@ const useVerificationSubTab = () => {
         [pathname, router, searchParams],
     );
 
-    return { activeTab, setActiveTab, hasExplicitTab } as const;
+    const targetEvidenceId = searchParams.get(EVIDENCE_QUERY_KEY);
+
+    /** Switches to the evidence tab and flags an evidence item to auto-open. */
+    const openEvidenceDetail = useCallback(
+        (evidenceId: string) => {
+            const params = new URLSearchParams(searchParams.toString());
+            params.set(QUERY_KEY, "evidence");
+            params.set(EVIDENCE_QUERY_KEY, evidenceId);
+            router.replace(`${pathname}?${params.toString()}`, {
+                scroll: false,
+            });
+        },
+        [pathname, router, searchParams],
+    );
+
+    /** Clears the auto-open flag once the evidence tab has consumed it. */
+    const clearTargetEvidence = useCallback(() => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete(EVIDENCE_QUERY_KEY);
+        router.replace(`${pathname}?${params.toString()}`, {
+            scroll: false,
+        });
+    }, [pathname, router, searchParams]);
+
+    return {
+        activeTab,
+        setActiveTab,
+        hasExplicitTab,
+        targetEvidenceId,
+        openEvidenceDetail,
+        clearTargetEvidence,
+    } as const;
 };
 
 export default useVerificationSubTab;

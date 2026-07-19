@@ -1,12 +1,19 @@
 package com.webgen.webgen_backend.portfolio.controller;
 
+import com.webgen.webgen_backend.billing.service.CreditGuardService;
+import com.webgen.webgen_backend.portfolio.billing.PortfolioCreditCostPolicy;
 import com.webgen.webgen_backend.portfolio.dto.common.ResumeDTO;
 import com.webgen.webgen_backend.portfolio.dto.crud.*;
+import com.webgen.webgen_backend.portfolio.dto.upload.CreatePortfolioUploadPresignRequestDTO;
+import com.webgen.webgen_backend.portfolio.dto.upload.CreatePortfolioUploadPresignResponseDTO;
 import com.webgen.webgen_backend.portfolio.service.crud.PortfolioCrudService;
+import com.webgen.webgen_backend.portfolio.service.upload.PortfolioUploadService;
+import com.webgen.webgen_backend.resume.dto.ParsedResumeDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import com.webgen.webgen_backend.shared.ratelimit.RateLimiterService;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -18,6 +25,9 @@ import java.util.UUID;
 public class PortfolioCrudController {
 
     private final PortfolioCrudService portfolioCrudService;
+    private final PortfolioUploadService portfolioUploadService;
+    private final RateLimiterService rateLimiterService;
+    private final CreditGuardService creditGuardService;
 
     @GetMapping("/list")
     public ResponseEntity<PortfolioListDTO> listPortfolios() {
@@ -36,6 +46,11 @@ public class PortfolioCrudController {
     public ResponseEntity<PortfolioDTO> createDraft(@RequestBody CreatePortfolioRequestDTO request) {
         UUID userId = UUID.fromString(
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
+        );
+        rateLimiterService.check("portfolio-draft", userId.toString());
+        creditGuardService.assertUsageAvailable(
+                userId,
+                PortfolioCreditCostPolicy.GENERATE_PORTFOLIO_USAGE
         );
         PortfolioDTO response = portfolioCrudService.createDraft(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -79,8 +94,43 @@ public class PortfolioCrudController {
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
         );
 
-        UploadPortfolioResponseDTO uploadPortfolioResponseDTO = portfolioCrudService.saveUploads(userId, id, request);
+        rateLimiterService.check("portfolio-upload-finalize", userId.toString());
+        UploadPortfolioResponseDTO uploadPortfolioResponseDTO = portfolioUploadService.finalizeUploads(
+                userId,
+                id,
+                request
+        );
         return ResponseEntity.ok(uploadPortfolioResponseDTO);
+    }
+
+    /** Issues scoped Supabase tokens after authenticating portfolio ownership. */
+    @PostMapping("/{id}/uploads/presign")
+    public ResponseEntity<CreatePortfolioUploadPresignResponseDTO> presignUploads(
+            @PathVariable UUID id,
+            @RequestBody CreatePortfolioUploadPresignRequestDTO request
+    ) {
+        UUID userId = UUID.fromString(
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
+        );
+        rateLimiterService.check("portfolio-upload-presign", userId.toString());
+        return ResponseEntity.ok(
+                portfolioUploadService.createUploadInstructions(userId, id, request)
+        );
+    }
+
+    /** Parses the finalized private resume by storage reference. */
+    @PostMapping("/{id}/resume/parse-uploaded")
+    public ResponseEntity<ParsedResumeDTO> parseUploadedResume(
+            @PathVariable UUID id,
+            @RequestParam(value = "llmFallback", required = false) Boolean llmFallback
+    ) {
+        UUID userId = UUID.fromString(
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
+        );
+        rateLimiterService.check("resume-parse", userId.toString());
+        return ResponseEntity.ok(
+                portfolioUploadService.parseStoredResume(userId, id, llmFallback)
+        );
     }
 
     @GetMapping("/{id}/resume")
@@ -131,6 +181,15 @@ public class PortfolioCrudController {
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
         );
         ActivateVersionResponseDTO response = portfolioCrudService.activateVersion(userId, id, versionId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/versions/publish-current")
+    public ResponseEntity<ActivateVersionResponseDTO> publishCurrentVersion(@PathVariable UUID id) {
+        UUID userId = UUID.fromString(
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
+        );
+        ActivateVersionResponseDTO response = portfolioCrudService.publishActiveVersion(userId, id);
         return ResponseEntity.ok(response);
     }
 

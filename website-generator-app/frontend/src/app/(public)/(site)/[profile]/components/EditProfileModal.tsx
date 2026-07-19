@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
     BookOpen,
     BriefcaseBusiness,
@@ -27,6 +27,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useUpdateProfileMeMutation } from "@/hooks/useProfileMeQuery";
 import type { PublicProfileDTO } from "@/types/public-profile";
 
 const BIO_MAX_LENGTH = 280;
@@ -108,28 +109,33 @@ const EditProfileModal = ({
     const [websiteUrl, setWebsiteUrl] = useState(profile.websiteUrl ?? "");
     const [linkedinUrl, setLinkedinUrl] = useState(profile.linkedinUrl ?? "");
     const [githubUrl, setGithubUrl] = useState(profile.githubUrl ?? "");
-    const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const updateProfileMutation = useUpdateProfileMeMutation();
+    const isSaving = updateProfileMutation.isPending;
 
-    useEffect(() => {
-        if (open) {
-            setFullName(profile.fullName ?? "");
-            setBio(profile.bio ?? "");
-            setJobTitle(profile.jobTitle ?? "");
-            setCompany(profile.company ?? "");
-            setSchool(profile.school ?? "");
-            setDegree(profile.degree ?? "");
-            setLocation(profile.location ?? "");
-            setWebsiteUrl(profile.websiteUrl ?? "");
-            setLinkedinUrl(profile.linkedinUrl ?? "");
-            setGithubUrl(profile.githubUrl ?? "");
-            setError(null);
+    const resetDraft = () => {
+        setFullName(profile.fullName ?? "");
+        setBio(profile.bio ?? "");
+        setJobTitle(profile.jobTitle ?? "");
+        setCompany(profile.company ?? "");
+        setSchool(profile.school ?? "");
+        setDegree(profile.degree ?? "");
+        setLocation(profile.location ?? "");
+        setWebsiteUrl(profile.websiteUrl ?? "");
+        setLinkedinUrl(profile.linkedinUrl ?? "");
+        setGithubUrl(profile.githubUrl ?? "");
+        setError(null);
+    };
+
+    const handleOpenChange = (nextOpen: boolean) => {
+        if (!nextOpen) {
+            resetDraft();
         }
-    }, [open, profile]);
+        onOpenChange(nextOpen);
+    };
 
     const handleSave = async () => {
         if (isSaving) return;
-        setIsSaving(true);
         setError(null);
 
         const payload = {
@@ -146,17 +152,7 @@ const EditProfileModal = ({
         };
 
         try {
-            const response = await fetch("/api/profile/me", {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            });
-
-            if (!response.ok) {
-                const message = await response.text();
-                throw new Error(message || "Failed to update profile");
-            }
-
+            await updateProfileMutation.mutateAsync(payload);
             onSaved({
                 fullName: toNullable(payload.fullName),
                 bio: toNullable(payload.bio),
@@ -174,15 +170,13 @@ const EditProfileModal = ({
             setError(
                 err instanceof Error ? err.message : "Failed to update profile",
             );
-        } finally {
-            setIsSaving(false);
         }
     };
 
     const initials = getInitials(profile.fullName ?? profile.username);
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>Edit profile</DialogTitle>

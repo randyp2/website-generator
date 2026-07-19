@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.resume_verification_service.impl;
 
+import com.webgen.webgen_backend.account.service.AccountDeletionStateService;
 import com.webgen.webgen_backend.profile.entity.Profile;
 import com.webgen.webgen_backend.profile.repository.ProfileRepository;
 import com.webgen.webgen_backend.verification.dto.ResumeVerificationDTO;
@@ -277,8 +278,19 @@ class ResumeVerificationServiceImplTest {
             ResumeVerificationMapper mapper
     ) {
         return new ResumeVerificationServiceImpl(
-                profileRepository, resumeVerificationRepository, mapper
+                profileRepository,
+                resumeVerificationRepository,
+                mapper,
+                activeAccountStateService()
         );
+    }
+
+    private AccountDeletionStateService activeAccountStateService() {
+        return new AccountDeletionStateService(null, null) {
+            @Override
+            public void assertAccountActive(UUID profileId) {
+            }
+        };
     }
 
     @SuppressWarnings("unchecked")

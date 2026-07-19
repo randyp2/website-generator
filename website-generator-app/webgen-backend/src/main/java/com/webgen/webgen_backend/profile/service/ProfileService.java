@@ -14,9 +14,10 @@ public interface ProfileService {
      * Loads the authenticated user's profile and creates a minimal row when one does not exist.
      *
      * @param profileId authenticated profile id from JWT principal
+     * @param authenticatedEmail verified email claim from the authenticated JWT
      * @return profile payload for "me" surfaces
      */
-    ProfileMeDTO getOrCreateMyProfile(UUID profileId);
+    ProfileMeDTO getOrCreateMyProfile(UUID profileId, String authenticatedEmail);
 
     /**
      * Applies partial profile updates for the authenticated user.

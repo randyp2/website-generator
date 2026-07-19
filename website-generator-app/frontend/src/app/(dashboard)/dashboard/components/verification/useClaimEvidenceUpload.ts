@@ -1,10 +1,14 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+
 import {
     buildClaimEvidenceUploadDescriptorFromFile,
     validateClaimEvidenceUploadDescriptor,
 } from "@/lib/verification/claimEvidenceUploadPolicy";
+import { invalidateProfileMeQuery } from "@/hooks/useProfileMeQuery";
+import { invalidateClaimVerificationQueries } from "./verification.query";
 
 interface PresignResponse {
     uploadId: string;
@@ -17,12 +21,6 @@ interface FinalizeResponse {
     jobId?: string;
 }
 
-interface VerificationJobStatusResponse {
-    jobId: string;
-    status: "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED";
-    error?: string;
-}
-
 export interface UploadResult {
     uploadId: string;
     jobId: string | null;
@@ -31,85 +29,74 @@ export interface UploadResult {
 interface UseClaimEvidenceUploadResult {
     isTransferring: boolean;
     deletingUploadId: string | null;
-    upload: (claimId: string, file: File) => Promise<UploadResult>;
+    isInsufficientCreditsModalOpen: boolean;
+    closeInsufficientCreditsModal: () => void;
+    upload: (claimId: string, file: File) => Promise<UploadResult | null>;
     deleteUpload: (claimId: string, uploadId: string) => Promise<void>;
 }
 
-const readErrorMessage = async (
+interface UploadRequestFailure {
+    code?: string;
+    message: string;
+    status: number;
+}
+
+interface UploadErrorPayload {
+    code?: unknown;
+    error?: unknown;
+    message?: unknown;
+}
+
+const readUploadFailure = async (
     response: Response,
     fallback: string,
-): Promise<string> => {
-    try {
-        const body = (await response.json()) as { error?: unknown };
-        return typeof body.error === "string" ? body.error : fallback;
-    } catch {
-        return fallback;
-    }
+): Promise<UploadRequestFailure> => {
+    const body =
+        ((await response.json().catch(() => null)) as UploadErrorPayload | null) ??
+        null;
+    const error = typeof body?.error === "string" ? body.error.trim() : "";
+    const message = typeof body?.message === "string" ? body.message.trim() : "";
+    const code = typeof body?.code === "string" ? body.code.trim() : "";
+
+    return {
+        status: response.status,
+        code: code || undefined,
+        message: error || message || fallback,
+    };
 };
 
-const VERIFICATION_POLL_INTERVAL_MS = 1500;
-const VERIFICATION_POLL_TIMEOUT_MS = 120_000;
-
-const delay = async (ms: number): Promise<void> =>
-    new Promise((resolve) => {
-        window.setTimeout(resolve, ms);
-    });
+const isInsufficientCreditsFailure = (
+    failure: UploadRequestFailure,
+): boolean =>
+    failure.status === 402 || failure.code === "INSUFFICIENT_CREDITS";
 
 export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
+    const queryClient = useQueryClient();
     const [isTransferring, setIsTransferring] = useState(false);
     const [deletingUploadId, setDeletingUploadId] = useState<string | null>(null);
+    const [isInsufficientCreditsModalOpen, setIsInsufficientCreditsModalOpen] =
+        useState(false);
 
-    const pollVerificationJobStatus = useCallback(
-        async (jobId: string): Promise<void> => {
-            const startedAt = Date.now();
+    const closeInsufficientCreditsModal = useCallback((): void => {
+        setIsInsufficientCreditsModalOpen(false);
+    }, []);
 
-            while (Date.now() - startedAt < VERIFICATION_POLL_TIMEOUT_MS) {
-                const statusRes = await fetch(
-                    `/api/profile/resume-verification/jobs/status/${jobId}`,
-                    {
-                        method: "GET",
-                        cache: "no-store",
-                    },
-                );
-
-                if (statusRes.status === 404) {
-                    await delay(VERIFICATION_POLL_INTERVAL_MS);
-                    continue;
-                }
-
-                if (!statusRes.ok) {
-                    throw new Error(
-                        await readErrorMessage(
-                            statusRes,
-                            "Failed to check verification status",
-                        ),
-                    );
-                }
-
-                const statusPayload =
-                    (await statusRes.json()) as VerificationJobStatusResponse;
-
-                if (statusPayload.status === "COMPLETED") {
-                    return;
-                }
-
-                if (statusPayload.status === "FAILED") {
-                    throw new Error(
-                        statusPayload.error?.trim() || "Asset verification failed",
-                    );
-                }
-
-                await delay(VERIFICATION_POLL_INTERVAL_MS);
+    const handleUploadFailure = useCallback(
+        async (response: Response, fallback: string): Promise<void> => {
+            const failure = await readUploadFailure(response, fallback);
+            if (isInsufficientCreditsFailure(failure)) {
+                setIsInsufficientCreditsModalOpen(true);
+                return;
             }
-
-            throw new Error(
-                "Verification is taking longer than expected. Please refresh and check again.",
-            );
+            throw new Error(failure.message);
         },
         [],
     );
 
-    const upload = useCallback(async (claimId: string, file: File): Promise<UploadResult> => {
+    const upload = useCallback(async (
+        claimId: string,
+        file: File,
+    ): Promise<UploadResult | null> => {
         const descriptor = buildClaimEvidenceUploadDescriptorFromFile(file);
         const validationError = validateClaimEvidenceUploadDescriptor(descriptor);
         if (validationError) {
@@ -130,9 +117,11 @@ export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
             );
 
             if (!presignRes.ok) {
-                throw new Error(
-                    await readErrorMessage(presignRes, "Failed to get upload URL"),
+                await handleUploadFailure(
+                    presignRes,
+                    "Failed to get upload URL",
                 );
+                return null;
             }
 
             const { uploadId, uploadUrl, requiredHeaders } =
@@ -160,11 +149,14 @@ export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
                     body: JSON.stringify({ uploadId }),
                 },
             );
+            void invalidateProfileMeQuery(queryClient);
 
             if (!finalizeRes.ok) {
-                throw new Error(
-                    await readErrorMessage(finalizeRes, "Failed to confirm upload"),
+                await handleUploadFailure(
+                    finalizeRes,
+                    "Failed to confirm upload",
                 );
+                return null;
             }
 
             const finalizePayload =
@@ -175,18 +167,14 @@ export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
                 finalizePayload.jobId.trim()
                     ? finalizePayload.jobId.trim()
                     : null;
+
+            void invalidateClaimVerificationQueries(queryClient, claimId);
         } finally {
             setIsTransferring(false);
         }
 
-        // Fire-and-forget: AI verification runs in the background after the
-        // file transfer lock is released so the user can take other actions.
-        if (verificationJobId) {
-            void pollVerificationJobStatus(verificationJobId);
-        }
-
         return { uploadId: capturedUploadId, jobId: verificationJobId };
-    }, [pollVerificationJobStatus]);
+    }, [handleUploadFailure, queryClient]);
 
     const deleteUpload = useCallback(
         async (claimId: string, uploadId: string): Promise<void> => {
@@ -204,16 +192,27 @@ export const useClaimEvidenceUpload = (): UseClaimEvidenceUploadResult => {
                 );
 
                 if (!deleteRes.ok) {
-                    throw new Error(
-                        await readErrorMessage(deleteRes, "Failed to delete upload"),
+                    const failure = await readUploadFailure(
+                        deleteRes,
+                        "Failed to delete upload",
                     );
+                    throw new Error(failure.message);
                 }
+
+                void invalidateClaimVerificationQueries(queryClient, claimId);
             } finally {
                 setDeletingUploadId(null);
             }
         },
-        [],
+        [queryClient],
     );
 
-    return { isTransferring, deletingUploadId, upload, deleteUpload };
+    return {
+        isTransferring,
+        deletingUploadId,
+        isInsufficientCreditsModalOpen,
+        closeInsufficientCreditsModal,
+        upload,
+        deleteUpload,
+    };
 };

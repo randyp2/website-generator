@@ -13,9 +13,9 @@ export const ActionSection: React.FC = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.6, duration: 0.5 }}
-      className="relative rounded-2xl border border-border bg-card/80 p-7 shadow-lg"
+      className="relative rounded-2xl border border-border bg-card/80 p-5 shadow-lg md:p-6"
     >
-      <h2 className="mb-6 text-2xl font-bold text-card-foreground">Quick Actions</h2>
+      <h2 className="mb-6 text-lg font-semibold tracking-tight text-card-foreground md:text-xl">Quick Actions</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
           {

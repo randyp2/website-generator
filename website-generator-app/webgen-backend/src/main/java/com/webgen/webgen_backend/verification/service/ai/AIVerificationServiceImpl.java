@@ -1,20 +1,13 @@
 package com.webgen.webgen_backend.verification.service.ai;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.webgen.webgen_backend.profile.entity.Profile;
 import com.webgen.webgen_backend.profile.repository.ProfileRepository;
 import org.springframework.ai.content.Media;
 import com.webgen.webgen_backend.verification.dto.job.AssetVerificationResultDTO;
 import com.webgen.webgen_backend.verification.entity.Claim;
-import com.webgen.webgen_backend.verification.entity.ClaimEvidenceLink;
 import com.webgen.webgen_backend.verification.entity.ClaimEvidenceUpload;
-import com.webgen.webgen_backend.verification.entity.Evidence;
-import com.webgen.webgen_backend.verification.repository.ClaimEvidenceLinkRepository;
 import com.webgen.webgen_backend.verification.repository.ClaimEvidenceUploadRepository;
 import com.webgen.webgen_backend.verification.repository.ClaimRepository;
-import com.webgen.webgen_backend.verification.repository.EvidenceRepository;
 import com.webgen.webgen_backend.verification.service.job.AssetVerificationMessage;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
@@ -28,13 +21,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.MimeType;
 import org.springframework.util.MimeTypeUtils;
 
-import java.time.OffsetDateTime;
 import java.util.Locale;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 
 @Service
 @RequiredArgsConstructor
@@ -42,27 +31,16 @@ public class AIVerificationServiceImpl implements AIVerificationService {
 
     private static final Logger log = LoggerFactory.getLogger(AIVerificationServiceImpl.class);
 
-    private static final String STATUS_FAILED = "failed";
-
-    private static final String EVIDENCE_PROVIDER_MANUAL_UPLOAD = "manual_upload";
-    private static final String EVIDENCE_TYPE_USER_UPLOADED_ASSET = "user_uploaded_asset";
-    private static final String METADATA_VERIFICATION_KEY = "assetVerification";
-
-    private static final int MAX_ERROR_LENGTH = 500;
-    private static final double MIN_LINK_CONFIDENCE = 0.30d;
-
     @Resource(name = "geminiAssetVerificationModel")
     private GoogleGenAiChatModel geminiAssetVerificationModel;
 
     private final ClaimRepository claimRepository;
     private final ProfileRepository profileRepository;
     private final ClaimEvidenceUploadRepository claimEvidenceUploadRepository;
-    private final EvidenceRepository evidenceRepository;
-    private final ClaimEvidenceLinkRepository claimEvidenceLinkRepository;
-    private final ObjectMapper objectMapper;
     private final AssetVerificationPromptBuilder promptBuilder;
     private final AssetVerificationResponseParser responseParser;
     private final AssetContentExtractorService assetContentExtractorService;
+    private final AssetVerificationPersistenceService persistenceService;
 
     @Override
     public AssetVerificationResultDTO verify(AssetVerificationMessage message) {
@@ -149,15 +127,13 @@ public class AIVerificationServiceImpl implements AIVerificationService {
                     + " rawLength=" + safeLength(rawJson));
 
             AssetVerificationResponseParser.ParsedVerification parsed = responseParser.parse(rawJson);
-            System.out.println(">>> [ASSET-AI] parsed | jobId=" + message.getJobId()
-                    + " confidence=" + parsed.result().getConfidence()
-                    + " shouldLink=" + parsed.shouldLink()
-                    + " linkType=" + parsed.linkType()
-                    + " evidenceStrength=" + parsed.evidenceStrength()
-                    + " summaryLength=" + safeLength(parsed.result().getSummary()));
+            log.info("Asset verification parsed jobId={} matchConfidence={} evidenceDepth={} "
+                            + "shouldLink={} linkType={} evidenceStrength={} summaryLength={}",
+                    message.getJobId(), parsed.result().getMatchConfidence(),
+                    parsed.result().getEvidenceDepth(), parsed.shouldLink(), parsed.linkType(),
+                    parsed.evidenceStrength(), safeLength(parsed.result().getSummary()));
 
-            upsertEvidenceAndLink(profile, claim, upload, assetFamily, parsed);
-            markUploadCompleted(upload, parsed, assetFamily, textExcerpt);
+            persistenceService.persistSuccess(profile, claim, upload, assetFamily, parsed, textExcerpt);
             System.out.println(">>> [ASSET-AI] verify complete | jobId=" + message.getJobId()
                     + " uploadId=" + uploadId);
 
@@ -167,160 +143,13 @@ public class AIVerificationServiceImpl implements AIVerificationService {
             System.err.println(">>> [ASSET-AI] verify failed | jobId=" + message.getJobId()
                     + " uploadId=" + uploadId
                     + " error=" + e.getMessage());
-            markUploadFailed(upload, e.getMessage());
+            persistenceService.persistFailure(upload, e.getMessage());
 
-            throw (RuntimeException) e;
+            if (e instanceof RuntimeException runtimeException) {
+                throw runtimeException;
+            }
+            throw new IllegalStateException("Asset verification failed", e);
         }
-    }
-
-    private void upsertEvidenceAndLink(
-            Profile profile,
-            Claim claim,
-            ClaimEvidenceUpload upload,
-            AssetVerificationPromptBuilder.AssetFamily assetFamily,
-            AssetVerificationResponseParser.ParsedVerification parsed
-    ) {
-        OffsetDateTime now = OffsetDateTime.now();
-        String externalId = upload.getId().toString();
-
-        Evidence evidence = evidenceRepository
-                .findByProfileIdAndProviderAndExternalId(profile.getId(), EVIDENCE_PROVIDER_MANUAL_UPLOAD, externalId)
-                .orElseGet(() -> Evidence.builder()
-                        .id(UUID.randomUUID())
-                        .profile(profile)
-                        .provider(EVIDENCE_PROVIDER_MANUAL_UPLOAD)
-                        .externalId(externalId)
-                        .createdAt(now)
-                        .build());
-
-        evidence.setEvidenceType(EVIDENCE_TYPE_USER_UPLOADED_ASSET);
-        evidence.setTitle(upload.getOriginalFileName());
-        evidence.setDescription(parsed.result().getSummary());
-        evidence.setSourceUrl(null);
-        evidence.setOccurredAt(upload.getCreatedAt());
-        evidence.setCapturedAt(now);
-        evidence.setUpdatedAt(now);
-
-        ObjectNode evidenceMetadata = asObjectNode(evidence.getMetadata());
-        evidenceMetadata.put("uploadId", upload.getId().toString());
-        evidenceMetadata.put("claimId", claim.getId().toString());
-        evidenceMetadata.put("storageProvider", upload.getStorageProvider());
-        evidenceMetadata.put("storageBucket", upload.getStorageBucket());
-        evidenceMetadata.put("storageKey", upload.getStorageKey());
-        evidenceMetadata.put("contentType", Optional.ofNullable(upload.getContentType()).orElse(""));
-        evidenceMetadata.put("assetFamily", assetFamily.name());
-        evidenceMetadata.put("aiConfidence", safeConfidence(parsed.result().getConfidence()));
-        evidenceMetadata.put("aiSummary", Optional.ofNullable(parsed.result().getSummary()).orElse(""));
-        evidenceMetadata.put("aiEvidenceStrength", parsed.evidenceStrength());
-        evidenceMetadata.put("aiLinkType", parsed.linkType());
-        evidenceMetadata.put("aiShouldLink", parsed.shouldLink());
-        evidenceMetadata.put("updatedAt", now.toString());
-        evidence.setMetadata(evidenceMetadata);
-
-        Evidence savedEvidence = evidenceRepository.save(evidence);
-        System.out.println(">>> [ASSET-AI] evidence saved | profileId=" + profile.getId()
-                + " claimId=" + claim.getId()
-                + " evidenceId=" + savedEvidence.getId()
-                + " provider=" + savedEvidence.getProvider());
-
-        boolean shouldPersistLink = parsed.shouldLink()
-                && safeConfidence(parsed.result().getConfidence()) >= MIN_LINK_CONFIDENCE;
-        System.out.println(">>> [ASSET-AI] link decision | claimId=" + claim.getId()
-                + " evidenceId=" + savedEvidence.getId()
-                + " shouldPersistLink=" + shouldPersistLink);
-
-        Optional<ClaimEvidenceLink> existingLinkOptional = claimEvidenceLinkRepository
-                .findByProfileIdAndClaimIdAndEvidenceId(profile.getId(), claim.getId(), savedEvidence.getId());
-
-        if (!shouldPersistLink) {
-            existingLinkOptional.ifPresent(claimEvidenceLinkRepository::delete);
-            System.out.println(">>> [ASSET-AI] link removed/skipped | claimId=" + claim.getId()
-                    + " evidenceId=" + savedEvidence.getId());
-            return;
-        }
-
-        ClaimEvidenceLink link = existingLinkOptional.orElseGet(() -> ClaimEvidenceLink.builder()
-                .id(UUID.randomUUID())
-                .profile(profile)
-                .claimId(claim.getId())
-                .evidenceId(savedEvidence.getId())
-                .createdAt(now)
-                .build());
-
-        link.setLinkType(parsed.linkType());
-        link.setLinkConfidence(
-                BigDecimal.valueOf(safeConfidence(parsed.result().getConfidence()))
-                        .setScale(3, RoundingMode.HALF_UP)
-        );
-        link.setReason(null);
-        link.setUpdatedAt(now);
-
-        ObjectNode linkMetadata = asObjectNode(link.getMetadata());
-        linkMetadata.put("source", "gemini_asset_verification");
-        linkMetadata.put("uploadId", upload.getId().toString());
-        linkMetadata.put("assetFamily", assetFamily.name());
-        linkMetadata.put("aiSummary", Optional.ofNullable(parsed.result().getSummary()).orElse(""));
-        linkMetadata.put("updatedAt", now.toString());
-        link.setMetadata(linkMetadata);
-
-        claimEvidenceLinkRepository.save(link);
-        System.out.println(">>> [ASSET-AI] link saved | claimId=" + claim.getId()
-                + " evidenceId=" + savedEvidence.getId()
-                + " linkType=" + link.getLinkType()
-                + " linkConfidence=" + link.getLinkConfidence());
-    }
-
-    private void markUploadCompleted(
-            ClaimEvidenceUpload upload,
-            AssetVerificationResponseParser.ParsedVerification parsed,
-            AssetVerificationPromptBuilder.AssetFamily assetFamily,
-            String textExcerpt
-    ) {
-        OffsetDateTime now = OffsetDateTime.now();
-        upload.setAnalysisError(null);
-        upload.setUpdatedAt(now);
-
-        ObjectNode metadata = asObjectNode(upload.getMetadata());
-        ObjectNode verificationMetadata = objectMapper.createObjectNode();
-        verificationMetadata.put("confidence", safeConfidence(parsed.result().getConfidence()));
-        verificationMetadata.put("summary", Optional.ofNullable(parsed.result().getSummary()).orElse(""));
-        verificationMetadata.put("evidenceStrength", parsed.evidenceStrength());
-        verificationMetadata.put("linkType", parsed.linkType());
-        verificationMetadata.put("shouldLink", parsed.shouldLink());
-        verificationMetadata.put("assetFamily", assetFamily.name());
-        verificationMetadata.put("textExcerptIncluded", textExcerpt != null && !textExcerpt.isBlank());
-        verificationMetadata.put("verifiedAt", now.toString());
-        metadata.set(METADATA_VERIFICATION_KEY, verificationMetadata);
-
-        upload.setMetadata(metadata);
-        claimEvidenceUploadRepository.save(upload);
-        System.out.println(">>> [ASSET-AI] upload metadata updated | uploadId=" + upload.getId()
-                + " verifiedAt=" + now);
-    }
-
-    private void markUploadFailed(ClaimEvidenceUpload upload, String errorMessage) {
-        OffsetDateTime now = OffsetDateTime.now();
-        upload.setAnalysisError(truncate(Optional.ofNullable(errorMessage).orElse("Unknown verification error")));
-        upload.setUpdatedAt(now);
-
-        ObjectNode metadata = asObjectNode(upload.getMetadata());
-        ObjectNode verificationMetadata = objectMapper.createObjectNode();
-        verificationMetadata.put("status", STATUS_FAILED);
-        verificationMetadata.put("error", upload.getAnalysisError());
-        verificationMetadata.put("failedAt", now.toString());
-        metadata.set(METADATA_VERIFICATION_KEY, verificationMetadata);
-        upload.setMetadata(metadata);
-
-        claimEvidenceUploadRepository.save(upload);
-        System.out.println(">>> [ASSET-AI] upload failure metadata updated | uploadId=" + upload.getId()
-                + " error=" + upload.getAnalysisError());
-    }
-
-    private ObjectNode asObjectNode(JsonNode node) {
-        if (node instanceof ObjectNode objectNode) {
-            return objectNode.deepCopy();
-        }
-        return objectMapper.createObjectNode();
     }
 
     private UUID parseUuid(String value, String fieldName) {
@@ -329,23 +158,6 @@ public class AIVerificationServiceImpl implements AIVerificationService {
         } catch (Exception e) {
             throw new IllegalArgumentException("Invalid " + fieldName + " in asset verification message", e);
         }
-    }
-
-    private double safeConfidence(Double confidence) {
-        if (confidence == null || confidence.isNaN()) {
-            return 0.0d;
-        }
-        return Math.max(0.0d, Math.min(1.0d, confidence));
-    }
-
-    private String truncate(String value) {
-        if (value == null) {
-            return "";
-        }
-        if (value.length() <= AIVerificationServiceImpl.MAX_ERROR_LENGTH) {
-            return value;
-        }
-        return value.substring(0, AIVerificationServiceImpl.MAX_ERROR_LENGTH);
     }
 
     private int safeLength(String value) {

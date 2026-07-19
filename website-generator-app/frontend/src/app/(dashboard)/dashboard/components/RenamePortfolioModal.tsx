@@ -3,6 +3,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { FiEdit3 } from "react-icons/fi";
+import { Button } from "@/components/ui/button";
 
 type RenamePortfolioModalProps = {
     renameTitle: string;
@@ -56,19 +57,20 @@ export const RenamePortfolioModal: React.FC<RenamePortfolioModalProps> = ({
                     />
                 </div>
                 <div className="mt-6 flex items-center justify-end gap-3">
-                    <button
+                    <Button
+                        type="button"
                         onClick={onCancel}
-                        className="cursor-pointer rounded-lg border border-border bg-muted px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/80"
+                        variant="outline"
                     >
                         Cancel
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                        type="button"
                         onClick={onConfirm}
                         disabled={isRenaming || !renameTitle.trim()}
-                        className="cursor-pointer rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {isRenaming ? "Saving..." : "Save"}
-                    </button>
+                    </Button>
                 </div>
             </motion.div>
         </div>

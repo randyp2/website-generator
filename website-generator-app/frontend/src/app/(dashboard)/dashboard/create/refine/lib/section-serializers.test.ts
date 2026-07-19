@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SectionDTO } from "@/types/portfolio";
 import {
-    buildPlannerSections,
-    buildSectionContent,
     buildSectionSummaries,
     summarizeSection,
 } from "./section-serializers";
@@ -115,57 +113,4 @@ describe("section-serializers", () => {
         });
     });
 
-    describe("buildSectionContent", () => {
-        it("returns an empty array when input is null", () => {
-            expect(buildSectionContent(null)).toEqual([]);
-        });
-
-        it("maps sections and applies defaults for missing values", () => {
-            const sections: SectionDTO[] = [
-                makeSection({
-                    sectionKey: "about",
-                    title: undefined,
-                    orderIndex: undefined,
-                    reactSource: undefined as unknown as string,
-                    contentJson: undefined,
-                }),
-            ];
-
-            expect(buildSectionContent(sections)).toEqual([
-                {
-                    sectionKey: "about",
-                    title: "",
-                    orderIndex: 0,
-                    reactSource: "",
-                    contentJson: {},
-                },
-            ]);
-        });
-    });
-
-    describe("buildPlannerSections", () => {
-        it("returns an empty array when input is null", () => {
-            expect(buildPlannerSections(null)).toEqual([]);
-        });
-
-        it("maps sections and applies planner defaults for missing values", () => {
-            const sections: SectionDTO[] = [
-                makeSection({
-                    sectionKey: "projects",
-                    title: undefined,
-                    orderIndex: undefined,
-                    contentJson: undefined,
-                }),
-            ];
-
-            expect(buildPlannerSections(sections)).toEqual([
-                {
-                    sectionKey: "projects",
-                    title: "",
-                    orderIndex: 0,
-                    contentJson: {},
-                },
-            ]);
-        });
-    });
 });

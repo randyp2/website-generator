@@ -14,10 +14,38 @@ import type { VerificationOverviewProps } from "./verification.types"
 import VerificationScoreRing from "./VerificationScoreRing"
 
 const KPI_ITEMS = [
-  { key: "totalSkills", label: "Total Skills", accent: "" },
-  { key: "matchedSkills", label: "Matched", accent: "border-l-2 border-l-emerald-400" },
-  { key: "unmatchedSkills", label: "Unmatched", accent: "border-l-2 border-l-yellow-400" },
-  { key: "unverifiedClaimsCount", label: "Unverified", accent: "border-l-2 border-l-zinc-400" },
+  {
+    key: "totalSkills",
+    label: "Total Skills",
+    context: "Tracked",
+    accent: "bg-sky-500/70",
+    rail: "from-sky-500/70 via-cyan-400/50 to-transparent",
+    value: "text-sky-700 dark:text-sky-200",
+  },
+  {
+    key: "matchedSkills",
+    label: "Matched",
+    context: "Resume aligned",
+    accent: "bg-emerald-500/75",
+    rail: "from-emerald-500/70 via-teal-400/50 to-transparent",
+    value: "text-emerald-700 dark:text-emerald-200",
+  },
+  {
+    key: "unmatchedSkills",
+    label: "Unmatched",
+    context: "Needs evidence",
+    accent: "bg-amber-500/75",
+    rail: "from-amber-500/70 via-yellow-400/50 to-transparent",
+    value: "text-amber-700 dark:text-amber-200",
+  },
+  {
+    key: "unverifiedClaimsCount",
+    label: "Unverified",
+    context: "Awaiting proof",
+    accent: "bg-zinc-500/70",
+    rail: "from-zinc-500/70 via-slate-400/50 to-transparent",
+    value: "text-zinc-700 dark:text-zinc-200",
+  },
 ] as const
 
 const VerificationOverview = ({
@@ -59,14 +87,34 @@ const VerificationOverview = ({
                 <div
                   key={item.key}
                   className={cn(
-                    "rounded-lg bg-muted/50 p-3",
-                    item.accent,
+                    "group relative overflow-hidden rounded-xl border border-border/70 bg-background/75 p-3.5 shadow-sm transition-colors hover:border-border hover:bg-background/90 dark:bg-white/[0.035] dark:hover:bg-white/[0.055]",
                   )}
                 >
-                  <p className="text-2xl font-bold text-foreground">
-                    {data[item.key]}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{item.label}</p>
+                  <div
+                    aria-hidden
+                    className={cn(
+                      "absolute inset-x-3 bottom-0 h-px bg-gradient-to-r",
+                      item.rail,
+                    )}
+                  />
+                  <div
+                    aria-hidden
+                    className={cn("absolute right-0 top-0 h-9 w-9", item.accent)}
+                    style={{ clipPath: "polygon(100% 0, 0 0, 100% 100%)" }}
+                  />
+                  <div className="relative flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className={cn("text-2xl font-semibold tracking-normal", item.value)}>
+                        {data[item.key]}
+                      </p>
+                      <p className="mt-0.5 text-xs font-medium text-foreground">
+                        {item.label}
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-border/70 bg-muted/60 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                      {item.context}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>

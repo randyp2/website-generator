@@ -3,6 +3,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { FiChevronDown, FiSearch, FiGrid, FiList } from "react-icons/fi";
+import { Button } from "@/components/ui/button";
 
 type SortBy = "name" | "date" | "status";
 type DisplayMode = "card" | "list";
@@ -45,14 +46,15 @@ export const PortfolioToolbar: React.FC<PortfolioToolbarProps> = ({
     return (
         <div className="flex items-center justify-between gap-4">
             <div className="relative" ref={sortMenuRef}>
-                <button
+                <Button
+                    type="button"
                     onClick={() => setShowSortMenu(!showSortMenu)}
-                    className="flex cursor-pointer items-center gap-2 rounded-lg border border-primary/40 bg-primary px-4 py-2 text-primary-foreground shadow-lg shadow-primary/30 transition-all hover:bg-primary/90"
+                    className="gap-2 shadow-lg shadow-primary/30 hover:cursor-pointer"
                 >
-                    <FiGrid className="h-4 w-4 text-primary-foreground" />
-                    <span className="text-sm font-medium text-primary-foreground">Display</span>
-                    <FiChevronDown className="h-4 w-4 text-primary-foreground" />
-                </button>
+                    <FiGrid className="h-4 w-4" />
+                    <span>Display</span>
+                    <FiChevronDown className="h-4 w-4" />
+                </Button>
 
                 <AnimatePresence>
                     {showSortMenu && (
@@ -95,7 +97,7 @@ export const PortfolioToolbar: React.FC<PortfolioToolbarProps> = ({
                                 <select
                                     value={sortBy}
                                     onChange={(e) => setSortBy(e.target.value as SortBy)}
-                                    className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors focus:border-primary focus:outline-none"
+                                    className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors hover:cursor-pointer focus:border-primary focus:outline-none"
                                 >
                                     <option value="date">Date Modified</option>
                                     <option value="name">Name</option>

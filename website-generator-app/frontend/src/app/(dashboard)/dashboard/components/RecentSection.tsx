@@ -95,7 +95,7 @@ export const RecentSection: React.FC = () => {
             />
 
             <div className="pt-3 md:pt-5 space-y-3">
-                <h3 className="text-lg md:text-xl font-semibold text-foreground">Created Portfolios</h3>
+                <h3 className="text-lg font-semibold tracking-tight text-foreground md:text-xl">Created Portfolios</h3>
                 <PortfolioToolbar
                     sortBy={sortBy}
                     setSortBy={setSortBy}

@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
     AlertTriangle,
     BarChart3,
     CreditCard,
     FileText,
-    Gauge,
     Settings,
 } from "lucide-react";
 
@@ -19,13 +18,15 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/useToast";
-import { SETTINGS_BILLING_MOCK } from "../mock-settings-data";
+import { useProfileMeQuery } from "@/hooks/useProfileMeQuery";
+import { getBillingAccessLabel } from "@/lib/billing/access-label";
 
 const BILLING_SHORTCUTS = [
     {
         title: "Payment methods",
         description: "Add or change payment method",
         icon: CreditCard,
+        action: "billing-portal",
     },
     {
         title: "Billing history",
@@ -37,17 +38,13 @@ const BILLING_SHORTCUTS = [
         title: "Preferences",
         description: "Manage billing information",
         icon: Settings,
-    },
-    {
-        title: "Usage limits",
-        description: "Set monthly spend limits",
-        icon: Gauge,
+        action: "billing-portal",
     },
     {
         title: "Pricing",
         description: "View pricing and FAQs",
         icon: BarChart3,
-        href: "/dashboard/billing",
+        href: "/pricing",
     },
 ] as const;
 
@@ -63,19 +60,6 @@ const BILLING_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
     day: "numeric",
     year: "numeric",
 });
-
-interface ProfileBillingSnapshot {
-    creditBalance?: number | null;
-    activePlanKey?: string | null;
-    status?: string | null;
-    currentPeriodEnd?: string | null;
-    cancelAt?: string | null;
-    cancelAtPeriodEnd?: boolean | null;
-}
-
-interface ProfileMeBillingResponse {
-    billing?: ProfileBillingSnapshot | null;
-}
 
 interface CreatePortalSessionResponse {
     portalUrl?: string;
@@ -107,29 +91,22 @@ const formatStatusLabel = (status?: string | null): string | null => {
     return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 };
 
-const toPlanName = (planKey?: string | null): string | null => {
-    if (!planKey) {
-        return null;
-    }
-
-    if (planKey === "website_generator_pro") {
-        return "PortRN Pro";
-    }
-
-    return planKey.replaceAll("_", " ");
-};
-
 const BillingSettingsPage = () => {
-    const { plan } = SETTINGS_BILLING_MOCK;
-    const [creditBalance, setCreditBalance] = useState<number>(0);
-    const [billingSnapshot, setBillingSnapshot] =
-        useState<ProfileBillingSnapshot | null>(null);
     const [isOpeningPortal, setIsOpeningPortal] = useState<boolean>(false);
     const { addToast } = useToast();
+    const { data: profile } = useProfileMeQuery();
+    const billingSnapshot = profile?.billing ?? null;
+    const creditBalance =
+        typeof billingSnapshot?.creditBalance === "number"
+            ? billingSnapshot.creditBalance
+            : 0;
     const creditBalanceLabel = creditBalance.toLocaleString();
-    const activePlanName = toPlanName(billingSnapshot?.activePlanKey) ?? plan.name;
-    const subscriptionStatusLabel =
-        formatStatusLabel(billingSnapshot?.status) ?? plan.statusLabel;
+    const accessLabel = getBillingAccessLabel(billingSnapshot);
+    const subscriptionStatusLabel = billingSnapshot?.activePlanKey
+        ? (formatStatusLabel(billingSnapshot.status) ?? "Status unavailable")
+        : billingSnapshot?.activePromotionKey
+          ? "Promotional access"
+          : "No active subscription";
 
     const currentPeriodEndLabel = formatBillingDate(
         billingSnapshot?.currentPeriodEnd,
@@ -148,46 +125,17 @@ const BillingSettingsPage = () => {
         : "No active billing period yet.";
     const creditsPolicySummary =
         billingSnapshot?.activePlanKey === "website_generator_pro"
-            ? `${plan.monthlyCredits.toLocaleString()} plan credits are granted on paid subscription invoices.`
-            : "Purchase a plan or credit pack to add credits.";
-
-    useEffect(() => {
-        let cancelled = false;
-
-        void (async () => {
-            try {
-                const response = await fetch("/api/profile/me", {
-                    method: "GET",
-                    cache: "no-store",
-                });
-                if (!response.ok) {
-                    if (!cancelled) {
-                        setCreditBalance(0);
-                    }
-                    return;
-                }
-
-                const data = (await response.json()) as ProfileMeBillingResponse;
-                const nextBalance = data.billing?.creditBalance;
-
-                if (!cancelled) {
-                    setBillingSnapshot(data.billing ?? null);
-                    setCreditBalance(
-                        typeof nextBalance === "number" ? nextBalance : 0,
-                    );
-                }
-            } catch {
-                if (!cancelled) {
-                    setBillingSnapshot(null);
-                    setCreditBalance(0);
-                }
-            }
-        })();
-
-        return () => {
-            cancelled = true;
-        };
-    }, []);
+            ? "Subscription allowances are used first. Purchased credits are used only when an allowance is unavailable."
+            : billingSnapshot?.activePromotionKey
+              ? "Promotional allowances are used first. Purchased credits are used only when an allowance is unavailable."
+              : "Purchase a plan for monthly allowances or a credit pack for general usage.";
+    const showAllowances = Boolean(
+        billingSnapshot?.activePlanKey ||
+        billingSnapshot?.activePromotionKey ||
+        billingSnapshot?.portfolioGenerationAllowanceRemaining ||
+        billingSnapshot?.portfolioRefinementAllowanceRemaining ||
+        billingSnapshot?.assetVerificationAllowanceRemaining,
+    );
 
     const openBillingPortal = async (): Promise<void> => {
         setIsOpeningPortal(true);
@@ -233,11 +181,11 @@ const BillingSettingsPage = () => {
     };
 
     return (
-        <section className="space-y-8">
+        <section className="space-y-6">
             <div className="space-y-5">
                 <div className="space-y-2">
                     <p className="text-xs font-medium text-muted-foreground">
-                        {activePlanName} · {subscriptionStatusLabel}
+                        {accessLabel} · {subscriptionStatusLabel}
                     </p>
                 </div>
 
@@ -261,9 +209,9 @@ const BillingSettingsPage = () => {
                                 sideOffset={10}
                                 className="max-w-[320px] rounded-2xl border border-border bg-background px-4 py-3 text-sm leading-relaxed text-foreground shadow-[0_18px_45px_rgba(0,0,0,0.45)]"
                             >
-                                Your credit balance is consumed as you use
-                                the API. Visit the usage page to view a
-                                breakdown of your consumption.
+                                Purchased credits are used only after any
+                                applicable feature allowance. Current
+                                allowances are shown below.
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
@@ -273,6 +221,37 @@ const BillingSettingsPage = () => {
                     <p className="text-sm text-muted-foreground">
                         {currentPeriodEndSummary} {creditsPolicySummary}
                     </p>
+                    {showAllowances ? (
+                        <div className="grid gap-2 pt-2 text-sm sm:grid-cols-3">
+                            <div className="rounded-lg border border-border px-3 py-2">
+                                <p className="text-xs text-muted-foreground">
+                                    Generations
+                                </p>
+                                <p className="font-medium">
+                                    {billingSnapshot?.portfolioGenerationAllowanceRemaining ?? 0}{" "}
+                                    remaining
+                                </p>
+                            </div>
+                            <div className="rounded-lg border border-border px-3 py-2">
+                                <p className="text-xs text-muted-foreground">
+                                    Refinements
+                                </p>
+                                <p className="font-medium">
+                                    {billingSnapshot?.portfolioRefinementAllowanceRemaining ?? 0}{" "}
+                                    remaining
+                                </p>
+                            </div>
+                            <div className="rounded-lg border border-border px-3 py-2">
+                                <p className="text-xs text-muted-foreground">
+                                    Verifications
+                                </p>
+                                <p className="font-medium">
+                                    {billingSnapshot?.assetVerificationAllowanceRemaining ?? 0}{" "}
+                                    remaining
+                                </p>
+                            </div>
+                        </div>
+                    ) : null}
                 </div>
 
                 <div className="flex flex-wrap gap-2">
@@ -306,19 +285,21 @@ const BillingSettingsPage = () => {
                 ) : null}
             </div>
 
-            <div className="grid w-full gap-x-12 gap-y-6 md:grid-cols-2">
+            <div className="grid w-full gap-1 md:grid-cols-2">
                 {BILLING_SHORTCUTS.map((item) => {
                     const Icon = item.icon;
+                    const opensBillingPortal =
+                        "action" in item && item.action === "billing-portal";
                     const content = (
                         <>
-                            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-black/8 text-foreground/70 dark:bg-white/10">
-                                <Icon className="h-6 w-6" />
+                            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-lg text-foreground/60 transition-colors group-hover:text-primary">
+                                <Icon className="h-7 w-7" />
                             </div>
-                            <div className="min-w-0 space-y-1">
-                                <h3 className="text-base font-semibold tracking-tight">
+                            <div className="min-w-0 space-y-0.5">
+                                <h3 className="text-lg font-semibold tracking-tight">
                                     {item.title}
                                 </h3>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-sm text-muted-foreground">
                                     {item.description}
                                 </p>
                             </div>
@@ -330,7 +311,7 @@ const BillingSettingsPage = () => {
                             <Link
                                 key={item.title}
                                 href={item.href}
-                                className="group flex items-center gap-4 rounded-xl py-1.5 transition-colors hover:text-primary"
+                                className="group flex items-center gap-4 rounded-lg p-3 transition-colors hover:bg-muted/40 hover:text-primary"
                             >
                                 {content}
                             </Link>
@@ -341,7 +322,15 @@ const BillingSettingsPage = () => {
                         <button
                             key={item.title}
                             type="button"
-                            className="group flex items-center gap-4 rounded-xl py-1.5 text-left transition-colors hover:cursor-pointer hover:text-primary"
+                            disabled={opensBillingPortal && isOpeningPortal}
+                            onClick={
+                                opensBillingPortal
+                                    ? () => {
+                                          void openBillingPortal();
+                                      }
+                                    : undefined
+                            }
+                            className="group flex w-full items-center gap-4 rounded-lg p-3 text-left transition-colors hover:cursor-pointer hover:bg-muted/40 hover:text-primary"
                         >
                             {content}
                         </button>

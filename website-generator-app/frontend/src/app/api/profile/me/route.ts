@@ -1,4 +1,4 @@
-import { getBackendUrl } from "@/lib/server-env";
+import { fetchBackend } from "@/lib/api/backendFetch";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -16,8 +16,7 @@ export const GET = async () => {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const backendUrl = getBackendUrl();
-        const response = await fetch(`${backendUrl}/api/v1/profile/me`, {
+        const response = await fetchBackend("/api/v1/profile/me", {
             method: "GET",
             headers: {
                 Authorization: `Bearer ${session.access_token}`,
@@ -72,8 +71,7 @@ export const PATCH = async (req: Request) => {
             githubUrl: getStringOrUndefined(rawBody.githubUrl ?? rawBody.github_url),
         };
 
-        const backendUrl = getBackendUrl();
-        const response = await fetch(`${backendUrl}/api/v1/profile/me`, {
+        const response = await fetchBackend("/api/v1/profile/me", {
             method: "PATCH",
             headers: {
                 Authorization: `Bearer ${session.access_token}`,

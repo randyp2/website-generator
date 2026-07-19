@@ -6,6 +6,7 @@ import type { ExplorePortfolioDetail } from "../explore-portfolio-detail.types";
 
 interface ExplorePortfolioDescriptionProps {
   portfolio: ExplorePortfolioDetail;
+  linksEnabled?: boolean;
 }
 
 const markdownComponents: Components = {
@@ -50,10 +51,21 @@ const markdownComponents: Components = {
 
 export const ExplorePortfolioDescription = ({
   portfolio,
+  linksEnabled = true,
 }: ExplorePortfolioDescriptionProps) => {
   const markdownDescription = portfolio.description?.trim() ?? "";
   const hasMarkdownDescription = markdownDescription.length > 0;
   const descriptionParagraphs = getPortfolioDescription(portfolio);
+  const components: Components = linksEnabled
+    ? markdownComponents
+    : {
+        ...markdownComponents,
+        a: ({ children }) => (
+          <span className="text-primary underline underline-offset-2">
+            {children}
+          </span>
+        ),
+      };
 
   return (
     <article className="px-1 py-2 sm:px-2">
@@ -65,7 +77,7 @@ export const ExplorePortfolioDescription = ({
       </h2>
       {hasMarkdownDescription ? (
         <div className="mt-4 space-y-3">
-          <ReactMarkdown remarkPlugins={[remarkBreaks]} components={markdownComponents}>
+          <ReactMarkdown remarkPlugins={[remarkBreaks]} components={components}>
             {markdownDescription}
           </ReactMarkdown>
         </div>

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react"
 import { LayoutGrid, List, ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
+import useVerificationSubTab from "../useVerificationSubTab"
 import EvidenceDetailDialog from "../EvidenceDetailDialog"
 import type { EvidenceItem } from "../verification.types"
 import type { EvidenceProviderCategory, EvidenceSource, EvidenceViewMode } from "./evidence-tab.types"
@@ -104,6 +105,7 @@ const toEvidenceItemForDialog = (
 // ─── Panel ────────────────────────────────────────────────────────────────────
 
 const EvidenceTabPanel = ({ evidence, isLoading, error }: EvidenceTabPanelProps) => {
+  const { targetEvidenceId, clearTargetEvidence } = useVerificationSubTab()
   const [providerCategory, setProviderCategory] = useState<EvidenceProviderCategory>("all")
   const [activeSource, setActiveSource] = useState<EvidenceSource | "all">("all")
   const [viewMode, setViewMode] = useState<EvidenceViewMode>("grid")
@@ -155,13 +157,30 @@ const EvidenceTabPanel = ({ evidence, isLoading, error }: EvidenceTabPanelProps)
     setCurrentPage(1)
   }
 
+  // The evidence a user navigated to from the skill drawer, derived from the URL.
+  const targetDoc = useMemo(
+    () =>
+      targetEvidenceId
+        ? documents.find((doc) => doc.evidenceId === targetEvidenceId) ?? null
+        : null,
+    [targetEvidenceId, documents],
+  )
+
+  // A user click takes precedence; otherwise fall back to the URL-driven target.
+  const activeDoc = selectedDoc ?? targetDoc
+
   const selectedEvidenceItem = useMemo(
-    () => (selectedDoc ? toEvidenceItemForDialog(selectedDoc, evidence) : null),
-    [selectedDoc, evidence],
+    () => (activeDoc ? toEvidenceItemForDialog(activeDoc, evidence) : null),
+    [activeDoc, evidence],
   )
 
   const handleDocumentClick = (doc: EvidenceDocument) => setSelectedDoc(doc)
-  const handleDialogClose = (open: boolean) => { if (!open) setSelectedDoc(null) }
+  const handleDialogClose = (open: boolean) => {
+    if (!open) {
+      setSelectedDoc(null)
+      if (targetEvidenceId) clearTargetEvidence()
+    }
+  }
 
   if (isLoading) {
     return (

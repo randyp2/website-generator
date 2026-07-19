@@ -17,7 +17,9 @@ import {
     FiUser,
     FiMoreHorizontal,
     FiShield,
+    FiArrowUpRight,
 } from "react-icons/fi";
+import { FaUsers } from "react-icons/fa";
 import { MdOutlineCreate } from "react-icons/md";
 import { IconType } from "react-icons";
 import { useTheme } from "next-themes";
@@ -25,6 +27,9 @@ import { signoutClient } from "@/lib/logout-client";
 import { useUser } from "@/context/UserContext";
 import BrandWordmark from "@/components/branding/BrandWordmark";
 import useMyProfilePath from "@/hooks/useMyProfilePath";
+import { usePortfolioListQuery } from "../dashboard/hooks/usePortfolioListQuery";
+import { useGenerationJobStore } from "@/stores/useGenerationJobStore";
+import { useStoreHydration } from "@/hooks/useStoreHydration";
 
 interface NavItem {
     id: string;
@@ -32,7 +37,24 @@ interface NavItem {
     icon: IconType;
     path: string;
     badge?: string | number;
+    /** Links out of the dashboard shell (e.g. the public site); shows an outbound arrow. */
+    external?: boolean;
+    /** Renders a separator above this item. */
+    dividerBefore?: boolean;
+    /** Shows a spinner on the item while related background work runs. */
+    busy?: boolean;
 }
+
+/** Minimal orange ring spinner shown while a portfolio job is running. */
+const GenerationSpinner: React.FC<{ className?: string }> = ({
+    className = "",
+}) => (
+    <span
+        role="status"
+        aria-label="Portfolio generating"
+        className={`inline-block shrink-0 animate-spin rounded-full border-2 border-orange-500/25 border-t-orange-500 ${className}`}
+    />
+);
 
 interface SidebarNavigationProps {
     collapsed?: boolean;
@@ -56,7 +78,13 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
     const router = useRouter();
     const { profilePath } = useMyProfilePath(true);
     const { theme, setTheme } = useTheme();
-    const [portfoliosCount, setPortfoliosCount] = useState<number>(0);
+    const { data: portfolios = [] } = usePortfolioListQuery(user?.id);
+    const portfoliosCount = portfolios.length;
+    // Gate on hydration so the server render (no persisted job) and the first
+    // client render agree; the busy dot appears once the store has hydrated.
+    const jobStoreHydrated = useStoreHydration(useGenerationJobStore);
+    const activeJob = useGenerationJobStore((state) => state.activeJob);
+    const hasActiveJob = jobStoreHydrated && activeJob !== null;
     const [showProfileMenu, setShowProfileMenu] = useState<boolean>(false);
     const [showThemeModal, setShowThemeModal] = useState<boolean>(false);
     const currentTheme =
@@ -64,35 +92,27 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
             ? theme
             : "system";
 
-    // Make GET request to fetch portfolios count
     useEffect(() => {
-        if (!user?.id) return;
+        if (!showProfileMenu) return;
 
-        const fetchPortfoliosCount = async () => {
-            try {
-                // Make api call
-                const response: Response = await fetch(
-                    `/api/portfolio/list?userId=${user.id}`,
-                    {
-                        method: "GET",
-                    },
-                );
+        const handlePointerDown = (event: PointerEvent) => {
+            const target = event.target;
+            const element =
+                target instanceof Element
+                    ? target
+                    : target instanceof Node
+                      ? target.parentElement
+                      : null;
 
-                if (!response.ok)
-                    throw new Error(`HTTP error! status: ${response.status}`);
+            if (element?.closest("[data-sidebar-profile-menu]")) return;
 
-                const json = await response.json();
-
-                // Update state with count
-                setPortfoliosCount(json.portfolios.length);
-            } catch (err) {
-                console.error("Error fetching portfolios:", err);
-                alert("Failed to fetch portfolios. Please try again.");
-            }
+            setShowProfileMenu(false);
+            setShowThemeModal(false);
         };
 
-        fetchPortfoliosCount();
-    }, [user?.id]);
+        document.addEventListener("pointerdown", handlePointerDown);
+        return () => document.removeEventListener("pointerdown", handlePointerDown);
+    }, [showProfileMenu]);
 
     const collapsed = externalCollapsed ?? false;
 
@@ -115,6 +135,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
             label: "Create New",
             icon: MdOutlineCreate,
             path: "/dashboard/create",
+            busy: hasActiveJob,
         },
         {
             id: "publish",
@@ -127,6 +148,21 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
             label: "Verification",
             icon: FiShield,
             path: "/dashboard/verification",
+        },
+        {
+            id: "explore",
+            label: "Explore",
+            icon: FaUsers,
+            path: "/explore",
+            external: true,
+            dividerBefore: true,
+        },
+        {
+            id: "profile",
+            label: "Profile",
+            icon: FiUser,
+            path: profilePath ?? "/dashboard",
+            external: true,
         },
     ];
 
@@ -160,6 +196,10 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                         />
                     </div>
 
+                    {collapsed && item.busy && (
+                        <GenerationSpinner className="absolute right-1 top-1 h-2.5 w-2.5" />
+                    )}
+
                     {!collapsed && (
                         <>
                             <span
@@ -172,10 +212,18 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                                 {item.label}
                             </span>
 
+                            {item.busy && (
+                                <GenerationSpinner className="h-3.5 w-3.5" />
+                            )}
+
                             {item.badge && (
-                                <span className="rounded-sm bg-sidebar-accent px-2 py-0.5 text-[11px] font-bold text-sidebar-accent-foreground transition-all duration-200">
+                                <span className="text-sm font-bold tabular-nums text-orange-400 transition-all duration-200">
                                     {item.badge}
                                 </span>
+                            )}
+
+                            {item.external && (
+                                <FiArrowUpRight className="h-3.5 w-3.5 text-sidebar-foreground/50 transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-primary" />
                             )}
                         </>
                     )}
@@ -184,8 +232,8 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
         );
     };
 
-    const SidebarContent = () => (
-        <div className="flex flex-col h-full">
+    const renderSidebarContent = () => (
+        <div className="flex h-full flex-col [&_button:hover]:cursor-pointer">
             {/* Logo / Brand */}
             <div
                 className={`border-b border-sidebar-border ${collapsed ? "px-3 py-3.5" : "px-5 pt-4 pb-3.5"}`}
@@ -207,12 +255,20 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
             {/* Main Navigation */}
             <div className="flex-1 overflow-y-auto px-3 py-3.5 space-y-1.5">
                 {navItems.map((item) => (
-                    <NavItemComponent key={item.id} item={item} />
+                    <React.Fragment key={item.id}>
+                        {item.dividerBefore && (
+                            <div className="my-2 border-t border-sidebar-border/60" />
+                        )}
+                        <NavItemComponent item={item} />
+                    </React.Fragment>
                 ))}
             </div>
 
             {/* Profile Menu */}
-            <div className="relative border-t border-sidebar-border p-3.5">
+            <div
+                data-sidebar-profile-menu
+                className="relative border-t border-sidebar-border p-3.5"
+            >
                 {collapsed ? (
                     <motion.button
                         whileHover={{ scale: 1.05 }}
@@ -299,7 +355,6 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                         }`}
                     >
                         {[
-                            { icon: FiUser, label: "Profile", path: profilePath ?? "/dashboard" },
                             { icon: FiSettings, label: "Settings", path: "/dashboard/settings/profile" },
                             { icon: FiShare2, label: "Pricing", path: "/pricing" },
                             { icon: FiHelpCircle, label: "Help" },
@@ -400,7 +455,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                 transition={{ duration: 0.3, ease: "easeInOut" }}
                 className="fixed left-0 top-0 z-40 hidden h-screen bg-sidebar shadow-2xl shadow-black/40 md:block"
             >
-                <SidebarContent />
+                {renderSidebarContent()}
             </motion.aside>
 
             {/* Mobile Drawer */}
@@ -432,7 +487,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                                 <FiX className="h-5 w-5 text-sidebar-foreground/80" />
                             </button>
 
-                            <SidebarContent />
+                            {renderSidebarContent()}
                         </motion.aside>
                     </>
                 )}

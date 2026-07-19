@@ -1,17 +1,22 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+    getProfileMeForUsageGuard,
+    invalidateProfileMeQuery,
+} from "@/hooks/useProfileMeQuery";
+import { hasBillingUsageAvailable } from "@/lib/billing/usage-availability";
 import type {
     CompletedSectionsResponse,
     GlobalTheme,
     SectionDTO,
 } from "@/types/portfolio";
 import type { Message, SectionPlan } from "@/types/preview";
-import {
-    buildPlannerSections,
-    buildSectionContent,
-    buildSectionSummaries,
-} from "../lib/section-serializers";
+import { usePortfolioStore } from "@/stores/usePortfolioStore";
+import { useGenerationJobStore } from "@/stores/useGenerationJobStore";
+import { getElapsedSeconds } from "@/components/chat/style-chat/FlowStateStatus";
+import { buildSectionSummaries } from "../lib/section-serializers";
 import {
     createAiMessage,
     createGeneratingMessage,
@@ -43,6 +48,7 @@ interface BuilderResponse {
 
 interface ClarifyResponse {
     assistantMessage?: string;
+    code?: string;
     sessionId?: string;
     readyForPlanning?: boolean;
     error?: string;
@@ -55,6 +61,9 @@ interface LoadPortfolioResponse {
 
 interface UseRefineChatResult {
     isGenerating: boolean;
+    completedRefinementRevision: number;
+    isInsufficientCreditsModalOpen: boolean;
+    closeInsufficientCreditsModal: () => void;
     currentPlan: SectionPlan[] | null;
     isPlanApproved: boolean;
     sendMessage: (prompt: string, files: File[]) => Promise<void>;
@@ -63,6 +72,32 @@ interface UseRefineChatResult {
 }
 
 const POLL_INTERVAL_MS = 3000;
+const REFUND_REFRESH_DELAY_MS = 1_000;
+
+/** Raised when the backend reports the clarifier session expired (HTTP 410). */
+class RefineSessionExpiredError extends Error {
+    constructor() {
+        super(
+            "Your revision session expired, so I couldn't apply that. Please restate your request.",
+        );
+    }
+}
+
+/** Raised when the approved plan no longer matches the saved portfolio (HTTP 409). */
+class RefinePlanConflictError extends Error {
+    constructor() {
+        super(
+            "The portfolio changed since this plan was made, so I couldn't apply it. Please request the change again.",
+        );
+    }
+}
+
+/** Raised when the authoritative build reservation rejects billing access. */
+class RefineInsufficientCreditsError extends Error {
+    constructor() {
+        super("Insufficient credits for portfolio refinement.");
+    }
+}
 
 const STATUS_LABELS: Record<string, string> = {
     QUEUED: "Queued...",
@@ -82,12 +117,52 @@ export const useRefineChat = ({
     removeMediaFile,
     removeVideoFile,
 }: UseRefineChatParams): UseRefineChatResult => {
+    const queryClient = useQueryClient();
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
+    const [completedRefinementRevision, setCompletedRefinementRevision] =
+        useState<number>(0);
+    const [isInsufficientCreditsModalOpen, setIsInsufficientCreditsModalOpen] =
+        useState<boolean>(false);
     const [currentPlan, setCurrentPlan] = useState<SectionPlan[] | null>(null);
     const [isPlanApproved, setIsPlanApproved] = useState<boolean>(false);
     const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-    const sessionIdRef = useRef<string | null>(null);
+    const hasResumedRef = useRef(false);
+    const closeInsufficientCreditsModal = useCallback((): void => {
+        setIsInsufficientCreditsModalOpen(false);
+    }, []);
+    const ensurePortfolioRefinementAccess = async (): Promise<boolean> => {
+        const profile = await getProfileMeForUsageGuard(queryClient);
+        if (
+            hasBillingUsageAvailable(
+                profile?.billing,
+                "portfolio_refinement",
+            )
+        ) {
+            return true;
+        }
 
+        setIsInsufficientCreditsModalOpen(true);
+        return false;
+    };
+    const refreshBillingAfterRefund = (): void => {
+        void invalidateProfileMeQuery(queryClient);
+        setTimeout(
+            () => void invalidateProfileMeQuery(queryClient),
+            REFUND_REFRESH_DELAY_MS,
+        );
+    };
+
+    // Session id lives in the persisted store so a page refresh mid-conversation
+    // keeps the clarifier context. Read via getState() to avoid stale closures.
+    const getSessionId = (): string | null =>
+        usePortfolioStore.getState().refineSessionId;
+    const setSessionId = (sessionId: string | null): void =>
+        usePortfolioStore.getState().setRefineSessionId(sessionId);
+
+    /**
+     * Request a modification plan. Sends only the session id: the backend
+     * plans against sections loaded from the DB, never client state.
+     */
     const callPlanner = async (): Promise<PlannerResponse | null> => {
         if (!portfolioId) return null;
 
@@ -95,12 +170,19 @@ export const useRefineChat = ({
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                sessionId: sessionIdRef.current,
-                sections: buildPlannerSections(sections),
+                sessionId: getSessionId(),
             }),
         });
+        void invalidateProfileMeQuery(queryClient);
 
         if (!response.ok) {
+            if (response.status === 402) {
+                throw new RefineInsufficientCreditsError();
+            }
+            if (response.status === 410) {
+                setSessionId(null);
+                throw new RefineSessionExpiredError();
+            }
             const error = (await response.json()) as { error?: string };
             throw new Error(error.error ?? "Plan request failed");
         }
@@ -110,36 +192,35 @@ export const useRefineChat = ({
 
     /**
      * Kick off the build — returns a jobId for polling.
-     * The backend fans out section generation to RabbitMQ workers
-     * and persists results asynchronously.
+     * Sends only plans and the session id: the backend loads section code
+     * from the DB, so client state can never overwrite newer saved sections.
      */
     const callBuilder = async (
         sectionPlans: SectionPlan[],
     ): Promise<BuilderResponse | null> => {
         if (!portfolioId) return null;
 
-        // Only send sections that have a "modify" plan — "add" sections have no existing
-        // content, "delete" sections don't need LLM work
-        const modifyKeys = new Set(
-            sectionPlans
-                .filter((p) => p.action === "modify")
-                .map((p) => p.sectionKey),
-        );
-        const sectionsToSend = (sections ?? []).filter((s) =>
-            modifyKeys.has(s.sectionKey),
-        );
-
         const response = await fetch(`/api/portfolio/${portfolioId}/refine/build`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                sessionId: sessionIdRef.current,
-                sections: buildSectionContent(sectionsToSend),
+                sessionId: getSessionId(),
                 sectionPlans,
             }),
         });
+        void invalidateProfileMeQuery(queryClient);
 
         if (!response.ok) {
+            if (response.status === 402) {
+                throw new RefineInsufficientCreditsError();
+            }
+            if (response.status === 410) {
+                setSessionId(null);
+                throw new RefineSessionExpiredError();
+            }
+            if (response.status === 409) {
+                throw new RefinePlanConflictError();
+            }
             const error = (await response.json()) as { error?: string };
             throw new Error(error.error ?? "Build request failed");
         }
@@ -175,8 +256,14 @@ export const useRefineChat = ({
      * Poll the job's section endpoint for incremental progress.
      * Same pattern used by useInitialPortfolioGeneration.
      */
-    const pollBuildJob = (jobId: string, buildingMessageId: string): void => {
+    const pollBuildJob = (
+        jobId: string,
+        buildingMessageId: string,
+        buildingStartedAt: Date,
+    ): void => {
         let sectionOffset = 0;
+        // Sections whose refinement failed and kept their previous version
+        const fallbackSectionNames: string[] = [];
 
         pollTimerRef.current = setInterval(async () => {
             try {
@@ -191,6 +278,14 @@ export const useRefineChat = ({
                 // Append any new sections incrementally
                 if (data.sections.length > 0) {
                     sectionOffset += data.sections.length;
+
+                    for (const section of data.sections) {
+                        if (section.refineFallback) {
+                            fallbackSectionNames.push(
+                                section.title || section.sectionKey,
+                            );
+                        }
+                    }
 
                     // Merge new/modified sections into existing sections
                     setSections(mergeSections(sections, data.sections));
@@ -214,15 +309,25 @@ export const useRefineChat = ({
 
                 if (data.status === "COMPLETED") {
                     if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+                    useGenerationJobStore.getState().clearJob();
 
                     // Final load to get the fully merged portfolio from DB
                     await loadSavedPortfolio();
 
+                    const completionText =
+                        fallbackSectionNames.length > 0
+                            ? `Portfolio updated, but I couldn't apply the change to ${fallbackSectionNames.join(
+                                  ", ",
+                              )}, so ${fallbackSectionNames.length === 1 ? "that section was" : "those sections were"} left unchanged. Try rephrasing that request.`
+                            : "Portfolio updated successfully!";
+
                     const completeMessage: Message = createAiMessage(
-                        "Portfolio updated successfully!",
+                        completionText,
                         {
                             id: `ai-complete-${Date.now()}`,
                             messageType: "build",
+                            flowStateDurationSeconds:
+                                getElapsedSeconds(buildingStartedAt),
                         },
                     );
 
@@ -235,18 +340,23 @@ export const useRefineChat = ({
                     setCurrentPlan(null);
                     setIsGenerating(false);
                     setIsPlanApproved(false);
+                    setCompletedRefinementRevision((revision) => revision + 1);
                     // Clear session so next refinement starts fresh
-                    sessionIdRef.current = null;
+                    setSessionId(null);
                 }
 
                 if (data.status === "FAILED") {
                     if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+                    useGenerationJobStore.getState().clearJob();
+                    refreshBillingAfterRefund();
 
                     const errorMessage: Message = createAiMessage(
                         "Sorry, there was an error building your changes. Please try again.",
                         {
                             id: `ai-error-${Date.now()}`,
                             messageType: "error",
+                            flowStateDurationSeconds:
+                                getElapsedSeconds(buildingStartedAt),
                         },
                     );
 
@@ -270,9 +380,11 @@ export const useRefineChat = ({
 
         setIsGenerating(true);
 
+        const buildingStartedAt = Date.now();
         const buildingMessage: Message = createGeneratingMessage("ai-building", {
             content: "Building your refined portfolio...",
             messageType: "build",
+            timestamp: new Date(buildingStartedAt),
         });
         setMessages((prev) => [...prev, buildingMessage]);
 
@@ -283,16 +395,48 @@ export const useRefineChat = ({
                 throw new Error("No jobId returned from build endpoint");
             }
 
+            if (portfolioId) {
+                useGenerationJobStore.getState().startJob({
+                    jobId: buildResult.jobId,
+                    portfolioId,
+                    kind: "refine",
+                    startedAt: buildingStartedAt,
+                });
+            }
+
             // Start polling for incremental section updates
-            pollBuildJob(buildResult.jobId, buildingMessage.id);
+            pollBuildJob(
+                buildResult.jobId,
+                buildingMessage.id,
+                buildingMessage.timestamp,
+            );
         } catch (error: unknown) {
+            if (error instanceof RefineInsufficientCreditsError) {
+                setMessages((prev) =>
+                    prev.filter((message) => message.id !== buildingMessage.id),
+                );
+                setIsInsufficientCreditsModalOpen(true);
+                setIsGenerating(false);
+                setIsPlanApproved(false);
+                return;
+            }
             console.error("Build error:", error);
             setIsPlanApproved(false);
+            // A conflicting plan is unusable: drop it so the user re-plans
+            if (error instanceof RefinePlanConflictError) {
+                setCurrentPlan(null);
+            }
             const errorMessage: Message = createAiMessage(
-                "Sorry, there was an error building your changes. Please try again.",
+                error instanceof RefineSessionExpiredError ||
+                    error instanceof RefinePlanConflictError
+                    ? error.message
+                    : "Sorry, there was an error building your changes. Please try again.",
                 {
                     id: `ai-error-${Date.now()}`,
                     messageType: "error",
+                    flowStateDurationSeconds: getElapsedSeconds(
+                        buildingMessage.timestamp,
+                    ),
                 },
             );
             setMessages((prev) =>
@@ -312,6 +456,7 @@ export const useRefineChat = ({
         if (isApproval) {
             const approvalMessage: Message = createUserMessage("approve");
             setMessages((prev) => [...prev, approvalMessage]);
+            if (!(await ensurePortfolioRefinementAccess())) return;
             await approvePlanAndBuild();
             return;
         }
@@ -330,7 +475,10 @@ export const useRefineChat = ({
         const userMessage: Message = createUserMessage(prompt);
         const tempAiMessage: Message = createGeneratingMessage("ai-temp");
 
-        setMessages((prev) => [...prev, userMessage, tempAiMessage]);
+        setMessages((prev) => [...prev, userMessage]);
+        if (!(await ensurePortfolioRefinementAccess())) return;
+
+        setMessages((prev) => [...prev, tempAiMessage]);
 
         for (let index = 0; index < mediaFilesCount; index += 1) {
             removeMediaFile(0);
@@ -351,19 +499,35 @@ export const useRefineChat = ({
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     userPrompt: prompt,
-                    sessionId: sessionIdRef.current,
+                    sessionId: getSessionId(),
                     sections: buildSectionSummaries(sections),
                 }),
             });
+            void invalidateProfileMeQuery(queryClient);
 
             const data = (await response.json()) as ClarifyResponse;
 
+            if (response.status === 410) {
+                setSessionId(null);
+                throw new RefineSessionExpiredError();
+            }
+
             // Store the sessionId returned by the backend (minted on first call)
             if (data.sessionId) {
-                sessionIdRef.current = data.sessionId;
+                setSessionId(data.sessionId);
             }
 
             if (!response.ok) {
+                const insufficientCredits =
+                    response.status === 402 ||
+                    data.code === "INSUFFICIENT_CREDITS";
+                if (insufficientCredits) {
+                    setMessages((prev) =>
+                        prev.filter((message) => message.id !== tempAiMessage.id),
+                    );
+                    setIsInsufficientCreditsModalOpen(true);
+                    return;
+                }
                 throw new Error(data.error ?? "Clarification request failed.");
             }
 
@@ -376,6 +540,9 @@ export const useRefineChat = ({
                 ...createAiMessage(aiResponseText, {
                     messageType: "clarify",
                     readyForPlanning: isReadyForPlanning,
+                    flowStateDurationSeconds: getElapsedSeconds(
+                        tempAiMessage.timestamp,
+                    ),
                 }),
                 id: (Date.now() + 1).toString(),
             };
@@ -399,7 +566,35 @@ export const useRefineChat = ({
                 try {
                     const planResult = await callPlanner();
 
-                    if (planResult?.sectionPlans) {
+                    // A plan with nothing to modify, add, or delete cannot be
+                    // built: never offer approval for it, ask the user to
+                    // clarify instead
+                    const hasActionablePlan = (
+                        planResult?.sectionPlans ?? []
+                    ).some(
+                        (plan) =>
+                            plan.action === "modify" ||
+                            plan.action === "add" ||
+                            plan.action === "delete",
+                    );
+
+                    if (planResult?.sectionPlans && !hasActionablePlan) {
+                        const noChangesMessage: Message = createAiMessage(
+                            "It looks like nothing needs to change for that request. Tell me more about what you'd like to adjust.",
+                            {
+                                id: `ai-no-changes-${Date.now()}`,
+                                messageType: "plan",
+                                flowStateDurationSeconds: getElapsedSeconds(
+                                    planningMessage.timestamp,
+                                ),
+                            },
+                        );
+                        setMessages((prev) =>
+                            prev
+                                .filter((message) => message.id !== planningMessage.id)
+                                .concat(noChangesMessage),
+                        );
+                    } else if (planResult?.sectionPlans) {
                         setCurrentPlan(planResult.sectionPlans);
                         setIsPlanApproved(false);
 
@@ -418,6 +613,9 @@ export const useRefineChat = ({
                             messageType: "plan",
                             sectionPlans: planResult.sectionPlans,
                             planSummary: planResult.planSummary,
+                            flowStateDurationSeconds: getElapsedSeconds(
+                                planningMessage.timestamp,
+                            ),
                         });
 
                         setMessages((prev) =>
@@ -427,12 +625,26 @@ export const useRefineChat = ({
                         );
                     }
                 } catch (error: unknown) {
+                    if (error instanceof RefineInsufficientCreditsError) {
+                        setMessages((prev) =>
+                            prev.filter(
+                                (message) => message.id !== planningMessage.id,
+                            ),
+                        );
+                        setIsInsufficientCreditsModalOpen(true);
+                        return;
+                    }
                     console.error("Planning error:", error);
                     const errorMessage: Message = createAiMessage(
-                        "Sorry, there was an error creating the plan. Please try again.",
+                        error instanceof RefineSessionExpiredError
+                            ? error.message
+                            : "Sorry, there was an error creating the plan. Please try again.",
                         {
                             id: `ai-error-${Date.now()}`,
                             messageType: "error",
+                            flowStateDurationSeconds: getElapsedSeconds(
+                                planningMessage.timestamp,
+                            ),
                         },
                     );
                     setMessages((prev) =>
@@ -448,6 +660,11 @@ export const useRefineChat = ({
             const errorMessage: Message = {
                 ...createAiMessage(
                     "Sorry, there was an error processing your request. Please try again.",
+                    {
+                        flowStateDurationSeconds: getElapsedSeconds(
+                            tempAiMessage.timestamp,
+                        ),
+                    },
                 ),
                 id: (Date.now() + 1).toString(),
             };
@@ -467,6 +684,58 @@ export const useRefineChat = ({
         await sendMessage("approve", []);
     };
 
+    // --- Re-attach to a refine job left running (page re-entry or new tab).
+    // The watcher stands down on this page, so the page must resume polling.
+    useEffect(() => {
+        if (hasResumedRef.current) return;
+        const job = useGenerationJobStore.getState().activeJob;
+        if (!job || job.kind !== "refine") return;
+
+        if (!portfolioId) {
+            // Fresh tab: seed the id and let the effect re-run with it
+            usePortfolioStore.getState().setPortfolioId(job.portfolioId);
+            return;
+        }
+
+        hasResumedRef.current = true;
+
+        const resume = async (): Promise<void> => {
+            // Job state expired in Redis (finished long ago): the saved
+            // portfolio is already loaded, so just drop the job
+            try {
+                const res = await fetch(`/api/portfolio/jobs/status/${job.jobId}`);
+                if (res.status === 404 || res.status === 410) {
+                    useGenerationJobStore.getState().clearJob();
+                    return;
+                }
+            } catch {
+                // Transient failure: attach anyway, the poller tolerates errors
+            }
+
+            const buildingMessage: Message = createGeneratingMessage("ai-building", {
+                content: "Resuming your changes...",
+                messageType: "build",
+                timestamp: new Date(job.startedAt),
+            });
+            setMessages((prev) =>
+                prev.filter((m) => !m.isGenerating).concat(buildingMessage),
+            );
+            setIsGenerating(true);
+            pollBuildJob(job.jobId, buildingMessage.id, buildingMessage.timestamp);
+        };
+
+        void resume();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [portfolioId]);
+
+    // Stop polling when the page unmounts so a later resume never runs
+    // alongside a leaked interval from a previous mount
+    useEffect(() => {
+        return () => {
+            if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+        };
+    }, []);
+
     const handleKeepChatting = (): void => {
         setIsPlanApproved(false);
         setCurrentPlan(null);
@@ -474,6 +743,9 @@ export const useRefineChat = ({
 
     return {
         isGenerating,
+        completedRefinementRevision,
+        isInsufficientCreditsModalOpen,
+        closeInsufficientCreditsModal,
         currentPlan,
         isPlanApproved,
         sendMessage,

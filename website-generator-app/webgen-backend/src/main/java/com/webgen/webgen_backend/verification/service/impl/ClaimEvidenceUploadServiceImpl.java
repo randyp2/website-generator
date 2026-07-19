@@ -1,6 +1,10 @@
 package com.webgen.webgen_backend.verification.service.impl;
 
+import com.webgen.webgen_backend.account.service.AccountDeletionStateService;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.webgen.webgen_backend.billing.service.CreditGuardService;
 import com.webgen.webgen_backend.profile.entity.Profile;
 import com.webgen.webgen_backend.shared.config.R2Properties;
 import com.webgen.webgen_backend.verification.dto.evidence.ClaimEvidenceUploadDTO;
@@ -11,15 +15,18 @@ import com.webgen.webgen_backend.verification.dto.evidence.CreateClaimEvidenceUp
 import com.webgen.webgen_backend.verification.dto.evidence.FinalizeClaimEvidenceUploadRequestDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.FinalizeClaimEvidenceUploadResponseDTO;
 import com.webgen.webgen_backend.verification.dto.job.AssetVerificationEnqueueDTO;
+import com.webgen.webgen_backend.verification.billing.VerificationCreditCostPolicy;
 import com.webgen.webgen_backend.verification.entity.Claim;
 import com.webgen.webgen_backend.verification.entity.ClaimEvidenceUpload;
 import com.webgen.webgen_backend.verification.repository.ClaimEvidenceUploadRepository;
 import com.webgen.webgen_backend.verification.repository.ClaimRepository;
 import com.webgen.webgen_backend.verification.service.ClaimEvidenceUploadService;
 import com.webgen.webgen_backend.verification.service.job.AssetVerificationJobService;
+import com.webgen.webgen_backend.verification.service.EvidenceRetractionService;
 import com.webgen.webgen_backend.verification.service.shared.ClaimEvidenceUploadFilePolicy;
 import com.webgen.webgen_backend.verification.service.shared.ClaimEvidenceUploadObjectVerifier;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -47,11 +54,12 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadService {
 
     private static final String STORAGE_PROVIDER_R2 = "r2";
     private static final String STATUS_UPLOADED = "uploaded";
-    private static final String STATUS_COMPLETED = "completed";
+    private static final String STATUS_QUEUED = "queued";
     private static final Duration PRESIGNED_URL_TTL = Duration.ofMinutes(15);
     private static final Duration PRESIGNED_DOWNLOAD_URL_TTL = Duration.ofMinutes(5);
 
@@ -64,6 +72,9 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
     private final ClaimEvidenceUploadFilePolicy claimEvidenceUploadFilePolicy;
     private final ClaimEvidenceUploadObjectVerifier claimEvidenceUploadObjectVerifier;
     private final AssetVerificationJobService assetVerificationJobService;
+    private final CreditGuardService creditGuardService;
+    private final EvidenceRetractionService evidenceRetractionService;
+    private final AccountDeletionStateService accountDeletionStateService;
 
     @Override
     @Transactional
@@ -72,6 +83,7 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
             UUID claimId,
             CreateClaimEvidenceUploadPresignRequestDTO request
     ) {
+        accountDeletionStateService.assertAccountActive(profileId);
         //--- Validate request payload and claim ownership
         validatePresignRequest(profileId, claimId, request);
         Claim claim = ensureClaimOwnedByProfile(profileId, claimId);
@@ -145,9 +157,9 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
             UUID claimId,
             FinalizeClaimEvidenceUploadRequestDTO request
     ) {
-        System.out.println(">>> [ASSET-UPLOAD] finalize start | profileId=" + profileId
-                + " claimId=" + claimId
-                + " uploadId=" + (request == null ? null : request.getUploadId()));
+        accountDeletionStateService.assertAccountActive(profileId);
+        log.info("Asset upload finalize started profileId={} claimId={} uploadId={}",
+                profileId, claimId, request == null ? null : request.getUploadId());
 
         //--- Validate finalize request and claim ownership
         validateFinalizeRequest(profileId, claimId, request);
@@ -167,45 +179,72 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
         claimEvidenceUploadFilePolicy.assertSupportedContentType(upload.getContentType());
 
         //--- Verify object integrity in storage before marking upload completed
-        claimEvidenceUploadObjectVerifier.assertObjectIntegrity(
-                s3Client,
-                upload.getStorageBucket(),
-                upload.getStorageKey(),
-                upload.getFileSizeBytes(),
-                upload.getContentType()
-        );
+        ClaimEvidenceUploadObjectVerifier.VerifiedObjectIdentity objectIdentity =
+                claimEvidenceUploadObjectVerifier.assertObjectIntegrity(
+                        s3Client,
+                        upload.getStorageBucket(),
+                        upload.getStorageKey(),
+                        upload.getFileSizeBytes(),
+                        upload.getContentType()
+                );
+
+        UUID creditReservationId = creditGuardService.reserveUsage(
+                profileId,
+                VerificationCreditCostPolicy.ASSET_VERIFICATION_USAGE
+        ).orElse(null);
 
         //--- Transition lifecycle status and persist finalize metadata
-        upload.setStatus(STATUS_COMPLETED);
+        upload.setStatus(STATUS_QUEUED);
         upload.setAnalysisError(null);
-        upload.setMetadata(Optional.ofNullable(request.getMetadata()).orElseGet(objectMapper::createObjectNode));
+        upload.setMetadata(withVerifiedObjectIdentity(request.getMetadata(), objectIdentity));
         upload.setUpdatedAt(OffsetDateTime.now());
 
         ClaimEvidenceUpload saved = claimEvidenceUploadRepository.save(upload);
-        System.out.println(">>> [ASSET-UPLOAD] finalize persisted | uploadId=" + saved.getId()
-                + " status=" + saved.getStatus()
-                + " contentType=" + saved.getContentType()
-                + " fileSizeBytes=" + saved.getFileSizeBytes());
+        log.info("Asset upload finalize persisted uploadId={} status={} contentType={} "
+                        + "fileSizeBytes={} checksumPresent={} eTagPresent={}",
+                saved.getId(), saved.getStatus(), saved.getContentType(), saved.getFileSizeBytes(),
+                objectIdentity.checksumSha256() != null, objectIdentity.eTag() != null);
 
         //--- Enqueue asynchronous asset verification after successful finalize
         AssetVerificationEnqueueDTO enqueueDTO = AssetVerificationEnqueueDTO.builder()
                 .profileId(profileId)
                 .claimId(claimId)
                 .uploadId(saved.getId())
+                .creditReservationId(creditReservationId)
                 .storageProvider(saved.getStorageProvider())
                 .storageBucket(saved.getStorageBucket())
                 .storageKey(saved.getStorageKey())
                 .fileSizeBytes(saved.getFileSizeBytes())
                 .build();
         String jobId = assetVerificationJobService.createJobAndQueue(enqueueDTO);
-        System.out.println(">>> [ASSET-UPLOAD] verification enqueued | uploadId=" + saved.getId()
-                + " jobId=" + jobId
-                + " routingKey=asset.verification");
+        log.info("Asset verification queued profileId={} claimId={} uploadId={} jobId={}",
+                profileId, claimId, saved.getId(), jobId);
 
         return FinalizeClaimEvidenceUploadResponseDTO.builder()
                 .upload(toDto(saved))
                 .jobId(jobId)
                 .build();
+    }
+
+    private ObjectNode withVerifiedObjectIdentity(
+            JsonNode requestMetadata,
+            ClaimEvidenceUploadObjectVerifier.VerifiedObjectIdentity identity
+    ) {
+        ObjectNode metadata = requestMetadata instanceof ObjectNode objectNode
+                ? objectNode.deepCopy()
+                : objectMapper.createObjectNode();
+        ObjectNode verifiedObject = objectMapper.createObjectNode();
+        if (identity.checksumSha256() != null) {
+            verifiedObject.put("checksumSha256", identity.checksumSha256());
+        }
+        if (identity.eTag() != null) {
+            verifiedObject.put("eTag", identity.eTag());
+        }
+        if (identity.contentLength() != null) {
+            verifiedObject.put("contentLength", identity.contentLength());
+        }
+        metadata.set("verifiedObject", verifiedObject);
+        return metadata;
     }
 
     @Override
@@ -244,6 +283,8 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Upload does not belong to claim");
         }
 
+        assetVerificationJobService.refundForUploadDeletion(uploadId);
+
         //--- Delete object from storage before removing database row
         deleteObjectFromStorage(
                 s3Client,
@@ -251,8 +292,13 @@ public class ClaimEvidenceUploadServiceImpl implements ClaimEvidenceUploadServic
                 upload.getStorageKey()
         );
 
+        // Retract derived scoring inputs before deleting their source artifact.
+        int retracted = evidenceRetractionService.retractUpload(profileId, uploadId);
+
         //--- Delete persisted upload row after successful storage delete
         claimEvidenceUploadRepository.delete(upload);
+        log.info("Claim evidence upload deleted profileId={} claimId={} uploadId={} retractedEvidence={}",
+                profileId, claimId, uploadId, retracted);
     }
 
     @Override

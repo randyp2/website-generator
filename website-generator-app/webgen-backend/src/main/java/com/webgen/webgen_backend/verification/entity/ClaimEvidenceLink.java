@@ -51,6 +51,10 @@ public class ClaimEvidenceLink {
     @Column(name = "link_confidence", nullable = false)
     private BigDecimal linkConfidence;
 
+    /** Demonstrated usage depth. Null for connectors that use link confidence as strength. */
+    @Column(name = "evidence_depth")
+    private BigDecimal evidenceDepth;
+
     @Column(name = "reason")
     private String reason;
 

@@ -52,18 +52,6 @@ public interface PortfolioCrudService {
     void deletePortfolio(UUID userId, UUID portfolioId);
 
     /**
-     * Save storage upload results (resume + assets) to the DB and optionally update
-     * portfolio fields
-     * 
-     * @param userId      - UUID of the authenticated user (for ownership check)
-     * @param portfolioId - UUID of the portfolio to attach uploads to
-     * @param req         - Storage URLs and metadata forwarded from Next.js
-     * @return UploadPortfolioResponseDTO - Updated portfolio, saved resume, and
-     *         count of assets
-     */
-    UploadPortfolioResponseDTO saveUploads(UUID userId, UUID portfolioId, UploadPortfolioRequestDTO req);
-
-    /**
      * Upsert and save resume info
      *
      * @param userId     - UUID of the authenticated user (for ownership check)
@@ -100,14 +88,30 @@ public interface PortfolioCrudService {
     VersionListResponseDTO listVersions(UUID userId, UUID portfolioId);
 
     /**
-     * Activate a specific version, updating the portfolio's active_version_id
+     * Activate a specific version by RESTORING its sections snapshot into the
+     * live portfolio_sections rows and updating the portfolio's
+     * active_version_id. After activation the editor, refine pipeline, and
+     * public rendering all operate on the restored state.
      *
      * @param userId      - UUID of the authenticated user (for ownership check)
      * @param portfolioId - UUID of the portfolio
      * @param versionId   - UUID of the version to activate
      * @return ActivateVersionResponseDTO - portfolioId and new activeVersionId
+     * @throws org.springframework.web.server.ResponseStatusException 422 when
+     *         the version has no restorable snapshot
      */
     ActivateVersionResponseDTO activateVersion(UUID userId, UUID portfolioId, UUID versionId);
+
+    /**
+     * Pin the portfolio's current active version as the one served on the
+     * public site ("Publish changes" for an already-published portfolio).
+     * Requires the portfolio to be published and to have an active version.
+     *
+     * @param userId      - UUID of the authenticated user (for ownership check)
+     * @param portfolioId - UUID of the portfolio
+     * @return ActivateVersionResponseDTO - portfolioId and the pinned versionId
+     */
+    ActivateVersionResponseDTO publishActiveVersion(UUID userId, UUID portfolioId);
 
     /**
      * Verify that the authenticated user owns the given portfolio.

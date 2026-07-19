@@ -11,7 +11,7 @@ export const GET = async (
 
         const response = await fetch(
             `${backendUrl}/api/v1/public/profile/${encodeURIComponent(username)}/verification/summary`,
-            { next: { revalidate: 30 } },
+            { cache: "no-store" },
         );
 
         if (response.status === 404) {

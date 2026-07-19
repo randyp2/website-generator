@@ -18,7 +18,9 @@ export const CurrentPlanCard = ({ plan }: CurrentPlanCardProps) => {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Current plan</CardTitle>
+                <CardTitle className="text-lg font-semibold tracking-tight">
+                    Current plan
+                </CardTitle>
                 <CardDescription>
                     Manage your subscription, payment method, and billing
                     details.
@@ -44,16 +46,27 @@ export const CurrentPlanCard = ({ plan }: CurrentPlanCardProps) => {
 
                 <div className="rounded-lg border border-border px-4 py-3">
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Included Credits
+                        Monthly allowances
                     </p>
-                    <p className="mt-1 text-sm font-medium">
-                        {plan.monthlyCredits.toLocaleString()} credits monthly
-                    </p>
+                    <div className="mt-1 space-y-1 text-sm font-medium">
+                        <p>
+                            {plan.monthlyAllowances.portfolioGenerations}{" "}
+                            portfolio generations
+                        </p>
+                        <p>
+                            {plan.monthlyAllowances.portfolioRefinements}{" "}
+                            portfolio refinements
+                        </p>
+                        <p>
+                            {plan.monthlyAllowances.assetVerifications} AI
+                            verifications
+                        </p>
+                    </div>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
                     <Button asChild>
-                        <Link href="/dashboard/billing">Upgrade plan</Link>
+                        <Link href="/pricing">Upgrade plan</Link>
                     </Button>
                     <Button variant="outline" disabled={!plan.manageEnabled}>
                         Manage subscription

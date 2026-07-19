@@ -1,6 +1,4 @@
 package com.webgen.webgen_backend.portfolio.entity;
-
-import com.webgen.webgen_backend.portfolio.entity.StyleChatMessage;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -49,6 +47,11 @@ public class Portfolio {
     @Column(name = "active_version_id")
     private UUID activeVersionId;
 
+    // Version pinned to the public site; null falls back to live sections
+    // (pre-pinning portfolios). See V34 migration.
+    @Column(name = "published_version_id")
+    private UUID publishedVersionId;
+
     @Column(name = "last_step", nullable = false)
     private String lastStep;
 
@@ -59,6 +62,10 @@ public class Portfolio {
     @Column(name = "style_chat_history", nullable = false)
     private List<StyleChatMessage> styleChatHistory;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "refine_chat_history", nullable = false)
+    private List<RefineChatMessage> refineChatHistory;
+
     @Column(name = "description")
     private String description;
 
@@ -67,4 +74,7 @@ public class Portfolio {
 
     @Column(name = "external_url")
     private String externalUrl;
+
+    @Column(name = "site_verification_id")
+    private UUID siteVerificationId;
 }

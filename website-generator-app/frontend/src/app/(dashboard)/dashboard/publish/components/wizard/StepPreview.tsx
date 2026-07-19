@@ -1,15 +1,25 @@
 "use client"
 
-import { Eye, Heart, MessageCircle } from "lucide-react"
+import { useState } from "react"
+import { motion } from "framer-motion"
+import { LayoutPanelTop, Rows3 } from "lucide-react"
 
-import { LazyImage } from "@/components/ui/lazy-image"
+import type { PortfolioCard } from "@/app/(public)/(site)/explore/components/explore.types"
 import { buildPortfolioUrl } from "@/lib/public-env"
-
+import { cn } from "@/lib/utils"
 import type { Portfolio } from "@/types/portfolio"
+import type { PublicPortfolioDTO } from "@/types/public-portfolio"
+
+import type { PreviewScreenshotState } from "../../hooks/usePreviewScreenshot"
+import { ExploreCardPreview } from "./ExploreCardPreview"
+import { ExplorePagePreview } from "./ExplorePagePreview"
+import { PreviewCaptureNotice } from "./PreviewCaptureNotice"
 import type { PublishSource } from "./StepPick"
 
 const DEFAULT_PREVIEW_IMAGE =
-  "https://images.unsplash.com/photo-1545665277-5937489579f2?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+  "https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?q=80&w=1170&auto=format&fit=crop"
+
+type PreviewSurface = "page" | "card"
 
 interface StepPreviewProps {
   source: PublishSource
@@ -19,15 +29,14 @@ interface StepPreviewProps {
   description: string
   ownerName: string
   ownerAvatarUrl: string | null
+  generatedPreviewUrl: string | null
+  generatedPreviewState: PreviewScreenshotState
+  generatedPreviewError: string | null
+  externalPreviewUrl: string | null
+  externalPreviewState: PreviewScreenshotState
+  externalPreviewError: string | null
+  onExternalPreviewRetry: () => void
 }
-
-const formatTemplateLabel = (templateId: string | null | undefined): string => {
-  if (!templateId || templateId.toLowerCase() === "blank") return "Custom Build"
-  return templateId.replace(/[-_]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-}
-
-const fallbackSummary = (portfolio: Portfolio, ownerName: string) =>
-  `${formatTemplateLabel(portfolio.template_id)} portfolio by ${ownerName}.`
 
 export const StepPreview = ({
   source,
@@ -37,117 +46,130 @@ export const StepPreview = ({
   description,
   ownerName,
   ownerAvatarUrl,
+  generatedPreviewUrl,
+  generatedPreviewState,
+  generatedPreviewError,
+  externalPreviewUrl,
+  externalPreviewState,
+  externalPreviewError,
+  onExternalPreviewRetry,
 }: StepPreviewProps) => {
+  const [surface, setSurface] = useState<PreviewSurface>("page")
   const isExternal = source === "external"
   const portfolioTitle = isExternal
     ? "External Portfolio"
     : portfolio?.title ?? "Untitled Portfolio"
-  const summary = description.trim()
-    || (portfolio ? fallbackSummary(portfolio, ownerName) : `External portfolio by ${ownerName}.`)
-  const templateLabel = isExternal
-    ? "External Website"
-    : formatTemplateLabel(portfolio?.template_id)
-  const previewSrc = portfolio?.screenshot_url ?? DEFAULT_PREVIEW_IMAGE
+  const previewSrc = isExternal
+    ? externalPreviewUrl ?? DEFAULT_PREVIEW_IMAGE
+    : generatedPreviewUrl ?? DEFAULT_PREVIEW_IMAGE
+  const usingPlaceholder = isExternal
+    ? !externalPreviewUrl
+    : !generatedPreviewUrl
+  const previewState = isExternal ? externalPreviewState : generatedPreviewState
+  const previewError = isExternal ? externalPreviewError : generatedPreviewError
   const browserUrl = isExternal
     ? externalUrl || "https://yourportfolio.com"
     : buildPortfolioUrl(slug || "your-slug", ownerName)
-  const initials =
-    ownerName
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((p) => p[0] ?? "")
-      .join("")
-      .slice(0, 2)
-      .toUpperCase() || "PC"
+  const publishedAt = new Date().toISOString()
+
+  const previewPortfolio: PublicPortfolioDTO = {
+    portfolioId: portfolio ? String(portfolio.id) : "external-preview",
+    userId: "preview-owner",
+    ownerUsername: null,
+    title: portfolioTitle,
+    slug: slug || "your-slug",
+    templateId: isExternal ? null : portfolio?.template_id ?? null,
+    description: description.trim() || null,
+    sections: [],
+    globalTheme: null,
+    ownerName,
+    ownerAvatarUrl,
+    publishedAt,
+    screenshotUrl: previewSrc,
+    sourceType: isExternal ? "EXTERNAL" : "GENERATED",
+    externalUrl: isExternal ? externalUrl.trim() || null : null,
+  }
+  const previewCard: PortfolioCard = previewPortfolio
 
   return (
     <div className="space-y-4">
-      <div>
-        <p className="text-sm font-medium text-foreground">Preview your post</p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          This is how your portfolio will appear on /explore.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm font-medium text-foreground">Preview your post</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Review both public views here. Nothing opens or publishes from this preview.
+          </p>
+        </div>
+
+        <div
+          role="tablist"
+          aria-label="Portfolio preview view"
+          className="inline-flex self-start items-center rounded-full border border-border bg-background/70 p-1"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={surface === "page"}
+            onClick={() => setSurface("page")}
+            className={cn(
+              "relative inline-flex cursor-pointer items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-medium transition-colors",
+              surface === "page"
+                ? "text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {surface === "page" && (
+              <motion.span
+                layoutId="previewSurfaceThumb"
+                className="absolute inset-0 rounded-full bg-primary"
+                transition={{ type: "spring", stiffness: 500, damping: 34 }}
+              />
+            )}
+            <LayoutPanelTop className="relative z-10 size-3.5" />
+            <span className="relative z-10">Explore page</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={surface === "card"}
+            onClick={() => setSurface("card")}
+            className={cn(
+              "relative inline-flex cursor-pointer items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-medium transition-colors",
+              surface === "card"
+                ? "text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {surface === "card" && (
+              <motion.span
+                layoutId="previewSurfaceThumb"
+                className="absolute inset-0 rounded-full bg-primary"
+                transition={{ type: "spring", stiffness: 500, damping: 34 }}
+              />
+            )}
+            <Rows3 className="relative z-10 size-3.5" />
+            <span className="relative z-10">Explore card</span>
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {/* Browser frame */}
-        <div className="overflow-hidden rounded-xl border border-[#32353d] bg-[#1f2128]">
-          <div className="flex items-center gap-2 border-b border-[#32353d] bg-[#2a2d35] px-3 py-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
-            <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
-            <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
-            <div className="ml-2 min-w-0 flex-1 rounded-full border border-[#3a3f49] bg-[#17191f] px-3 py-1">
-              <p className="truncate text-[11px] text-white/75">
-                {browserUrl}
-              </p>
-            </div>
-          </div>
-          <LazyImage
-            src={previewSrc}
-            fallback="https://placehold.co/1280x720?text=Portfolio+Preview"
-            inView={true}
-            alt={`${portfolioTitle} screenshot`}
-            ratio={16 / 9}
-            aspectRatioClassName="rounded-none border-0"
-            className="rounded-none"
-          />
-        </div>
+      <PreviewCaptureNotice
+        state={previewState}
+        error={previewError}
+        external={isExternal}
+        usingPlaceholder={usingPlaceholder}
+        onRetry={onExternalPreviewRetry}
+      />
 
-        {/* Explore card mock */}
-        <div className="flex flex-col gap-2 rounded-xl border border-border bg-card/70 p-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-            /explore card
-          </p>
-          <LazyImage
-            src={previewSrc}
-            fallback="https://placehold.co/640x360?text=Portfolio+Preview"
-            inView={true}
-            alt={portfolioTitle}
-            ratio={16 / 9}
+      <div role="tabpanel">
+        {surface === "page" ? (
+          <ExplorePagePreview
+            portfolio={previewPortfolio}
+            browserUrl={browserUrl}
           />
-          <div className="space-y-2 px-1 pb-1">
-            <p className="text-[11px] text-muted-foreground">{templateLabel}</p>
-            <h3 className="line-clamp-2 text-base font-semibold leading-5 tracking-tight text-foreground">
-              {portfolioTitle}
-            </h3>
-            <p className="line-clamp-3 whitespace-pre-line text-sm text-muted-foreground">
-              {summary}
-            </p>
-            {isExternal && externalUrl.trim() && (
-              <p className="truncate text-[11px] text-primary">{externalUrl.trim()}</p>
-            )}
-            <div className="flex items-end justify-between gap-3 pt-2">
-              <div className="flex min-w-0 items-center gap-2">
-                {ownerAvatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={ownerAvatarUrl}
-                    alt={ownerName}
-                    className="size-8 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="flex size-8 items-center justify-center rounded-full bg-primary/15 text-[11px] font-semibold text-primary">
-                    {initials}
-                  </div>
-                )}
-                <p className="truncate text-xs font-medium text-foreground">
-                  {ownerName}
-                </p>
-              </div>
-              <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-                <span className="inline-flex items-center gap-1">
-                  <Heart className="size-3.5" /> 0
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <Eye className="size-3.5" /> 0
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <MessageCircle className="size-3.5" /> 0
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+        ) : (
+          <ExploreCardPreview portfolio={previewCard} />
+        )}
       </div>
     </div>
   )

@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion"
 
+import { usePortfolioCardMetricsMap } from "@/app/(public)/(site)/explore/explore.query"
 import { ExploreCard } from "@/app/(public)/(site)/explore/components/ExploreCard"
 import type { PortfolioCard } from "@/app/(public)/(site)/explore/components/explore.types"
 
@@ -14,6 +15,8 @@ const ProfilePortfoliosGrid = ({
   portfolios,
   loading,
 }: ProfilePortfoliosGridProps) => {
+  const metricsBySlug = usePortfolioCardMetricsMap(portfolios)
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -47,7 +50,11 @@ const ProfilePortfoliosGrid = ({
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
       {portfolios.map((portfolio) => (
-        <ExploreCard key={portfolio.slug} portfolio={portfolio} />
+        <ExploreCard
+          key={portfolio.slug}
+          metrics={metricsBySlug[portfolio.slug] ?? null}
+          portfolio={portfolio}
+        />
       ))}
     </div>
   )

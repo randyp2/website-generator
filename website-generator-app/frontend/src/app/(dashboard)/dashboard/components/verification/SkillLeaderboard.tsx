@@ -1,7 +1,8 @@
 "use client"
 
+import { useState } from "react"
 import { motion } from "framer-motion"
-import { AlertCircle, ChevronRight } from "lucide-react"
+import { AlertCircle, ChevronDown, ChevronRight, ChevronUp } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -14,10 +15,18 @@ import {
   getFreshnessLabel,
 } from "./verification.utils"
 
+const COLLAPSED_SKILL_LIMIT = 10
+
 const SkillLeaderboard = ({
   skills,
   onSkillClick,
 }: SkillLeaderboardProps) => {
+  const [isExpanded, setIsExpanded] = useState(false)
+  const visibleSkills = isExpanded
+    ? skills
+    : skills.slice(0, COLLAPSED_SKILL_LIMIT)
+  const hiddenSkillCount = Math.max(skills.length - COLLAPSED_SKILL_LIMIT, 0)
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -30,7 +39,7 @@ const SkillLeaderboard = ({
       </div>
 
       <div className="space-y-2">
-        {skills.map((skill, index) => {
+        {visibleSkills.map((skill, index) => {
           const freshness = getFreshnessLabel(skill.freshness)
 
           return (
@@ -109,6 +118,31 @@ const SkillLeaderboard = ({
           )
         })}
       </div>
+
+      {hiddenSkillCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setIsExpanded((current) => !current)}
+          className="mx-auto flex items-center text-xs font-medium text-muted-foreground transition-colors hover:cursor-pointer hover:text-foreground"
+          style={{
+            gap: "0.375rem",
+            borderRadius: "9999px",
+            padding: "0.5rem 0.875rem",
+          }}
+        >
+          {isExpanded ? (
+            <>
+              Show less
+              <ChevronUp className="h-3.5 w-3.5" />
+            </>
+          ) : (
+            <>
+              Read more
+              <ChevronDown className="h-3.5 w-3.5" />
+            </>
+          )}
+        </button>
+      )}
     </div>
   )
 }

@@ -5,7 +5,6 @@ import { ArrowLeft, SquareArrowOutUpRight } from "lucide-react";
 
 import { fetchPublicPortfolio } from "@/lib/api/publicPortfolio";
 import { ExplorePortfolioDescription } from "./components/ExplorePortfolioDescription";
-import { ExplorePortfolioPlaceholderCard } from "./components/ExplorePortfolioPlaceholderCard";
 import { ExplorePortfolioPreviewCard } from "./components/ExplorePortfolioPreviewCard";
 import { ExplorePortfolioSidebar } from "./components/ExplorePortfolioSidebar";
 import PortfolioComments from "./components/PortfolioComments";
@@ -14,7 +13,6 @@ import {
   getPortfolioDescriptionSnippet,
   formatTimeAgo,
   getPortfolioFullHref,
-  getPortfolioMetrics,
   splitTimeAgo,
 } from "./explore-portfolio-detail.utils";
 
@@ -46,8 +44,6 @@ const ExplorePortfolioDetailPage = async ({ params }: Props) => {
 
   const updatedAgo = formatTimeAgo(portfolio.publishedAt);
   const updatedTime = splitTimeAgo(updatedAgo);
-  const metrics = getPortfolioMetrics(portfolio.slug);
-  const heroSummary = getPortfolioDescriptionSnippet(portfolio, 280);
 
   return (
     <section className="min-h-screen bg-background px-6 py-10 sm:px-8 lg:px-12">
@@ -66,19 +62,16 @@ const ExplorePortfolioDetailPage = async ({ params }: Props) => {
                 <p className="text-xs font-semibold tracking-[0.24em] text-primary uppercase">
                   Portfolio Preview
                 </p>
-                <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                  {portfolio.title}
-                </h1>
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <p className="max-w-[56rem] flex-1 text-sm leading-6 text-muted-foreground sm:text-base">
-                    {heroSummary}
-                  </p>
-                  <div className="flex shrink-0 items-center gap-3 self-start lg:self-auto">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                    {portfolio.title}
+                  </h1>
+                  <div className="flex shrink-0 items-center gap-3 self-start sm:self-auto">
                     <Link
                       href={getPortfolioFullHref(portfolio)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-border px-4 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+                      className="public-action-button public-action-button-outline"
                     >
                       <SquareArrowOutUpRight className="size-4" />
                       Open Full Portfolio
@@ -97,16 +90,20 @@ const ExplorePortfolioDetailPage = async ({ params }: Props) => {
 
           <ExplorePortfolioSidebar
             portfolio={portfolio}
-            metrics={metrics}
             updatedTime={updatedTime}
           />
 
           <div className="flex min-w-0 flex-col gap-8">
             <ExplorePortfolioDescription portfolio={portfolio} />
-            <PortfolioComments />
+            <div id="comments" className="scroll-mt-24">
+              <PortfolioComments
+                portfolioId={portfolio.portfolioId}
+                portfolioOwnerId={portfolio.userId}
+                slug={portfolio.slug}
+              />
+            </div>
           </div>
 
-          <ExplorePortfolioPlaceholderCard username={portfolio.ownerUsername} />
         </div>
       </div>
     </section>

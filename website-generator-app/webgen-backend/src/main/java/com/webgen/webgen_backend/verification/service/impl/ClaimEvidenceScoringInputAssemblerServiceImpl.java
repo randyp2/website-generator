@@ -7,26 +7,25 @@ import com.webgen.webgen_backend.verification.entity.Skill;
 import com.webgen.webgen_backend.verification.repository.ClaimEvidenceLinkRepository;
 import com.webgen.webgen_backend.verification.repository.EvidenceRepository;
 import com.webgen.webgen_backend.verification.service.ClaimEvidenceScoringInputAssemblerService;
+import com.webgen.webgen_backend.verification.service.scoring.EvidenceLinkSignalFactory;
+import com.webgen.webgen_backend.verification.service.scoring.IndependentEvidenceSelector;
 import com.webgen.webgen_backend.verification.service.scoring.VerificationSignalPolicy;
 import com.webgen.webgen_backend.verification.service.scoring.model.EvidenceLinkSignal;
 import com.webgen.webgen_backend.verification.service.scoring.model.SkillClaimInput;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
-@RequiredArgsConstructor
 public class ClaimEvidenceScoringInputAssemblerServiceImpl
         implements ClaimEvidenceScoringInputAssemblerService {
 
@@ -36,36 +35,37 @@ public class ClaimEvidenceScoringInputAssemblerServiceImpl
      */
     private static final int TOP_K_PER_CLAIM = 10;
 
-    private static final BigDecimal ZERO = BigDecimal.ZERO;
-    private static final BigDecimal ONE = BigDecimal.ONE;
-
-    /**
-     * Exponential-decay coefficient (lambda) used by:
-     *
-     *
-     * recencyDecay(ageDays) = exp(-lambda * ageDays)
-     *
-     *
-     * Decision rationale:
-     * - lambda=0.00095 yields a half-life close to 730 days (2 years) because
-     *   lambda ~= ln(2)/halfLifeDays.
-     * - A 2-year half-life reflects that skills remain relevant beyond 9 months:
-     *   a project from 1 year ago is still at ~71% strength, and 2 years at ~50%.
-     * - Previous lambda=0.00257 (270-day half-life) decayed 1-year-old evidence to
-     *   39%, which undervalued genuinely recent skill use.
-     */
-    private static final BigDecimal RECENCY_DECAY_LAMBDA = new BigDecimal("0.00095");
-
-    /**
-     * Fixed scales keep floating-point transforms stable and auditable when
-     * serialized/logged.
-     */
-    private static final int DECAY_SCALE = 8;
-    private static final int SIGNAL_SCALE = 8;
-
     private final ClaimEvidenceLinkRepository claimEvidenceLinkRepository;
     private final EvidenceRepository evidenceRepository;
-    private final VerificationSignalPolicy verificationSignalPolicy;
+    private final EvidenceLinkSignalFactory evidenceLinkSignalFactory;
+    private final IndependentEvidenceSelector independentEvidenceSelector;
+
+    @Autowired
+    public ClaimEvidenceScoringInputAssemblerServiceImpl(
+            ClaimEvidenceLinkRepository claimEvidenceLinkRepository,
+            EvidenceRepository evidenceRepository,
+            EvidenceLinkSignalFactory evidenceLinkSignalFactory,
+            IndependentEvidenceSelector independentEvidenceSelector
+    ) {
+        this.claimEvidenceLinkRepository = claimEvidenceLinkRepository;
+        this.evidenceRepository = evidenceRepository;
+        this.evidenceLinkSignalFactory = evidenceLinkSignalFactory;
+        this.independentEvidenceSelector = independentEvidenceSelector;
+    }
+
+    /** Preserves the existing explicit-construction contract used by test harnesses. */
+    public ClaimEvidenceScoringInputAssemblerServiceImpl(
+            ClaimEvidenceLinkRepository claimEvidenceLinkRepository,
+            EvidenceRepository evidenceRepository,
+            VerificationSignalPolicy verificationSignalPolicy,
+            IndependentEvidenceSelector independentEvidenceSelector
+    ) {
+        this(
+                claimEvidenceLinkRepository,
+                evidenceRepository,
+                new EvidenceLinkSignalFactory(verificationSignalPolicy),
+                independentEvidenceSelector);
+    }
 
     @Override
     public List<SkillClaimInput> assembleSkillClaimInputs(
@@ -109,14 +109,16 @@ public class ClaimEvidenceScoringInputAssemblerServiceImpl
 
         return skillClaims.stream()
                 .map(claim -> {
-                    List<EvidenceLinkSignal> evidenceSignals = linksByClaimId
+                    List<EvidenceLinkSignal> rankedSignals = linksByClaimId
                             .getOrDefault(claim.getId(), List.of())
                             .stream()
-                            .map(link -> toEvidenceSignal(claim, link, evidenceById.get(link.getEvidenceId()), evaluationTime))
+                            .map(link -> evidenceLinkSignalFactory.create(
+                                    claim, link, evidenceById.get(link.getEvidenceId()), evaluationTime))
                             .filter(Objects::nonNull)
                             .sorted(this::compareSignals)
-                            .limit(TOP_K_PER_CLAIM)
                             .toList();
+                    List<EvidenceLinkSignal> evidenceSignals = independentEvidenceSelector.select(
+                            claim.getId(), rankedSignals, TOP_K_PER_CLAIM);
 
                     return toInput(
                             claim,
@@ -145,163 +147,6 @@ public class ClaimEvidenceScoringInputAssemblerServiceImpl
                 .filter(evidence -> evidence.getProfile() != null
                         && profileId.equals(evidence.getProfile().getId()))
                 .collect(Collectors.toMap(Evidence::getId, Function.identity()));
-    }
-
-    /**
-     * Converts one persisted claim-evidence link into normalized scoring signal.
-     */
-    private EvidenceLinkSignal toEvidenceSignal(
-            Claim claim,
-            ClaimEvidenceLink link,
-            Evidence evidence,
-            OffsetDateTime asOf
-    ) {
-        if (link == null || evidence == null) {
-            return null;
-        }
-
-        String normalizedLinkType = normalizeLinkType(link.getLinkType());
-        BigDecimal linkTypeWeight = verificationSignalPolicy.linkTypeWeight(normalizedLinkType);
-        BigDecimal boundedConfidence = clamp01(link.getLinkConfidence());
-
-        OffsetDateTime signalTimestamp = resolveSignalTimestamp(evidence);
-        int ageDays = resolveAgeDays(signalTimestamp, asOf);
-        BigDecimal recencyDecay = computeRecencyDecay(ageDays);
-
-        /*
-         * Deterministic per-link strength formula:
-         *
-         * decayedStrength =
-         *     boundedConfidence
-         *   * linkTypeWeight
-         *   * recencyDecay(ageDays)
-         *
-         * Interpretation:
-         * - confidence reflects matcher certainty in [0,1]
-         * - linkTypeWeight encodes signal quality prior
-         * - recencyDecay discounts stale evidence continuously over time
-         */
-        BigDecimal decayedStrength = boundedConfidence
-                .multiply(linkTypeWeight)
-                .multiply(recencyDecay)
-                .setScale(SIGNAL_SCALE, RoundingMode.HALF_UP);
-
-        if (ageDays >= 180 || "name_match".equals(normalizedLinkType)) {
-            String signalTimestampSource = resolveSignalTimestampSource(evidence);
-            System.out.println(String.format(
-                    "[EvidenceInput] claimId=%s rawValue=%s evidenceId=%s externalId=%s linkType=%s confidence=%s "
-                            + "signalTimestampSource=%s occurredAt=%s capturedAt=%s asOf=%s ageDays=%d recencyDecay=%s decayedStrength=%s",
-                    claim == null ? null : claim.getId(),
-                    claim == null ? null : claim.getRawValue(),
-                    evidence.getId(),
-                    evidence.getExternalId(),
-                    normalizedLinkType,
-                    boundedConfidence,
-                    signalTimestampSource,
-                    evidence.getOccurredAt(),
-                    evidence.getCapturedAt(),
-                    asOf,
-                    ageDays,
-                    recencyDecay,
-                    decayedStrength
-            ));
-        }
-
-        return new EvidenceLinkSignal(
-                evidence.getId(),
-                normalizedLinkType,
-                boundedConfidence,
-                linkTypeWeight,
-                evidence.getOccurredAt(),
-                evidence.getCapturedAt(),
-                ageDays,
-                recencyDecay,
-                decayedStrength,
-                link.getReason(),
-                evidence.getTitle(),
-                evidence.getSourceUrl(),
-                evidence.getProvider()
-        );
-    }
-
-    // Prefer event time when available; fallback to ingestion time for recency.
-    private OffsetDateTime resolveSignalTimestamp(Evidence evidence) {
-        if (evidence == null) {
-            return null;
-        }
-        return evidence.getOccurredAt() != null
-                ? evidence.getOccurredAt()
-                : evidence.getCapturedAt();
-    }
-
-    // Logs which timestamp field was selected as recency signal origin.
-    private String resolveSignalTimestampSource(Evidence evidence) {
-        if (evidence == null) {
-            return "none";
-        }
-        if (evidence.getOccurredAt() != null) {
-            return "occurredAt";
-        }
-        if (evidence.getCapturedAt() != null) {
-            return "capturedAt";
-        }
-        return "none";
-    }
-
-    // Calculates non-negative integer age in days from signal timestamp to scoring time.
-    private int resolveAgeDays(OffsetDateTime signalTimestamp, OffsetDateTime asOf) {
-        if (signalTimestamp == null || asOf == null) {
-            return 0;
-        }
-
-        long ageDays = Duration.between(signalTimestamp, asOf).toDays();
-        if (ageDays <= 0) {
-            return 0;
-        }
-        if (ageDays > Integer.MAX_VALUE) {
-            return Integer.MAX_VALUE;
-        }
-        return (int) ageDays;
-    }
-
-    /**
-     * Computes exponential recency multiplier:
-     *
-     *
-     * recencyDecay(ageDays) = exp(-lambda * ageDays)
-     *
-     *
-     * Mathematical behavior:
-     * - ageDays = 0 -> decay = 1.0 (no penalty for fresh evidence)
-     * - ageDays grows -> decay approaches 0 asymptotically
-     * - decay is strictly monotonic and smooth, avoiding step-function cliffs
-     */
-    private BigDecimal computeRecencyDecay(int ageDays) {
-        double exponent = RECENCY_DECAY_LAMBDA.negate().doubleValue() * ageDays;
-        double rawDecay = Math.exp(exponent);
-        return BigDecimal.valueOf(rawDecay).setScale(DECAY_SCALE, RoundingMode.HALF_UP);
-    }
-
-    // Lowercases + trims link type for stable weight lookup.
-    private String normalizeLinkType(String linkType) {
-        if (linkType == null || linkType.isBlank()) {
-            return "unknown";
-        }
-        return linkType.trim().toLowerCase(Locale.ROOT);
-    }
-
-    // Bounds matcher confidence to [0,1] to protect scoring math.
-    private BigDecimal clamp01(BigDecimal value) {
-        if (value == null) {
-            return ZERO;
-        }
-        if (value.compareTo(ZERO) < 0) {
-            return ZERO;
-        }
-        if (value.compareTo(ONE) > 0) {
-            return ONE;
-        }
-        return value;
     }
 
     // Sorts by decayed strength DESC, capturedAt DESC, evidenceId ASC.

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/public/profile")
@@ -27,6 +28,15 @@ public class PublicProfileVerificationController {
             @PathVariable String username
     ) {
         return publicVerificationService.getSummaryByUsername(username)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/by-id/{profileId}/verification/summary")
+    public ResponseEntity<PublicVerificationSummaryDTO> getSummaryByProfileId(
+            @PathVariable UUID profileId
+    ) {
+        return publicVerificationService.getSummaryByProfileId(profileId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }

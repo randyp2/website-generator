@@ -15,6 +15,7 @@ import com.webgen.webgen_backend.portfolio.service.pub.PublicPortfolioService;
 import com.webgen.webgen_backend.portfolio.repository.GeneratedVersionRepository;
 import com.webgen.webgen_backend.portfolio.repository.PortfolioRepository;
 import com.webgen.webgen_backend.portfolio.repository.PortfolioSectionRepository;
+import com.webgen.webgen_backend.portfolio.service.version.VersionSnapshotReader;
 import com.webgen.webgen_backend.profile.repository.ProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -35,6 +36,7 @@ public class PublicPortfolioServiceImpl implements PublicPortfolioService {
     private final ProfileRepository profileRepository;
     private final PortfolioHtmlExportService htmlExportService;
     private final ObjectMapper objectMapper;
+    private final VersionSnapshotReader versionSnapshotReader;
 
     @Override
     public Optional<PublicPortfolioDTO> getBySlug(String slug) {
@@ -45,10 +47,11 @@ public class PublicPortfolioServiceImpl implements PublicPortfolioService {
 
         Portfolio portfolio = portfolioOpt.get();
 
-        List<PortfolioSection> sections = portfolioSectionRepository
-                .findAllByPortfolioIdOrderByOrderIndexAsc(portfolio.getId());
+        // Serve the pinned published version so in-editor refinements stay
+        // private until the user publishes them
+        List<SectionDTO> servedSections = resolveServedSections(portfolio);
 
-        List<PublicSectionDTO> sectionDTOs = sections.stream().map(section -> {
+        List<PublicSectionDTO> sectionDTOs = servedSections.stream().map(section -> {
             PublicSectionDTO dto = new PublicSectionDTO();
             dto.setSectionKey(section.getSectionKey());
             dto.setTitle(section.getTitle());
@@ -58,15 +61,7 @@ public class PublicPortfolioServiceImpl implements PublicPortfolioService {
             return dto;
         }).toList();
 
-        // Load global theme from active version if one exists
-        com.fasterxml.jackson.databind.JsonNode globalTheme = null;
-        if (portfolio.getActiveVersionId() != null) {
-            Optional<GeneratedVersion> versionOpt = generatedVersionRepository
-                    .findById(portfolio.getActiveVersionId());
-            if (versionOpt.isPresent()) {
-                globalTheme = versionOpt.get().getGlobalTheme();
-            }
-        }
+        com.fasterxml.jackson.databind.JsonNode globalTheme = resolveServedTheme(portfolio);
 
         // Load owner profile
         String ownerName = null;
@@ -107,26 +102,13 @@ public class PublicPortfolioServiceImpl implements PublicPortfolioService {
 
         Portfolio portfolio = portfolioOpt.get();
 
-        List<PortfolioSection> sections = portfolioSectionRepository
-                .findAllByPortfolioIdOrderByOrderIndexAsc(portfolio.getId());
-        if (sections.isEmpty()) return Optional.empty();
+        List<SectionDTO> sectionDTOs = resolveServedSections(portfolio);
+        if (sectionDTOs.isEmpty()) return Optional.empty();
 
-        List<SectionDTO> sectionDTOs = sections.stream().map(s -> {
-            SectionDTO dto = new SectionDTO();
-            dto.setSectionKey(s.getSectionKey());
-            dto.setTitle(s.getTitle());
-            dto.setOrderIndex(s.getOrderIndex());
-            dto.setContentJson(s.getContentJson());
-            dto.setReactSource(s.getReactSource());
-            return dto;
-        }).toList();
-
-        GlobalThemeDTO globalTheme = null;
-        if (portfolio.getActiveVersionId() != null) {
-            globalTheme = generatedVersionRepository.findById(portfolio.getActiveVersionId())
-                    .map(v -> objectMapper.convertValue(v.getGlobalTheme(), GlobalThemeDTO.class))
-                    .orElse(null);
-        }
+        com.fasterxml.jackson.databind.JsonNode themeNode = resolveServedTheme(portfolio);
+        GlobalThemeDTO globalTheme = themeNode != null
+                ? objectMapper.convertValue(themeNode, GlobalThemeDTO.class)
+                : null;
 
         String html = htmlExportService.generateHtml(sectionDTOs, globalTheme, portfolio.getTitle());
         return Optional.of(html);
@@ -163,9 +145,54 @@ public class PublicPortfolioServiceImpl implements PublicPortfolioService {
 
         profileRepository.findById(portfolio.getUserId()).ifPresent(profile -> {
             card.setOwnerName(profile.getFullName());
+            card.setOwnerUsername(profile.getUsername());
             card.setOwnerAvatarUrl(profile.getAvatarUrl());
         });
 
         return card;
+    }
+
+    /*
+     * Sections shown to visitors: the pinned published version's snapshot when
+     * one exists, otherwise the live sections. The live fallback keeps
+     * portfolios published before pinning existed (null pin) rendering, and
+     * covers a pinned version whose snapshot is unreadable.
+     */
+    private List<SectionDTO> resolveServedSections(Portfolio portfolio) {
+        if (portfolio.getPublishedVersionId() != null) {
+            List<SectionDTO> pinned = generatedVersionRepository
+                    .findById(portfolio.getPublishedVersionId())
+                    .map(versionSnapshotReader::readSections)
+                    .orElse(List.of());
+            if (!pinned.isEmpty())
+                return pinned;
+        }
+
+        return portfolioSectionRepository
+                .findAllByPortfolioIdOrderByOrderIndexAsc(portfolio.getId())
+                .stream()
+                .map(section -> {
+                    SectionDTO dto = new SectionDTO();
+                    dto.setSectionKey(section.getSectionKey());
+                    dto.setTitle(section.getTitle());
+                    dto.setOrderIndex(section.getOrderIndex());
+                    dto.setContentJson(section.getContentJson());
+                    dto.setReactSource(section.getReactSource());
+                    return dto;
+                })
+                .toList();
+    }
+
+    /* Theme paired with the served sections: pinned version first, then active. */
+    private com.fasterxml.jackson.databind.JsonNode resolveServedTheme(Portfolio portfolio) {
+        UUID themeVersionId = portfolio.getPublishedVersionId() != null
+                ? portfolio.getPublishedVersionId()
+                : portfolio.getActiveVersionId();
+        if (themeVersionId == null)
+            return null;
+
+        return generatedVersionRepository.findById(themeVersionId)
+                .map(GeneratedVersion::getGlobalTheme)
+                .orElse(null);
     }
 }

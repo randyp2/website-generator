@@ -198,6 +198,14 @@ const EvidenceDetailDialog = ({ evidence, onOpenChange }: EvidenceDetailDialogPr
                   <span className={KV_KEY_CLASS}>Match type</span>
                   <span className={KV_VALUE_CLASS}>{formatLinkTypeLabel(evidence.linkType)}</span>
                 </div>
+                {evidence.sourceFile ? (
+                  <div className={KV_ROW_CLASS}>
+                    <span className={KV_KEY_CLASS}>Found in</span>
+                    <span className={`${KV_VALUE_CLASS} max-w-[60%] break-all`}>
+                      {evidence.sourceFile}
+                    </span>
+                  </div>
+                ) : null}
                 <div className={KV_ROW_CLASS}>
                   <span className={KV_KEY_CLASS}>Link confidence</span>
                   <span className={`${KV_VALUE_CLASS} ${getLinkConfidenceClass(evidence.linkConfidence)}`}>

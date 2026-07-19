@@ -14,4 +14,6 @@ public class VersionDTO {
     private String promptUsed;
     private String previewUrl;
     private boolean isActive;
+    /** True when this version is pinned to the public site. */
+    private boolean isPublished;
 }

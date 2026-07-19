@@ -17,12 +17,29 @@ export interface BillingInvoiceApiItem {
     updatedAt?: string | null;
 }
 
-export interface BillingInvoiceHistoryItem {
-    invoiceId: string;
+export interface BillingCreditPurchaseApiItem {
+    ledgerEntryId?: string | null;
+    checkoutSessionId?: string | null;
+    paymentIntentId?: string | null;
+    paymentStatus?: string | null;
+    priceKey?: string | null;
+    priceId?: string | null;
+    credits?: number | null;
+    amountPaid?: number | null;
+    currency?: string | null;
+    purchasedAt?: string | null;
+}
+
+export interface BillingHistoryItem {
+    id: string;
+    kind: "invoice" | "credit_purchase";
+    referenceId: string;
+    activityLabel: string | null;
     status: string;
     amountPaid: number | null;
     amountDue: number | null;
     currency: string | null;
+    fallbackAmountLabel: string | null;
     viewUrl: string | null;
     occurredAt: string | null;
     createdAt: string | null;

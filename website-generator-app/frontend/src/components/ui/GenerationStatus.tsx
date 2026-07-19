@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { motion } from "framer-motion";
+
+import { SpiralLoader } from "./SpiralLoader";
 
 interface GenerationStatusProps {
     statusText?: string | null;
@@ -46,20 +47,12 @@ export const GenerationStatus = ({ statusText }: GenerationStatusProps = {}) => 
     };
 
     return (
-        <motion.span
-            className="bg-[linear-gradient(110deg,#ffffff,35%,#000000,50%,#ffffff,75%,#ffffff)] bg-[length:200%_100%] bg-clip-text text-transparent text-sm font-medium"
-            initial={{ backgroundPosition: "200% 0" }}
-            animate={{
-                backgroundPosition: "-200% 0",
-            }}
-            transition={{
-                repeat: Infinity,
-                duration: 3,
-                ease: "linear",
-            }}
-        >
-            {getStatusText()}
-        </motion.span>
+        <span className="inline-flex items-center gap-2">
+            <SpiralLoader size={22} />
+            <span className="generation-status-shimmer text-sm font-medium">
+                {getStatusText()}
+            </span>
+        </span>
     );
 };
 

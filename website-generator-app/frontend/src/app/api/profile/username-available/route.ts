@@ -1,4 +1,4 @@
-import { getBackendUrl } from "@/lib/server-env";
+import { fetchBackend } from "@/lib/api/backendFetch";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -14,9 +14,8 @@ export const GET = async (req: NextRequest) => {
         }
 
         const username = req.nextUrl.searchParams.get("username") ?? "";
-        const backendUrl = getBackendUrl();
-        const response = await fetch(
-            `${backendUrl}/api/v1/profile/username-available?username=${encodeURIComponent(username)}`,
+        const response = await fetchBackend(
+            `/api/v1/profile/username-available?username=${encodeURIComponent(username)}`,
             {
                 method: "GET",
                 headers: {

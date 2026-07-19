@@ -9,6 +9,7 @@ import com.webgen.webgen_backend.portfolio.dto.style.StyleSuggestionsResponseDTO
 import com.webgen.webgen_backend.portfolio.service.crud.PortfolioCrudService;
 import com.webgen.webgen_backend.portfolio.service.style.StyleChatService;
 import com.webgen.webgen_backend.portfolio.service.style.StyleSuggestionsService;
+import com.webgen.webgen_backend.shared.ratelimit.RateLimiterService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -28,6 +29,7 @@ public class PortfolioStyleController {
     private final StyleChatService styleChatService;
     private final StyleSuggestionsService styleSuggestionsService;
     private final PortfolioCrudService portfolioCrudService;
+    private final RateLimiterService rateLimiterService;
     private final CreditGuardService creditGuardService;
 
     @PostMapping("/chat")
@@ -35,11 +37,11 @@ public class PortfolioStyleController {
         UUID userId = UUID.fromString(
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
         );
+        rateLimiterService.check("style-chat", userId.toString());
         portfolioCrudService.verifyOwnership(userId, req.getPortfolioId());
-        creditGuardService.assertHasRequiredCredits(
+        creditGuardService.assertUsageAvailable(
                 userId,
-                PortfolioCreditCostPolicy.STYLE_CHAT_REQUIRED_CREDITS,
-                "style_chat"
+                PortfolioCreditCostPolicy.GENERATE_PORTFOLIO_USAGE
         );
 
         try {
@@ -56,6 +58,8 @@ public class PortfolioStyleController {
     public ResponseEntity<StyleSuggestionsResponseDTO> suggestions(
             @RequestBody StyleSuggestionsRequestDTO req
     ) {
+        String userId = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        rateLimiterService.check("style-suggestions", userId);
         StyleSuggestionsResponseDTO response = styleSuggestionsService.getSuggestions(req);
         return ResponseEntity.ok(response);
     }

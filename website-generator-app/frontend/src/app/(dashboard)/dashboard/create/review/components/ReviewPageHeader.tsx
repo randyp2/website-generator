@@ -20,14 +20,14 @@ export const ReviewPageHeader: React.FC<ReviewPageHeaderProps> = ({
         <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="max-w-5xl mx-auto mb-8"
+            className="mx-auto mb-8 max-w-5xl"
         >
-            <div className="flex items-center justify-between mb-4">
+            <div className="mb-4 flex items-center justify-between">
                 <div>
-                    <h1 className="text-4xl font-bold text-white mb-2">
+                    <h1 className="mb-2 text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
                         Review Your Information
                     </h1>
-                    <p className="text-slate-400 text-lg max-w-2xl">
+                    <p className="max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">
                         Review and edit the information extracted from your resume
                     </p>
                 </div>
@@ -38,7 +38,7 @@ export const ReviewPageHeader: React.FC<ReviewPageHeaderProps> = ({
                     className={
                         isEditing
                             ? "h-10 cursor-pointer rounded-md border border-emerald-900/70 bg-linear-to-br from-emerald-950 via-emerald-900 to-emerald-800 px-4 text-sm font-semibold text-emerald-50 shadow-[0_10px_30px_rgba(6,78,59,0.38)] transition hover:from-emerald-900 hover:via-emerald-800 hover:to-emerald-700 hover:text-white"
-                            : "h-10 cursor-pointer rounded-md border border-white/10 bg-black/30 px-4 text-sm font-medium text-slate-200 shadow-none hover:bg-black/30 hover:text-slate-200"
+                            : "h-10 cursor-pointer rounded-md border border-border dark:border-white/10 bg-muted/60 dark:bg-black/30 px-4 text-sm font-medium text-foreground/90 shadow-none hover:bg-muted/60 dark:hover:bg-black/30 hover:text-foreground/90"
                     }
                 >
                     {isEditing ? (

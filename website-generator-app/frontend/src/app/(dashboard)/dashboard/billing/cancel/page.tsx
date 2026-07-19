@@ -13,7 +13,7 @@ import {
 
 const BillingCancelPage: React.FC = () => {
     return (
-        <div className="relative min-h-[80vh] px-4 pb-14 pt-12 md:px-6">
+        <div className="relative min-h-[80vh] px-4 pb-14 pt-12 md:px-6 lg:px-8">
             <div className="mx-auto max-w-xl">
                 <Card className="border-border bg-card shadow-lg">
                     <CardHeader className="items-start text-left">
@@ -22,7 +22,7 @@ const BillingCancelPage: React.FC = () => {
                                 :(
                             </span>
                         </div>
-                        <CardTitle className="mt-2 text-3xl font-bold text-card-foreground md:text-4xl">
+                        <CardTitle className="mt-2 text-3xl font-semibold tracking-tight text-card-foreground">
                             Payment canceled
                         </CardTitle>
                         <CardDescription className="mt-2 text-base">

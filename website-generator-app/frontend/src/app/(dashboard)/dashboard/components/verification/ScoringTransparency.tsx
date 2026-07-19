@@ -13,46 +13,41 @@ import { cn } from "@/lib/utils"
 import type { VerificationSummaryDTO } from "@/types/verification-summary"
 
 const TIER_SEGMENTS = [
-  { label: "Unverified", range: "0-20", color: "bg-zinc-500", width: "20%" },
-  { label: "Basic", range: "21-40", color: "bg-amber-400", width: "20%" },
-  { label: "Intermediate", range: "41-60", color: "bg-orange-400", width: "20%" },
-  { label: "Advanced", range: "61-80", color: "bg-orange-600", width: "20%" },
-  { label: "Expert", range: "81-100", color: "bg-rose-500", width: "20%" },
+  { label: "Incomplete", range: "0-49", color: "bg-zinc-500", width: "50%" },
+  { label: "Recognized", range: "50-59", color: "bg-amber-400", width: "10%" },
+  { label: "Corroborated", range: "60-74", color: "bg-orange-400", width: "15%" },
+  { label: "Strong", range: "75-84", color: "bg-orange-600", width: "10%" },
+  { label: "Reviewed", range: "85-100", color: "bg-rose-500", width: "15%" },
 ] as const
 
 const SCORING_RULES = [
   {
-    title: "Coverage Snapshot",
+    title: "Neutral Recognition Baseline",
     description:
-      "Coverage still shows recognized skill breadth, but it is no longer the direct baseline score formula.",
+      "Every active, recognized claim starts at 50. Unresolved claims have no baseline and rejected claims are excluded.",
   },
   {
-    title: "Source Weighting",
+    title: "Source Is Provenance",
     description:
-      "Source quality uses deterministic trust weights: resume 0.8, manual 0.5, imported 0.9.",
+      "Manual, resume, and imported sources remain visible, but they do not change verification progress.",
   },
   {
-    title: "Baseline Claim Prior Blend",
+    title: "Reviewed Range",
     description:
-      "Per claim prior = 0.70 × matchValue + 0.30 × sourceWeight, and baseline overall is the average of all claim priors.",
+      "Connector-only claims are capped at 80. Reviewed evidence gradually unlocks the cap from 80 at 85% evidence depth to 100 at 95% evidence depth.",
   },
   {
-    title: "Evidence-aware Claim Prior",
+    title: "Match Versus Depth",
     description:
-      "matchValue is deterministic: unmatched=0.00, matched=0.35 before external verification evidence.",
+      "Match confidence controls whether an upload links to a claim. Evidence depth controls scoring strength and reviewed cap progression.",
   },
   {
-    title: "Expert Reserved for LLM",
+    title: "Parser Confidence Is Diagnostic",
     description:
-      "Until LLM verification is available, claim scores are capped at 80, so Expert (81-100) is intentionally locked.",
+      "Parser confidence is retained for extraction diagnostics but has no effect on verification progress.",
   },
   {
-    title: "Parser Confidence (Optional)",
-    description:
-      "When available, parser confidence is blended as a 10% nudge to the base score.",
-  },
-  {
-    title: "Evidence Nudge (Phase 7)",
+    title: "Evidence Progress",
     description:
       "Evidence nudges matched claims from baseline toward the pre-LLM cap using strength, recency, and link frequency with diminishing returns. Overall score applies mean claim evidence delta to baseline.",
   },

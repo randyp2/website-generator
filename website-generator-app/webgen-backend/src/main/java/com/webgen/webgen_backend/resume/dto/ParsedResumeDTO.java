@@ -20,6 +20,6 @@ public class ParsedResumeDTO {
 
     // Parsing metadata
     private Double confidenceScore;
-    private String parsingMethod; // "regex", "llm", "regex_low_confidence"
+    private String parsingMethod; // "regex", "llm", "regex_low_confidence", "regex_low_quality"
 
 }

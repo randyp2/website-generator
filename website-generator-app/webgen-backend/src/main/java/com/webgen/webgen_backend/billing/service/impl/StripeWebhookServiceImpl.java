@@ -8,7 +8,7 @@ import com.stripe.net.Webhook;
 import com.webgen.webgen_backend.billing.config.StripeProperties;
 import com.webgen.webgen_backend.billing.dto.webhook.StripeWebhookProcessRequestDTO;
 import com.webgen.webgen_backend.billing.dto.webhook.StripeWebhookProcessResponseDTO;
-import com.webgen.webgen_backend.billing.model.webhook.StripeCheckoutSessionCompletedModel;
+import com.webgen.webgen_backend.billing.model.webhook.StripeCheckoutSessionSnapshotModel;
 import com.webgen.webgen_backend.billing.model.webhook.StripeInvoiceSnapshotModel;
 import com.webgen.webgen_backend.billing.model.webhook.StripeSubscriptionSnapshotModel;
 import com.webgen.webgen_backend.billing.model.webhook.StripeWebhookEventType;
@@ -215,21 +215,24 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
                     billingSubscriptionSyncService.syncSubscriptionSnapshot(snapshot);
                 }
             }
-            // --- Checkout completion events fulfill one-time purchases such as credit packs.
-            case CHECKOUT_SESSION_COMPLETED -> {
-                StripeCheckoutSessionCompletedModel snapshot = buildCheckoutSessionCompletedSnapshot(
+            // Checkout payment events fulfill one-time purchases only after payment confirmation.
+            case CHECKOUT_SESSION_COMPLETED,
+                    CHECKOUT_SESSION_ASYNC_PAYMENT_SUCCEEDED,
+                    CHECKOUT_SESSION_ASYNC_PAYMENT_FAILED -> {
+                StripeCheckoutSessionSnapshotModel snapshot = buildCheckoutSessionSnapshot(
                         stripeEventId,
+                        normalizedType,
                         payloadJson,
                         occurredAt
                 );
                 if (snapshot != null) {
                     System.out.println(">>> [StripeWebhook] dispatch -> checkout fulfillment sessionId="
                             + snapshot.getCheckoutSessionId() + " purchaseType=" + snapshot.getPurchaseType());
-                    billingCreditLedgerService.fulfillCheckoutSessionCompleted(snapshot);
+                    billingCreditLedgerService.fulfillCheckoutSession(snapshot);
                 }
             }
 
-            // --- Invoice events refresh subscription status; paid invoices also grant plan credits.
+            // Invoice events refresh subscription status; paid invoices also grant plan allowances.
             case INVOICE_PAID, INVOICE_PAYMENT_FAILED -> {
                 StripeInvoiceSnapshotModel snapshot = buildInvoiceSnapshot(
                         stripeEventId,
@@ -243,7 +246,7 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
                     billingInvoiceService.syncInvoiceSnapshot(snapshot);
                     billingSubscriptionSyncService.syncInvoiceSnapshot(snapshot);
                     if (normalizedType == StripeWebhookEventType.INVOICE_PAID) {
-                        billingCreditLedgerService.applyInvoicePaidCredits(snapshot);
+                        billingCreditLedgerService.applyInvoicePaidAllowances(snapshot);
                     }
                 }
             }
@@ -281,8 +284,9 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
                 .build();
     }
 
-    private StripeCheckoutSessionCompletedModel buildCheckoutSessionCompletedSnapshot(
+    private StripeCheckoutSessionSnapshotModel buildCheckoutSessionSnapshot(
             String stripeEventId,
+            StripeWebhookEventType eventType,
             JsonNode payloadJson,
             OffsetDateTime occurredAt
     ) {
@@ -299,9 +303,11 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
             profileId = parseUuid(textValue(objectNode, "client_reference_id"), "client_reference_id");
         }
 
-        return StripeCheckoutSessionCompletedModel.builder()
+        return StripeCheckoutSessionSnapshotModel.builder()
                 .stripeEventId(stripeEventId)
+                .eventType(eventType)
                 .checkoutSessionId(extractObjectRefId(objectNode, "id"))
+                .paymentStatus(textValue(objectNode, "payment_status"))
                 .stripeCustomerId(extractObjectRefId(objectNode, "customer"))
                 .stripeSubscriptionId(extractObjectRefId(objectNode, "subscription"))
                 .profileId(profileId)
@@ -309,6 +315,9 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
                 .priceKey(priceKey)
                 .purchaseType(metadataText(metadata, "purchase_type"))
                 .planKey(metadataText(metadata, "plan_key"))
+                .paymentIntentId(extractObjectRefId(objectNode, "payment_intent"))
+                .amountTotal(longValue(objectNode, "amount_total"))
+                .currency(textValue(objectNode, "currency"))
                 .metadata(metadata)
                 .occurredAt(occurredAt)
                 .build();

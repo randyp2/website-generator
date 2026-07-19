@@ -1,15 +1,17 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Eye, Heart, MessageCircle } from "lucide-react"
 
 import { LazyImage } from "@/components/ui/lazy-image"
+import { cn } from "@/lib/utils"
 
-import type { PortfolioCard } from "./explore.types"
+import type { PortfolioCard, PortfolioCardMetrics } from "./explore.types"
 import {
   formatPublishedDate,
+  getPortfolioCardHref,
   getPortfolioInitials,
-  getPortfolioMetrics,
   getPortfolioSummary,
   getTemplateLabel,
 } from "./explore.utils"
@@ -19,19 +21,43 @@ const DEFAULT_PREVIEW_IMAGE =
 
 interface ExploreCardProps {
   portfolio: PortfolioCard
+  metrics?: PortfolioCardMetrics | null
+  isLikePending?: boolean
+  onToggleLike?: (slug: string) => void
 }
 
-export const ExploreCard = ({ portfolio }: ExploreCardProps) => {
-  const href = `/explore/${portfolio.slug}`
+const formatMetric = (value: number | null): string =>
+  value === null ? "..." : value.toLocaleString()
+
+export const ExploreCard = ({
+  isLikePending = false,
+  portfolio,
+  metrics = null,
+  onToggleLike,
+}: ExploreCardProps) => {
+  const router = useRouter()
+  const href = getPortfolioCardHref(portfolio)
+  const commentsHref = `/explore/${portfolio.slug}#comments`
   const templateLabel = getTemplateLabel(portfolio.templateId)
   const summary = getPortfolioSummary(portfolio)
-  const metrics = getPortfolioMetrics(portfolio)
+  const metricsLoaded = metrics !== null
+  const hasLiked = metrics?.viewerHasLiked ?? false
+
+  const handleLikeClick = () => {
+    if (!metricsLoaded) return
+    onToggleLike?.(portfolio.slug)
+  }
 
   return (
-    <Link
-      href={href}
-      className="group flex flex-col gap-2 rounded-lg p-2 duration-75 hover:bg-accent-foreground/10 active:bg-accent-foreground/15 dark:hover:bg-accent/60 dark:active:bg-accent"
-    >
+    <div className="group relative flex flex-col gap-2 rounded-lg p-2 duration-75 hover:bg-accent-foreground/10 active:bg-accent-foreground/15 dark:hover:bg-accent/60 dark:active:bg-accent">
+      {/* Overlay link makes the whole card navigate while leaving the
+          metric buttons (rendered above it) independently clickable. */}
+      <Link
+        href={href}
+        aria-label={portfolio.title}
+        className="absolute inset-0 z-[1] rounded-lg"
+      />
+
       <LazyImage
         src={portfolio.screenshotUrl ?? DEFAULT_PREVIEW_IMAGE}
         fallback="https://placehold.co/640x360?text=Portfolio+Preview"
@@ -70,27 +96,47 @@ export const ExploreCard = ({ portfolio }: ExploreCardProps) => {
               <p className="truncate text-sm font-medium text-foreground">
                 {portfolio.ownerName ?? "Anonymous Creator"}
               </p>
-              <p className="truncate text-xs text-muted-foreground">
-                {templateLabel}
-              </p>
+              {portfolio.ownerUsername && (
+                <Link
+                  href={`/${portfolio.ownerUsername}`}
+                  className="relative z-10 block truncate text-xs font-medium text-primary hover:cursor-pointer"
+                >
+                  @{portfolio.ownerUsername}
+                </Link>
+              )}
             </div>
           </div>
-          <div className="flex items-center justify-end gap-4 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1.5">
-              <Heart className="size-4" />
-              <span>{metrics.likes.toLocaleString()}</span>
-            </div>
+          <div className="flex items-center justify-end gap-3 text-xs text-muted-foreground">
+            <button
+              type="button"
+              onClick={handleLikeClick}
+              disabled={!metricsLoaded || isLikePending}
+              aria-pressed={hasLiked}
+              aria-label={hasLiked ? "Unlike portfolio" : "Like portfolio"}
+              className={cn(
+                "relative z-10 flex items-center gap-1.5 rounded-md px-1 py-1 transition-colors hover:cursor-pointer hover:text-rose-500 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:text-rose-400",
+                hasLiked && "text-rose-500 dark:text-rose-400",
+              )}
+            >
+              <Heart className={cn("size-4", hasLiked && "fill-current")} />
+              <span>{formatMetric(metrics?.likes ?? null)}</span>
+            </button>
             <div className="flex items-center gap-1.5">
               <Eye className="size-4" />
-              <span>{metrics.views.toLocaleString()}</span>
+              <span>{formatMetric(metrics?.views ?? null)}</span>
             </div>
-            <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => router.push(commentsHref)}
+              aria-label="View comments"
+              className="relative z-10 flex items-center gap-1.5 rounded-md px-1 py-1 transition-colors hover:cursor-pointer hover:text-primary"
+            >
               <MessageCircle className="size-4" />
-              <span>{metrics.comments}</span>
-            </div>
+              <span>{formatMetric(metrics?.comments ?? null)}</span>
+            </button>
           </div>
         </div>
       </div>
-    </Link>
+    </div>
   )
 }

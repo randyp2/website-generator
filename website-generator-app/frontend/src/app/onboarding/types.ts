@@ -1,3 +1,5 @@
+import { type ChangeEvent } from "react";
+
 export type ProfileMeResponse = {
     username?: string | null;
     fullName?: string | null;
@@ -59,4 +61,29 @@ export type UsernameStatus = "idle" | "checking" | "available" | "unavailable";
 export type UsernameState = {
     status: UsernameStatus;
     reason: string | null;
+};
+
+export type FieldChangeHandler = (
+    field: keyof FormState,
+) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+
+export type StepBasicsProps = {
+    form: FormState;
+    usernameState: UsernameState;
+    usernameHelper: string;
+    usernamePreview: string;
+    siteHost: string;
+    onFieldChange: FieldChangeHandler;
+    onUsernameChange: (event: ChangeEvent<HTMLInputElement>) => void;
+};
+
+export type StepBackgroundProps = {
+    form: FormState;
+    onFieldChange: FieldChangeHandler;
+};
+
+export type StepLinksBioProps = {
+    form: FormState;
+    bioLength: number;
+    onFieldChange: FieldChangeHandler;
 };

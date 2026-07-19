@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from "@testing-library/react"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { createElement, type ReactNode } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import useResumeVerification from "./useResumeVerification"
@@ -28,6 +30,34 @@ const makeErrorResponse = (status = 500) => ({
   text: async () => "Server error",
 })
 
+const createQueryWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+        refetchOnWindowFocus: false,
+      },
+      mutations: {
+        retry: false,
+      },
+    },
+  })
+
+  function TestQueryProvider({ children }: { children: ReactNode }) {
+    return createElement(QueryClientProvider, { client: queryClient }, children)
+  }
+
+  return TestQueryProvider
+}
+
+const renderResumeVerificationHook = (
+  setActiveTab: Parameters<typeof useResumeVerification>[0] = vi.fn(),
+  options?: Parameters<typeof useResumeVerification>[1],
+) =>
+  renderHook(() => useResumeVerification(setActiveTab, options), {
+    wrapper: createQueryWrapper(),
+  })
+
 describe("useResumeVerification", () => {
   let fetchMock: ReturnType<typeof vi.fn>
 
@@ -45,7 +75,7 @@ describe("useResumeVerification", () => {
   it("starts with isLoadingExisting: true and no resume", () => {
     fetchMock.mockResolvedValueOnce(makeOkResponse(null))
 
-    const { result } = renderHook(() => useResumeVerification(vi.fn()))
+    const { result } = renderResumeVerificationHook()
 
     expect(result.current.isLoadingExisting).toBe(true)
     expect(result.current.resume).toBeNull()
@@ -62,7 +92,7 @@ describe("useResumeVerification", () => {
       }),
     )
 
-    const { result } = renderHook(() => useResumeVerification(vi.fn()))
+    const { result } = renderResumeVerificationHook()
 
     await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
 
@@ -75,7 +105,7 @@ describe("useResumeVerification", () => {
   it("sets isLoadingExisting to false even when hydration returns no data", async () => {
     fetchMock.mockResolvedValueOnce({ ok: true, json: async () => null })
 
-    const { result } = renderHook(() => useResumeVerification(vi.fn()))
+    const { result } = renderResumeVerificationHook()
 
     await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
 
@@ -86,7 +116,7 @@ describe("useResumeVerification", () => {
   it("sets isLoadingExisting to false when hydration fetch fails", async () => {
     fetchMock.mockResolvedValueOnce(makeErrorResponse(404))
 
-    const { result } = renderHook(() => useResumeVerification(vi.fn()))
+    const { result } = renderResumeVerificationHook()
 
     await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
 
@@ -96,7 +126,7 @@ describe("useResumeVerification", () => {
   it("sets isLoadingExisting to false when fetch throws", async () => {
     fetchMock.mockRejectedValueOnce(new Error("Network error"))
 
-    const { result } = renderHook(() => useResumeVerification(vi.fn()))
+    const { result } = renderResumeVerificationHook()
 
     await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
 
@@ -109,7 +139,7 @@ describe("useResumeVerification", () => {
     fetchMock.mockResolvedValueOnce(makeErrorResponse(204))
 
     const setActiveTab = vi.fn()
-    const { result } = renderHook(() => useResumeVerification(setActiveTab))
+    const { result } = renderResumeVerificationHook(setActiveTab)
     await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
 
     const file = makeResumeFile()
@@ -128,7 +158,7 @@ describe("useResumeVerification", () => {
 
     const revokeObjectURL = vi.spyOn(URL, "revokeObjectURL")
     const setActiveTab = vi.fn()
-    const { result } = renderHook(() => useResumeVerification(setActiveTab))
+    const { result } = renderResumeVerificationHook(setActiveTab)
     await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
 
     const first = makeResumeFile("first.pdf", "blob:first-url")
@@ -141,13 +171,31 @@ describe("useResumeVerification", () => {
     expect(result.current.resume?.name).toBe("second.pdf")
   })
 
+  it("revokes the current blob URL on unmount", async () => {
+    fetchMock.mockResolvedValueOnce(makeOkResponse(null))
+
+    const revokeObjectURL = vi.spyOn(URL, "revokeObjectURL")
+    const { result, unmount } = renderResumeVerificationHook()
+    await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
+
+    act(() => {
+      result.current.handleResumeUploaded(
+        makeResumeFile("cleanup.pdf", "blob:cleanup-url"),
+      )
+    })
+
+    unmount()
+
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:cleanup-url")
+  })
+
   // ─── handleResumeRemoved ──────────────────────────────────────────────────
 
   it("handleResumeRemoved resets state and navigates without calling DELETE when not persisted", async () => {
     fetchMock.mockResolvedValueOnce(makeErrorResponse(204))
 
     const setActiveTab = vi.fn()
-    const { result } = renderHook(() => useResumeVerification(setActiveTab))
+    const { result } = renderResumeVerificationHook(setActiveTab)
     await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
 
     act(() => { result.current.handleResumeUploaded(makeResumeFile()) })
@@ -172,17 +220,41 @@ describe("useResumeVerification", () => {
     fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({}) })
 
     const setActiveTab = vi.fn()
-    const { result } = renderHook(() => useResumeVerification(setActiveTab))
+    const { result } = renderResumeVerificationHook(setActiveTab)
     await waitFor(() => expect(result.current.hasPersisted).toBe(true))
 
     await act(async () => { await result.current.handleResumeRemoved() })
 
-    const deleteCall = fetchMock.mock.calls.find(
-      ([url, opts]: [string, RequestInit]) =>
-        url === "/api/profile/resume-verification" && opts?.method === "DELETE",
-    )
+    const deleteCall = fetchMock.mock.calls.find((call) => {
+      const [url, opts] = call as [string, RequestInit | undefined]
+      return (
+        url === "/api/profile/resume-verification" && opts?.method === "DELETE"
+      )
+    })
     expect(deleteCall).toBeDefined()
     expect(result.current.hasPersisted).toBe(false)
+  })
+
+  it("handleResumeRemoved still resets state when DELETE throws", async () => {
+    fetchMock.mockResolvedValueOnce(
+      makeOkResponse({ id: "rv-1", originalFileName: "r.pdf", fileSizeBytes: 1024 }),
+    )
+
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {})
+    const setActiveTab = vi.fn()
+    const { result } = renderResumeVerificationHook(setActiveTab)
+    await waitFor(() => expect(result.current.hasPersisted).toBe(true))
+
+    fetchMock.mockRejectedValueOnce(new Error("Delete failed"))
+
+    await act(async () => { await result.current.handleResumeRemoved() })
+
+    expect(consoleError).toHaveBeenCalledWith(
+      "Failed to delete resume verification:",
+      expect.any(Error),
+    )
+    expect(result.current.hasPersisted).toBe(false)
+    expect(setActiveTab).toHaveBeenLastCalledWith("resume-review")
   })
 
   // ─── handleContinueToSkillVerification ────────────────────────────────────
@@ -191,7 +263,7 @@ describe("useResumeVerification", () => {
     fetchMock.mockResolvedValueOnce(makeErrorResponse(204))
 
     const setActiveTab = vi.fn()
-    const { result } = renderHook(() => useResumeVerification(setActiveTab))
+    const { result } = renderResumeVerificationHook(setActiveTab)
     await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
 
     fetchMock.mockClear()
@@ -207,7 +279,7 @@ describe("useResumeVerification", () => {
     )
 
     const setActiveTab = vi.fn()
-    const { result } = renderHook(() => useResumeVerification(setActiveTab))
+    const { result } = renderResumeVerificationHook(setActiveTab)
     await waitFor(() => expect(result.current.hasPersisted).toBe(true))
 
     setActiveTab.mockClear()
@@ -223,7 +295,7 @@ describe("useResumeVerification", () => {
     // Hydration returns no resume
     fetchMock.mockResolvedValueOnce(makeErrorResponse(204))
     const setActiveTab = vi.fn()
-    const { result } = renderHook(() => useResumeVerification(setActiveTab))
+    const { result } = renderResumeVerificationHook(setActiveTab)
     await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
 
     act(() => { result.current.handleResumeUploaded(makeResumeFile()) })
@@ -244,9 +316,61 @@ describe("useResumeVerification", () => {
     expect(setActiveTab).toHaveBeenCalledWith("skill-review")
   })
 
+  it("handleContinueToSkillVerification persists parsed data and updatedAt", async () => {
+    fetchMock.mockResolvedValueOnce(makeOkResponse(null))
+    const { result } = renderResumeVerificationHook()
+    await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
+
+    act(() => { result.current.handleResumeUploaded(makeResumeFile()) })
+
+    fetchMock.mockResolvedValueOnce(makeOkResponse({ id: "rv-new" }))
+    fetchMock.mockResolvedValueOnce(
+      makeOkResponse({
+        success: true,
+        data: {
+          skills: ["React"],
+          experiences: [],
+          normalizedText: "Resume text",
+        },
+      }),
+    )
+    fetchMock.mockResolvedValueOnce(makeOkResponse({ updatedAt: "parsed-at" }))
+
+    await act(async () => { await result.current.handleContinueToSkillVerification() })
+
+    await waitFor(() => {
+      expect(result.current.parsedData).toMatchObject({ skills: ["React"] })
+      expect(result.current.resumeUpdatedAt).toBe("parsed-at")
+    })
+  })
+
+  it("handleContinueToSkillVerification stores parsingError when parsing fails", async () => {
+    fetchMock.mockResolvedValueOnce(makeOkResponse(null))
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {})
+    const { result } = renderResumeVerificationHook()
+    await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
+
+    act(() => { result.current.handleResumeUploaded(makeResumeFile()) })
+
+    fetchMock.mockResolvedValueOnce(makeOkResponse({ id: "rv-new" }))
+    fetchMock.mockResolvedValueOnce(makeErrorResponse(500))
+
+    await act(async () => { await result.current.handleContinueToSkillVerification() })
+
+    await waitFor(() => {
+      expect(result.current.parsingError).toBe(
+        "Failed to parse resume. You can add skills manually.",
+      )
+    })
+    expect(consoleError).toHaveBeenCalledWith(
+      "Resume verification parsing failed:",
+      expect.any(Error),
+    )
+  })
+
   it("handleContinueToSkillVerification sets uploadError on failure", async () => {
     fetchMock.mockResolvedValueOnce(makeErrorResponse(204))
-    const { result } = renderHook(() => useResumeVerification(vi.fn()))
+    const { result } = renderResumeVerificationHook()
     await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
 
     act(() => { result.current.handleResumeUploaded(makeResumeFile()) })
@@ -263,7 +387,7 @@ describe("useResumeVerification", () => {
 
   it("handleConfirmSkills is a no-op when resumeVerificationId is null", async () => {
     fetchMock.mockResolvedValueOnce(makeErrorResponse(204))
-    const { result } = renderHook(() => useResumeVerification(vi.fn()))
+    const { result } = renderResumeVerificationHook()
     await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
 
     fetchMock.mockClear()
@@ -278,7 +402,7 @@ describe("useResumeVerification", () => {
     )
 
     const setActiveTab = vi.fn()
-    const { result } = renderHook(() => useResumeVerification(setActiveTab))
+    const { result } = renderResumeVerificationHook(setActiveTab)
     await waitFor(() => expect(result.current.resumeVerificationId).toBe("rv-1"))
 
     // PATCH review
@@ -295,12 +419,46 @@ describe("useResumeVerification", () => {
     expect(result.current.ingestError).toBeNull()
   })
 
+  it("handleConfirmSkills keeps navigating when post-confirm refresh fails", async () => {
+    fetchMock.mockResolvedValueOnce(
+      makeOkResponse({
+        id: "rv-1",
+        originalFileName: "r.pdf",
+        fileSizeBytes: 1024,
+        parsedJson: { skills: ["React"], experiences: [] },
+      }),
+    )
+
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {})
+    const setActiveTab = vi.fn()
+    const onConfirmIngested = vi.fn().mockRejectedValue(new Error("Refresh failed"))
+    const { result } = renderResumeVerificationHook(setActiveTab, {
+      onConfirmIngested,
+    })
+    await waitFor(() => expect(result.current.resumeVerificationId).toBe("rv-1"))
+
+    fetchMock.mockResolvedValueOnce(makeOkResponse({ updatedAt: "reviewed-at" }))
+    fetchMock.mockResolvedValueOnce(makeOkResponse({ ingested: 1 }))
+
+    await act(async () => {
+      await result.current.handleConfirmSkills(["React"], [])
+    })
+
+    expect(onConfirmIngested).toHaveBeenCalled()
+    expect(consoleError).toHaveBeenCalledWith(
+      "Post-confirm verification refresh failed:",
+      expect.any(Error),
+    )
+    expect(result.current.resumeUpdatedAt).toBe("reviewed-at")
+    expect(setActiveTab).toHaveBeenLastCalledWith("skill-verification")
+  })
+
   it("handleConfirmSkills sets ingestError on failure", async () => {
     fetchMock.mockResolvedValueOnce(
       makeOkResponse({ id: "rv-1", originalFileName: "r.pdf", fileSizeBytes: 1024 }),
     )
 
-    const { result } = renderHook(() => useResumeVerification(vi.fn()))
+    const { result } = renderResumeVerificationHook()
     await waitFor(() => expect(result.current.resumeVerificationId).toBe("rv-1"))
 
     // PATCH review
@@ -320,7 +478,7 @@ describe("useResumeVerification", () => {
 
   it("saveReview is a no-op when resumeVerificationId is null", async () => {
     fetchMock.mockResolvedValueOnce(makeErrorResponse(204))
-    const { result } = renderHook(() => useResumeVerification(vi.fn()))
+    const { result } = renderResumeVerificationHook()
     await waitFor(() => expect(result.current.isLoadingExisting).toBe(false))
 
     fetchMock.mockClear()
@@ -334,17 +492,53 @@ describe("useResumeVerification", () => {
       makeOkResponse({ id: "rv-1", originalFileName: "r.pdf", fileSizeBytes: 1024 }),
     )
 
-    const { result } = renderHook(() => useResumeVerification(vi.fn()))
+    const { result } = renderResumeVerificationHook()
     await waitFor(() => expect(result.current.resumeVerificationId).toBe("rv-1"))
 
     fetchMock.mockResolvedValueOnce(makeOkResponse({}))
 
     await act(async () => { await result.current.saveReview(["React", "TypeScript"], []) })
 
-    const reviewCall = fetchMock.mock.calls.find(
-      ([url, opts]: [string, RequestInit]) =>
-        url === "/api/profile/resume-verification/review" && opts?.method === "PATCH",
-    )
+    const reviewCall = fetchMock.mock.calls.find((call) => {
+      const [url, opts] = call as [string, RequestInit | undefined]
+      return (
+        url === "/api/profile/resume-verification/review" && opts?.method === "PATCH"
+      )
+    })
     expect(reviewCall).toBeDefined()
+  })
+
+  it("saveReview updates resumeUpdatedAt from the review response", async () => {
+    fetchMock.mockResolvedValueOnce(
+      makeOkResponse({ id: "rv-1", originalFileName: "r.pdf", fileSizeBytes: 1024 }),
+    )
+
+    const { result } = renderResumeVerificationHook()
+    await waitFor(() => expect(result.current.resumeVerificationId).toBe("rv-1"))
+
+    fetchMock.mockResolvedValueOnce(makeOkResponse({ updatedAt: "autosaved-at" }))
+
+    await act(async () => { await result.current.saveReview(["React"], []) })
+
+    expect(result.current.resumeUpdatedAt).toBe("autosaved-at")
+  })
+
+  it("saveReview logs autosave errors without throwing", async () => {
+    fetchMock.mockResolvedValueOnce(
+      makeOkResponse({ id: "rv-1", originalFileName: "r.pdf", fileSizeBytes: 1024 }),
+    )
+
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {})
+    const { result } = renderResumeVerificationHook()
+    await waitFor(() => expect(result.current.resumeVerificationId).toBe("rv-1"))
+
+    fetchMock.mockRejectedValueOnce(new Error("Autosave failed"))
+
+    await act(async () => { await result.current.saveReview(["React"], []) })
+
+    expect(consoleError).toHaveBeenCalledWith(
+      "Failed to autosave review:",
+      expect.any(Error),
+    )
   })
 })

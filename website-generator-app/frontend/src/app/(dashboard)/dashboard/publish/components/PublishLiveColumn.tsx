@@ -4,7 +4,7 @@ import { FiGlobe } from "react-icons/fi"
 
 import type { Portfolio } from "@/types/portfolio"
 
-import { PublishListCard } from "./PublishListCard"
+import { PublishLiveDeck } from "./PublishLiveDeck"
 
 interface PublishLiveColumnProps {
   live: Portfolio[]
@@ -27,7 +27,7 @@ export const PublishLiveColumn = ({
 }: PublishLiveColumnProps) => (
   <section className="flex flex-col gap-3">
     <div className="flex items-center justify-between">
-      <h2 className="text-lg font-semibold text-foreground">
+      <h2 className="text-lg font-semibold tracking-tight text-foreground">
         Live — currently deployed
       </h2>
       <span className="text-xs text-muted-foreground">{live.length}</span>
@@ -43,27 +43,15 @@ export const PublishLiveColumn = ({
         </p>
       </div>
     ) : (
-      <div className="space-y-3">
-        {live.map((portfolio) => {
-          const portfolioId = String(portfolio.id)
-          const slug = portfolio.slug ?? null
-          const externalUrl =
-            (portfolio.external_url ?? portfolio.externalUrl ?? null)?.trim() || null
-          return (
-            <PublishListCard
-              key={portfolioId}
-              portfolio={portfolio}
-              variant="live"
-              ownerName={ownerName}
-              isFeatured={portfolioId === featuredPortfolioId}
-              copied={copiedSlug !== null && copiedSlug === slug}
-              onClick={() => onSelectFeatured(portfolioId)}
-              onCopyUrl={() => slug && onCopyUrl(slug, externalUrl)}
-              onUnpublish={() => onUnpublish(portfolioId)}
-            />
-          )
-        })}
-      </div>
+      <PublishLiveDeck
+        live={live}
+        ownerName={ownerName}
+        featuredPortfolioId={featuredPortfolioId}
+        copiedSlug={copiedSlug}
+        onSelectFeatured={onSelectFeatured}
+        onCopyUrl={onCopyUrl}
+        onUnpublish={onUnpublish}
+      />
     )}
   </section>
 )

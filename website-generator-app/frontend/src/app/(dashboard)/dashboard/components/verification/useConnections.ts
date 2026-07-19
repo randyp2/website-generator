@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useMemo } from "react";
 
 import type { ConnectedAccountDTO } from "@/types/connection";
 
@@ -10,6 +10,7 @@ import type {
     ConnectionSyncStatus,
     ConnectionStatus,
 } from "./verification.types";
+import { useVerificationConnectionsQuery } from "./verification.query";
 
 interface UseConnectionsReturn {
     connections: ConnectionData[];
@@ -158,53 +159,37 @@ const mergeDefaultsWithConnected = (
     );
 };
 
+const defaultConnections = PROVIDER_ORDER.map((provider) =>
+    buildDefaultConnection(provider),
+);
+
+const getErrorMessage = (error: unknown, fallback: string): string =>
+    error instanceof Error ? error.message : fallback;
+
 const useConnections = (): UseConnectionsReturn => {
-    const [connections, setConnections] = useState<ConnectionData[]>(
-        PROVIDER_ORDER.map((provider) => buildDefaultConnection(provider)),
+    const {
+        data,
+        error,
+        isError,
+        isFetching,
+        refetch: refetchConnections,
+    } = useVerificationConnectionsQuery();
+    const connections = useMemo(
+        () => (data ? mergeDefaultsWithConnected(data) : defaultConnections),
+        [data],
     );
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const refetch = useCallback(() => {
+        void refetchConnections();
+    }, [refetchConnections]);
 
-    const fetchConnections = useCallback(async () => {
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const res: Response = await fetch(
-                "/api/profile/resume-verification/connections",
-                {
-                    cache: "no-store",
-                },
-            );
-
-            if (!res.ok) {
-                throw new Error("Failed to fetch connections");
-            }
-
-            const data: ConnectedAccountDTO[] = await res.json();
-            setConnections(mergeDefaultsWithConnected(data));
-        } catch (err) {
-            console.error("Error fetching connections:", err);
-            setError(
-                err instanceof Error
-                    ? err.message
-                    : "Failed to fetch connections",
-            );
-            setConnections(
-                PROVIDER_ORDER.map((provider) =>
-                    buildDefaultConnection(provider),
-                ),
-            );
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchConnections();
-    }, [fetchConnections]);
-
-    return { connections, isLoading, error, refetch: fetchConnections };
+    return {
+        connections,
+        isLoading: isFetching,
+        error: isError
+            ? getErrorMessage(error, "Failed to fetch connections")
+            : null,
+        refetch,
+    };
 };
 
 export default useConnections;

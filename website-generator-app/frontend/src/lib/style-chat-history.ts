@@ -49,6 +49,24 @@ export const toPersistedStyleChatHistory = (
         ...(message.stylePreferences && {
             stylePreferences: message.stylePreferences,
         }),
+        ...(message.updatedStyleFields?.length && {
+            updatedStyleFields: message.updatedStyleFields,
+        }),
+        ...(message.showColorPicker && {
+            showColorPicker: message.showColorPicker,
+        }),
+        ...(message.recommendedColorPresets && {
+            recommendedColorPresets: message.recommendedColorPresets,
+        }),
+        ...(message.showTypographyPicker && {
+            showTypographyPicker: message.showTypographyPicker,
+        }),
+        ...(message.recommendedHeadingFont && {
+            recommendedHeadingFont: message.recommendedHeadingFont,
+        }),
+        ...(message.recommendedBodyFont && {
+            recommendedBodyFont: message.recommendedBodyFont,
+        }),
     }));
 
 /**
@@ -71,5 +89,23 @@ export const toUiStyleMessages = (
         }),
         ...(message.stylePreferences && {
             stylePreferences: message.stylePreferences,
+        }),
+        ...(message.updatedStyleFields?.length && {
+            updatedStyleFields: message.updatedStyleFields,
+        }),
+        ...(message.showColorPicker && {
+            showColorPicker: message.showColorPicker,
+        }),
+        ...(message.recommendedColorPresets && {
+            recommendedColorPresets: message.recommendedColorPresets,
+        }),
+        ...(message.showTypographyPicker && {
+            showTypographyPicker: message.showTypographyPicker,
+        }),
+        ...(message.recommendedHeadingFont && {
+            recommendedHeadingFont: message.recommendedHeadingFont,
+        }),
+        ...(message.recommendedBodyFont && {
+            recommendedBodyFont: message.recommendedBodyFont,
         }),
     }));

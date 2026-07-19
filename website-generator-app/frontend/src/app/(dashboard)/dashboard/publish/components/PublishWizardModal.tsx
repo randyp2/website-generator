@@ -1,25 +1,45 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { FiArrowLeft, FiArrowRight, FiGlobe, FiX } from "react-icons/fi";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence, useAnimation } from "framer-motion";
+import {
+    FiAlertTriangle,
+    FiArrowLeft,
+    FiArrowRight,
+    FiCheck,
+    FiGlobe,
+    FiX,
+} from "react-icons/fi";
 
+import { Button } from "@/components/ui/button";
 import { buildPortfolioUrl } from "@/lib/public-env";
-import { cn } from "@/lib/utils";
 import type { Portfolio } from "@/types/portfolio";
 
+import { useSiteOwnershipChallenge } from "../hooks/useSiteOwnershipChallenge";
+import { useGeneratedPortfolioPreview } from "../hooks/useGeneratedPortfolioPreview";
+import { useExternalPortfolioPreview } from "../hooks/useExternalPortfolioPreview";
 import { StepIndicator, type WizardStepDef } from "./wizard/StepIndicator";
 import { StepPick, type PublishSource } from "./wizard/StepPick";
 import { StepSlug } from "./wizard/StepSlug";
 import { StepDetails } from "./wizard/StepDetails";
 import { StepPreview } from "./wizard/StepPreview";
 import { StepPublish, type PublishActionState } from "./wizard/StepPublish";
+import { StepVerify } from "./wizard/StepVerify";
 
 const SLUG_REGEX = /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/;
-const URL_REGEX = /^https?:\/\/[^\s/$.?#].[^\s]*$/i;
+const URL_REGEX = /^https:\/\/[^\s/$.?#].[^\s]*$/i;
 
-const STEPS: WizardStepDef[] = [
+const GENERATED_STEPS: WizardStepDef[] = [
     { key: "pick", label: "Pick" },
+    { key: "slug", label: "Slug" },
+    { key: "details", label: "Details" },
+    { key: "preview", label: "Preview" },
+    { key: "publish", label: "Publish" },
+];
+
+const EXTERNAL_STEPS: WizardStepDef[] = [
+    { key: "pick", label: "Pick" },
+    { key: "verify", label: "Verify" },
     { key: "slug", label: "Slug" },
     { key: "details", label: "Details" },
     { key: "preview", label: "Preview" },
@@ -30,6 +50,7 @@ interface PublishWizardModalProps {
     drafts: Portfolio[];
     ownerName: string;
     ownerAvatarUrl: string | null;
+    initialPortfolioId?: string | null;
     onClose: () => void;
     onPublished: (
         portfolioId: string,
@@ -42,26 +63,59 @@ export const PublishWizardModal = ({
     drafts,
     ownerName,
     ownerAvatarUrl,
+    initialPortfolioId = null,
     onClose,
     onPublished,
 }: PublishWizardModalProps) => {
-    const [currentStep, setCurrentStep] = useState(0);
+    // When a specific draft is preselected (e.g. the user clicked a draft card),
+    // step 1 ("Pick") is already complete, so open the wizard on step 2 ("Slug").
+    const initialDraft = initialPortfolioId
+        ? drafts.find((p) => String(p.id) === initialPortfolioId) ?? null
+        : null;
+
+    const [currentStep, setCurrentStep] = useState(initialDraft ? 1 : 0);
     const [direction, setDirection] = useState(1);
     const [source, setSource] = useState<PublishSource>("generated");
     const [externalUrl, setExternalUrl] = useState("");
     const [selectedPortfolioId, setSelectedPortfolioId] = useState<
         string | null
-    >(null);
-    const [slugInput, setSlugInput] = useState("");
+    >(initialDraft ? String(initialDraft.id) : null);
+    const [slugInput, setSlugInput] = useState(initialDraft?.slug ?? "");
     const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
     const [slugChecking, setSlugChecking] = useState(false);
-    const [descriptionInput, setDescriptionInput] = useState("");
+    const [descriptionInput, setDescriptionInput] = useState(
+        initialDraft?.description ?? "",
+    );
     const [publishState, setPublishState] =
         useState<PublishActionState>("idle");
     const [publishError, setPublishError] = useState<string | null>(null);
     const [publishedSlug, setPublishedSlug] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
     const slugCheckTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const siteChallenge = useSiteOwnershipChallenge();
+    const [verifyError, setVerifyError] = useState<string | null>(null);
+    const modalControls = useAnimation();
+
+    // Drive the modal entrance through controls so the same animation channel
+    // can later run the failure shake without redefining the mount transition.
+    useEffect(() => {
+        void modalControls.start({
+            scale: 1,
+            opacity: 1,
+            transition: { duration: 0.2 },
+        });
+    }, [modalControls]);
+
+    const triggerVerifyFailure = useCallback(
+        (message: string) => {
+            setVerifyError(message);
+            void modalControls.start({
+                x: [0, -12, 12, -10, 10, -6, 6, 0],
+                transition: { duration: 0.5, ease: "easeInOut" },
+            });
+        },
+        [modalControls],
+    );
 
     const selectedPortfolio = useMemo(
         () => drafts.find((p) => String(p.id) === selectedPortfolioId) ?? null,
@@ -74,17 +128,37 @@ export const PublishWizardModal = ({
         selectedPortfolio?.slug && selectedPortfolio.slug === slugInput,
     );
     const slugReady = slugIsValid && (slugAvailable === true || isUnchanged);
+    const steps = source === "external" ? EXTERNAL_STEPS : GENERATED_STEPS;
+    const currentStepKey = steps[currentStep]?.key ?? "pick";
+    const isVerified = siteChallenge.challenge?.status === "VERIFIED";
+    const generatedPreview = useGeneratedPortfolioPreview(
+        source === "generated" && selectedPortfolio
+            ? String(selectedPortfolio.id)
+            : null,
+        source === "generated" &&
+            ["details", "preview", "publish"].includes(currentStepKey),
+    );
+    const externalPreview = useExternalPortfolioPreview(
+        source === "external" && isVerified && siteChallenge.challenge
+            ? siteChallenge.challenge.verificationId
+            : null,
+        source === "external" &&
+            isVerified &&
+            ["slug", "details", "preview", "publish"].includes(currentStepKey),
+    );
 
     const canAdvance = (() => {
-        switch (currentStep) {
-            case 0:
+        switch (currentStepKey) {
+            case "pick":
                 return source === "generated"
                     ? Boolean(selectedPortfolioId)
-                    : externalUrlReady;
-            case 1:
+                    : externalUrlReady && siteChallenge.status !== "loading";
+            case "verify":
+                return siteChallenge.challenge?.status === "VERIFIED";
+            case "slug":
                 return slugReady;
-            case 2:
-            case 3:
+            case "details":
+            case "preview":
                 return true;
             default:
                 return false;
@@ -125,6 +199,7 @@ export const PublishWizardModal = ({
 
     const handleSelectPortfolio = (portfolioId: string) => {
         setSource("generated");
+        siteChallenge.reset();
         setSelectedPortfolioId(portfolioId);
         const next = drafts.find((p) => String(p.id) === portfolioId);
         setDescriptionInput(next?.description ?? "");
@@ -140,6 +215,8 @@ export const PublishWizardModal = ({
     const handleSourceChange = (nextSource: PublishSource) => {
         setSource(nextSource);
         setPublishError(null);
+        setVerifyError(null);
+        siteChallenge.reset();
         if (nextSource === "generated") {
             return;
         }
@@ -149,29 +226,70 @@ export const PublishWizardModal = ({
         setSlugAvailable(null);
     };
 
-    const goNext = () => {
+    const handleExternalUrlChange = (value: string) => {
+        setExternalUrl(value);
+        setPublishError(null);
+        setVerifyError(null);
+        siteChallenge.reset();
+    };
+
+    const goNext = async () => {
+        if (
+            currentStepKey === "verify" &&
+            siteChallenge.challenge?.status !== "VERIFIED"
+        ) {
+            setVerifyError(null);
+            const result = await siteChallenge.verifyChallenge();
+            if (result?.status === "VERIFIED") {
+                setDirection(1);
+                setCurrentStep((step) =>
+                    Math.min(step + 1, steps.length - 1),
+                );
+                return;
+            }
+            triggerVerifyFailure(
+                siteChallenge.error ??
+                    "The verification meta tag was not found on your site. Make sure it's added and deployed, then try again.",
+            );
+            return;
+        }
         if (!canAdvance) return;
+        if (currentStepKey === "pick" && source === "external") {
+            const challenge = await siteChallenge.createChallenge(externalUrl);
+            if (!challenge) return;
+        }
         setDirection(1);
-        setCurrentStep((s) => Math.min(s + 1, STEPS.length - 1));
+        setCurrentStep((step) => Math.min(step + 1, steps.length - 1));
     };
 
     const goBack = () => {
         if (currentStep === 0) return;
+        setVerifyError(null);
         setDirection(-1);
         setCurrentStep((s) => Math.max(s - 1, 0));
     };
 
     const jumpTo = (step: number) => {
         if (step >= currentStep) return;
+        setVerifyError(null);
         setDirection(-1);
         setCurrentStep(step);
     };
 
     const handlePublish = async () => {
         const isExternalSource = source === "external";
+        const verifiedChallenge =
+            siteChallenge.challenge?.status === "VERIFIED"
+                ? siteChallenge.challenge
+                : null;
         if (isExternalSource && !externalUrlReady) {
             setPublishState("error");
             setPublishError("Please provide a valid external URL.");
+            return;
+        }
+        if (isExternalSource && !verifiedChallenge) {
+            setPublishState("error");
+            setPublishError("Website ownership verification is required.");
             return;
         }
 
@@ -182,6 +300,7 @@ export const PublishWizardModal = ({
                 | {
                       sourceType: "EXTERNAL";
                       externalUrl: string;
+                      siteVerificationId: string;
                       slug: string | null;
                       description: string;
                   }
@@ -193,9 +312,11 @@ export const PublishWizardModal = ({
                   };
 
             if (isExternalSource) {
+                if (!verifiedChallenge) return;
                 payload = {
                     sourceType: "EXTERNAL",
                     externalUrl: externalUrl.trim(),
+                    siteVerificationId: verifiedChallenge.verificationId,
                     slug: slugInput || null,
                     description: descriptionInput,
                 };
@@ -260,14 +381,24 @@ export const PublishWizardModal = ({
         setTimeout(() => setCopied(false), 2000);
     };
 
-    const isLastStep = currentStep === STEPS.length - 1;
+    const isLastStep = currentStep === steps.length - 1;
     const isPublishLocked =
         publishState === "loading" || publishState === "success";
-    const selectedLabel = selectedPortfolio
-        ? selectedPortfolio.title
-        : source === "external" && externalUrl.trim()
-          ? externalUrl.trim()
-          : "";
+    const isChallengeLoading = siteChallenge.status === "loading";
+    const nextButtonLabel = (() => {
+        if (isChallengeLoading) {
+            return currentStepKey === "verify"
+                ? "Checking website..."
+                : "Creating tag...";
+        }
+        if (currentStepKey === "verify" && !canAdvance) {
+            return "Check verification";
+        }
+        return "Next";
+    })();
+    const nextButtonDisabled = currentStepKey === "verify"
+        ? isChallengeLoading || !siteChallenge.challenge
+        : !canAdvance || isChallengeLoading;
 
     return (
         <AnimatePresence>
@@ -280,46 +411,66 @@ export const PublishWizardModal = ({
             >
                 <motion.div
                     initial={{ scale: 0.96, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
+                    animate={modalControls}
                     exit={{ scale: 0.96, opacity: 0 }}
                     onClick={(e) => e.stopPropagation()}
-                    className="w-full max-w-4xl overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
+                    className={`flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl transition-[max-width] duration-200 ${
+                        currentStepKey === "verify"
+                            ? "max-w-6xl"
+                            : currentStepKey === "preview"
+                              ? "max-w-6xl"
+                              : "max-w-4xl"
+                    }`}
                 >
                     {/* Header */}
                     <div className="flex items-start justify-between gap-3 border-b border-border px-8 py-5">
-                        <div>
+                        <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
                             <h2 className="text-2xl font-bold text-foreground">
                                 Publish portfolio
                             </h2>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                                Step {currentStep + 1} of {STEPS.length}
-                                {selectedLabel ? ` · ${selectedLabel}` : ""}
-                            </p>
+                            {verifyError ? (
+                                <div
+                                    role="alert"
+                                    className="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive"
+                                >
+                                    <FiAlertTriangle className="size-4 shrink-0" />
+                                    <span>{verifyError}</span>
+                                </div>
+                            ) : (
+                                isVerified && (
+                                    <div className="flex items-center gap-2 rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                                        <FiCheck className="size-4 shrink-0" />
+                                        <span>Website ownership verified</span>
+                                    </div>
+                                )
+                            )}
                         </div>
-                        <button
+                        <Button
                             type="button"
                             onClick={onClose}
-                            className="cursor-pointer rounded-lg border border-border bg-background p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                            variant="outline"
+                            size="icon"
                             aria-label="Close"
+                            className="cursor-pointer"
                         >
                             <FiX className="h-4 w-4" />
-                        </button>
+                        </Button>
                     </div>
 
                     {/* Step indicator */}
                     <div className="border-b border-border px-8 py-5">
                         <StepIndicator
-                            steps={STEPS}
+                            steps={steps}
                             currentStep={currentStep}
                             onJumpTo={jumpTo}
                         />
                     </div>
 
                     {/* Step body */}
-                    <div className="relative flex min-h-[360px] px-8 py-6">
+                    <div className="relative flex min-h-0 flex-1 overflow-y-auto px-8 py-6">
                         <AnimatePresence mode="wait" custom={direction}>
                             <motion.div
-                                key={STEPS[currentStep].key}
+                                key={currentStepKey}
                                 custom={direction}
                                 initial={{ opacity: 0, x: direction * 24 }}
                                 animate={{ opacity: 1, x: 0 }}
@@ -327,20 +478,35 @@ export const PublishWizardModal = ({
                                 transition={{ duration: 0.18, ease: "easeOut" }}
                                 className="w-full"
                             >
-                                {currentStep === 0 && (
-                                    <StepPick
-                                        drafts={drafts}
-                                        source={source}
-                                        externalUrl={externalUrl}
-                                        selectedPortfolioId={
-                                            selectedPortfolioId
-                                        }
-                                        onExternalUrlChange={setExternalUrl}
-                                        onSelect={handleSelectPortfolio}
-                                        onSourceChange={handleSourceChange}
-                                    />
+                                {currentStepKey === "pick" && (
+                                    <div>
+                                        <StepPick
+                                            drafts={drafts}
+                                            source={source}
+                                            externalUrl={externalUrl}
+                                            selectedPortfolioId={
+                                                selectedPortfolioId
+                                            }
+                                            onExternalUrlChange={
+                                                handleExternalUrlChange
+                                            }
+                                            onSelect={handleSelectPortfolio}
+                                            onSourceChange={handleSourceChange}
+                                        />
+                                        {siteChallenge.error && (
+                                            <p className="mt-3 text-xs text-red-400">
+                                                {siteChallenge.error}
+                                            </p>
+                                        )}
+                                    </div>
                                 )}
-                                {currentStep === 1 && (
+                                {currentStepKey === "verify" &&
+                                    siteChallenge.challenge && (
+                                        <StepVerify
+                                            challenge={siteChallenge.challenge}
+                                        />
+                                    )}
+                                {currentStepKey === "slug" && (
                                     <StepSlug
                                         ownerName={ownerName}
                                         slugInput={slugInput}
@@ -351,13 +517,13 @@ export const PublishWizardModal = ({
                                         onChange={handleSlugChange}
                                     />
                                 )}
-                                {currentStep === 2 && (
+                                {currentStepKey === "details" && (
                                     <StepDetails
                                         descriptionInput={descriptionInput}
                                         onChange={setDescriptionInput}
                                     />
                                 )}
-                                {currentStep === 3 && (
+                                {currentStepKey === "preview" && (
                                     <StepPreview
                                         source={source}
                                         externalUrl={externalUrl}
@@ -366,9 +532,30 @@ export const PublishWizardModal = ({
                                         description={descriptionInput}
                                         ownerName={ownerName}
                                         ownerAvatarUrl={ownerAvatarUrl}
+                                        generatedPreviewUrl={
+                                            generatedPreview.previewUrl
+                                        }
+                                        generatedPreviewState={
+                                            generatedPreview.state
+                                        }
+                                        generatedPreviewError={
+                                            generatedPreview.error
+                                        }
+                                        externalPreviewUrl={
+                                            externalPreview.previewUrl
+                                        }
+                                        externalPreviewState={
+                                            externalPreview.state
+                                        }
+                                        externalPreviewError={
+                                            externalPreview.error
+                                        }
+                                        onExternalPreviewRetry={
+                                            externalPreview.retry
+                                        }
                                     />
                                 )}
-                                {currentStep === 4 && (
+                                {currentStepKey === "publish" && (
                                     <StepPublish
                                         source={source}
                                         state={publishState}
@@ -387,52 +574,43 @@ export const PublishWizardModal = ({
 
                     {/* Footer */}
                     <div className="flex items-center justify-between gap-3 border-t border-border bg-background/40 px-8 py-5">
-                        <button
+                        <Button
                             type="button"
                             onClick={goBack}
                             disabled={currentStep === 0 || isPublishLocked}
-                            className={cn(
-                                "inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted",
-                                (currentStep === 0 || isPublishLocked) &&
-                                    "cursor-not-allowed opacity-40 hover:bg-background",
-                            )}
+                            variant="outline"
+                            className="gap-2 cursor-pointer disabled:cursor-not-allowed"
                         >
                             <FiArrowLeft className="h-4 w-4" />
                             Back
-                        </button>
+                        </Button>
 
                         {!isLastStep ? (
-                            <button
+                            <Button
                                 type="button"
-                                onClick={goNext}
-                                disabled={!canAdvance}
-                                className={cn(
-                                    "inline-flex cursor-pointer items-center gap-2 rounded-lg border border-primary bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90",
-                                    !canAdvance &&
-                                        "cursor-not-allowed opacity-40 hover:bg-primary",
-                                )}
+                                onClick={() => void goNext()}
+                                disabled={nextButtonDisabled}
+                                className="gap-2 cursor-pointer disabled:cursor-not-allowed"
                             >
-                                Next
-                                <FiArrowRight className="h-4 w-4" />
-                            </button>
+                                {nextButtonLabel}
+                                {!isChallengeLoading && currentStepKey !== "verify" && (
+                                    <FiArrowRight className="h-4 w-4" />
+                                )}
+                            </Button>
                         ) : (
-                            <button
+                            <Button
                                 type="button"
                                 onClick={handlePublish}
                                 disabled={isPublishLocked}
-                                className={cn(
-                                    "inline-flex cursor-pointer items-center gap-2 rounded-lg border border-primary bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90",
-                                    isPublishLocked &&
-                                        "cursor-not-allowed opacity-60 hover:bg-primary",
-                                )}
+                                className="gap-2"
                             >
                                 <FiGlobe className="h-4 w-4" />
                                 {publishState === "success"
                                       ? "Published"
                                       : publishState === "loading"
-                                        ? "Publishing..."
+                                      ? "Publishing..."
                                       : "Publish"}
-                            </button>
+                            </Button>
                         )}
                     </div>
                 </motion.div>

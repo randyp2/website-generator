@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { FiEdit3, FiEye, FiTrash2 } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import { Portfolio } from "@/types/portfolio";
+import { cn } from "@/lib/utils";
 import { StatusIndicator } from "./StatusIndicator";
 import { normalizeStatus, formatRelativeTime, resolveResumePath } from "../utils/portfolioUtils";
 
@@ -22,11 +23,17 @@ export const PortfolioListView: React.FC<PortfolioListViewProps> = ({
     const router = useRouter();
 
     return (
-        <div className="h-full divide-y divide-border overflow-y-auto [scrollbar-color:var(--primary)_var(--muted)] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb:hover]:bg-primary [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-primary/65 [&::-webkit-scrollbar-track]:bg-muted/60 [&::-webkit-scrollbar]:w-2 [&>*:last-child]:border-b [&>*:last-child]:border-border">
-            {portfolios.map((portfolio) => (
+        <div className="h-full divide-y divide-border overflow-y-auto [scrollbar-color:#52525b_var(--muted)] [scrollbar-width:thin] dark:[scrollbar-color:#d4d4d8_var(--muted)] [&::-webkit-scrollbar-thumb:hover]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-600 dark:[&::-webkit-scrollbar-thumb:hover]:bg-zinc-200 dark:[&::-webkit-scrollbar-thumb]:bg-zinc-300 [&::-webkit-scrollbar-track]:bg-muted/60 [&::-webkit-scrollbar]:w-2 [&>*:last-child]:border-b [&>*:last-child]:border-border">
+            {portfolios.map((portfolio, index) => (
                 <motion.div
                     key={portfolio.id}
-                    className="flex cursor-pointer items-center justify-between px-5 py-5 transition-all hover:bg-muted/50 md:px-6"
+                    onClick={() => router.push(resolveResumePath(portfolio))}
+                    className={cn(
+                        "flex cursor-pointer items-center justify-between px-5 py-5 transition-all hover:bg-muted/50 md:px-6",
+                        index % 2 === 0
+                            ? "bg-transparent hover:!bg-zinc-100 dark:hover:!bg-white/[0.06]"
+                            : "bg-black/[0.04] hover:!bg-zinc-200/80 dark:bg-white/[0.04] dark:hover:!bg-white/[0.08]",
+                    )}
                 >
                     <div className="flex flex-1 items-center gap-2 truncate font-medium text-foreground">
                         <span className="truncate">{portfolio.title}</span>
@@ -48,7 +55,10 @@ export const PortfolioListView: React.FC<PortfolioListViewProps> = ({
                     </div>
 
                     <div className="flex items-center justify-end gap-2">
-                        <button className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted hover:bg-muted/80 transition-colors">
+                        <button
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+                        >
                             <FiEye className="h-4 w-4 text-foreground" />
                         </button>
                         <button

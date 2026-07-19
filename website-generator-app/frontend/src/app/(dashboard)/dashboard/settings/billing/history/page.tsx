@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft } from "lucide-react";
-import InvoiceHistoryTable from "./components/InvoiceHistoryTable";
-import { fetchBillingInvoices } from "./api";
-import { filterInvoicesWithinPastYear } from "./helpers";
-import type { BillingInvoiceHistoryItem } from "./types";
+import BillingHistoryTable from "./components/BillingHistoryTable";
+import { fetchBillingHistory } from "./api";
+import { filterHistoryWithinPastYear } from "./helpers";
+import type { BillingHistoryItem } from "./types";
 
 const BillingHistoryPage = () => {
-    const [invoices, setInvoices] = useState<BillingInvoiceHistoryItem[]>([]);
+    const [items, setItems] = useState<BillingHistoryItem[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -21,18 +21,18 @@ const BillingHistoryPage = () => {
             setErrorMessage(null);
 
             try {
-                const rows = await fetchBillingInvoices({ limit: 100 });
+                const rows = await fetchBillingHistory({ limit: 100 });
 
                 if (!cancelled) {
-                    setInvoices(rows);
+                    setItems(rows);
                 }
             } catch (error) {
                 if (!cancelled) {
-                    setInvoices([]);
+                    setItems([]);
                     setErrorMessage(
                         error instanceof Error
                             ? error.message
-                            : "Unable to load billing invoices.",
+                            : "Unable to load billing history.",
                     );
                 }
             } finally {
@@ -47,20 +47,21 @@ const BillingHistoryPage = () => {
         };
     }, []);
 
-    const invoicesInPastYear = useMemo(
-        () => filterInvoicesWithinPastYear(invoices),
-        [invoices],
+    const itemsInPastYear = useMemo(
+        () => filterHistoryWithinPastYear(items),
+        [items],
     );
 
     return (
-        <section className="space-y-5">
+        <section className="space-y-6">
             <div className="flex items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-2xl font-semibold tracking-tight">
+                    <h2 className="text-xl font-semibold tracking-tight text-foreground">
                         Billing history
                     </h2>
                     <p className="text-sm text-muted-foreground">
-                        Past invoice activity synced from Stripe.
+                        Credit purchases and subscription invoices from the
+                        past year.
                     </p>
                 </div>
 
@@ -74,19 +75,19 @@ const BillingHistoryPage = () => {
             </div>
 
             {isLoading ? (
-                <div className="rounded-2xl border border-border/60 bg-card/50 px-5 py-6">
+                <div className="rounded-2xl border border-border/60 bg-card/50 p-5 md:p-6">
                     <p className="text-sm text-muted-foreground">
-                        Loading invoices...
+                        Loading billing history...
                     </p>
                 </div>
             ) : errorMessage ? (
-                <div className="rounded-2xl border border-red-500/35 bg-red-500/10 px-5 py-6">
+                <div className="rounded-2xl border border-red-500/35 bg-red-500/10 p-5 md:p-6">
                     <p className="text-sm text-red-700 dark:text-red-300">
                         {errorMessage}
                     </p>
                 </div>
             ) : (
-                <InvoiceHistoryTable invoices={invoicesInPastYear} />
+                <BillingHistoryTable items={itemsInPastYear} />
             )}
         </section>
     );

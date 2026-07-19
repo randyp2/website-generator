@@ -72,26 +72,28 @@ const PhaseBadge = ({ phase }: { phase: AssetJobPhase }) => {
     );
 };
 
-const ConfidenceRow = ({
+const VerificationMetricRow = ({
     phase,
-    confidence,
+    label,
+    value,
 }: {
     phase: AssetJobPhase | null;
-    confidence: number | null;
+    label: string;
+    value: number | null;
 }) => {
     const isPending = phase === null || phase === "QUEUED" || phase === "PROCESSING";
     const isFailed = phase === "FAILED";
 
     return (
         <div className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2">
-            <span className="text-xs text-muted-foreground">Confidence Score</span>
+            <span className="text-xs text-muted-foreground">{label}</span>
             {isPending ? (
                 <Skeleton className="h-4 w-12" />
             ) : isFailed ? (
                 <span className="text-xs text-red-500">N/A</span>
-            ) : confidence !== null ? (
+            ) : value !== null ? (
                 <span className="text-sm font-semibold text-emerald-600">
-                    {formatConfidence(confidence)}
+                    {formatConfidence(value)}
                 </span>
             ) : (
                 <Skeleton className="h-4 w-12" />
@@ -144,7 +146,7 @@ const SummaryCard = ({
 };
 
 const AssetVerificationPanel = ({ view, onBack }: AssetVerificationPanelProps) => {
-    const { phase, confidence, summary, analysisError } = useAssetVerificationStatus(
+    const { phase, matchConfidence, evidenceDepth, summary, analysisError } = useAssetVerificationStatus(
         view.claimId,
         view.uploadId,
         view.jobId,
@@ -174,7 +176,16 @@ const AssetVerificationPanel = ({ view, onBack }: AssetVerificationPanelProps) =
 
                 {phase && <PhaseBadge phase={phase} />}
 
-                <ConfidenceRow phase={phase} confidence={confidence} />
+                <VerificationMetricRow
+                    phase={phase}
+                    label="Claim Match"
+                    value={matchConfidence}
+                />
+                <VerificationMetricRow
+                    phase={phase}
+                    label="Evidence Depth"
+                    value={evidenceDepth}
+                />
             </div>
 
             <SummaryCard

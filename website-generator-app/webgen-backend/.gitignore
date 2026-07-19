@@ -57,3 +57,9 @@ dump.rdb
 
 ### Resumes ###
 src/test/resources/
+!src/test/resources/
+src/test/resources/*
+!src/test/resources/verification/
+src/test/resources/verification/*
+!src/test/resources/verification/repository-pair-calibration-source.json
+!src/test/resources/verification/repository-pair-calibration.json

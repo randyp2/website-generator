@@ -1,0 +1,519 @@
+{
+  "datasetVersion" : 2,
+  "fingerprintAlgorithmVersion" : 2,
+  "capturedAt" : "2026-07-12",
+  "snapshots" : [ {
+    "id" : "spring-petclinic-current",
+    "repositoryUrl" : "https://github.com/spring-projects/spring-petclinic/tree/51045d1648dad955df586150c1a1a6e22ef400c2",
+    "revision" : "51045d1648dad955df586150c1a1a6e22ef400c2",
+    "reviewRole" : "Current Java Spring application snapshot",
+    "minimumSampledSourceAreas" : null,
+    "fingerprint" : {
+      "algorithmVersion" : 2,
+      "exactContentHash" : "87d485e8e9e5452986215eb0d4c0358d29d02b2f28cb815f1896aa906f79eed8",
+      "sketch" : [ "0000dd21c792ae40", "000c52d5a5e9fdd9", "000f0b664383b8b7", "00117faad1572149", "002176b646981233", "002c6d8529b59fd0", "00348d43f1c6e7bc", "003d03c50ed5e91d", "004f81ea7e3f8566", "005d668dff465470", "0060dec982706be3", "00687d4649eee4f3", "006fb74307f9c9d9", "00720b4878362ade", "0083d3e2871889bf", "00905ce2deb3babb", "0092af4e9c1d0c28", "009cab8c3521707f", "009de477d2b8f617", "00b064c61a8f712d", "00c04265fab6e354", "00c66170ba966739", "00ca0738bd1f6630", "00cad18d5512b9e9", "00cf26486bd1535d", "00e6309076554455", "01045cfc3131ee8c", "010f3367d78294a5", "011424062efb2b8e", "0126b56d51332c4f", "01282da4fec2533e", "012ad3b5644c5e34", "01432f079fb2de99", "01448e9a23ef5745", "01486d75a0755d68", "01512a486b3d46d4", "015c09e21baae64a", "016922f9da1eb214", "016e79cfa22bdcdd", "0176068d45546af2", "018f089efc73b660", "01990a21f432e107", "01997c01d15b8873", "019afaa122251d4b", "01a4ef3c0b7f626f", "01ba25afd4e56ed4", "01db31a752fb19ee", "01e0a8ffed2d6b94", "01fac18103d9eddd", "021475abd989e579", "02259ca9c3684778", "022ff3461375408c", "023489fd5eed8a93", "0235ee369d42493f", "024ab546d54fcd64", "024aba152d31664f", "024cc0b1073002ed", "024f1acabbe447e6", "02511bf6f7ee460d", "026c91177d1d86d7", "026c93d278c9c26e", "027f73b87a72f6c8", "028163df83107c3d", "0290e979f68e4aa4", "0299b7dfadd2c7bb", "029f6085bceb2c9b", "029fd4894710ac99", "02a21c381efafcb6", "02b9f06f7c9d7452", "02c202f0a739cfd4", "02d08ae1125e236f", "02e96bf7b44469c1", "02eca4a42dc83333", "02f52322e60bb5b3", "03009354016f0e5b", "030bc64056a73df4", "0311807061a0feb2", "031bf57455dc58eb", "032316ed3fe77193", "032733f52767824a", "0339fe6a021536f8", "034ad776145964b6", "0381f68e16945c9a", "0385968b033f5b0b", "038a04764270dff7", "038abb941c10b62d", "039048ebb7037e1d", "03933b8074f41978", "039e982cfffe3b57", "03a443300fa546f7", "03aa1ab66144c65f", "03b02b1a4f21cf04", "03b1fe2f2aced357", "03c52a6d2bd0811c", "03ca518c2369ae37", "03d44b245728ce05", "03dbd153217efef2", "03e90f531ec9aca1", "04018e3fb9917eb0", "041e87ccf618a7f5", "042205e2c9a56aa7", "04344d8e257b2a7b", "043afb1755147910", "0448da3662b69237", "0450a6db98fe2334", "04528bb650a01fa4", "045299b266d0ba2e", "047150e733ba6f94", "04745f90488c2ec2", "048932283e4ed97e", "049bc25b59574f89", "04b9bb25713fc34a", "04ba2ccc6d2f124b", "04ca62f1e4074f35", "04e7ff3ed65347ff", "04f5aaa928022f91", "04feca391d1e79a3", "050e7bece41ebd3f", "0529dbd80e977c89", "0541280048d40c22", "0550842580a88641", "0552fc261726b3cc", "0558359d20d53a5e", "0559eeecccba6724", "057412a504938b38", "0581ae612ab78c4d", "058ea0a42d7b2c8b", "05977601d87d12f0" ],
+      "eligibleFileCount" : 80,
+      "sampledFileCount" : 8,
+      "tokenCount" : 13767,
+      "shingleCount" : 6467,
+      "sampledPaths" : [ "k8s/db.yml", "pom.xml", "src/checkstyle/nohttp-checkstyle-suppressions.xml", "src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java", "src/main/resources/db/postgres/data.sql", "src/test/java/org/springframework/samples/petclinic/owner/OwnerControllerTests.java", "src/test/java/org/springframework/samples/petclinic/owner/PetControllerTests.java", "src/test/java/org/springframework/samples/petclinic/service/ClinicServiceTests.java" ]
+    }
+  }, {
+    "id" : "spring-petclinic-older",
+    "repositoryUrl" : "https://github.com/spring-projects/spring-petclinic/tree/5149abbc90a6710fdb5e8aa0d0530b093e4a80cd",
+    "revision" : "5149abbc90a6710fdb5e8aa0d0530b093e4a80cd",
+    "reviewRole" : "Same application twenty commits earlier",
+    "minimumSampledSourceAreas" : null,
+    "fingerprint" : {
+      "algorithmVersion" : 2,
+      "exactContentHash" : "ae2e546b6074e43788a8a4a0fb2fc91169f40ddfde0fa4656e2b99c011e2b07e",
+      "sketch" : [ "0000dd21c792ae40", "000c52d5a5e9fdd9", "000f0b664383b8b7", "00117faad1572149", "002176b646981233", "002c6d8529b59fd0", "003d03c50ed5e91d", "004f81ea7e3f8566", "005d668dff465470", "0060dec982706be3", "00687d4649eee4f3", "006fb74307f9c9d9", "00720b4878362ade", "0083d3e2871889bf", "00905ce2deb3babb", "0092af4e9c1d0c28", "009cab8c3521707f", "009de477d2b8f617", "00b064c61a8f712d", "00c04265fab6e354", "00c66170ba966739", "00cad18d5512b9e9", "00cf26486bd1535d", "00d0716ba6a2bd1a", "00e6309076554455", "01045cfc3131ee8c", "010f3367d78294a5", "011424062efb2b8e", "0126b56d51332c4f", "01282da4fec2533e", "012ad3b5644c5e34", "01432f079fb2de99", "01486d75a0755d68", "01512a486b3d46d4", "015c09e21baae64a", "016922f9da1eb214", "016e79cfa22bdcdd", "0176068d45546af2", "018f089efc73b660", "01990a21f432e107", "01997c01d15b8873", "019afaa122251d4b", "01a4ef3c0b7f626f", "01ba25afd4e56ed4", "01db31a752fb19ee", "01e0a8ffed2d6b94", "01fac18103d9eddd", "021475abd989e579", "02259ca9c3684778", "022ff3461375408c", "023489fd5eed8a93", "0235ee369d42493f", "024ab546d54fcd64", "024aba152d31664f", "024cc0b1073002ed", "024f1acabbe447e6", "02511bf6f7ee460d", "026c91177d1d86d7", "026c93d278c9c26e", "027f73b87a72f6c8", "028163df83107c3d", "0290e979f68e4aa4", "0299b7dfadd2c7bb", "029f6085bceb2c9b", "029fd4894710ac99", "02a21c381efafcb6", "02b9f06f7c9d7452", "02c202f0a739cfd4", "02d08ae1125e236f", "02e96bf7b44469c1", "02eca4a42dc83333", "02f52322e60bb5b3", "03009354016f0e5b", "030bc64056a73df4", "0311807061a0feb2", "0314f29f449100ff", "031bf57455dc58eb", "032316ed3fe77193", "032733f52767824a", "0339fe6a021536f8", "034ad776145964b6", "0381f68e16945c9a", "0385968b033f5b0b", "038a04764270dff7", "038abb941c10b62d", "039048ebb7037e1d", "03933b8074f41978", "039e982cfffe3b57", "03a443300fa546f7", "03aa1ab66144c65f", "03b02b1a4f21cf04", "03b1fe2f2aced357", "03c52a6d2bd0811c", "03ca518c2369ae37", "03d44b245728ce05", "03dbd153217efef2", "03e90f531ec9aca1", "03f6d2c95ac37393", "04018e3fb9917eb0", "041e87ccf618a7f5", "042205e2c9a56aa7", "04344d8e257b2a7b", "043afb1755147910", "0448da3662b69237", "0450a6db98fe2334", "04528bb650a01fa4", "045299b266d0ba2e", "047150e733ba6f94", "04745f90488c2ec2", "049bc25b59574f89", "04b9bb25713fc34a", "04ba2ccc6d2f124b", "04ca62f1e4074f35", "04e7ff3ed65347ff", "04f5aaa928022f91", "04feca391d1e79a3", "050e7bece41ebd3f", "0529dbd80e977c89", "0541280048d40c22", "0550842580a88641", "0558359d20d53a5e", "0559eeecccba6724", "057412a504938b38", "0581ae612ab78c4d", "058ea0a42d7b2c8b", "05977601d87d12f0", "05a59323b282d03f", "05a98c420b13103a" ],
+      "eligibleFileCount" : 79,
+      "sampledFileCount" : 8,
+      "tokenCount" : 13217,
+      "shingleCount" : 6377,
+      "sampledPaths" : [ "k8s/db.yml", "pom.xml", "src/checkstyle/nohttp-checkstyle-suppressions.xml", "src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java", "src/main/resources/db/postgres/data.sql", "src/test/java/org/springframework/samples/petclinic/owner/OwnerControllerTests.java", "src/test/java/org/springframework/samples/petclinic/owner/PetControllerTests.java", "src/test/java/org/springframework/samples/petclinic/service/ClinicServiceTests.java" ]
+    }
+  }, {
+    "id" : "javafx-source",
+    "repositoryUrl" : "https://github.com/RamAlapure/JavaFXSpringBootApp/tree/7f5594aa7e7edd5f38de3323249a9b8aabe2496e",
+    "revision" : "7f5594aa7e7edd5f38de3323249a9b8aabe2496e",
+    "reviewRole" : "Original JavaFX Spring Boot example",
+    "minimumSampledSourceAreas" : null,
+    "fingerprint" : {
+      "algorithmVersion" : 2,
+      "exactContentHash" : "a6dece8b00e43f309fa3c10b4680d412349f095ecaf96170435c0e00ddf444a1",
+      "sketch" : [ "000c52d5a5e9fdd9", "001acaf9d4d9a9aa", "002239586576a104", "0028fe8aed070139", "004566c746ea9e99", "0048f194fcd9d524", "0058f565b392077b", "00905ce2deb3babb", "00a73e1d957b39a8", "00b30b2b020ddcbc", "00c18b73fd27c43e", "00dbb0d62d00d74a", "00dc6e627c503e3c", "00de3f78e73c82da", "00f12c52b4837196", "01342ec78e68c665", "013c0bf7da0c7e3f", "014e4e88c766ac0e", "01512a486b3d46d4", "016d0c77d9c1886b", "0179dc09e175e1d7", "018d7b19287631e3", "018f55a93e0a71a3", "01990a21f432e107", "01a000fc55987e55", "01ba81a724576dd7", "01bb2815b194ef8d", "01c15bba67a8021c", "01c6874e17d767be", "01ce70750324ee0c", "01fb58cc0e72d321", "02021390509aedea", "0219b408c6f24566", "0247ce85ef0592ad", "024bca908ec1e407", "024bdd2b14f90a0b", "025f8d35dd8ebc9e", "026e1cd5d4f3904a", "0293ae3d5809553c", "0299b7dfadd2c7bb", "02abf842a6a4b5ca", "02b02f1104414212", "02bc4f835a07aa8d", "02ca1e4898ee2c63", "02e0d1d22c72604d", "02e8ad7f78fa3324", "03162152bbec3089", "031861b039aed865", "03349d7a50b9c24f", "0346888bd0867986", "0353ace4c852caf2", "036184558bcafb86", "03b07b9c7ed1cb6b", "03b6a14a2a38dec0", "03c9d1b7171aad94", "03d2bc4de8cb9a92", "0416de469893dd91", "043afb1755147910", "0441a9270fdc6a36", "0471118a80eef840", "047385ae9594362c", "0485f6e79cedcbf6", "048dddf0265ee259", "049875dc76a118e8", "04c585e6af82e9e3", "04e8186c9d070dd5", "0520cf9814e6ae30", "0544996e0db58704", "0557e9b8fb0528d7", "0569f1b8a5fdd142", "0582a7668eba8082", "05b9c997fed95ac1", "05baaa7dcbf2bbf6", "05c04f72abf2b1ad", "05eba2edfe3e456b", "05fc1a4af6cedca7", "060e87d448005f5c", "061dd24d2afe6ea1", "0632936bcb4c242b", "063c1a9a8a9357dd", "0642a38c4ce70536", "0658fbbc353d4ad1", "06606f9055a1fff1", "0665e68998272b6d", "066925a113352343", "06a69a99f40fac73", "06a991bb01e4317e", "06b30824ab36c915", "06c4f0ca717cb4f9", "06c6733643b2ebd7", "06f855db1b40ac0a", "06fe20b219b1ef71", "070420daa69c3e16", "07094384f3e168e2", "070f1c381cef28d5", "0713819c0e7e6234", "072dd0cad424dd45", "0732a54b2d87243b", "073cec5746da238a", "074fabd4db262c4f", "0751d890854776df", "076a4e30acf119fa", "079e90a398d87f50", "07add155f1fac208", "07bd904ccac0abe0", "07d6992c52fe93f1", "07db06a5fcbbe45e", "0810f141d7e53648", "0816564ab7beaa92", "082907e688119270", "0849fc01b374fa48", "084c3e7c9fbd0dc3", "086a2b6190660c1a", "0899b28a8516589a", "08a5179f48ab3169", "08a874c1eb488f3f", "08a9d959f2bad31e", "08ad35eb1b709a76", "08ae7d7b8928a22b", "08be05fec41af50c", "08be48c60b74971e", "08cf745584b84b9f", "08f01bdeae198d00", "0912471983e73e29", "091f740dd4051770", "09519b7c1d38dad7", "09574eb326365eb8", "097ca24505ff628d" ],
+      "eligibleFileCount" : 15,
+      "sampledFileCount" : 8,
+      "tokenCount" : 5164,
+      "shingleCount" : 3838,
+      "sampledPaths" : [ "pom.xml", "src/main/java/com/codetreatise/Main.java", "src/main/java/com/codetreatise/bean/User.java", "src/main/java/com/codetreatise/config/AppJavaConfig.java", "src/main/java/com/codetreatise/config/StageManager.java", "src/main/java/com/codetreatise/controller/LoginController.java", "src/main/java/com/codetreatise/controller/UserController.java", "src/main/java/com/codetreatise/service/impl/UserServiceImpl.java" ]
+    }
+  }, {
+    "id" : "javafx-derivative",
+    "repositoryUrl" : "https://github.com/JinyKafe/JavaFX_CRUD_Application/tree/6f931e86efcd2604b8db7af9a4f15f26e65c51e3",
+    "revision" : "6f931e86efcd2604b8db7af9a4f15f26e65c51e3",
+    "reviewRole" : "Documented derivative with CRUD functionality and modernization",
+    "minimumSampledSourceAreas" : null,
+    "fingerprint" : {
+      "algorithmVersion" : 2,
+      "exactContentHash" : "bc939ff407a6f6f027001b07b4ee5e112ec8718968d82e13926112509a0ce6ac",
+      "sketch" : [ "000c52d5a5e9fdd9", "001acaf9d4d9a9aa", "0028fe8aed070139", "004566c746ea9e99", "005dfd56cdb73fc7", "008d8423a9c1ace5", "00905ce2deb3babb", "00b2c9fefaf276f5", "00b30b2b020ddcbc", "00bf5bb9cde8f3f5", "00d79cf0569b37ef", "00dc6e627c503e3c", "00f12c52b4837196", "00f230371e305042", "0118481b2644018a", "01342ec78e68c665", "013c0bf7da0c7e3f", "0148a9dd82962bae", "01512a486b3d46d4", "016d0c77d9c1886b", "01873516018dbba8", "018ad700fa8b3cb9", "018f55a93e0a71a3", "01990a21f432e107", "01a000fc55987e55", "01ba81a724576dd7", "02021390509aedea", "02038d6ee5320649", "021591caa345e61e", "0247ce85ef0592ad", "024bca908ec1e407", "024bdd2b14f90a0b", "025f8d35dd8ebc9e", "026e1cd5d4f3904a", "02988e11db49cb93", "0299b7dfadd2c7bb", "02a36ac73c633602", "02a57b0dd1ef28fc", "02abf842a6a4b5ca", "02ad97d3a8de966f", "02ca1e4898ee2c63", "02d646e52cdd2062", "02e0d1d22c72604d", "02e8ad7f78fa3324", "02f323dc6ea77502", "0318280b238611c0", "031861b039aed865", "032410abdf5494e0", "03341d4f72461de6", "03349d7a50b9c24f", "0354b3f16cba94eb", "035d8bbd64de96ce", "036184558bcafb86", "03620c3a129f28ad", "0376b41d39836d21", "03bdd6fdd515db9d", "03d2bc4de8cb9a92", "03dd7a8fb9a100ea", "03fb07ce963e989d", "03fe3b08dad4c11c", "04075205d678e5eb", "043afb1755147910", "0441a9270fdc6a36", "0471118a80eef840", "047385ae9594362c", "0485f6e79cedcbf6", "04c7039252f47dff", "04de157d194e531a", "04e8186c9d070dd5", "04fed0b3a18bc43f", "0505d014b2dcff73", "05112e552183a01f", "052146880769c452", "05399174220d294a", "0544996e0db58704", "0557e9b8fb0528d7", "05ab3b4cfd9ffa70", "05d10b92b62f7115", "05e41354bbf4158a", "05eba2edfe3e456b", "05fb9fc82ce901d4", "05fc1a4af6cedca7", "060e87d448005f5c", "061dd24d2afe6ea1", "063c1a9a8a9357dd", "063c5ab82cb314a6", "06565a5bcbab1073", "06606f9055a1fff1", "0665e68998272b6d", "066925a113352343", "06b30824ab36c915", "06c4f0ca717cb4f9", "06c6733643b2ebd7", "06edd0dd93f57329", "06f82a4a97baf626", "06f855db1b40ac0a", "0736ef8f005d94e8", "073cec5746da238a", "0751d890854776df", "076310badee5e339", "076a4e30acf119fa", "079a44ba6dc3bf36", "07db06a5fcbbe45e", "0810f141d7e53648", "0816564ab7beaa92", "084c3e7c9fbd0dc3", "086b1bc913d93630", "087c6bf7906c7f8e", "08a9d959f2bad31e", "08b26d0ab6bbe677", "08b3bbc279858a7d", "08be48c60b74971e", "08cf745584b84b9f", "08eb52654d466b85", "08ec6b9305dcfb68", "08f01bdeae198d00", "08fdbfa316a0b3d2", "090bd11f8298dd5b", "091f740dd4051770", "09509ba65a9cf71a", "09519b7c1d38dad7", "09574eb326365eb8", "0961358615f7a38d", "097b01d0486a2083", "09954532fa849686", "09b2860e36875dc4", "09cffd8bf274a541", "09f4c8a77b620bd1" ],
+      "eligibleFileCount" : 23,
+      "sampledFileCount" : 8,
+      "tokenCount" : 4943,
+      "shingleCount" : 3725,
+      "sampledPaths" : [ "pom.xml", "src/main/java/com/codetreatise/MainApp.java", "src/main/java/com/codetreatise/SpringbootJavaFxApplication.java", "src/main/java/com/codetreatise/model/User.java", "src/main/java/com/codetreatise/view/StageManager.java", "src/main/java/com/codetreatise/view/main/center/UserListPane.java", "src/main/java/com/codetreatise/view/main/left/UserDetailPane.java", "src/main/java/com/codetreatise/view/main/left/UserDetailPaneManager.java" ]
+    }
+  }, {
+    "id" : "ton-core-source",
+    "repositoryUrl" : "https://github.com/ton-core/ton-core/tree/e0ed819973daf0484dfbacd0c30a0dcfe4714f8d",
+    "revision" : "e0ed819973daf0484dfbacd0c30a0dcfe4714f8d",
+    "reviewRole" : "Original TypeScript TON core library",
+    "minimumSampledSourceAreas" : null,
+    "fingerprint" : {
+      "algorithmVersion" : 2,
+      "exactContentHash" : "e66a53a3706f907f71b51fd6084d6c9ae4812414457e29649aff231846fac1d6",
+      "sketch" : [ "000a28d485b3b3e7", "000e5d5593dc484f", "0015ba256b6e91bc", "0015cf592c3f5609", "001c91408430933b", "001e369530137cee", "001e9d563cf06543", "0020589eefb761bc", "002239d65c083634", "002cc144a950e31c", "002e450f14ac6fce", "002f1f29f6d6ed69", "003560010c2faa12", "005f348c19836666", "006305246941f2e8", "006be478bf26a418", "007053a7c37a6ab4", "0073c900143224c2", "0074b4ea4d2e1ea4", "007c6180910b6cab", "007de121fac80c05", "00801317f4ee9c56", "008a15301206b4a8", "0091911c1737a2ad", "009361d42a194962", "0094899f50cda5d6", "009c52a13590c488", "00a22f6b79e367ac", "00a917e5774c21d7", "00a91f42ef43e7ac", "00abc8456d1bc11e", "00ad915272b6ba1b", "00b5a25e70de4cc1", "00c7d37577035036", "00c868b5e6f1eaca", "00cd91f814147fcf", "00ce9214b6e5827b", "00d4bf47e5acb587", "00d55d8df6d6f127", "00d587bb1aa4b652", "00d673f091f01e6a", "00dd67c6a3d9db88", "00e4fc331cd9972f", "00ef56966fb54e95", "00f5cbe4600686d2", "00fa3c731d993aa4", "0100f1a8b0464545", "010e7e120bccf863", "01176d47a580e423", "011af83fdfa35212", "011ec223e5231e7b", "0126e03f23628fe9", "012cc92e89e49d65", "01417a62ab1f7112", "0143717c6e9d85db", "0157a7cd79ea4621", "015d4d74450a4db1", "0160140400886da5", "0161eaf434712b58", "016f8c3d4a5b29f4", "0175a3afea446332", "0175b7865e1c831d", "017984061d808005", "017aeefd92d19ad6", "017c5db2d4f7698a", "017e6b0c87392eae", "0193bc1ccb863b1e", "019e0f7c3990ce06", "01a287e7bb497716", "01a66578a4ddfe30", "01adcffcee73e602", "01ba81a724576dd7", "01c2fe48dd156eb5", "01cc706febf2b347", "01cc8de1c46e2db7", "01cecb33998499d5", "01d183a547810922", "01f826bfba2ce435", "02036a53e2a69cbb", "020de6daf318f7b0", "02141a127b04e752", "0216381ad0ba447c", "0220d654797b6be6", "022ce328e77132ab", "0237106ae06f88ca", "0239172f433891df", "023af90b8f8ee42f", "023e1f8fbfa42422", "0241c4055ca5bede", "0241f942c83723e1", "0244b0266ac632af", "024bdd2b14f90a0b", "0251296cb8c01cd9", "02580e86322b0505", "025a060cad48a98e", "0260021ed3490e10", "026686a2f2638e51", "02690f69f8ad4221", "026fb5507de99298", "027a6f082789de83", "0283ab86817548a6", "02846e22c69f5bd6", "0291218e44c6fb68", "0294a678f1f499c1", "02a681749c973fed", "02be287fce547e55", "02be64fe19d958ad", "02cc984e2004fab9", "02d2c9f0438d1fb5", "02d5f1d0d091ddb1", "02e310a3e8d77855", "02ee1dcc9bc937f8", "02f84f48d79f6631", "0304225402cee849", "0306aeda0415f55b", "0307e6d4dc500768", "03129b03b7b6b135", "03137ad8596ff5ea", "0323fbfd6cea0299", "03259a745a49ce94", "0340254542a371e7", "034cc513096a748b", "034cce86c4832716", "034d3428d5f99d56", "0351cf6b7afb7788", "036ed1a6506f307c", "03709ba1a89654a6", "0373d5b033d0d20a" ],
+      "eligibleFileCount" : 121,
+      "sampledFileCount" : 8,
+      "tokenCount" : 13803,
+      "shingleCount" : 9514,
+      "sampledPaths" : [ "src/address/Address.ts", "src/boc/BitBuilder.spec.ts", "src/contract/openContract.ts", "src/dict/Dictionary.ts", "src/index.ts", "src/tuple/tuple.ts", "src/types/TransactionDescription.ts", "src/utils/getMethodId.ts" ]
+    }
+  }, {
+    "id" : "ton-core-fork",
+    "repositoryUrl" : "https://github.com/ton-org/ton-core/tree/5aa5d6deb7f68b488563ca92c713c525605b7d5d",
+    "revision" : "5aa5d6deb7f68b488563ca92c713c525605b7d5d",
+    "reviewRole" : "Maintained organization fork of TON core",
+    "minimumSampledSourceAreas" : null,
+    "fingerprint" : {
+      "algorithmVersion" : 2,
+      "exactContentHash" : "c003e725826b58517e998a0ae0e49eb361a8647240cf86fa2939f0fffa53f87e",
+      "sketch" : [ "000a28d485b3b3e7", "000e5d5593dc484f", "001046e08ffdbd06", "0015ba256b6e91bc", "001e369530137cee", "001e6542558792ce", "0020589eefb761bc", "0028e585cf773586", "002e450f14ac6fce", "004c11992b8732a5", "0061d192d868502e", "006305246941f2e8", "006a43eb6d6e1602", "006be478bf26a418", "007053a7c37a6ab4", "007c6180910b6cab", "007de121fac80c05", "008402b86f2cd964", "009361d42a194962", "009c52a13590c488", "009e6f6af252426c", "00a22f6b79e367ac", "00a917e5774c21d7", "00a91f42ef43e7ac", "00cd91f814147fcf", "00ce9214b6e5827b", "00cf1cea2ed95b9f", "00d55d8df6d6f127", "00d91ba538c863d9", "00dc170f6d387c5f", "00dc1fb6e7a0befe", "00e615893444f5cc", "00e7720fa2b9dfec", "00e800c141962db2", "00e8ca79c46b3739", "00f093c0403cfa4b", "00f5cbe4600686d2", "00fa3c731d993aa4", "00fcdf271e773d75", "010012ce2355a8d8", "0100f1a8b0464545", "010d3c38a5d56072", "0126e03f23628fe9", "012e1c72e4a9f9d3", "014193479d2f7930", "014302a9cc259915", "0143717c6e9d85db", "0143810ed47e59c7", "014718322390cce9", "01522088f687b009", "016dbb7b17e22139", "016f8c3d4a5b29f4", "017740952a251eba", "0179e6e9fa87cf87", "017cc3196c3801a1", "0180c475a04b2678", "018aa02735f2187a", "018e89a83b479a0f", "0193bc1ccb863b1e", "019c9d32c4cb8615", "01a66578a4ddfe30", "01ac6683127bb01a", "01adcffcee73e602", "01ba81a724576dd7", "01c2fe48dd156eb5", "01cecb33998499d5", "01d183a547810922", "01de6fd68f6d6617", "01f826bfba2ce435", "01ff4cdd51dc4cc8", "020077b3c0d32d8b", "020de6daf318f7b0", "020f6b0199375fd0", "0210ef750b3011f0", "0216381ad0ba447c", "021bd28d894e07c5", "021e150423c1799b", "021fd38edc07c76d", "02291631a39d1f0c", "022f1a423c15531a", "023075510a2ae679", "0237106ae06f88ca", "0237744746583d7f", "0239172f433891df", "023af90b8f8ee42f", "023dc6de3f63b49c", "023dcefe9685ba7e", "0244b0266ac632af", "0248c0b5ff37b066", "024b59fe30026554", "024bdd2b14f90a0b", "0251296cb8c01cd9", "02519a509e680c08", "0252b413ff32e97b", "02580e86322b0505", "0258cf6e39bf866b", "026686a2f2638e51", "02690f69f8ad4221", "026a7838a21c6118", "027b3a16d542999d", "0283ab86817548a6", "0294a678f1f499c1", "02a540fd55dfda36", "02a5ec953b2876be", "02be287fce547e55", "02c0f3ae17330db3", "02cc984e2004fab9", "02d115d80b6fcb0e", "02d2c9f0438d1fb5", "02d7b222b4cb58fc", "02e310a3e8d77855", "02ed3e6719048456", "02ee1dcc9bc937f8", "02ee7e06bd2e7167", "02ef8f397ab3a265", "02ef9409713de0f8", "0307e6d4dc500768", "030b1ce17f7de7e9", "030cda0709f867c7", "03129b03b7b6b135", "03137ad8596ff5ea", "0313963e4ddb9542", "0323fbfd6cea0299", "0340254542a371e7", "0340d3240f136304", "0346971bcabef97d", "0351cf6b7afb7788", "0362f79e8a4cf190" ],
+      "eligibleFileCount" : 132,
+      "sampledFileCount" : 8,
+      "tokenCount" : 17018,
+      "shingleCount" : 8833,
+      "sampledPaths" : [ "src/address/Address.spec.ts", "src/boc/cell/serialization.spec.ts", "src/contract/openContract.ts", "src/dict/Dictionary.ts", "src/test/prando.ts", "src/tuple/tuple.ts", "src/types/OutList.spec.ts", "src/utils/getMethodId.ts" ]
+    }
+  }, {
+    "id" : "ton-blueprint",
+    "repositoryUrl" : "https://github.com/ton-org/blueprint/tree/5da9654b3c607b0769eb98ebdfa3ee80c6bbc51e",
+    "revision" : "5da9654b3c607b0769eb98ebdfa3ee80c6bbc51e",
+    "reviewRole" : "Independent TypeScript project in the same TON ecosystem",
+    "minimumSampledSourceAreas" : null,
+    "fingerprint" : {
+      "algorithmVersion" : 2,
+      "exactContentHash" : "48cbd092c7c1308a702ae535f73b59f023ad12355938cb94df4221c4dcb48ce4",
+      "sketch" : [ "00042ccdb424856f", "0014a7a6caa74a12", "0015dcf70e258f68", "001887e97d9ee502", "0019e3a62f94c64e", "001b529f30dfc8ae", "001cb5437684a1fc", "001dd800439fafe1", "0024214ec8fe6c88", "00327d9516ea529c", "0038cb38d31e385f", "003a6981b7d8fdaa", "0044d1b0ca07f39d", "00468d8f2ca2dc40", "004ae09720171061", "004d1338627c9516", "0050a70f0b7174be", "0054e0e9018529e5", "006380746b127812", "0064aee011baa1f7", "006bfe26bf3ae732", "006dcb2170296247", "00737047dffc69d0", "00790671b410aa17", "00818a6f74c8e3fd", "008b10c6452f2933", "008ebdd19789090c", "00911fc82d717a25", "00ad4f3dfda3e81b", "00b076fc4652e421", "00b09eb66bd1c83d", "00b3cc8785f8d122", "00bba30f9005e534", "00c8efe18fe0cc77", "00dab56988e15004", "00e403608be00ab1", "00e625423ca93282", "00eb274aa512fe7e", "00f23f4241b707bc", "00f3698f27264bb7", "00f6d462658103ca", "00f7f57ef2235f98", "00facc1658ab59eb", "0101f69b99027694", "01026c87357020bf", "0112a32e07403646", "011553369065c7e8", "0115f42e32a90538", "011901de42133e1c", "01233fb45cf159c3", "0124a4db144ad29d", "012a7d56458d02a2", "012e077fe156655b", "01388bc52a05c55f", "0139def370255342", "014cc971ea82289d", "014db6cbe4249a41", "014e30966891f61a", "015405f922099a4a", "015501e267107c3f", "01570088ffc2316f", "015ecadbae823b96", "016050d298afcf2b", "0169e10cac77b384", "0171029555e34455", "0177a653452e396e", "017c30ef4caaa026", "017e5627c1a0eb97", "017f365055cdf5d6", "0182d72b4ad697f6", "0184a0d0e46c3e0d", "018a74c7efa4a90a", "018f54f0703f88f6", "019556403a3476ef", "01ac7d6d2c2a0205", "01adb1e18696ee55", "01ae21b9859ea5fb", "01b0ad797cc18f16", "01b2c834761e54f7", "01b6784b839bb3d8", "01b9e496fb02ac7a", "01ba81a724576dd7", "01ca79fdfe86ab39", "01d94cdc0a3e2d5c", "01e6b8d62fb7ac89", "01eb64f700e59832", "01ec7e864c9a8166", "0202213fcde530b4", "0203e2f0bb19eef2", "02129bb48bc0e171", "021687e95ed2d024", "0216e57d228078ae", "0239172f433891df", "023fb07f7422826c", "02454fb106d4640b", "02459edbbf5bcf2c", "024bdd2b14f90a0b", "024cdf31af76b0c7", "02537343238893f7", "0265684bc8021f91", "027209b81e68a2d3", "0274d46484f5e1cc", "02759fe7929ce711", "0275d159ff863445", "02773365288dd06f", "0282ecebd67a692f", "028d439da8a2b7fd", "028e167f2c36a380", "02919e7533e9bc4b", "0292691820cc2c40", "0296d6406ae1b2f1", "02999d6b6edf279f", "029e67ec45ea9c40", "02a02a9f1ea8a44b", "02ada30fc593f97a", "02ae6e4e610371d5", "02b172bd39bad6fc", "02b7baab3e1471e6", "02b867c621b6d2b3", "02ba38d08421717a", "02c25f775c9332a0", "02c57139212151b3", "02c6df5ff23a2e0f", "02c7958547880d9c", "02cb267b8f98aac8", "02cb4fc3cb8c183c", "02d49fe8c9f129ee", "02d99fc2382c268c" ],
+      "eligibleFileCount" : 74,
+      "sampledFileCount" : 8,
+      "tokenCount" : 13699,
+      "shingleCount" : 10733,
+      "sampledPaths" : [ "src/build.ts", "src/cli/verify.ts", "src/compile/compile.ts", "src/config/Config.ts", "src/jest/CoverageReporter.ts", "src/network/createNetworkProvider.ts", "src/ui/UIProvider.ts", "src/utils/ton.utils.ts" ]
+    }
+  }, {
+    "id" : "turborepo-current",
+    "repositoryUrl" : "https://github.com/vercel/turborepo/tree/ed1724965d854cd9c2f8b71a0fa826ec786be161",
+    "revision" : "ed1724965d854cd9c2f8b71a0fa826ec786be161",
+    "reviewRole" : "Current mixed Rust and TypeScript monorepository snapshot",
+    "minimumSampledSourceAreas" : 6,
+    "fingerprint" : {
+      "algorithmVersion" : 2,
+      "exactContentHash" : "9218924b77bd7c25bd9a32a6fbe773ee713f9d36233c07a39cd6cd44b619be56",
+      "sketch" : [ "0000907c5b01cdf0", "0001a0f685323300", "000301ef75a14208", "0003eb0afd4e1f16", "0007b8c6c08fe248", "0008a3c1cd35b9a7", "000b7620f353506d", "000bcd0d52fcfcab", "000bef6ec1401c73", "000c3cef004240fa", "000cc2727c522e79", "000d07b412b6848e", "000e881285339bc0", "000ec20e3d339292", "000f131c98fc25ac", "000f7a806c8dd902", "000f8e55aeb85148", "00104651902d5333", "0010cbfe7bd2dd32", "0011ec261c1ee305", "001523d596d8e3dc", "00162da8ae605182", "0016816109902e8b", "00175894329646eb", "001895feb6594e12", "001987ca6580439d", "001a11cefb735297", "001b612f529831af", "001bba088b2f736e", "001cdb9cc881f4cd", "001cdf5e2459be18", "001f2c5b7398f27a", "0020abf92c3936e8", "0020d4117150a40b", "00216e251f5982f9", "0022cf29a7c88142", "0025a53cedde5d12", "0025c3ccb2619ea9", "002619fef2fd6966", "0026e4dd920ea835", "0026f1e3aa894870", "002822f78a90a4ab", "0028dcf9e4b62f25", "00290eb853bb2218", "002b0258724f7f1c", "002c94e65e8b8901", "002dabeb1201717b", "002e9e39d472acbe", "0030fe19191bcb13", "0032fb9bfe303035", "0035440abe3c6d1f", "0038aeca91673388", "003c73840d36ddda", "003dc11c9a82bc54", "003df82584caa710", "003f3ba2d437e248", "00400883f462e633", "0040ced47d63b80a", "0041b8a7c99befce", "0041ebbf80e0d938", "00451aa152be5184", "004522317a257265", "004578b5feeb72d6", "0045a89b78faaae6", "0049ba13460e004e", "0049f13db75278ee", "004a2e9ddd7dd598", "004a9611e6eadcc2", "004b7b112bc65106", "004c72ccd200f270", "004f4b3cebadf213", "005071bc2b95516d", "0050c7760c94b674", "00517caaf4396964", "005406310c89cc66", "0054456669882b58", "00552d2273a151f5", "0058636ddca968e1", "00595ada1697585d", "0059c213ac042553", "005b206f8defc4bb", "005d0f0e62227254", "005dcad2f253aaa3", "005e47f329ad54a9", "005fb7b6f8766d6f", "005fc62f4f92c479", "0061425b93ea586f", "0065c45efe91b0cf", "00663ef1e63b4cc3", "006adf071447d749", "006e20e8152f9a4c", "006e85fb529355e7", "0072144aea70030c", "00751c4c27c0a77e", "0076557ba1ca091c", "0076ba607c20e61c", "007766a09f8c8a6d", "00783d8f170f10b3", "007958c2b78d957c", "0079ad15d1d4688f", "007a7a521072974b", "007ab762b3c3252c", "007c21e4c8931c67", "007c6d48693b843d", "007d88ee1138265a", "007df0e3b614aa44", "007e49a728ad9970", "008301d0891f9e76", "00855912be81fd98", "00876750b8cd9007", "00891b1f5c43d185", "008b8ffd260740cf", "008c32916b2ca4db", "008c9328d09a5f3a", "008cec1439b5e9d2", "008eb126302d1943", "009009cceb0faf05", "00908349e70fc78d", "00908499ff3ee11e", "00919b482873483f", "00939440a35bec9e", "0093bf5779b046f6", "0093d5199edcb48f", "00950f78a9c084c3", "009a70dcd909a752", "009ad0d989104dd2", "009c311fefb17b7e", "009c454cc4e21005" ],
+      "eligibleFileCount" : 2578,
+      "sampledFileCount" : 8,
+      "tokenCount" : 96656,
+      "shingleCount" : 45176,
+      "sampledPaths" : [ "crates/turborepo-cache/src/cache_archive/create.rs", "crates/turborepo-engine/src/lib.rs", "crates/turborepo-lib/src/package_changes_watcher.rs", "crates/turborepo-lockfiles/src/pnpm/data_fast_parse.rs", "crates/turborepo-repository/src/package_graph/builder.rs", "crates/turborepo-scm/src/package_deps.rs", "crates/turborepo/tests/run_caching.rs", "packages/turbo-codemod/__tests__/migrate.test.ts" ]
+    }
+  }, {
+    "id" : "turborepo-older",
+    "repositoryUrl" : "https://github.com/vercel/turborepo/tree/a549baa4d9b3aef355740394bd5ac7afc8e56edb",
+    "revision" : "a549baa4d9b3aef355740394bd5ac7afc8e56edb",
+    "reviewRole" : "Same monorepository thirty commits earlier",
+    "minimumSampledSourceAreas" : 6,
+    "fingerprint" : {
+      "algorithmVersion" : 2,
+      "exactContentHash" : "3341b083d3486fef3090a91a9c2603d71c59ff9090e90d1aa9385dc901c816b3",
+      "sketch" : [ "0001a0f685323300", "000301ef75a14208", "0003eb0afd4e1f16", "00084fb8da9639ec", "0008a3c1cd35b9a7", "000b7620f353506d", "000bcd0d52fcfcab", "000bef6ec1401c73", "000d07b412b6848e", "000e881285339bc0", "000ec20e3d339292", "000f7a806c8dd902", "000f8e55aeb85148", "000fcc4fb4504d2e", "00104651902d5333", "0010cbfe7bd2dd32", "0011ec261c1ee305", "001523d596d8e3dc", "00162da8ae605182", "0016816109902e8b", "00175894329646eb", "001895feb6594e12", "001987ca6580439d", "001a11cefb735297", "001b612f529831af", "001bba088b2f736e", "001cdb9cc881f4cd", "001cdf5e2459be18", "001f2c5b7398f27a", "0020abf92c3936e8", "0020d4117150a40b", "00216e251f5982f9", "0022cf29a7c88142", "0023176b2dce8fed", "0025a53cedde5d12", "002619fef2fd6966", "0026e4dd920ea835", "0026f1e3aa894870", "002822f78a90a4ab", "0028dcf9e4b62f25", "00290eb853bb2218", "002b0258724f7f1c", "002c94e65e8b8901", "002dabeb1201717b", "002e9e39d472acbe", "0030fe19191bcb13", "0032fb9bfe303035", "0035440abe3c6d1f", "0038aeca91673388", "003a300664f82e12", "003c73840d36ddda", "003dc11c9a82bc54", "003df82584caa710", "003f3ba2d437e248", "003fe3cf553bd446", "00400883f462e633", "0040ced47d63b80a", "0041b8a7c99befce", "0041ebbf80e0d938", "00451aa152be5184", "004522317a257265", "004578b5feeb72d6", "0045a89b78faaae6", "0049ba13460e004e", "0049f13db75278ee", "004a2e9ddd7dd598", "004a9611e6eadcc2", "004b7b112bc65106", "004bfd0ed4967bb7", "004c72ccd200f270", "004f4b3cebadf213", "0050c460718c9aa2", "0050c7760c94b674", "00517caaf4396964", "0054456669882b58", "00552d2273a151f5", "00567fa4047bf599", "0058636ddca968e1", "00595ada1697585d", "005b206f8defc4bb", "005d0f0e62227254", "005dcad2f253aaa3", "005e47f329ad54a9", "005fb7b6f8766d6f", "005fc62f4f92c479", "0061425b93ea586f", "0065c45efe91b0cf", "00663ef1e63b4cc3", "006adf071447d749", "006e20e8152f9a4c", "0072144aea70030c", "00751c4c27c0a77e", "0076557ba1ca091c", "0076ba607c20e61c", "007766a09f8c8a6d", "00783d8f170f10b3", "007958c2b78d957c", "0079ad15d1d4688f", "007a7a521072974b", "007ab762b3c3252c", "007c21e4c8931c67", "007c6d48693b843d", "007d88ee1138265a", "007df0e3b614aa44", "008301d0891f9e76", "00855912be81fd98", "00876750b8cd9007", "00891b1f5c43d185", "008c32916b2ca4db", "008c9328d09a5f3a", "008cec1439b5e9d2", "008eb126302d1943", "008f3be68d4ada9f", "009009cceb0faf05", "00908349e70fc78d", "00908499ff3ee11e", "00919b482873483f", "009361261cca4204", "00939440a35bec9e", "0093bf5779b046f6", "0093d5199edcb48f", "009427eb9557d7a2", "00950f78a9c084c3", "0095183405597980", "0097a18c4f2f1443", "009a70dcd909a752", "009ad0d989104dd2", "009bea687bef0e82" ],
+      "eligibleFileCount" : 2570,
+      "sampledFileCount" : 8,
+      "tokenCount" : 96796,
+      "shingleCount" : 44912,
+      "sampledPaths" : [ "crates/turborepo-cache/src/cache_archive/create.rs", "crates/turborepo-lib/src/package_changes_watcher.rs", "crates/turborepo-lockfiles/src/pnpm/data_fast_parse.rs", "crates/turborepo-repository/src/package_graph/builder.rs", "crates/turborepo-scm/src/package_deps.rs", "crates/turborepo-turbo-json/src/loader.rs", "crates/turborepo/tests/run_caching.rs", "packages/turbo-codemod/__tests__/migrate.test.ts" ]
+    }
+  }, {
+    "id" : "pnpm-current",
+    "repositoryUrl" : "https://github.com/pnpm/pnpm/tree/b45c85a5fcb11f1867497405d39c36d04f1cbb2e",
+    "revision" : "b45c85a5fcb11f1867497405d39c36d04f1cbb2e",
+    "reviewRole" : "TypeScript and Rust package manager monorepository",
+    "minimumSampledSourceAreas" : 6,
+    "fingerprint" : {
+      "algorithmVersion" : 2,
+      "exactContentHash" : "d1bd4c49fd801c3ea04d55291f7aafb24bdbbd090b0420cdbb3d1ae5e0f91205",
+      "sketch" : [ "0001e026225136b5", "00023d1fb2518862", "00078613b635e033", "0009c1d171a35992", "000a3b87ec20be9c", "000aba7700aeb20c", "000cb405833fe32b", "000cec7cd5bde4be", "000db0be9b055e3d", "000e4f3f4655389c", "000e881285339bc0", "000efcf4d4f640d2", "0013a10380972588", "00140365d61a3dd6", "00141ef9861dcf29", "0014cac058036ce7", "0016a49a10e70f94", "0018245f2eb3e6f8", "00197e89ec6d52e7", "001acb31b01a9c0d", "001b74ef386b0fa0", "001b7fd914d095c5", "001c2e910f0a8110", "001d5486679eb356", "001d64d3c1b39713", "001dd800439fafe1", "001ef9ec336f88ad", "001f86f99dc58109", "00202adc360ececa", "0022ae8af99ba7c4", "0024fe5adb6e6226", "002558052bc9fdc6", "0026639213742b1f", "00267b1b314fbc8e", "0026bb03d9c7f452", "0027b73462701649", "00297535f6cd887a", "002d11aa67be9c1e", "002e1e6fe727f80c", "00324977d13be33e", "00369e816d47d372", "0037a073c726b181", "0038ce3ba5f66bbf", "003cabb839459683", "003df82584caa710", "00417c47257b9e84", "00444dbc98373bcc", "0044d954390b5fee", "00468cfd361f43eb", "0046a4175a80b4ed", "004746e964115673", "004776b34774131f", "0048c80140dccc5b", "0048d7b82f28bc9e", "004d403d7c3874a3", "004d47c754044ba6", "004deac5662dfe41", "004e13932e89cff8", "004f1ae4d2e23d9c", "004f3b447b388d20", "004f6a5a01b71726", "0051e983a97fd9bb", "00539bb8bc25fbde", "0055e73c178960d6", "0057ca87edb7032f", "0058b9484066e0a0", "005c064235caa137", "005da6513b16cb1b", "005dd6149a8e7698", "0061821304edbabf", "0062c57dc4e91508", "006356032819c068", "006397a238370147", "00653eadff0e77ce", "0066fb57dd7aa7b0", "00678954f32df5d8", "0068b327e0625896", "0069086fc59e889e", "006c14f93f0e0ef9", "006c37706690ff10", "006e2a506d00d581", "006f69455ad7c7a5", "006fd73e014550ee", "0070715444da65e7", "0072144aea70030c", "00727cfcfb0ebbb7", "007362a8e89bf972", "007386d02a8ec49c", "007387ce78591731", "007400be6cb5cec7", "0074b23df93c74ff", "00751efeafd6dde2", "007765f7442b759b", "0079fec6db8d88e4", "007aa5f02318c8e3", "007cfd29cdfd5403", "007e490b276f4470", "007f143c2fa777fa", "00801b07ea4fc0bb", "00809c074ceb8d6e", "0080ff4fb20747ed", "0081860aaa864035", "0082cd86b003c191", "008385d7206a72b3", "00858da2d5b38bf1", "00859b559aedc75a", "0086c01eb243ccc6", "0087ab56a20b8150", "0088a2fd98bc7178", "008ad93a8d6822b8", "008cef4b4805644f", "008e6dbf0fa0d12a", "008f1198070570ae", "0090df33752f9299", "00922d8c0055d962", "00963e8379020f49", "00968d38e22f210a", "0096bce4b4337f73", "0097243a7b5869fd", "0097eaa8f0410497", "00989246d3872493", "009ad15138755e36", "009c5e67f6c783ab", "009db264a7d285a4", "009e82efb964a8d2", "009f19cb72d39117", "00a1e5fc00cbeef2", "00a3924b8b548cb2" ],
+      "eligibleFileCount" : 3546,
+      "sampledFileCount" : 8,
+      "tokenCount" : 99811,
+      "shingleCount" : 52316,
+      "sampledPaths" : [ "pnpm/crates/package-manager/src/optimistic_repeat_install.rs", "pnpm11/config/reader/src/index.ts", "pnpm11/deps/status/test/checkDepsStatus.test.ts", "pnpm11/installing/deps-resolver/test/resolvePeers.ts", "pnpm11/pnpm/test/monorepo/index.ts", "pnpm11/releasing/commands/test/deploy/shared-lockfile.test.ts", "pnpm11/resolving/npm-resolver/src/index.ts", "pnpr/crates/pnpr/src/resolver.rs" ]
+    }
+  }, {
+    "id" : "spring-framework-current",
+    "repositoryUrl" : "https://github.com/spring-projects/spring-framework/tree/9024d5ffbd47172826d3257b492e9192467e98e6",
+    "revision" : "9024d5ffbd47172826d3257b492e9192467e98e6",
+    "reviewRole" : "Large multi-module Java framework repository",
+    "minimumSampledSourceAreas" : 6,
+    "fingerprint" : {
+      "algorithmVersion" : 2,
+      "exactContentHash" : "96b350a6c8535969f760465598a70057e2edfca4129749be081fca822865cde4",
+      "sketch" : [ "0003e858cb4ebbc1", "000573b38ae98908", "0006768d61554f1d", "000684c4ab512809", "0007291f6df533fd", "00089c43f6021583", "000bb09b5a533cee", "000c2d5421616c54", "000ef0ad749b741b", "001568c962f69493", "00168656fbbde4ed", "0017e11a3f6d51c7", "00188143b3b887ac", "0018c1c1d879f2df", "001b795ed341fa64", "001cf0afbe65ec42", "001e2ba3fc07ba8c", "001f150ec4e9bd7f", "0020c34adcf216b5", "0020e7ddd84a48e1", "002186943ffbb6c8", "00225a5582fcdb9d", "002325df74311ed9", "0025392186e285e0", "002607e2f06a74c3", "00265716b62bdc03", "0026a30227268c97", "0026f272ee337c72", "002748ad516560c0", "00284f9d5cd28cc2", "0028830beedf4de1", "0029cd828d7f98fb", "002a1ea55608a05c", "002db236010e69ac", "002dbf55e7e3ae5d", "002f008253d9c27a", "00303b60fe591583", "00336b787617cd07", "0035079cfd83b4c0", "003769b0a0b9c50e", "0039109b0a39ad7b", "003b9a0db89f94f5", "003bf4efd90e8c64", "003c2f5ecec665fe", "003f5f1601b83002", "00400239c3c93ca1", "0040ba980d179845", "0045a52fca1c14f4", "0048bc0a6692c1f9", "004a3ce19cd4d4e9", "004b2981dc21e8c4", "004b88aa21f53cd0", "004c4c141fcdc361", "004d19d9c47bc50d", "004f67a5dfb887f2", "0053c462effbb3e5", "005589ee4a177b2a", "00582a7ba8e1597b", "00596dbb76ae8a9e", "0059f1b7867e7c77", "005a2d6ef24c53ae", "005c20be82a26676", "00603c24cd694b02", "006075128a80060a", "0060dca05b40ee90", "0063166db108379c", "0064607257a82359", "00685936b95354c9", "0069126c9f3ec9e2", "0069ab1fdb6292ac", "006b41b6353ca361", "006ea590935b5436", "006f106b655668a6", "00705d388f496b37", "0070bb2fbcd4cfcb", "00761a6e7d2e1d5c", "007866bea5b3200a", "00798acb46180314", "0079dfb065db47b1", "007bbba848cf394a", "007cf1639a2f7ed3", "00818116e0860ea9", "0081cdb1533e0f48", "0081f56e5254d542", "0083251d797e6a58", "0086fa1697937f10", "0087ac45175c5e5b", "008c2cb09df11677", "008d84f29d401e03", "008f4f4decc538a1", "008f6438206a4658", "008fe035c243f7e8", "00913e7a1fc5242c", "00916af45fe3c883", "009236fc3170c74f", "00982830ffa72f8c", "0098884210f2c289", "009a15326b1f137f", "009a8531ee280961", "009c6e4c221d91e6", "009d04939ea61941", "009dfeec558e1522", "009e8db7c4a172ee", "00a2d01c5c8a35e5", "00a7659528b09b21", "00a961fc2787f3fa", "00a9c006e337e546", "00aabe6a63640727", "00ab2320caaebe63", "00ae7dd1cc3d98d3", "00af67630adba170", "00b24b0e14d43a0b", "00b746937455975e", "00baa5bc8efa9f70", "00bb83b80e15d926", "00bfe2fc812cc26b", "00bff155071f8765", "00c0fb81ba33e179", "00c32d2ed8ec11fb", "00c3439ca989a436", "00c3581861c093ea", "00c3bbf875ae7ee5", "00c3e2066e38edda", "00c621e869f9937a", "00c66170ba966739", "00c685d78a21d255", "00c6c14a9c4c8bb5", "00c850c80fffe4e3" ],
+      "eligibleFileCount" : 9906,
+      "sampledFileCount" : 8,
+      "tokenCount" : 105884,
+      "shingleCount" : 46096,
+      "sampledPaths" : [ "spring-beans/src/test/java/org/springframework/beans/AbstractPropertyAccessorTests.java", "spring-context/src/main/java/org/springframework/context/support/AbstractApplicationContext.java", "spring-core/src/test/java/org/springframework/core/annotation/AnnotationUtilsTests.java", "spring-jdbc/src/test/java/org/springframework/jdbc/datasource/DataSourceTransactionManagerTests.java", "spring-test/src/main/java/org/springframework/test/web/reactive/server/WebTestClient.java", "spring-web/src/test/java/org/springframework/web/util/pattern/PathPatternTests.java", "spring-webflux/src/main/java/org/springframework/web/reactive/function/server/RouterFunctions.java", "spring-webmvc/src/main/java/org/springframework/web/servlet/DispatcherServlet.java" ]
+    }
+  }, {
+    "id" : "django-current",
+    "repositoryUrl" : "https://github.com/django/django/tree/65a9f14196c338d70889bd54753370606b3fb4eb",
+    "revision" : "65a9f14196c338d70889bd54753370606b3fb4eb",
+    "reviewRole" : "Independent Python web framework",
+    "minimumSampledSourceAreas" : null,
+    "fingerprint" : {
+      "algorithmVersion" : 2,
+      "exactContentHash" : "3ab3c76d4318e8b665d87277e3f9face700822e2f9b332dd2e92f54c1b577cf2",
+      "sketch" : [ "000051b6869861dd", "0000df6bca2d9555", "00023e32c5e31976", "0003526b0856a428", "000445480e873d77", "00051abf8c3236bd", "00052d9aa724f497", "000615f7d69d6b9c", "0008771e2127b745", "00098d7b9d2a1913", "0009e8db77227243", "000b093d7dbfe024", "000c78f8a8284263", "000cfb8c64c64af7", "000d19317c2f4335", "000d2c3ebd048d92", "000f617665670e0c", "0010421e44621450", "0010ba1486fe2fc9", "00131d2cdd97477f", "0013db8ff0280809", "00160a4171948885", "00190c011a4cbce3", "001db068489cdb14", "001de5c357fa1ed4", "001ec17f7ead39d7", "002172aac72cdf07", "0022e4c57608c3f5", "0025027bd796aee6", "00257022133a3377", "002cc086520f761c", "002d00947df966ae", "002eeec957fe93e8", "002f3f7b571f97d2", "0031336dbe4d7404", "00317102474711a1", "00317bdeffe818f3", "0032dc0679297299", "00334468a3875586", "003357054c9d8718", "0037e6d04617166c", "003c2aeb0ae9b7dd", "003f76832daa2934", "003fa878f1b1b848", "0041d470d4b81220", "0043da4958edd828", "00444d73adc8c45c", "00467bbd11624b09", "00479b09e56d8495", "004a30ba97e7506f", "0051bd26967354b4", "0052d7ee7c4af112", "00555b75cada8d95", "0057aac1b545cedc", "005bdbb431fb4be5", "005f46b6f23eba47", "00606d5e72f41746", "00613007ef5ebeb1", "00617a69f6257491", "0062519c25e4b103", "0064a1747a58e36b", "006649682fe7c9ee", "006702d2fec59bc2", "0067351a1b631fc4", "0068907fb69e3ce0", "00695e93205e6db3", "0069bcbecd94df5b", "006c27a1f3dde137", "006e77b5c15fe8f2", "006e84635995b290", "00700b29186acdce", "0071cbf8f2d68226", "0072141dc087f0fb", "00724099b0671a06", "007546683e206043", "007607edc286d84e", "0077c8465522e25b", "0077cfecfb4406f3", "0079204b3e8a44ec", "007a1755c8a3e900", "007b00181058c9dc", "007c76b8acd8ed8d", "007dc1a951f9f687", "0084ae3a8260264a", "00859534a67cb9fe", "008965b65f471f9b", "008a6a79608e7d90", "008b8cbea629f527", "008ccf18f5c63f44", "008d3f5dcde332d2", "008db02b8afe8e29", "008f0b9fbe566638", "009110274263c3e3", "00931745497013c7", "0096e7d78150043c", "009a890d40a9437e", "009ad62ea6606b74", "009bf0438cb43d65", "009cdd96c2234c2a", "009ecb78db51db54", "009f3a2b07dd50d0", "00a0f6de4041be12", "00a20a732ee7eea1", "00a37224702d24a3", "00a9b1a49fd57ca3", "00a9c4913ea24abc", "00aadb42beab4d49", "00ac4eb000418ef7", "00ad4304d303d5db", "00ae47c88578b71e", "00ae67ed917114c7", "00b048fe19c0e5c8", "00b1cf07e3d6d214", "00b59707003ce3fa", "00b6708280f8fd86", "00b6d433f35966cd", "00b76de4dad8fec7", "00b949dd0879d89f", "00b97b171208ceb9", "00ba551b1156e03b", "00bb060ddd02475c", "00bb4efa6d7f8fe8", "00bd5382131e8e31", "00be8ae51627d64c", "00bf1858e85cfb92", "00bf3f2e3f781666", "00bf42bdef8fa30a", "00c309d8f948a772" ],
+      "eligibleFileCount" : 2775,
+      "sampledFileCount" : 8,
+      "tokenCount" : 84368,
+      "shingleCount" : 42176,
+      "sampledPaths" : [ "django/contrib/admin/checks.py", "django/core/management/commands/makemessages.py", "django/db/models/fields/related_descriptors.py", "tests/auth_tests/test_views.py", "tests/forms_tests/tests/test_media.py", "tests/gis_tests/geos_tests/test_geos.py", "tests/migrations/test_optimizer.py", "tests/template_tests/test_custom.py" ]
+    }
+  }, {
+    "id" : "flask-current",
+    "repositoryUrl" : "https://github.com/pallets/flask/tree/36e4a824f340fdee7ed50937ba8e7f6bc7d17f81",
+    "revision" : "36e4a824f340fdee7ed50937ba8e7f6bc7d17f81",
+    "reviewRole" : "Independent Python web framework",
+    "minimumSampledSourceAreas" : null,
+    "fingerprint" : {
+      "algorithmVersion" : 2,
+      "exactContentHash" : "b4580d087aec0b85927fe517f8bce7d98c2215741e377835449c25f9a77644c1",
+      "sketch" : [ "0001af2943c235d0", "00057e617e5032a0", "0006ad306bdbdde6", "000be5b75dcb5bca", "000ea1d94e756932", "000fa5e868c997be", "001243763b5240b3", "00183b92ca6390dd", "001880a0d5cea72c", "001cdb9cc881f4cd", "001d857fdab52193", "0020d45104b6a099", "002910856fabb7dd", "002fc9b57c804d8f", "0032cf7e5b1d98e2", "003413941547c5e6", "0037f2fc1796603a", "003aa639efdf552c", "0043ea5387cbb8d9", "0046b9471590bca7", "00491215c11a5414", "00494e80e666fc6a", "004b373cfdc64c17", "004be135c52796e6", "004e88d04c0f949c", "004f0f2e07417b5e", "004fa1ee157b6785", "0055683b986adcf4", "00558b57db0e685e", "0059c2229ed3b149", "005bdbb2b4252f65", "006374bbcad51b50", "0065544b7618380c", "0068fdc467ff68b3", "006a14683e3aac7e", "006c711f8b66aa13", "006e01b6b0a05a4f", "00751c25ace25126", "0077f7cfbdd4e143", "0078c835ea5c8d02", "00799de36e4103ff", "007e2cfa918032e0", "007e639d778ca1d3", "0085dda6da652c88", "0087aed0f2745265", "008a2657f14bb42b", "008d7c7b2bf12644", "008e09f14dd036f6", "0090372297ed6552", "009059e8253d9b76", "0092bca55284e33e", "0094bffdae089444", "0095135c992c1dfd", "0095f443190bfcb3", "00968a19f386962a", "009931f693fb4158", "009b541f4065c070", "00a48acb33d96e25", "00a9220f6181aa7b", "00ac562bf7c0c1e7", "00b67e838c6f49e5", "00c5c3803b709c6e", "00cec69ab67f72e3", "00d46ea962bb1157", "00d5cf96a877131b", "00d725bfe90870c3", "00da4b67de1dd64b", "00da78f30d35804a", "00ddc7fbfdd137be", "00e11b061749d5d8", "00e2e86cf12d008c", "00e685cc66c0031a", "00ea023371e15875", "00ea75ab6356b946", "00ead2c3af2568d0", "00ec6e4a523d92b6", "00eefa30b4e0f04f", "00ef4d4060fc5854", "00f17ac13b043bef", "00f4f336ad9137ad", "00f655faad43e789", "00fb08c0714247f6", "010086943a0ee5dc", "0109e94981b9a46a", "010bad24def14416", "010ef5bddeda97df", "01111209be42a17b", "0114238020ae75ff", "0121b5ea551ec661", "0126cfa192a7c6d0", "0127a3ff77e13b50", "012b1e05bf7a0b65", "012f27d3004db6f2", "0135508dc91086d7", "01427f2c79527b97", "0143c8238d730c48", "0144acb5bf9ccad6", "0148f84eb8651763", "014b1d0d2f23c642", "014d9dcce0e173fd", "0150655a099617d3", "015b4ffc470560b7", "01627fad41c6332b", "016462a8f94d9a4b", "0164fd108bf9137f", "01668714e52749d0", "0166f5d08cf7aaca", "016957d3d086db6e", "016a0f6cc325908a", "016c122c44f6d418", "0173debcd48ff843", "01776abfc9af3472", "017f88ce98d90924", "01811767732d6a26", "018639bf00359f80", "01867b9f788423c2", "018a8006fce705fb", "019150dc93ca3491", "019325b382d74304", "01937c293ced017f", "01940caba0d0256f", "019edcf49eeb557e", "019eea7fb70e29b8", "01b052284f598982", "01b0a0092a825303", "01b0a15b08773fc5", "01b64df62ed62255", "01b7a2d4c0362d0a" ],
+      "eligibleFileCount" : 110,
+      "sampledFileCount" : 8,
+      "tokenCount" : 30681,
+      "shingleCount" : 21621,
+      "sampledPaths" : [ "examples/celery/src/task_app/templates/index.html", "examples/javascript/js_example/templates/base.html", "examples/tutorial/flaskr/blog.py", "pyproject.toml", "src/flask/app.py", "tests/test_apps/blueprintapp/apps/admin/__init__.py", "tests/test_basic.py", "tests/type_check/typing_route.py" ]
+    }
+  }, {
+    "id" : "fastapi-current",
+    "repositoryUrl" : "https://github.com/fastapi/fastapi/tree/7cb06f360dd44efac059848df1a9beee7643b018",
+    "revision" : "7cb06f360dd44efac059848df1a9beee7643b018",
+    "reviewRole" : "Independent Python API framework",
+    "minimumSampledSourceAreas" : null,
+    "fingerprint" : {
+      "algorithmVersion" : 2,
+      "exactContentHash" : "ffa8b59eaa47b6e347f390f926103611a7ed22508d2c890a4e586eef430816b7",
+      "sketch" : [ "0001b1399174cf9f", "000a14a394e7e8fb", "000bfd8bbf0f4815", "000def293a92dcff", "001142e754a95686", "0012827f43b0f0b7", "0013f9e1e3296b7d", "001625c797944ae3", "001bb3051b8a54a3", "001cdb9cc881f4cd", "0023aff3725db2e3", "0027c152b997d29f", "0030fff5a0a84463", "003133890c03cf25", "0037a3ae491bbb39", "003eafabc6fd5370", "0043149824636c0f", "004633354a1c39ac", "004dcb3923210dd8", "004edb2d18cfb5a2", "005062f701b05e8f", "00527651b6026313", "0054a01110bb6212", "005579f575a5df6f", "0055a07bd01aac4b", "00566df88bacc6ff", "005e2a7283da841a", "0061b628e2ef5233", "006330c5fcb9aecc", "0067aea25ce824b9", "00734ca72e6232e6", "0073bfd16c58ffb3", "00785330bf5ee54e", "007a724f3c3fd021", "007e08bee83fb2cc", "00815ac081a9e80a", "008226c63d6eb42b", "008427ed3340cb22", "0084c9ff4989787e", "008d61b14dadfdde", "0093f1ee701cb6b2", "009602a32099617f", "0096e0e6c0215ad4", "0099698053b71a50", "009a0fff052df75d", "009b6bf8074e8f14", "00ab0d9a7d88c6ac", "00abc2bc00849af0", "00b0bd92b0b9aa1a", "00b10ef8b404a428", "00b1a7589ad36d43", "00b32ed40ddcb752", "00b3c0e802ffc60b", "00b65d0a7635b7b9", "00b91892c3338495", "00c02e4b4e6f83da", "00c0af3ba7fe7fa4", "00c42c0fc072fb10", "00c58e6ddc4f40e3", "00c6d618b4c31e72", "00ccd8c8efa8b5eb", "00cee727ca703479", "00cfe3ec17dc0685", "00d38b2def96a338", "00de5a9aef3ac8c7", "00dfa3bfb0e630bb", "00e6145bf0811bdc", "00e731758c4ba8c1", "00ecf4a4937b64a1", "00f20ca899c18e40", "00f5e637e90a6d11", "00f89de3f8ec8a1c", "00fd770c102736c5", "00fd994f351bf64d", "0101ce7eca889809", "0105cd33dbe9cea4", "010983db9b6b9090", "010b053f2a9d7a0c", "010c1b47a862c8e0", "010e93d84e39f7cd", "0110f48275490235", "011bec3c0fdecf93", "011c920093f85cb4", "011d089bd261b9b6", "0123d4ccda38447f", "012648be2a28c4fa", "0126e35896a99ae2", "0128b29d87e4baaa", "013838942dd239f2", "013b3c5ccdb901d8", "01426b3d1b2b5379", "0149ffb3dd55ab9c", "014b1b2524e1b688", "014c77562d3d86a1", "0152113acc2e100d", "0153c40b07428e59", "01563b325fb0bc14", "01577e9c9a5fecce", "015eec59912ad1cf", "01627cc1266032da", "0171e2094b334c7c", "01723c92622f6654", "01740dd36d1244bb", "01792b01cf18a8ff", "0179337217623714", "017bd565e55e09e8", "017d3180d2b39726", "01833a6bd19ce641", "01867b9f788423c2", "0188ace917d4d047", "018a486c930d4288", "018d954f5943af19", "0190013b56566e36", "019575e8d0380758", "01975e2f6fa447bf", "01990c54989e0b4c", "019c7b3dfd14af9f", "019f80d181f9cd97", "01a3b3b95ae75917", "01a547e7ed3fa329", "01a58d680247276f", "01adcf3f55b9d438", "01af53281b61ccc5", "01b297476cadf655", "01b4e2f476fb0f74", "01bbcf4ae73460f8", "01bd421b8bcda134", "01c56818897e65b3" ],
+      "eligibleFileCount" : 955,
+      "sampledFileCount" : 8,
+      "tokenCount" : 49551,
+      "shingleCount" : 20488,
+      "sampledPaths" : [ "fastapi/dependencies/utils.py", "fastapi/openapi/utils.py", "fastapi/param_functions.py", "fastapi/security/oauth2.py", "scripts/docs.py", "tests/test_application.py", "tests/test_request_params/test_body/test_optional_list.py", "tests/test_tutorial/test_bigger_applications/test_main.py" ]
+    }
+  }, {
+    "id" : "react-current",
+    "repositoryUrl" : "https://github.com/facebook/react/tree/c0c39a6b3907eaab35f43074949e2957a2a734c1",
+    "revision" : "c0c39a6b3907eaab35f43074949e2957a2a734c1",
+    "reviewRole" : "Large JavaScript package monorepository",
+    "minimumSampledSourceAreas" : 6,
+    "fingerprint" : {
+      "algorithmVersion" : 2,
+      "exactContentHash" : "24f7cfedcea534c1368ce33aabfde751b2cae9267142df74444bb516715215f0",
+      "sketch" : [ "00016041a7512a03", "000176c659d24610", "0002055018a3aca9", "0004fb7c3122abf2", "0006387f6567f9b9", "0007072a782a02e8", "00082b7438265a8a", "000d856743a517b7", "000da62715eac873", "000ddd8e6ad7d657", "000e033ecbe2af9f", "000e3ec136c6aa64", "0014ee0ef7166424", "001609b513debf43", "001803e5cc1c9c0c", "0018bb0d14d3e5dd", "001a560da3dabf6b", "001aff6c19e6d53c", "001b7be44f43d898", "001bd2ad86eeb93a", "001d77bb30b67435", "001f7f6d813b7291", "002265894222c40a", "002272f709ee777a", "0023450b91c09e01", "00237b84b11a9884", "00284d5b3553a0b5", "00284fbc2234450a", "002a55c96b8925e6", "002c0209520290f0", "002dabeb1201717b", "002f7fef65ee21d3", "00302909ba643e0b", "003275cb850584cb", "003375deed09263a", "0034519b4d1ed196", "003782200a8ff1ad", "0038c2d139d2f47b", "003925419c0742c6", "003a17d317825f06", "003b0d5a8deeb8c1", "003b44912679767a", "003b85fdb9928734", "003bccee4617ee97", "003c33163fdeb60a", "003e5ae18d30629f", "00440ee575fdc6de", "004528129558df54", "0045780e1aecf527", "0048edb22e45568d", "004b03ca0d60f36f", "004ecd9acc924903", "004f427619430ac8", "00501f660ebc0a54", "00515cec602dd136", "005249935098a732", "005283356b3b4314", "0052b82a88b356dc", "005547543b93f5cb", "0056d34ae601e0c4", "0057fd5d8e786703", "0058400f58bf56f9", "0058aea27f091067", "005ca2a390ade2ef", "006356032819c068", "00641bc34fe65755", "00645174a7e7ed3a", "0064a70bde811ecc", "0066459a2bf70ec8", "006787aaf3a99ab3", "0069fb761fc1ca9f", "006b07103caf474b", "006d4f296047ab90", "006d93fa5ba55d5d", "006ed3c7c5bb4af7", "00705cdd19d555d6", "0070fac0198f874c", "0072498783242121", "0073df556f317fef", "0074591792db655a", "0075123343ea4c66", "0076a4b1a1738de0", "0076ddd62147750e", "0077403fcbfd2dab", "007b97c5d34545ed", "007ba87d205e9332", "007d233d4b7eb21b", "007d55593e338f9e", "00823d53edddd63e", "00828065f0816d3d", "0082df97fe15e73f", "00846835ada812c7", "008617ef3ae17279", "0086983121b88f8e", "0086f625a6cf6b99", "0087a3784094602c", "00883cce8b76b17a", "0089d3bb7898eda9", "009162fd0d18a36f", "0092eaa512c48f90", "009397330841482c", "009a165a3dfdd50a", "009c805a3627dd59", "009dc5738e79a1d9", "009e554d1854289f", "009f6fa8dace32f8", "00a2c41707451df7", "00a48739780ce71a", "00a729f148273d7b", "00a74fb3ed5dacc6", "00a7ef3a91af1847", "00abeb1077ec42a7", "00acfebe0e498a32", "00ad3cba941a26fc", "00af399e2b506fc3", "00b236a7fb778c26", "00b2f4cf9b52bb02", "00b7f58337153b72", "00b99fae5b8041b0", "00bb1c75c3f28ac5", "00bdffccb6c9fc66", "00bed3212deac3ee", "00bf0b7dcee2272e", "00c08db4143a3e7f", "00c22d91735fd47e", "00c28e7744370cf1", "00c30fe333fe3dc2", "00c31da349e804ad" ],
+      "eligibleFileCount" : 4928,
+      "sampledFileCount" : 8,
+      "tokenCount" : 107393,
+      "shingleCount" : 42084,
+      "sampledPaths" : [ "compiler/crates/react_compiler/src/entrypoint/pipeline.rs", "compiler/packages/snap/src/minimize.ts", "packages/react-devtools-shared/src/__tests__/storeStressSync-test.js", "packages/react-dom-bindings/src/events/DOMPluginEventSystem.js", "packages/react-dom/src/__tests__/ReactDOMForm-test.js", "packages/react-reconciler/src/__tests__/ReactUse-test.js", "packages/react-server-dom-webpack/src/__tests__/ReactFlightDOMNode-test.js", "packages/react/src/__tests__/ReactProfiler-test.internal.js" ]
+    }
+  }, {
+    "id" : "guava-current",
+    "repositoryUrl" : "https://github.com/google/guava/tree/486837d756e6d48864620e91b0761467e2abe744",
+    "revision" : "486837d756e6d48864620e91b0761467e2abe744",
+    "reviewRole" : "Multi-module Java library with mirrored Android sources",
+    "minimumSampledSourceAreas" : 5,
+    "fingerprint" : {
+      "algorithmVersion" : 2,
+      "exactContentHash" : "4eb26e825e35014354feb429406f98b6882766c5f8b69f87e0124b7a5b337e82",
+      "sketch" : [ "000024e5c35ba24b", "00021f0a678dc1ee", "0003be3dab8f7a4e", "0003cefc43561647", "0005a0521d6496bb", "0005ecb7fc07bb03", "0006b41e7991e408", "000770ca329c5c4d", "00084525342a690f", "000aacdca6abb8d1", "000dd0389f59da29", "000e370864148bbb", "000e4f45a5c37c8b", "000f5e0bda1b290f", "0010042aaf77f2c2", "001006e82e8e658e", "0010507e4d935c30", "0010812db1418110", "0010fd6de9bad903", "0011065b205f3ab5", "001142c6c76d0f75", "00131bda13cd431b", "0014a4a82fc023a6", "00172df73868651c", "0017f7fb642c965b", "0018b8c3b2f64d95", "00194cd70a95abe4", "0019b62e861717b3", "0019d79f76057373", "0019ed0d58dcd36f", "001a4b8e31a3ebfa", "001ae46dbd6eb8cf", "001b88dc3bc37edc", "001b9e8841748995", "001c4cfba4a0727e", "001dff7dbb056b1b", "001f3f5fba318e16", "00202661ded33d93", "00216e682793fa66", "0021ee83240b7a17", "00252485a03ed990", "00273596f407dcfe", "00278f799bc56400", "00279938d9b957c3", "002a0451103c5f22", "002a9289a9b115ac", "002ad99fe8970c1c", "002b605024bdb292", "002c495bef327de0", "002c7ce89b665f9d", "00308c92de4fd1b2", "0030a1f74970a5e2", "0030b04688db6ebb", "00316c35ec02e856", "00350c46b0eabc7a", "003511624cf504f1", "00362b8bdc1294a5", "0036c01e31abc5ab", "0036c3d7c16c4953", "00379f2bc625d10f", "0037e05350573aeb", "0037ebb900f3b8c5", "00393e197f2d2eb8", "003a5b5d54e74475", "003aed9e7897eb3a", "003b745fd1aa4fa1", "003efa8323738604", "003f3a48d9ba7eae", "0040549f6567d61d", "00407a2c17d6a871", "004188b8af7ff3c4", "0041ec1477b3313e", "0043c7b87ccab9a0", "0043d656432f32dd", "00448973047c0ba3", "0044b801588134c5", "004610a3cba2d481", "00482346f88a0d47", "0048537491008875", "0049347b0d7745e3", "004a40fdbce185ff", "004a51a794d0032c", "004b57e859e4adca", "004c6c0c5d0783c1", "004cd3a06b8dbbdd", "004d364441a80e22", "004d681830a6a42b", "004d9566995997ae", "004dac58c5394e31", "00505ea2baf5676d", "0051ef6eb6fa0475", "0052e4eab5b75e65", "005603d8dd4f1cd2", "005634bf5c289a4c", "00569ec409c3a1b1", "005809b1186ffc31", "0059732d36ec15f3", "005a1bab1d18ec0d", "005a379c0c346a83", "005ad81340d67645", "005e0d7d80e145d3", "005e10bdc7d8163f", "006021d041f6818b", "006091d9c65cac89", "0062d9ea57380b67", "0063eb1f5bb86829", "0067161756cbafd1", "006780b5005fe9c7", "0067e61ace3000b6", "0069f0e7b861fbe8", "006a5812eed6cf80", "006ae53d7c69b406", "006b1ac2fa6fbf34", "006d49b0a47983bc", "006d59f10239a3cc", "006dc9fb04b6ede4", "006de4a7c54596bc", "006e4347bc4dd156", "006ef69b68cb1bf4", "0070fded49c2155b", "0072a17abef2586b", "00742a8dacb93366", "0075e6caae347348", "0078cd43157364b5", "0078ee35325b6be7", "00798581e7b03572", "007a8e4fa7dbc916", "007ab5ca8065b5b9" ],
+      "eligibleFileCount" : 3269,
+      "sampledFileCount" : 8,
+      "tokenCount" : 125198,
+      "shingleCount" : 68473,
+      "sampledPaths" : [ "android/guava-testlib/src/com/google/common/collect/testing/MapInterfaceTest.java", "android/guava-tests/benchmark/com/google/common/base/CharMatcherBenchmark.java", "android/guava-tests/test/com/google/common/collect/MapsTest.java", "android/guava/src/com/google/common/util/concurrent/Futures.java", "guava-testlib/test/com/google/common/testing/NullPointerTesterTest.java", "guava-tests/benchmark/com/google/common/base/EnumsBenchmark.java", "guava-tests/test/com/google/common/collect/MapsTest.java", "guava/src/com/google/common/util/concurrent/Futures.java" ]
+    }
+  }, {
+    "id" : "full-stack-fastapi-template",
+    "repositoryUrl" : "https://github.com/fastapi/full-stack-fastapi-template/tree/4cd0d9e51aebd1af6f82d91ad0df4c9e41f4dea2",
+    "revision" : "4cd0d9e51aebd1af6f82d91ad0df4c9e41f4dea2",
+    "reviewRole" : "Official mixed Python and TypeScript application template",
+    "minimumSampledSourceAreas" : 5,
+    "fingerprint" : {
+      "algorithmVersion" : 2,
+      "exactContentHash" : "1f442875b0c2e28f3540ce6f53ae1c7197a2b4a6cb0c1ba765dbfeb9f48ff568",
+      "sketch" : [ "00066f15dfc70c87", "00078b77cefda3f4", "000bfb65217fd51f", "00107898b1d65cd4", "0019aa52f72f0280", "001a7bdc9cc6d582", "001cdb9cc881f4cd", "00286b1bb4913b2b", "0036aa0565f89a72", "003d1b981061b7f5", "003e499480bbf8d1", "003fb85d7631153c", "00417053d1002323", "00451be32384f3e6", "004fbd8a38266a13", "00602b3db98506cd", "006cf8e865fc9921", "00821ed0fcd2b425", "00842cd1a16a2ad7", "009d3990a379ee06", "009fcb95c477203a", "00a3321d2821d0ee", "00a86b020ee043c0", "00aa6e4bb7ceb05b", "00b885f1381e30bf", "00ba4ceb882d8697", "00bd629e3b5167ef", "00be52204d5ba90e", "00c2722402fa5840", "00c48e24ea4a5c49", "00cb44287c8f8cf5", "00cc0da410686829", "00cef7a4fcd4b2c7", "00d51afdd5c266ee", "00d917382c8a21a1", "00e4180e33acb9de", "00e74c08759a6bcc", "00e9e54e8604bcb6", "00f6617ce822c108", "00f9090e54902599", "00fe024a1a56be3c", "0101a336bc4402f3", "010871acc9c7e262", "0115d83918d7cdf5", "01319692b8227e73", "014895f1b35f21d3", "0162a8fc7cc92807", "0168a27d5af14a59", "0175d7a02b734eab", "017afd31353fb745", "0192a69c9f729941", "01953be6fbbf1eb9", "0196f5e3a1e0f013", "01a0f263934c4937", "01b026aa8cbc8adb", "01b12ffa1e16eebd", "01b1b07721fb755b", "01b2536491440463", "01b7300beeb5d90e", "01bd5dce0bd6e99c", "01c2797513c683c5", "01c33ddf6394a49f", "01c6d92dca5274cc", "01c87302d98c4632", "01cac9e1f54706eb", "01d086cf41b4e9b1", "01d1548aff08f789", "01e4c0843e70012b", "01e8e1f0670be0c0", "01ecc4f00c7f7ad5", "01f55a0cf3cda1de", "01f6bdc334e0dc66", "01f969baf980836b", "01fe8ebcdfa378f2", "0203bf9f1c53721b", "0204adfa3c54bf95", "0209ae2a0c1d4f0e", "021b6de3dbb23257", "021c83d5d40cf97f", "0228dac863ce1e92", "0229c35c558da9d2", "022aaabc6d6b6c45", "022edbe702b8cfb2", "02333e39f3c9de75", "02381c60e3b2d2a4", "02489149ce761ea2", "0255bb0c7bf9ebbc", "025688df2ca95e27", "0262094f7c0946d3", "026af861dc723089", "027bacbadfdd87a9", "028007c2092944a6", "0288c2f8b185202d", "02940d1fa8ddc025", "02964c07440ca553", "029a173a40d204b6", "02a5d4455f92f1d0", "02a9d33110ab9144", "02b50e73e5a8ce82", "02bb421e0c2000a9", "02c7a359e2006d7a", "02c869848d996f16", "02d964bbb057c4b3", "02df4653ed2e8d35", "02e2c39e7464e337", "02ebb5f963b3b800", "02ff8938190bc24a", "03054b85c223b9da", "0306e45dec5ef1fb", "0307369fc261060c", "03078f19658af4cb", "031440752f67c89b", "031bbea758775ac3", "03225bd035ef0811", "0322b7a9950d9ff6", "0324128cd4397664", "03306cdccaec1dd0", "033472ef89fd2bdc", "0334bc951e22ebf6", "033ecf10e289309e", "034a365c5b63607a", "035a63bfbe74257b", "035fa71bb29eef0f", "0364624573a8139e", "036533b78f7c10f3", "0367ff0203b50753", "03724d7d4c85c310", "03817ea3c9d97a47" ],
+      "eligibleFileCount" : 153,
+      "sampledFileCount" : 8,
+      "tokenCount" : 16118,
+      "shingleCount" : 8484,
+      "sampledPaths" : [ "backend/app/api/routes/users.py", "backend/pyproject.toml", "backend/tests/api/routes/test_users.py", "compose.yml", "frontend/playwright.config.ts", "frontend/src/components/ui/sidebar.tsx", "frontend/tests/user-settings.spec.ts", "scripts/add_latest_release_date.py" ]
+    }
+  }, {
+    "id" : "nextjs-fastapi-template",
+    "repositoryUrl" : "https://github.com/vintasoftware/nextjs-fastapi-template/tree/62b67456e8f01760970455282282ecaa393fbd38",
+    "revision" : "62b67456e8f01760970455282282ecaa393fbd38",
+    "reviewRole" : "Independent mixed Python and TypeScript application template",
+    "minimumSampledSourceAreas" : 5,
+    "fingerprint" : {
+      "algorithmVersion" : 2,
+      "exactContentHash" : "9aee99fc9d3867943bd016821b2b8f4f19429f45bd4e69f295c594f200cf55c7",
+      "sketch" : [ "00035d3d3f92e255", "000ecf95907e1ac0", "0026ca95f3311f3e", "0028cf80d2f1973e", "002a128245e0a59a", "002aed71923608e5", "0039acf12209cd7e", "003ea4b623a8831c", "004434038941dcfa", "0044ae0d3b479791", "005e32bd0b581a02", "0060ee0e803ac020", "0063cc551c58d2d1", "006583020bcc41a7", "00697b08dd695537", "006b2842d6f52013", "006cf8e865fc9921", "007a1e46c88c0909", "0086e33d2c3ec7ee", "00959dbe8976cde5", "009af051a7b47db7", "00a324efeb5a2f11", "00acef4042281253", "00b0b74724dbe036", "00bb018a991c5c24", "00be52204d5ba90e", "00c1edd257d81fc2", "00c339f065098467", "00caeafbfa00d74b", "00d746545a7099ea", "00ddfad40ba86db5", "00e0fd8f63752e86", "00e55c760d8eb68a", "00f101f947f731d6", "00f1ee63d87cd7d4", "00f2e7b3f845ac83", "00f48c4e372d7a4b", "00fd867a8208da15", "0100c863dac46548", "010427929918be05", "010704d60a58f2f2", "011159f2214c6ff8", "01181b4bda4f3b03", "011a708d6627bbc1", "01222ec78f045eee", "01272fc353f1d67a", "0128cc8ee51c6b1f", "0131a1359c1788c0", "0163a8c887a83e8c", "016f9684cf352d4d", "0174b5cd12262122", "017cc7b96058939c", "018681bc53497c58", "01889aa9d9e65339", "018d425262d09023", "019233e928eacb9f", "01953be6fbbf1eb9", "01b140c0b376e9c6", "01b15f26afb2e245", "01b589332db1d811", "01be83e07201c29d", "01cb127b8ddf0831", "01d3a8ef104853d8", "01d91811331aaaf0", "01e767cc67ce0e0d", "01f2daa8e44ba662", "01f62bdad6b95be1", "01f9a822e36cde17", "01fbecf798f0bb3e", "020c854c395ba8d6", "020f17ad88cfed90", "0211e75d7ad2a98c", "021a319fbaf2f5ce", "0225c9f642a5626c", "0231c6536b6e2c57", "02384c052480f7d9", "0252d62cdc1ec1dc", "0258028d581663c7", "025d3631ad98b6be", "0265f9cf002d5bd8", "02690ced0f8f4a03", "026bce595b2c43dd", "026ff0a860ad1ec4", "0273f502ab3b3b27", "027772d6b7cb95c9", "027af3853a5d3d44", "028ae9a082e6cdd4", "028ecd6b6e16f70b", "02964c07440ca553", "02975efbbd7f8b40", "029c7ec26f3b1dc3", "02a7bb4bce6f997d", "02a915960ff2333c", "02c7a359e2006d7a", "02c9bc7c825cf6c1", "02ce14dc262b63a2", "02d340f26e5dc208", "02e064bc2cc3999e", "02e81d9e8739ada1", "0307f8d4b2158b39", "031226cd2a65cfd1", "031645e05e738f61", "031f6ef155b48e29", "032762baf11f2301", "032a15c28eae6af9", "032c5232d1102326", "033a96ea928a4f57", "033c260f2bc01097", "033e0e548927e549", "0340d3240f136304", "034168fed2f176dd", "035dca10a2f84a38", "035f7ba5f42d8d85", "03675510aa125164", "036b40d113f32bae", "0379b5b867a5fa26", "038353676ef8e196", "03878a4197670380", "039d47193864438a", "03a13067723472a5", "03a322086316b715", "03a6af5d04aca1a3", "03a6dd22cbf45314", "03ab23dcea61cfb2", "03b2228783a233a1", "03bd4f0afdc97c78", "03d1899735c1cf5c", "03d24fba1428323f" ],
+      "eligibleFileCount" : 104,
+      "sampledFileCount" : 8,
+      "tokenCount" : 13152,
+      "shingleCount" : 8239,
+      "sampledPaths" : [ "fastapi_backend/app/users.py", "fastapi_backend/requirements.txt", "fastapi_backend/tests/routes/test_items.py", "mkdocs.yml", "nextjs-frontend/__tests__/registerPage.test.tsx", "nextjs-frontend/app/openapi-client/types.gen.ts", "nextjs-frontend/components/ui/dropdown-menu.tsx", "nextjs-frontend/jest.config.ts" ]
+    }
+  } ],
+  "pairs" : [ {
+    "id" : "exact-snapshot-control",
+    "leftSnapshotId" : "spring-petclinic-current",
+    "rightSnapshotId" : "spring-petclinic-current",
+    "sameRepositoryIdentity" : true,
+    "sharedLineageGroup" : true,
+    "expectedRelationship" : "DUPLICATE",
+    "reviewNotes" : "Exact immutable snapshot control"
+  }, {
+    "id" : "same-project-evolution",
+    "leftSnapshotId" : "spring-petclinic-current",
+    "rightSnapshotId" : "spring-petclinic-older",
+    "sameRepositoryIdentity" : true,
+    "sharedLineageGroup" : true,
+    "expectedRelationship" : "DUPLICATE",
+    "reviewNotes" : "The same repository identity updates one evidence row across revisions"
+  }, {
+    "id" : "documented-javafx-derivative",
+    "leftSnapshotId" : "javafx-source",
+    "rightSnapshotId" : "javafx-derivative",
+    "sameRepositoryIdentity" : false,
+    "sharedLineageGroup" : false,
+    "expectedRelationship" : "DERIVATIVE",
+    "reviewNotes" : "Derivative attribution is documented by the downstream repository"
+  }, {
+    "id" : "maintained-ton-fork",
+    "leftSnapshotId" : "ton-core-source",
+    "rightSnapshotId" : "ton-core-fork",
+    "sameRepositoryIdentity" : false,
+    "sharedLineageGroup" : true,
+    "expectedRelationship" : "DERIVATIVE",
+    "reviewNotes" : "GitHub identifies the organization repository as a maintained fork"
+  }, {
+    "id" : "same-ecosystem-independent",
+    "leftSnapshotId" : "ton-core-fork",
+    "rightSnapshotId" : "ton-blueprint",
+    "sameRepositoryIdentity" : false,
+    "sharedLineageGroup" : false,
+    "expectedRelationship" : "INDEPENDENT",
+    "reviewNotes" : "Separate projects in the same TypeScript and TON ecosystem"
+  }, {
+    "id" : "same-framework-independent",
+    "leftSnapshotId" : "spring-petclinic-current",
+    "rightSnapshotId" : "javafx-source",
+    "sameRepositoryIdentity" : false,
+    "sharedLineageGroup" : false,
+    "expectedRelationship" : "INDEPENDENT",
+    "reviewNotes" : "Separate Java Spring applications with different functionality"
+  }, {
+    "id" : "cross-language-independent",
+    "leftSnapshotId" : "spring-petclinic-current",
+    "rightSnapshotId" : "ton-core-fork",
+    "sameRepositoryIdentity" : false,
+    "sharedLineageGroup" : false,
+    "expectedRelationship" : "INDEPENDENT",
+    "reviewNotes" : "Unrelated Java and TypeScript projects"
+  }, {
+    "id" : "second-exact-control",
+    "leftSnapshotId" : "javafx-source",
+    "rightSnapshotId" : "javafx-source",
+    "sameRepositoryIdentity" : true,
+    "sharedLineageGroup" : true,
+    "expectedRelationship" : "DUPLICATE",
+    "reviewNotes" : "Second exact immutable snapshot control"
+  }, {
+    "id" : "turborepo-evolution",
+    "leftSnapshotId" : "turborepo-current",
+    "rightSnapshotId" : "turborepo-older",
+    "sameRepositoryIdentity" : true,
+    "sharedLineageGroup" : true,
+    "expectedRelationship" : "DUPLICATE",
+    "reviewNotes" : "Same monorepository identity across nearby revisions"
+  }, {
+    "id" : "turborepo-exact-control",
+    "leftSnapshotId" : "turborepo-current",
+    "rightSnapshotId" : "turborepo-current",
+    "sameRepositoryIdentity" : true,
+    "sharedLineageGroup" : true,
+    "expectedRelationship" : "DUPLICATE",
+    "reviewNotes" : "Exact mixed-language monorepository control"
+  }, {
+    "id" : "flask-exact-control",
+    "leftSnapshotId" : "flask-current",
+    "rightSnapshotId" : "flask-current",
+    "sameRepositoryIdentity" : true,
+    "sharedLineageGroup" : true,
+    "expectedRelationship" : "DUPLICATE",
+    "reviewNotes" : "Exact Python repository control"
+  }, {
+    "id" : "django-exact-control",
+    "leftSnapshotId" : "django-current",
+    "rightSnapshotId" : "django-current",
+    "sameRepositoryIdentity" : true,
+    "sharedLineageGroup" : true,
+    "expectedRelationship" : "DUPLICATE",
+    "reviewNotes" : "Second exact Python repository control"
+  }, {
+    "id" : "python-frameworks-independent",
+    "leftSnapshotId" : "flask-current",
+    "rightSnapshotId" : "django-current",
+    "sameRepositoryIdentity" : false,
+    "sharedLineageGroup" : false,
+    "expectedRelationship" : "INDEPENDENT",
+    "reviewNotes" : "Separate Python web frameworks with independent implementations"
+  }, {
+    "id" : "python-api-frameworks-independent",
+    "leftSnapshotId" : "fastapi-current",
+    "rightSnapshotId" : "flask-current",
+    "sameRepositoryIdentity" : false,
+    "sharedLineageGroup" : false,
+    "expectedRelationship" : "INDEPENDENT",
+    "reviewNotes" : "Separate Python API and web framework implementations"
+  }, {
+    "id" : "django-fastapi-independent",
+    "leftSnapshotId" : "django-current",
+    "rightSnapshotId" : "fastapi-current",
+    "sameRepositoryIdentity" : false,
+    "sharedLineageGroup" : false,
+    "expectedRelationship" : "INDEPENDENT",
+    "reviewNotes" : "Separate Python frameworks in the same language ecosystem"
+  }, {
+    "id" : "spring-framework-example-independent",
+    "leftSnapshotId" : "spring-framework-current",
+    "rightSnapshotId" : "spring-petclinic-current",
+    "sameRepositoryIdentity" : false,
+    "sharedLineageGroup" : false,
+    "expectedRelationship" : "INDEPENDENT",
+    "reviewNotes" : "Framework implementation and an application built with it are independent work"
+  }, {
+    "id" : "java-libraries-independent",
+    "leftSnapshotId" : "guava-current",
+    "rightSnapshotId" : "spring-framework-current",
+    "sameRepositoryIdentity" : false,
+    "sharedLineageGroup" : false,
+    "expectedRelationship" : "INDEPENDENT",
+    "reviewNotes" : "Independent large Java library and framework repositories"
+  }, {
+    "id" : "javascript-build-ui-independent",
+    "leftSnapshotId" : "turborepo-current",
+    "rightSnapshotId" : "react-current",
+    "sameRepositoryIdentity" : false,
+    "sharedLineageGroup" : false,
+    "expectedRelationship" : "INDEPENDENT",
+    "reviewNotes" : "Independent JavaScript build tooling and UI library monorepositories"
+  }, {
+    "id" : "javascript-tooling-independent",
+    "leftSnapshotId" : "pnpm-current",
+    "rightSnapshotId" : "turborepo-current",
+    "sameRepositoryIdentity" : false,
+    "sharedLineageGroup" : false,
+    "expectedRelationship" : "INDEPENDENT",
+    "reviewNotes" : "Independent package manager and build system repositories"
+  }, {
+    "id" : "application-templates-independent",
+    "leftSnapshotId" : "full-stack-fastapi-template",
+    "rightSnapshotId" : "nextjs-fastapi-template",
+    "sameRepositoryIdentity" : false,
+    "sharedLineageGroup" : false,
+    "expectedRelationship" : "INDEPENDENT",
+    "reviewNotes" : "Independent application templates using similar Python and TypeScript stacks"
+  }, {
+    "id" : "framework-template-independent",
+    "leftSnapshotId" : "fastapi-current",
+    "rightSnapshotId" : "full-stack-fastapi-template",
+    "sameRepositoryIdentity" : false,
+    "sharedLineageGroup" : false,
+    "expectedRelationship" : "INDEPENDENT",
+    "reviewNotes" : "Framework implementation and application template are distinct projects"
+  }, {
+    "id" : "template-exact-control",
+    "leftSnapshotId" : "full-stack-fastapi-template",
+    "rightSnapshotId" : "full-stack-fastapi-template",
+    "sameRepositoryIdentity" : true,
+    "sharedLineageGroup" : true,
+    "expectedRelationship" : "DUPLICATE",
+    "reviewNotes" : "Exact mixed-language template control"
+  }, {
+    "id" : "guava-exact-control",
+    "leftSnapshotId" : "guava-current",
+    "rightSnapshotId" : "guava-current",
+    "sameRepositoryIdentity" : true,
+    "sharedLineageGroup" : true,
+    "expectedRelationship" : "DUPLICATE",
+    "reviewNotes" : "Exact multi-module Java repository control"
+  }, {
+    "id" : "python-java-independent",
+    "leftSnapshotId" : "django-current",
+    "rightSnapshotId" : "guava-current",
+    "sameRepositoryIdentity" : false,
+    "sharedLineageGroup" : false,
+    "expectedRelationship" : "INDEPENDENT",
+    "reviewNotes" : "Cross-language independent framework and library repositories"
+  }, {
+    "id" : "python-typescript-independent",
+    "leftSnapshotId" : "flask-current",
+    "rightSnapshotId" : "pnpm-current",
+    "sameRepositoryIdentity" : false,
+    "sharedLineageGroup" : false,
+    "expectedRelationship" : "INDEPENDENT",
+    "reviewNotes" : "Cross-language independent Python and TypeScript repositories"
+  }, {
+    "id" : "ton-package-manager-independent",
+    "leftSnapshotId" : "ton-blueprint",
+    "rightSnapshotId" : "pnpm-current",
+    "sameRepositoryIdentity" : false,
+    "sharedLineageGroup" : false,
+    "expectedRelationship" : "INDEPENDENT",
+    "reviewNotes" : "Independent projects sharing the TypeScript ecosystem"
+  }, {
+    "id" : "javafx-guava-independent",
+    "leftSnapshotId" : "javafx-source",
+    "rightSnapshotId" : "guava-current",
+    "sameRepositoryIdentity" : false,
+    "sharedLineageGroup" : false,
+    "expectedRelationship" : "INDEPENDENT",
+    "reviewNotes" : "Independent Java application and utility library repositories"
+  }, {
+    "id" : "react-pnpm-independent",
+    "leftSnapshotId" : "react-current",
+    "rightSnapshotId" : "pnpm-current",
+    "sameRepositoryIdentity" : false,
+    "sharedLineageGroup" : false,
+    "expectedRelationship" : "INDEPENDENT",
+    "reviewNotes" : "Independent JavaScript UI and package manager monorepositories"
+  } ]
+}

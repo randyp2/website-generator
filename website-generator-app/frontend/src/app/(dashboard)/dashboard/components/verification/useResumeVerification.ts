@@ -6,6 +6,7 @@ import type { ParsedExperience, ParsedResumeData } from "@/types/resume";
 
 import type { ResumeFile } from "./verification.types";
 import type { VerificationSubTab } from "./useVerificationSubTab";
+import { useResumeVerificationRecordQuery } from "./verification.query";
 
 // ─── Internal state shape ────────────────────────────────────────────
 
@@ -69,6 +70,7 @@ const useResumeVerification = (
     options: UseResumeVerificationOptions = {},
 ) => {
     const { onConfirmIngested } = options;
+    const resumeVerificationQuery = useResumeVerificationRecordQuery();
     const [state, setState] = useState<ResumeVerificationState>({
         resume: null,
         resumeVerificationId: null,
@@ -88,6 +90,7 @@ const useResumeVerification = (
     // without re-running the cleanup effect on every resume change.
     const blobUrlRef = useRef<string | undefined>(undefined);
     blobUrlRef.current = state.resume?.url;
+    const hasAppliedHydrationRef = useRef(false);
 
     useEffect(() => {
         return () => {
@@ -98,44 +101,61 @@ const useResumeVerification = (
     // ── Hydrate existing verification on mount ───────────────────────
 
     useEffect(() => {
-        const hydrate = async () => {
-            try {
-                const res = await fetch("/api/profile/resume-verification");
-                if (!res.ok) return;
+        if (hasAppliedHydrationRef.current) return;
+        if (resumeVerificationQuery.isPending || resumeVerificationQuery.isFetching) {
+            return;
+        }
 
-                const data = await res.json();
-                if (!data) return;
+        hasAppliedHydrationRef.current = true;
 
-                setState((prev) => ({
-                    ...prev,
-                    hasPersisted: true,
-                    resumeVerificationId: data.id ?? null,
-                    resumeUpdatedAt:
-                        typeof data.updatedAt === "string"
-                            ? data.updatedAt
-                            : null,
-                    resume: {
-                        name: data.originalFileName ?? "Resume",
-                        size: data.fileSizeBytes
-                            ? `${(data.fileSizeBytes / 1024).toFixed(1)} KB`
-                            : "",
-                        url: "",
-                        file: new File([], data.originalFileName ?? "Resume"),
-                    },
-                    parsedData: data.parsedJson ?? null,
-                }));
-            } catch (error) {
-                console.error(
-                    "Failed to load existing resume verification:",
-                    error,
-                );
-            } finally {
-                setState((prev) => ({ ...prev, isLoadingExisting: false }));
-            }
-        };
+        if (resumeVerificationQuery.error) {
+            console.error(
+                "Failed to load existing resume verification:",
+                resumeVerificationQuery.error,
+            );
+            setState((prev) => ({ ...prev, isLoadingExisting: false }));
+            return;
+        }
 
-        hydrate();
-    }, []);
+        const data = resumeVerificationQuery.data;
+        if (!data) {
+            setState((prev) => ({ ...prev, isLoadingExisting: false }));
+            return;
+        }
+
+        const fileName =
+            typeof data.originalFileName === "string"
+                ? data.originalFileName
+                : "Resume";
+        const fileSizeBytes =
+            typeof data.fileSizeBytes === "number"
+                ? data.fileSizeBytes
+                : null;
+
+        setState((prev) => ({
+            ...prev,
+            hasPersisted: true,
+            resumeVerificationId:
+                typeof data.id === "string" ? data.id : null,
+            resumeUpdatedAt:
+                typeof data.updatedAt === "string" ? data.updatedAt : null,
+            resume: {
+                name: fileName,
+                size: fileSizeBytes
+                    ? `${(fileSizeBytes / 1024).toFixed(1)} KB`
+                    : "",
+                url: "",
+                file: new File([], fileName),
+            },
+            parsedData: data.parsedJson ?? null,
+            isLoadingExisting: false,
+        }));
+    }, [
+        resumeVerificationQuery.data,
+        resumeVerificationQuery.error,
+        resumeVerificationQuery.isFetching,
+        resumeVerificationQuery.isPending,
+    ]);
 
     // ── Handlers ─────────────────────────────────────────────────────
 

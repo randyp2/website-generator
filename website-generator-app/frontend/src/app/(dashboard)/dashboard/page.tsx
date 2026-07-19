@@ -9,7 +9,7 @@ import { ActivityMetricsChart } from "./components/ActivityMetricsChart";
 
 const DashboardHome: React.FC = () => {
     return (
-        <div className="relative px-4 md:px-6 pb-14 pt-6">
+        <div className="relative px-4 pb-14 pt-6 md:px-6 lg:px-8">
             {/* Content */}
             <div className="relative z-10 pt-2 text-foreground">
                 <div className="space-y-6">

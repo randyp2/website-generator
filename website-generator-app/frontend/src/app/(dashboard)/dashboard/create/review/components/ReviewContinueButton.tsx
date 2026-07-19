@@ -27,11 +27,11 @@ export const ReviewContinueButton: React.FC<ReviewContinueButtonProps> = ({
         transition={{ type: "spring", stiffness: 400, damping: 30 }}
         onClick={onClick}
         disabled={disabled}
-        className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-50 px-8 py-4 bg-white/10 backdrop-blur-xl border border-white/20 text-white rounded-full font-bold shadow-[0_0_30px_rgba(255,255,255,0.15)] flex items-center gap-3 cursor-pointer ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+        className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-50 px-8 py-4 bg-muted/80 dark:bg-white/10 backdrop-blur-xl border border-border dark:border-white/20 text-foreground rounded-full font-bold shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_0_30px_rgba(255,255,255,0.15)] flex items-center gap-3 cursor-pointer ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
     >
         {disabled ? (
             <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-foreground dark:border-white" />
                 Parsing Resume...
             </>
         ) : (

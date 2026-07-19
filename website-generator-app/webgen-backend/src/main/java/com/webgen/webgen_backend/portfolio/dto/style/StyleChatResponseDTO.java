@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.portfolio.dto.style;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.util.List;
@@ -11,6 +12,16 @@ public class StyleChatResponseDTO {
     private int questionNumber;
     private int totalQuestions;           // always 10
     private boolean isComplete;
+
+    /**
+     * Explicit getter so Jackson serializes this as "isComplete". Lombok's
+     * generated isComplete() would map to the property name "complete",
+     * which breaks the frontend contract (StyleChatResponse.isComplete).
+     */
+    @JsonProperty("isComplete")
+    public boolean isComplete() {
+        return isComplete;
+    }
     private Map<String, String> stylePreferences; // only when isComplete=true
     private boolean showColorPicker;              // signals frontend to render color picker
     private List<StyleColorPresetDTO> recommendedColorPresets; // AI-generated custom palettes (nullable)
@@ -18,6 +29,7 @@ public class StyleChatResponseDTO {
     private String recommendedHeadingFont;         // AI's heading font suggestion (nullable)
     private String recommendedBodyFont;            // AI's body font suggestion (nullable)
     private List<String> suggestions;              // clickable option chips (nullable)
+    private List<String> updatedStyleFields;       // preference keys changed by a revision (nullable)
     private String designTip;                      // styled design tip callout (nullable)
     private String previewType;                    // signals frontend to render mini preview cards (nullable)
 }

@@ -12,5 +12,7 @@ public class EvidenceLinkDTO {
     private UUID claimId;
     private String linkType;
     private BigDecimal linkConfidence;
+    private BigDecimal evidenceDepth;
     private String reason;
+    private String sourceFile;
 }

@@ -124,7 +124,9 @@ export interface EvidenceItem {
   quality: QualityFlag
   linkType: string | null
   linkConfidence: number | null
+  evidenceDepth: number | null
   linkReason: string | null
+  sourceFile?: string | null
   metadata: Record<string, unknown> | null
   url: string | null
 }
@@ -183,6 +185,7 @@ export interface SkillDetailDrawerProps {
   showClaimControls?: boolean
   onDeleteClaim: (claimId: string) => Promise<void>
   onClose: () => void
+  onOpenEvidence?: (evidenceId: string) => void
 }
 
 export type AssetJobPhase = "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED"
@@ -207,7 +210,8 @@ export interface AssetVerificationSummarySelection {
   claimId: string
   uploadId: string
   originalFileName: string
-  confidence: number
+  matchConfidence: number
+  evidenceDepth: number
   summary: string
 }
 

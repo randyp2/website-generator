@@ -1,5 +1,6 @@
 package com.webgen.webgen_backend.profile.service.impl;
 
+import com.webgen.webgen_backend.account.service.AccountDeletionStateService;
 import com.webgen.webgen_backend.billing.service.BillingStatusReader;
 import com.webgen.webgen_backend.profile.dto.ProfileMeDTO;
 import com.webgen.webgen_backend.profile.dto.PublicProfileDTO;
@@ -30,6 +31,7 @@ public class ProfileServiceImpl implements ProfileService {
     private final ProfileRepository profileRepository;
     private final ProfileMapper profileMapper;
     private final BillingStatusReader billingStatusReader;
+    private final AccountDeletionStateService accountDeletionStateService;
 
     private static final Pattern USERNAME_PATTERN =
             Pattern.compile("^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$");
@@ -50,8 +52,10 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Override
     @Transactional
-    public ProfileMeDTO getOrCreateMyProfile(UUID profileId) {
+    public ProfileMeDTO getOrCreateMyProfile(UUID profileId, String authenticatedEmail) {
+        accountDeletionStateService.assertAccountActive(profileId);
         Profile profile = getOrCreateProfile(profileId);
+        profile = syncAuthenticatedEmail(profile, authenticatedEmail);
         profile = syncOnboardingComplete(profile);
         return withBilling(profileMapper.toMeDto(profile), profileId);
     }
@@ -59,6 +63,7 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     @Transactional
     public ProfileMeDTO updateMyProfile(UUID profileId, UpdateProfileRequestDTO request) {
+        accountDeletionStateService.assertAccountActive(profileId);
         if (request == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request body is required");
         }
@@ -168,6 +173,30 @@ public class ProfileServiceImpl implements ProfileService {
                     profile.setOnboardingComplete(false);
                     return profileRepository.save(profile);
                 });
+    }
+
+    private Profile syncAuthenticatedEmail(Profile profile, String authenticatedEmail) {
+        String normalizedEmail = normalizeAuthenticatedEmail(authenticatedEmail);
+        if (normalizedEmail == null || normalizedEmail.equals(profile.getEmail())) {
+            return profile;
+        }
+
+        profile.setEmail(normalizedEmail);
+        return profileRepository.save(profile);
+    }
+
+    private String normalizeAuthenticatedEmail(String authenticatedEmail) {
+        if (authenticatedEmail == null) {
+            return null;
+        }
+
+        String normalized = authenticatedEmail.trim().toLowerCase(Locale.ROOT);
+        if (normalized.length() < 3
+                || normalized.length() > 320
+                || normalized.indexOf('@') <= 0) {
+            return null;
+        }
+        return normalized;
     }
 
     private Profile syncOnboardingComplete(Profile profile) {

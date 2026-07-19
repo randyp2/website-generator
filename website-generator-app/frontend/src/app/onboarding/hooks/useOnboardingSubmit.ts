@@ -3,17 +3,22 @@
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
+import {
+    getProfileMeErrorStatus,
+    useUpdateProfileMeMutation,
+} from "@/hooks/useProfileMeQuery";
 import { resolveSafeNextPath } from "@/lib/safe-next-path";
+import {
+    isLaunchPromotion,
+    markLaunchWelcomePending,
+} from "@/lib/billing/launch-promotion";
 import { BIO_MAX_LENGTH, USERNAME_PATTERN } from "../constants";
 import {
     hasCompletedOnboarding,
-    parseJsonSafely,
     toPayload,
 } from "../lib/onboarding-utils";
 import {
     type FormState,
-    type ProfileMeResponse,
-    type ProfileUpdateErrorResponse,
     type UsernameState,
 } from "../types";
 
@@ -22,6 +27,7 @@ type UseOnboardingSubmitParams = {
     username: string;
     usernameState: UsernameState;
     isBootstrapping: boolean;
+    onComplete: () => void;
 };
 
 type UseOnboardingSubmitReturn = {
@@ -37,11 +43,13 @@ export const useOnboardingSubmit = ({
     username,
     usernameState,
     isBootstrapping,
+    onComplete,
 }: UseOnboardingSubmitParams): UseOnboardingSubmitReturn => {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
+    const updateProfileMutation = useUpdateProfileMeMutation();
+    const isSubmitting = updateProfileMutation.isPending;
 
     const canSubmit = useMemo(
         () => usernameState.status === "available" && !isSubmitting && !isBootstrapping,
@@ -70,41 +78,30 @@ export const useOnboardingSubmit = ({
             return;
         }
 
-        setIsSubmitting(true);
-
         try {
-            const response = await fetch("/api/profile/me", {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(toPayload(form)),
-            });
-
-            if (response.status === 401) {
-                router.replace("/");
-                return;
-            }
-
-            if (!response.ok) {
-                const errorBody =
-                    await parseJsonSafely<ProfileUpdateErrorResponse>(response);
-                setSubmitError(
-                    errorBody?.error ?? "We couldn't save your profile. Please try again.",
-                );
-                return;
-            }
-
-            const updated = await parseJsonSafely<ProfileMeResponse>(response);
+            const updated = await updateProfileMutation.mutateAsync(toPayload(form));
             if (hasCompletedOnboarding(updated)) {
+                if (isLaunchPromotion(updated.billing?.activePromotionKey)) {
+                    markLaunchWelcomePending();
+                }
+                onComplete();
                 const nextPath = resolveSafeNextPath(searchParams.get("next"));
                 router.replace(nextPath ?? "/dashboard");
                 return;
             }
 
             setSubmitError("Profile saved, but onboarding is not complete yet.");
-        } catch {
-            setSubmitError("We couldn't save your profile. Please try again.");
-        } finally {
-            setIsSubmitting(false);
+        } catch (error) {
+            if (getProfileMeErrorStatus(error) === 401) {
+                router.replace("/");
+                return;
+            }
+
+            setSubmitError(
+                error instanceof Error
+                    ? error.message
+                    : "We couldn't save your profile. Please try again.",
+            );
         }
     };
 

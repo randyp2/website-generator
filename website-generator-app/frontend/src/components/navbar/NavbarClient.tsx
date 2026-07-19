@@ -4,10 +4,9 @@ import * as React from "react"
 import type { User } from "@supabase/supabase-js"
 import { motion } from "framer-motion"
 import {
-  Bell,
-  Inbox,
   LayoutDashboard,
   LogIn,
+  Settings,
   Sparkles,
   UserCircle2,
 } from "lucide-react"
@@ -16,7 +15,8 @@ import { usePathname, useRouter } from "next/navigation"
 
 import BrandWordmark from "@/components/branding/BrandWordmark"
 import { navbarNavigation } from "@/components/navbar/navbar.config"
-import { ThemeModeToggle } from "@/components/theme/ThemeModeToggle"
+import { NotificationsMenu } from "@/components/notifications/NotificationsMenu"
+import { AnimatedThemeToggle } from "@/components/theme/AnimatedThemeToggle"
 import type {
   DesktopNavCategory,
   DesktopNavItem,
@@ -221,31 +221,13 @@ const NavbarClient: React.FC = () => {
       </div>
 
       <div className="ml-auto flex items-center gap-2 pl-2 md:justify-self-end md:pl-0">
-        <ThemeModeToggle
-          collapsed
+        <AnimatedThemeToggle
           className="size-9 border-border/70 bg-background/80 text-foreground hover:cursor-pointer hover:bg-background/80 hover:text-foreground"
         />
         {user ? (
           <>
             <div className="hidden items-center gap-2 md:flex">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="size-9 rounded-md border border-border/70 bg-background/80 hover:cursor-pointer hover:bg-accent/60"
-                aria-label="Inbox"
-              >
-                <Inbox className="size-4" />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="size-9 rounded-md border border-border/70 bg-background/80 hover:cursor-pointer hover:bg-accent/60"
-                aria-label="Notifications"
-              >
-                <Bell className="size-4" />
-              </Button>
+              <NotificationsMenu />
             </div>
             <motion.div {...actionButtonMotion}>
               <DropdownMenu modal={false}>
@@ -283,6 +265,13 @@ const NavbarClient: React.FC = () => {
                   >
                     <UserCircle2 className="mr-2 size-4" />
                     Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="hover:cursor-pointer"
+                    onClick={() => router.push("/dashboard/settings")}
+                  >
+                    <Settings className="mr-2 size-4" />
+                    Settings
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem

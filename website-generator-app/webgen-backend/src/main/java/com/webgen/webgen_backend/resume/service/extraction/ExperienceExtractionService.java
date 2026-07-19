@@ -75,6 +75,7 @@ public class ExperienceExtractionService {
 
             Experience exp = new Experience();
             exp.setRawBlock(cleanLine(rawBlock.toString()));
+            exp.setBullets(new ArrayList<>());
             parseExperienceBlock(exp);
             experiences.add(exp);
         }
@@ -458,7 +459,10 @@ public class ExperienceExtractionService {
     private void parseExperienceBullets(Experience experience, int startLineIdx) {
         String[] lines = experience.getRawBlock().split("\n");
 
-        if (startLineIdx >= lines.length) return;
+        if (startLineIdx >= lines.length) {
+            experience.setBullets(new ArrayList<>());
+            return;
+        }
 
         // Strategy 1: Try to find explicit dashes
         List<String> bullets = parseDashBullets(lines, startLineIdx);
@@ -468,9 +472,7 @@ public class ExperienceExtractionService {
             bullets = parseImplicitBullets(lines, startLineIdx);
         }
 
-        if (!bullets.isEmpty()) {
-            experience.setBullets(bullets);
-        }
+        experience.setBullets(bullets);
 
     }
 

@@ -1,9 +1,10 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { usePublicVerificationSummaryByIdentity } from "@/app/(public)/(site)/[profile]/components/usePublicVerification";
 import {
   deriveOverviewFromSummary,
   getTierBarColor,
@@ -15,10 +16,9 @@ import {
 } from "@/app/(dashboard)/dashboard/components/verification/verification.utils";
 import VerificationScoreRing from "@/app/(dashboard)/dashboard/components/verification/VerificationScoreRing";
 import type { SkillVerification } from "@/app/(dashboard)/dashboard/components/verification/verification.types";
-import type { PublicVerificationSummaryDTO } from "@/types/public-verification";
-import type { VerificationSummaryDTO } from "@/types/verification-summary";
 
 interface ExplorePortfolioPlaceholderCardProps {
+  profileId: string | null;
   username: string | null;
 }
 
@@ -35,59 +35,12 @@ const formatStatusLabel = (status: string): string =>
     .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
     .join(" ");
 
-const useExploreVerificationSummary = (username: string | null) => {
-  const [summary, setSummary] = useState<VerificationSummaryDTO | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchSummary = useCallback(async () => {
-    if (!username) {
-      setSummary(null);
-      setError(null);
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch(
-        `/api/public/profile/${encodeURIComponent(username)}/verification/summary`,
-        { cache: "no-store" },
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch verification summary");
-      }
-
-      const data = (await response.json()) as PublicVerificationSummaryDTO;
-      setSummary(data);
-    } catch (requestError) {
-      console.error("Error fetching explore verification summary:", requestError);
-      setSummary(null);
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Failed to fetch verification summary",
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }, [username]);
-
-  useEffect(() => {
-    void fetchSummary();
-  }, [fetchSummary]);
-
-  return { summary, isLoading, error, refetch: fetchSummary };
-};
-
 export const ExplorePortfolioPlaceholderCard = ({
+  profileId,
   username,
 }: ExplorePortfolioPlaceholderCardProps) => {
   const { summary, isLoading, error, refetch } =
-    useExploreVerificationSummary(username);
+    usePublicVerificationSummaryByIdentity({ profileId, username });
   const [hoveredSkill, setHoveredSkill] = useState<SkillVerification | null>(null);
   const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
   const canUseDom = typeof window !== "undefined" && typeof document !== "undefined";
@@ -153,16 +106,16 @@ export const ExplorePortfolioPlaceholderCard = ({
   return (
     <div className="self-start">
       <article className="relative overflow-hidden rounded-xl border border-border bg-card/80 shadow-sm">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/20 via-accent/10 to-transparent dark:from-primary/15 dark:via-transparent dark:to-accent/12" />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(251,146,60,0.14),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(245,158,11,0.10),transparent_30%)]" />
-        <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-primary/20 blur-3xl dark:bg-primary/12" />
+        {/* Coffee-gold wash: one smooth diagonal gradient (#554023 -> #c99846),
+            kept translucent so the card text stays theme-readable */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#554023]/14 via-[#8a6c35]/8 to-[#c99846]/18 dark:from-[#554023]/45 dark:via-[#8a6c35]/20 dark:to-[#c99846]/25" />
 
         <div className="relative z-10 p-6 sm:p-8">
           <p className="text-xs font-semibold tracking-[0.24em] text-primary uppercase">
             Verification Snapshot
           </p>
           <div className="mt-6 border-t border-border pt-6">
-            {!username ? (
+            {!profileId && !username ? (
               <p className="text-sm leading-7 text-muted-foreground">
                 Verification summary is not available for this portfolio owner yet.
               </p>
@@ -178,7 +131,7 @@ export const ExplorePortfolioPlaceholderCard = ({
                 <button
                   type="button"
                   onClick={refetch}
-                  className="text-xs font-medium text-primary underline underline-offset-4"
+                  className="public-action-button public-action-button-outline"
                 >
                   Retry
                 </button>

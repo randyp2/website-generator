@@ -39,7 +39,7 @@ export interface ParsedResumeData {
 
   // Parsing metadata
   confidenceScore?: number;
-  parsingMethod?: 'regex' | 'llm' | 'regex_low_confidence' | 'manual_template';
+  parsingMethod?: 'regex' | 'llm' | 'regex_low_confidence' | 'regex_low_quality' | 'manual_template';
 }
 
 export interface UpdateResumeBody {

@@ -1,18 +1,21 @@
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const SUPABASE_OAUTH_CODE_EXCHANGE_PATHS = new Set<string>([
+const PASSWORD_RECOVERY_PATH = "/auth/reset-password";
+
+const SUPABASE_AUTH_CODE_EXCHANGE_PATHS = new Set<string>([
     "/",
     "/dashboard",
     "/auth/post-login",
+    PASSWORD_RECOVERY_PATH,
 ]);
 
-const shouldExchangeSupabaseOAuthCode = (pathname: string): boolean =>
-    SUPABASE_OAUTH_CODE_EXCHANGE_PATHS.has(pathname);
+const shouldExchangeSupabaseAuthCode = (pathname: string): boolean =>
+    SUPABASE_AUTH_CODE_EXCHANGE_PATHS.has(pathname);
 
 /**
  * - Create supabase client that can read and write cookies
- * - Check for Supabase OAuth "code" in URL on allowed callback paths
+ * - Check for a Supabase Auth "code" in URL on allowed callback paths
  *    - If found, exchange it for session tokens
  * - If not, just validate existing session
  *
@@ -21,8 +24,8 @@ const shouldExchangeSupabaseOAuthCode = (pathname: string): boolean =>
  * @returns
  */
 export const updateSession = async (request: NextRequest) => {
-    // Let request continue normally
-    const response = NextResponse.next({
+    // Mutable so the cookie writer can rebuild it with the refreshed request.
+    let response = NextResponse.next({
         request: { headers: request.headers },
     });
 
@@ -32,16 +35,24 @@ export const updateSession = async (request: NextRequest) => {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
             cookies: {
-                get(name: string) {
-                    // Read cookies from incoming request
-                    return request.cookies.get(name)?.value;
+                getAll() {
+                    return request.cookies.getAll();
                 },
-                set(name: string, value: string, options: CookieOptions) {
-                    // Save cookies onto response
-                    response.cookies.set({ name, value, ...options });
-                },
-                remove(name: string, options: CookieOptions) {
-                    response.cookies.set({ name, value: "", ...options });
+                setAll(cookiesToSet) {
+                    // When Supabase refreshes an expired token it writes the new
+                    // cookies here. Apply them to BOTH the request (so the route
+                    // handler in this same request reads the fresh token) and the
+                    // response (so the browser persists it). Updating only the
+                    // response would refresh the token for the *next* request
+                    // while this one still forwards the stale, expired token to
+                    // the backend, which rejects it with a 403.
+                    cookiesToSet.forEach(({ name, value }) =>
+                        request.cookies.set(name, value),
+                    );
+                    response = NextResponse.next({ request });
+                    cookiesToSet.forEach(({ name, value, options }) =>
+                        response.cookies.set(name, value, options),
+                    );
                 },
             },
         },
@@ -50,10 +61,10 @@ export const updateSession = async (request: NextRequest) => {
     // Get the request URL
     const requestUrl = new URL(request.url);
     const { searchParams, pathname } = requestUrl;
-    // Search for "code" param (OAuth redirect)
+    // Search for the PKCE code returned by OAuth or password recovery.
     const code = searchParams.get("code");
 
-    if (code && shouldExchangeSupabaseOAuthCode(pathname)) {
+    if (code && shouldExchangeSupabaseAuthCode(pathname)) {
         await supabase.auth.exchangeCodeForSession(code);
 
         const nextUrl = new URL(request.url);
@@ -68,10 +79,12 @@ export const updateSession = async (request: NextRequest) => {
             return redirectResponse;
         }
 
-        // Always route OAuth callbacks through the post-login resolver so it
-        // can decide where the user belongs (handles cases where Supabase
-        // redirects to "/" or "/dashboard" instead of the requested redirectTo).
-        if (pathname !== "/auth/post-login") {
+        // Password recovery stays on its dedicated form. OAuth callbacks route
+        // through the post-login resolver so it can choose the destination.
+        if (
+            pathname !== "/auth/post-login" &&
+            pathname !== PASSWORD_RECOVERY_PATH
+        ) {
             nextUrl.pathname = "/auth/post-login";
         }
 

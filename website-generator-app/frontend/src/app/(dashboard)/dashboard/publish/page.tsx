@@ -30,6 +30,9 @@ const PublishPage = () => {
         });
 
     const [wizardOpen, setWizardOpen] = useState<boolean>(false);
+    const [wizardInitialPortfolioId, setWizardInitialPortfolioId] = useState<
+        string | null
+    >(null);
     const [heroViewMode, setHeroViewMode] =
         useState<PublishHeroViewMode>("screenshot");
 
@@ -88,10 +91,20 @@ const PublishPage = () => {
         [unpublish],
     );
 
+    const handleOpenWizard = useCallback((): void => {
+        setWizardInitialPortfolioId(null);
+        setWizardOpen(true);
+    }, []);
+
+    const handleSelectDraft = useCallback((portfolioId: string): void => {
+        setWizardInitialPortfolioId(portfolioId);
+        setWizardOpen(true);
+    }, []);
+
     if (loading) return <PublishLoadingState />;
 
     return (
-        <div className="space-y-6 px-4 py-8 md:px-6">
+        <div className="space-y-6 px-4 py-8 md:px-6 lg:px-8">
             <div>
                 <PublishHero
                     portfolio={featuredPortfolio}
@@ -106,13 +119,17 @@ const PublishPage = () => {
                     )}
                     onCopyUrl={handleCopyFeatured}
                     onUnpublish={handleUnpublishFeatured}
-                    onOpenWizard={() => setWizardOpen(true)}
+                    onOpenWizard={handleOpenWizard}
                     onSaveDescription={handleSaveDescription}
                 />
             </div>
 
             <div className="grid gap-6 xl:grid-cols-2">
-                <PublishDraftsColumn drafts={drafts} ownerName={ownerName} />
+                <PublishDraftsColumn
+                    drafts={drafts}
+                    onSelectDraft={handleSelectDraft}
+                    onCreateNew={handleOpenWizard}
+                />
                 <PublishLiveColumn
                     live={live}
                     ownerName={ownerName}
@@ -130,6 +147,7 @@ const PublishPage = () => {
                         drafts={drafts}
                         ownerName={ownerName}
                         ownerAvatarUrl={ownerAvatarUrl}
+                        initialPortfolioId={wizardInitialPortfolioId}
                         onClose={() => setWizardOpen(false)}
                         onPublished={handlePublished}
                     />

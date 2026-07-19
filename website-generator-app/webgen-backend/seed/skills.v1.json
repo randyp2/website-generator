@@ -1,6 +1,6 @@
 {
-  "version": "1.0",
-  "generated": "2026-04-13",
+  "version": "1.1",
+  "generated": "2026-07-12",
   "categories": {
     "engineering": [
       {
@@ -2315,6 +2315,70 @@
             "id": "11000000-0000-4000-a000-00000000010f",
             "alias": "Maven"
           }
+        ]
+      },
+      {
+        "name": "Amazon EC2",
+        "weight": 1,
+        "aliases": [
+          "EC2",
+          "AWS EC2"
+        ]
+      },
+      {
+        "name": "Amazon ECS",
+        "weight": 1,
+        "aliases": [
+          "ECS",
+          "AWS ECS",
+          "Elastic Container Service"
+        ]
+      },
+      {
+        "name": "Amazon S3",
+        "weight": 1,
+        "aliases": [
+          "S3",
+          "AWS S3",
+          "Simple Storage Service"
+        ]
+      },
+      {
+        "name": "AWS Application Load Balancer",
+        "weight": 1,
+        "aliases": [
+          "ALB",
+          "Application Load Balancer"
+        ]
+      },
+      {
+        "name": "Supabase",
+        "weight": 1,
+        "aliases": []
+      },
+      {
+        "name": "Flyway",
+        "weight": 1,
+        "aliases": [
+          "Flyway Database Migrations"
+        ]
+      },
+      {
+        "name": "Retrieval-Augmented Generation",
+        "weight": 1,
+        "aliases": [
+          "RAG",
+          "RAG Pipeline",
+          "RAG Pipelines"
+        ]
+      },
+      {
+        "name": "LLM API Integration",
+        "weight": 1,
+        "aliases": [
+          "LLM API",
+          "LLM APIs",
+          "Large Language Model APIs"
         ]
       }
     ],

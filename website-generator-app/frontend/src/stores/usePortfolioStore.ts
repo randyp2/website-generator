@@ -8,6 +8,7 @@ import {
 } from "@/types/resume";
 import { StylePreferences } from "@/types/style";
 import type { SectionDTO, GlobalTheme } from "@/types/portfolio";
+import { normalizeParsedResumeData } from "@/utils/resume/normalizeParsedResumeData";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
@@ -52,6 +53,7 @@ export interface PortfolioCreateState {
     // AI-related info
     aiPrompt: string; // Prompt user types in for refinement
     previewHtml: string | null; // Generated preview from AI
+    refineSessionId: string | null; // Clarifier session for the current refinement conversation
 
     // --- Function definitions to update state
     setTemplateId: (templateId: string | null) => void;
@@ -137,10 +139,14 @@ export interface PortfolioCreateState {
 
     setAiPrompt: (prompt: string) => void;
     setPreviewHtml: (html: string) => void;
+    setRefineSessionId: (sessionId: string | null) => void;
     reset: () => void;
 }
 
 /* ========== ZUSTAND STORE ========== */
+/** One-shot guard so a persistent rehydration failure never retry-loops. */
+let hasAttemptedStoreRecovery = false;
+
 export const usePortfolioStore = create<PortfolioCreateState>()(
     persist(
         (set, get) => ({
@@ -163,7 +169,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                 typography: null,
                 animationStyle: null,
                 whitespace: null,
-                imageryStyle: null,
+                visualRichness: null,
                 interactiveElements: null,
                 customNotes: "",
             },
@@ -175,6 +181,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             chatLayoutMode: 'sidebar',
             aiPrompt: "",
             previewHtml: null,
+            refineSessionId: null,
 
             /* -------- FUNCTION IMPLEMENTATIONS TO UPDATE STATE -------- */
             // Set selected template ID
@@ -190,7 +197,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
 
             // Set parsed resume data
             setParsedResumeData: (data: ParsedResumeData | null) =>
-                set({ parsedResumeData: data }),
+                set({ parsedResumeData: normalizeParsedResumeData(data) }),
 
             setParsedResumeSourceKey: (key: string | null) =>
                 set({ parsedResumeSourceKey: key }),
@@ -285,6 +292,8 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             // Set AI-related info
             setPreviewHtml: (html: string) => set({ previewHtml: html }),
             setAiPrompt: (prompt: string) => set({ aiPrompt: prompt }),
+            setRefineSessionId: (sessionId: string | null) =>
+                set({ refineSessionId: sessionId }),
 
             // ========== PARSED RESUME DATA UPDATE FUNCTIONS ==========
 
@@ -328,7 +337,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             addSkill: () => {
                 const current = get().parsedResumeData;
                 if (current) {
-                    const updatedSkills = [...current.skills, ""];
+                    const updatedSkills = [...(current.skills ?? []), ""];
                     set({
                         parsedResumeData: { ...current, skills: updatedSkills },
                     });
@@ -338,7 +347,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             updateSkill: (index: number, skill: string) => {
                 const current = get().parsedResumeData;
                 if (current) {
-                    const updatedSkills = current.skills.map((s, i) =>
+                    const updatedSkills = (current.skills ?? []).map((s, i) =>
                         i === index ? skill : s,
                     );
                     set({
@@ -350,7 +359,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             removeSkill: (index: number) => {
                 const current = get().parsedResumeData;
                 if (current) {
-                    const updatedSkills = current.skills.filter(
+                    const updatedSkills = (current.skills ?? []).filter(
                         (_, i) => i !== index,
                     );
                     set({
@@ -367,7 +376,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                         parsedResumeData: {
                             ...current,
                             experiences: [
-                                ...current.experiences,
+                                ...(current.experiences ?? []),
                                 {
                                     rawBlock: "",
                                     title: "",
@@ -389,7 +398,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                     set({
                         parsedResumeData: {
                             ...current,
-                            experiences: current.experiences.filter(
+                            experiences: (current.experiences ?? []).filter(
                                 (_, experienceIndex) => experienceIndex !== index,
                             ),
                         },
@@ -404,7 +413,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             ) => {
                 const current = get().parsedResumeData;
                 if (current) {
-                    const updatedExperiences = current.experiences.map(
+                    const updatedExperiences = (current.experiences ?? []).map(
                         (exp, i) =>
                             i === index ? { ...exp, [field]: value } : exp,
                     );
@@ -424,12 +433,12 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             ) => {
                 const current = get().parsedResumeData;
                 if (current) {
-                    const updatedExperiences = current.experiences.map(
+                    const updatedExperiences = (current.experiences ?? []).map(
                         (exp, i) =>
                             i === expIndex
                                 ? {
                                       ...exp,
-                                      bullets: exp.bullets.map((b, j) =>
+                                      bullets: (exp.bullets ?? []).map((b, j) =>
                                           j === bulletIndex ? value : b,
                                       ),
                                   }
@@ -447,10 +456,10 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             addExperienceBullet: (expIndex: number) => {
                 const current = get().parsedResumeData;
                 if (current) {
-                    const updatedExperiences = current.experiences.map(
+                    const updatedExperiences = (current.experiences ?? []).map(
                         (exp, i) =>
                             i === expIndex
-                                ? { ...exp, bullets: [...exp.bullets, ""] }
+                                ? { ...exp, bullets: [...(exp.bullets ?? []), ""] }
                                 : exp,
                     );
                     set({
@@ -465,12 +474,12 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             removeExperienceBullet: (expIndex: number, bulletIndex: number) => {
                 const current = get().parsedResumeData;
                 if (current) {
-                    const updatedExperiences = current.experiences.map(
+                    const updatedExperiences = (current.experiences ?? []).map(
                         (exp, i) =>
                             i === expIndex
                                 ? {
                                       ...exp,
-                                      bullets: exp.bullets.filter(
+                                      bullets: (exp.bullets ?? []).filter(
                                           (_, j) => j !== bulletIndex,
                                       ),
                                   }
@@ -493,7 +502,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             ) => {
                 const current = get().parsedResumeData;
                 if (current) {
-                    const updatedEducations = current.educations.map(
+                    const updatedEducations = (current.educations ?? []).map(
                         (edu, i) =>
                             i === index ? { ...edu, [field]: value } : edu,
                     );
@@ -514,7 +523,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
             ) => {
                 const current = get().parsedResumeData;
                 if (current) {
-                    const updatedProjects = current.projects.map((proj, i) =>
+                    const updatedProjects = (current.projects ?? []).map((proj, i) =>
                         i === index ? { ...proj, [field]: value } : proj,
                     );
                     set({
@@ -597,13 +606,14 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                         typography: null,
                         animationStyle: null,
                         whitespace: null,
-                        imageryStyle: null,
+                        visualRichness: null,
                         interactiveElements: null,
                         customNotes: "",
                     },
                     isSendingStyle: false,
                     aiPrompt: "",
                     previewHtml: null,
+                    refineSessionId: null,
                 });
                 // Clear persisted storage when resetting
                 sessionStorage.removeItem("portfolio-creation-store");
@@ -612,6 +622,34 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
         {
             name: "portfolio-creation-store",
             storage: createJSONStorage(() => sessionStorage),
+            // Draft/session state is disposable: discard any older schema
+            // instead of loading a stale shape into new code. Bump `version`
+            // on every change to the persisted shape (partialize fields or
+            // their types) and add a case here only if data must survive.
+            version: 1,
+            migrate: (persistedState, version) =>
+                version === 1 ? persistedState : undefined,
+            // Corrupt persisted state must never lock the UI: zustand swallows
+            // rehydration errors and leaves hasHydrated() false forever, which
+            // keeps every hydration-gated input disabled. Recover ONCE by
+            // dropping the bad entry and rehydrating with defaults; a second
+            // failure means the error is not storage-borne, so retrying again
+            // would loop. The retry is deferred because the first hydrate runs
+            // synchronously during store creation, before the store const is
+            // initialized.
+            onRehydrateStorage: () => (_state, error) => {
+                if (!error) return;
+                console.error(
+                    "[portfolio-store] Failed to rehydrate persisted state",
+                    error,
+                );
+                if (hasAttemptedStoreRecovery) return;
+                hasAttemptedStoreRecovery = true;
+                sessionStorage.removeItem("portfolio-creation-store");
+                setTimeout(() => {
+                    void usePortfolioStore.persist.rehydrate();
+                }, 0);
+            },
             partialize: (state) => ({
                 // Persist most state, but handle files specially
                 templateId: state.templateId,
@@ -628,6 +666,7 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                 chatLayoutMode: state.chatLayoutMode,
                 aiPrompt: state.aiPrompt,
                 previewHtml: state.previewHtml,
+                refineSessionId: state.refineSessionId,
                 // For files, store metadata only (File objects can't be serialized)
                 resumeFile: state.resumeFile
                     ? {
@@ -659,6 +698,20 @@ export const usePortfolioStore = create<PortfolioCreateState>()(
                     file: null as unknown as File,
                 })),
             }),
+            // persistedState is undefined when storage is empty (fresh session,
+            // or right after reset() removed the entry): fall back to defaults
+            merge: (persistedState, currentState) => {
+                const persisted = (persistedState ??
+                    {}) as Partial<PortfolioCreateState>;
+
+                return {
+                    ...currentState,
+                    ...persisted,
+                    parsedResumeData: normalizeParsedResumeData(
+                        persisted.parsedResumeData ?? currentState.parsedResumeData,
+                    ),
+                };
+            },
         },
     ),
 );

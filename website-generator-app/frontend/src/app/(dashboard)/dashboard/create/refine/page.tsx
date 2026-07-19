@@ -1,15 +1,19 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { InsufficientCreditsModal } from "@/components/billing/InsufficientCreditsModal";
 import { Preview } from "./components/Preview";
-import { FloatingPromptBar } from "./components/FloatingPromptBar";
 import { ChatHistoryOverlay } from "./components/ChatHistoryOverlay";
 import { SidebarChatPanel } from "./components/SidebarChatPanel";
+import { RefineChatPromptBar } from "./components/RefineChatPromptBar";
 import { useInitialPortfolioGeneration } from "./hooks/useInitialPortfolioGeneration";
 import { GenerationOverlay } from "./components/loaders/GenerationOverlay";
 import { useRefineChat } from "./hooks/useRefineChat";
 import { useRefinePortfolioHydration } from "./hooks/useRefinePortfolioHydration";
 import { useRefineUploads } from "./hooks/useRefineUploads";
+import { usePublishState } from "./hooks/usePublishState";
+import PublishChangesChip from "./components/PublishChangesChip";
 import { normalizeMessages } from "./lib/message-helpers";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
 import { downloadPortfolioHtml } from "@/utils/downloadHtml";
@@ -18,6 +22,7 @@ import { downloadPortfolioHtml } from "@/utils/downloadHtml";
 // MAIN COMPONENT
 // ============================================================================
 const AIRefinementPage: React.FC = () => {
+    const router = useRouter();
     // Zustand store - All portfolio creation state
     const {
         portfolioId,
@@ -63,6 +68,9 @@ const AIRefinementPage: React.FC = () => {
     });
     const {
         isGenerating,
+        completedRefinementRevision,
+        isInsufficientCreditsModalOpen,
+        closeInsufficientCreditsModal,
         currentPlan,
         isPlanApproved,
         sendMessage,
@@ -79,6 +87,23 @@ const AIRefinementPage: React.FC = () => {
         removeMediaFile,
         removeVideoFile,
     });
+
+    const {
+        hasUnpublishedChanges,
+        isPublishing,
+        refresh: refreshPublishState,
+        publishChanges,
+    } = usePublishState(portfolioId);
+
+    // Re-check publish divergence when a build finishes (true -> false edge);
+    // the hook already fetched on mount
+    const wasGeneratingRef = useRef(false);
+    useEffect(() => {
+        if (wasGeneratingRef.current && !isGenerating) {
+            void refreshPublishState();
+        }
+        wasGeneratingRef.current = isGenerating;
+    }, [isGenerating, refreshPublishState]);
 
     const { uploadedFiles, handleFileSelect, removeFile } = useRefineUploads({
         mediaFiles,
@@ -109,6 +134,8 @@ const AIRefinementPage: React.FC = () => {
         } catch (error) {
             console.error("Failed to reload portfolio after version change:", error);
         }
+
+        void refreshPublishState();
     };
 
     // ========================================================================
@@ -132,11 +159,16 @@ const AIRefinementPage: React.FC = () => {
         }
     };
 
+    const handleAddRefinementCredits = (): void => {
+        closeInsufficientCreditsModal();
+        router.push("/pricing");
+    };
+
     // ========================================================================
     // RENDER
     // ========================================================================
     return (
-        <div className="h-screen flex flex-col overflow-hidden relative">
+        <div className="relative flex h-full min-h-0 flex-col overflow-hidden bg-background text-foreground">
             {/* ================================================ */}
             {/* LAYER 1: SANDBOX - FULL SCREEN (BASE, z-0) */}
             {/* ================================================ */}
@@ -161,6 +193,7 @@ const AIRefinementPage: React.FC = () => {
                                 onApprovePlan={handleApprovePlan}
                                 onKeepChatting={handleKeepChatting}
                                 portfolioId={portfolioId}
+                                versionsRefreshKey={completedRefinementRevision}
                                 onVersionActivated={handleVersionActivated}
                                 onDownload={handleDownloadHtml}
                                 isDownloading={isDownloading}
@@ -189,7 +222,7 @@ const AIRefinementPage: React.FC = () => {
             {/* Only visible in floating mode */}
             {/* ================================================ */}
             {chatLayoutMode === 'floating' && (
-                <FloatingPromptBar
+                <RefineChatPromptBar
                     uploadedFiles={uploadedFiles}
                     onSendMessage={sendMessage}
                     onFileSelect={handleFileSelect}
@@ -199,15 +232,37 @@ const AIRefinementPage: React.FC = () => {
                     onApprovePlan={handleApprovePlan}
                     onKeepChatting={handleKeepChatting}
                     portfolioId={portfolioId}
+                    versionsRefreshKey={completedRefinementRevision}
                     onVersionActivated={handleVersionActivated}
                     onDownload={handleDownloadHtml}
                     isDownloading={isDownloading}
                     layoutMode={chatLayoutMode}
                     onLayoutModeChange={setChatLayoutMode}
+                    placement="floating"
                 />
             )}
 
             {/* Preview mode: no chat UI rendered */}
+
+            {/* ================================================ */}
+            {/* PUBLISH STATE CHIP - TOP CENTER (z-50) */}
+            {/* Shown when the live site is behind the editor */}
+            {/* ================================================ */}
+            <div className="pointer-events-none absolute inset-x-0 top-4 z-50 flex justify-center">
+                <PublishChangesChip
+                    visible={hasUnpublishedChanges}
+                    isPublishing={isPublishing}
+                    onPublish={publishChanges}
+                />
+            </div>
+
+            {isInsufficientCreditsModalOpen && (
+                <InsufficientCreditsModal
+                    description="You need a portfolio refinement allowance or at least 9 credits to start another refinement session."
+                    onClose={closeInsufficientCreditsModal}
+                    onAddCredits={handleAddRefinementCredits}
+                />
+            )}
         </div>
     );
 };

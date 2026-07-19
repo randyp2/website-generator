@@ -10,34 +10,34 @@ export const ContinueSection: React.FC = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.7, duration: 0.5 }}
-      className="relative bg-white/5 rounded-2xl p-8 border border-white/10 shadow-lg min-h-[360px] flex flex-col"
+      className="relative flex min-h-[360px] flex-col rounded-2xl border border-border bg-card/80 p-5 shadow-lg md:p-6"
     >
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
-            <FiClock className="w-5 h-5 text-white" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
+            <FiClock className="h-5 w-5" />
           </div>
-          <h2 className="text-2xl font-bold text-white">
+          <h2 className="text-lg font-semibold tracking-tight text-card-foreground md:text-xl">
             Continue Where You Left Off
           </h2>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
+      <div className="grid flex-1 grid-cols-1 gap-4 md:grid-cols-2">
         {/* Placeholder card 1 */}
         <motion.div
           whileHover={{ scale: 1.02, y: -2 }}
-          className="group p-6 rounded-xl border border-white/10 hover:border-white/30 hover:bg-white/5 transition-shadow cursor-pointer"
+          className="group cursor-pointer rounded-xl border border-border bg-background/70 p-5 transition-shadow hover:border-primary/40 hover:bg-muted/40"
         >
           <div className="flex items-start gap-4">
-            <div className="w-16 h-16 rounded-lg bg-white/10 flex items-center justify-center">
-              <FiEdit3 className="w-6 h-6 text-white/70 group-hover:text-white transition-colors" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+              <FiEdit3 className="h-6 w-6 transition-colors group-hover:text-primary" />
             </div>
             <div className="flex-1">
-              <div className="h-6 bg-white/10 rounded-md mb-2 w-3/4"></div>
-              <div className="h-4 bg-white/5 rounded-md mb-3 w-1/2"></div>
-              <div className="flex items-center gap-2 text-sm text-white/60">
-                <FiClock className="w-4 h-4" />
+              <div className="mb-2 h-6 w-3/4 rounded-md bg-muted"></div>
+              <div className="mb-3 h-4 w-1/2 rounded-md bg-muted/60"></div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <FiClock className="h-4 w-4" />
                 <span>Last edited: --</span>
               </div>
             </div>
@@ -47,17 +47,17 @@ export const ContinueSection: React.FC = () => {
         {/* Placeholder card 2 */}
         <motion.div
           whileHover={{ scale: 1.02, y: -2 }}
-          className="group p-6 rounded-xl border border-white/10 hover:border-white/30 hover:bg-white/5 transition-shadow cursor-pointer"
+          className="group cursor-pointer rounded-xl border border-border bg-background/70 p-5 transition-shadow hover:border-primary/40 hover:bg-muted/40"
         >
           <div className="flex items-start gap-4">
-            <div className="w-16 h-16 rounded-lg bg-white/10 flex items-center justify-center">
-              <FiEdit3 className="w-6 h-6 text-white/70 group-hover:text-white transition-colors" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+              <FiEdit3 className="h-6 w-6 transition-colors group-hover:text-primary" />
             </div>
             <div className="flex-1">
-              <div className="h-6 bg-white/10 rounded-md mb-2 w-2/3"></div>
-              <div className="h-4 bg-white/5 rounded-md mb-3 w-1/3"></div>
-              <div className="flex items-center gap-2 text-sm text-white/60">
-                <FiClock className="w-4 h-4" />
+              <div className="mb-2 h-6 w-2/3 rounded-md bg-muted"></div>
+              <div className="mb-3 h-4 w-1/3 rounded-md bg-muted/60"></div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <FiClock className="h-4 w-4" />
                 <span>Last edited: --</span>
               </div>
             </div>

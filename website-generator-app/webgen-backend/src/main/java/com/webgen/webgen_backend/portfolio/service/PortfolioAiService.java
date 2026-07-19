@@ -13,12 +13,15 @@ public interface PortfolioAiService {
      * @param portfolioId - ID of the portfolio to generate for
      * @param userId - ID of the authenticated user (for ownership check)
      * @param req - Contains user prompt and context for the portfolio
+     * @param jobId generation job used for status and section fan-out
+     * @param creditReservationId credit reservation attached to all queued section work
      */
     void generatePortfolio(
             UUID portfolioId,
             UUID userId,
             PortfolioGenerateRequestDTO req,
-            String jobId
+            String jobId,
+            UUID creditReservationId
     );
 
     /**

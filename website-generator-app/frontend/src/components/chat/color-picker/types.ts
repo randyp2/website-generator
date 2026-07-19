@@ -13,6 +13,8 @@ export type ColorKey = (typeof COLOR_KEYS)[number];
 
 export type PaletteColors = Record<ColorKey, string>;
 
+export type ColorPickerSurfaceMode = "dark" | "light";
+
 export interface ThemedPalette {
     name: string;
     description: string;

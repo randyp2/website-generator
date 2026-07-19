@@ -6,6 +6,7 @@ import com.stripe.model.Customer;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.CustomerCreateParams;
 import com.stripe.param.checkout.SessionCreateParams;
+import com.webgen.webgen_backend.account.service.AccountDeletionStateService;
 import com.webgen.webgen_backend.billing.config.StripeProperties;
 import com.webgen.webgen_backend.billing.dto.CreateCheckoutSessionRequestDTO;
 import com.webgen.webgen_backend.billing.dto.CreateCheckoutSessionResponseDTO;
@@ -39,6 +40,7 @@ public class BillingCheckoutServiceImpl implements BillingCheckoutService {
     private final ProfileRepository profileRepository;
     private final BillingSubscriptionRepository billingSubscriptionRepository;
     private final BillingCheckoutMapper billingCheckoutMapper;
+    private final AccountDeletionStateService accountDeletionStateService;
 
     @Override
     @Transactional
@@ -57,7 +59,8 @@ public class BillingCheckoutServiceImpl implements BillingCheckoutService {
                 + " priceKey=" + request.getPriceKey());
 
         ensureCheckoutRedirectUrlsConfigured();
-        Profile profile = resolveExistingProfile(profileId);
+        Profile profile = resolveExistingProfileForBilling(profileId);
+        accountDeletionStateService.assertAccountActive(profileId);
 
         PriceSelection selection = resolvePriceSelection(request.getPriceKey());
         preventDuplicatePlanCheckout(profile.getId(), selection);
@@ -108,7 +111,8 @@ public class BillingCheckoutServiceImpl implements BillingCheckoutService {
         System.out.println(">>> [BillingPortal] createPortalSession start profileId=" + profileId);
 
         ensurePortalReturnUrlConfigured();
-        Profile profile = resolveExistingProfile(profileId);
+        Profile profile = resolveExistingProfileForBilling(profileId);
+        accountDeletionStateService.assertAccountActive(profileId);
         String stripeCustomerId = resolveOrCreateStripeCustomerId(profile);
 
         com.stripe.param.billingportal.SessionCreateParams params =
@@ -168,8 +172,8 @@ public class BillingCheckoutServiceImpl implements BillingCheckoutService {
         }
     }
 
-    private Profile resolveExistingProfile(UUID profileId) {
-        return profileRepository.findById(profileId)
+    private Profile resolveExistingProfileForBilling(UUID profileId) {
+        return profileRepository.findByIdForUpdate(profileId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile with profile id not found"));
     }
 

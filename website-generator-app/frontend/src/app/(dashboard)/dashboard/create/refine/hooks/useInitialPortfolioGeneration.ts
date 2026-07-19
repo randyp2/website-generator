@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { invalidateProfileMeQuery } from "@/hooks/useProfileMeQuery";
 import type {
     CompletedSectionsResponse,
     GlobalTheme,
@@ -14,6 +16,11 @@ import {
     createUserMessage,
 } from "../lib/message-helpers";
 import type { GenerationPhase } from "../components/loaders/GenerationOverlay";
+import {
+    useGenerationJobStore,
+    type ActiveGenerationJob,
+} from "@/stores/useGenerationJobStore";
+import { usePortfolioStore } from "@/stores/usePortfolioStore";
 
 interface LoadPortfolioResponse {
     sections?: SectionDTO[] | null;
@@ -46,6 +53,7 @@ const DEFAULT_GENERATION_PROMPT: string =
     "Generate a visually appealing one-shot portfolio that reflects the parsed resume data and style preferences.";
 
 const POLL_INTERVAL_MS: number = 3000; // 3 seconds
+const REFUND_REFRESH_DELAY_MS = 1_000;
 
 const STATUS_LABELS: Record<string, string> = {
     QUEUED: "Queued...",
@@ -71,6 +79,7 @@ export const useInitialPortfolioGeneration = ({
     setGlobalTheme,
     setMessages,
 }: UseInitialPortfolioGenerationParams): UseInitialPortfolioGenerationReturn => {
+    const queryClient = useQueryClient();
     const hasGeneratedRef = useRef<boolean>(false);
     const sectionsRef = useRef(sections);
     const [generationPhase, setGenerationPhase] = useState<GenerationPhase | null>(null);
@@ -83,6 +92,13 @@ export const useInitialPortfolioGeneration = ({
     useEffect(() => {
         let pollTimer: ReturnType<typeof setInterval> | null = null;
         let cancelled: boolean = false;
+        const refreshBillingAfterRefund = (): void => {
+            void invalidateProfileMeQuery(queryClient);
+            setTimeout(
+                () => void invalidateProfileMeQuery(queryClient),
+                REFUND_REFRESH_DELAY_MS,
+            );
+        };
 
         // Fallback: load the full portfolio from DB (catches missed sections + global theme)
         const loadSavedPortfolio = async (): Promise<boolean> => {
@@ -122,8 +138,12 @@ export const useInitialPortfolioGeneration = ({
             }
         };
 
-        const pollJobStatus = (jobId: string, tempMessageId: string): void => {
-            let sectionOffset = 0;
+        const pollJobStatus = (
+            jobId: string,
+            tempMessageId: string,
+            initialOffset: number = 0,
+        ): void => {
+            let sectionOffset = initialOffset;
 
             pollTimer = setInterval(async () => {
                 if (cancelled) {
@@ -178,6 +198,7 @@ export const useInitialPortfolioGeneration = ({
                         if (sectionsData.status === "COMPLETED") {
                             if (pollTimer) clearInterval(pollTimer);
                             setGenerationPhase(null);
+                            useGenerationJobStore.getState().clearJob();
 
                             // Final load to sync global theme + catch any missed sections
                             await loadSavedPortfolio();
@@ -200,6 +221,8 @@ export const useInitialPortfolioGeneration = ({
                         if (sectionsData.status === "FAILED") {
                             if (pollTimer) clearInterval(pollTimer);
                             setGenerationPhase(null);
+                            useGenerationJobStore.getState().clearJob();
+                            refreshBillingAfterRefund();
 
                             const error_message: Message = createAiMessage(
                                 "Generation failed. Please try again.",
@@ -240,6 +263,7 @@ export const useInitialPortfolioGeneration = ({
                         if (jobStatus.status === "COMPLETED") {
                             if (pollTimer) clearInterval(pollTimer);
                             setGenerationPhase(null);
+                            useGenerationJobStore.getState().clearJob();
                             await loadSavedPortfolio();
 
                             const done_message: Message = createAiMessage(
@@ -259,6 +283,8 @@ export const useInitialPortfolioGeneration = ({
                         if (jobStatus.status === "FAILED") {
                             if (pollTimer) clearInterval(pollTimer);
                             setGenerationPhase(null);
+                            useGenerationJobStore.getState().clearJob();
+                            refreshBillingAfterRefund();
 
                             const error_message: Message = createAiMessage(
                                 "Generation failed. Please try again.",
@@ -280,9 +306,54 @@ export const useInitialPortfolioGeneration = ({
             }, POLL_INTERVAL_MS);
         };
 
+        /*
+         * Re-attaches to a generation job that is already running (page
+         * re-entry or a fresh tab) instead of starting a new one. Sections
+         * that already arrived stay in place; polling continues after them.
+         */
+        const resumeActiveJob = async (job: ActiveGenerationJob): Promise<void> => {
+            hasGeneratedRef.current = true;
+
+            // Job state expired in Redis (finished long ago): hydration already
+            // loaded the final portfolio from the DB, so just drop the job
+            try {
+                const statusRes = await fetch(
+                    `/api/portfolio/jobs/status/${job.jobId}`,
+                );
+                if (statusRes.status === 404 || statusRes.status === 410) {
+                    useGenerationJobStore.getState().clearJob();
+                    return;
+                }
+            } catch {
+                // Transient failure: attach anyway, the poller tolerates errors
+            }
+
+            console.log("[generate] Resuming active job:", job.jobId);
+            const throbber: Message = createGeneratingMessage("ai-temp");
+            setMessages((prev) =>
+                prev.filter((m) => !m.isGenerating).concat(throbber),
+            );
+            setGenerationPhase("GENERATING");
+            pollJobStatus(job.jobId, throbber.id, sectionsRef.current?.length ?? 0);
+        };
+
         const generate = async (): Promise<void> => {
             if (hasGeneratedRef.current) return;
             if (isHydrating || !hasResolvedInitialPortfolioLoad) return;
+
+            // --- An in-flight generation takes precedence over everything:
+            // re-attach to it rather than starting (and paying for) a new one
+            const activeJob = useGenerationJobStore.getState().activeJob;
+            if (activeJob && activeJob.kind === "generate") {
+                if (!portfolioId) {
+                    // Fresh tab: seed the id and let the effect re-run with it
+                    usePortfolioStore.getState().setPortfolioId(activeJob.portfolioId);
+                    return;
+                }
+                await resumeActiveJob(activeJob);
+                return;
+            }
+
             if (sectionsRef.current && sectionsRef.current.length > 0) {
                 hasGeneratedRef.current = true;
                 return;
@@ -317,6 +388,7 @@ export const useInitialPortfolioGeneration = ({
                         }),
                     },
                 );
+                void invalidateProfileMeQuery(queryClient);
 
                 if (!response.ok) {
                     let errorData: unknown = null;
@@ -344,6 +416,11 @@ export const useInitialPortfolioGeneration = ({
 
                 // Start polling for status + sections
                 const { jobId } = (await response.json()) as { jobId: string };
+                useGenerationJobStore.getState().startJob({
+                    jobId,
+                    portfolioId,
+                    kind: "generate",
+                });
                 pollJobStatus(jobId, tempAiMessage.id);
             } catch (err: unknown) {
                 console.error("[generate] Failed to start generation:", err);
@@ -377,6 +454,7 @@ export const useInitialPortfolioGeneration = ({
         appendSections,
         setGlobalTheme,
         setMessages,
+        queryClient,
     ]);
 
     return { generationPhase, totalSections };

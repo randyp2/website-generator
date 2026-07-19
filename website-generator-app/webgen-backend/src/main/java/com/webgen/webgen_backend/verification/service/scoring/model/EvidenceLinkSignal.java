@@ -12,6 +12,7 @@ public record EvidenceLinkSignal(
         UUID evidenceId,
         String linkType,
         BigDecimal linkConfidence,
+        BigDecimal evidenceDepth,
         BigDecimal linkTypeWeight,
         OffsetDateTime occurredAt,
         OffsetDateTime capturedAt,
@@ -21,6 +22,49 @@ public record EvidenceLinkSignal(
         String reason,
         String title,
         String sourceUrl,
-        String provider
+        String provider,
+        String evidenceGroupKey
 ) {
+    /** Backward-compatible constructor for signals assembled before grouping. */
+    public EvidenceLinkSignal(
+            UUID evidenceId,
+            String linkType,
+            BigDecimal linkConfidence,
+            BigDecimal evidenceDepth,
+            BigDecimal linkTypeWeight,
+            OffsetDateTime occurredAt,
+            OffsetDateTime capturedAt,
+            Integer ageDays,
+            BigDecimal recencyDecay,
+            BigDecimal decayedStrength,
+            String reason,
+            String title,
+            String sourceUrl,
+            String provider
+    ) {
+        this(evidenceId, linkType, linkConfidence, evidenceDepth, linkTypeWeight,
+                occurredAt, capturedAt, ageDays, recencyDecay, decayedStrength,
+                reason, title, sourceUrl, provider, null);
+    }
+
+    /** Backward-compatible connector constructor where confidence is scoring strength. */
+    public EvidenceLinkSignal(
+            UUID evidenceId,
+            String linkType,
+            BigDecimal linkConfidence,
+            BigDecimal linkTypeWeight,
+            OffsetDateTime occurredAt,
+            OffsetDateTime capturedAt,
+            Integer ageDays,
+            BigDecimal recencyDecay,
+            BigDecimal decayedStrength,
+            String reason,
+            String title,
+            String sourceUrl,
+            String provider
+    ) {
+        this(evidenceId, linkType, linkConfidence, null, linkTypeWeight,
+                occurredAt, capturedAt, ageDays, recencyDecay, decayedStrength,
+                reason, title, sourceUrl, provider, null);
+    }
 }

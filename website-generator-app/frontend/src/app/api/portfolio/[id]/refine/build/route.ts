@@ -10,15 +10,17 @@ import { getBackendUrlOrNull } from "@/lib/server-env";
  * POST /api/portfolio/[id]/refine/build
  *
  * Thin proxy that forwards the build request to the Java backend.
- * The backend now handles all persistence asynchronously via RabbitMQ workers,
- * so this route just returns the { jobId } for client-side polling.
+ * Only plans and the session id are forwarded: the backend loads section
+ * code from its DB, so the client never supplies reactSource. The backend
+ * handles all persistence asynchronously via RabbitMQ workers, so this
+ * route just returns the { jobId } for client-side polling.
  */
 export async function POST(
     req: Request,
     context: { params: Promise<{ id: string }> },
 ) {
     const body = await req.json();
-    const { sections, sectionPlans, sessionId } = body ?? {};
+    const { sectionPlans, sessionId } = body ?? {};
     const { id: portfolioId } = await context.params;
 
     if (!portfolioId) {
@@ -110,7 +112,6 @@ export async function POST(
             body: JSON.stringify({
                 portfolioId,
                 sessionId,
-                sections: Array.isArray(sections) ? sections : [],
                 sectionPlans,
                 assets: (assets ?? []).map((asset) => ({
                     id: asset.id,
@@ -133,12 +134,20 @@ export async function POST(
         }
 
         if (!res.ok) {
+            const insufficientCredits = res.status === 402;
             const errorMessage =
                 typeof data === "object" && data && "error" in data
                     ? (data as { error?: string }).error
-                    : "Build request failed";
+                    : insufficientCredits
+                        ? "A portfolio refinement allowance or at least 9 credits is required."
+                        : "Build request failed";
             return NextResponse.json(
-                { error: errorMessage },
+                {
+                    ...(insufficientCredits && {
+                        code: "INSUFFICIENT_CREDITS",
+                    }),
+                    error: errorMessage,
+                },
                 { status: res.status },
             );
         }

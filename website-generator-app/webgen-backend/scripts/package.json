@@ -4,7 +4,7 @@
   "description": "JSX validation script for webgen-backend",
   "private": true,
   "scripts": {
-    "test": "node validate-jsx.test.js"
+    "test": "node --test validate-jsx.test.js generate-skill-seed.test.mjs"
   },
   "dependencies": {
     "@babel/core": "^7.23.0",
@@ -12,6 +12,8 @@
     "@babel/plugin-transform-modules-commonjs": "^7.23.0",
     "@babel/preset-react": "^7.22.0",
     "@babel/traverse": "^7.23.0",
+    "framer-motion": "^10.18.0",
+    "lucide-react": "^0.294.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   }

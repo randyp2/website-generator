@@ -26,11 +26,12 @@ export const LayoutPreviewCard = ({
                 }
             }}
             className={cn(
-                "group relative flex cursor-pointer flex-col overflow-hidden border-white/10 bg-white/[0.04] transition-all hover:border-white/20 hover:bg-white/[0.07]",
-                isSelected && "border-blue-500/50 bg-blue-500/[0.08] hover:border-blue-500/60",
+                "group relative flex cursor-pointer flex-col overflow-hidden border-border bg-card transition-all hover:border-primary/40 hover:bg-muted/50 dark:border-white/10 dark:bg-white/[0.04] dark:hover:border-white/20 dark:hover:bg-white/[0.07]",
+                isSelected &&
+                    "border-blue-500/50 bg-blue-500/[0.08] hover:border-blue-500/60",
             )}
         >
-            <div className="flex h-32 items-center justify-center rounded-t-lg border-b border-white/5 bg-white/[0.02]">
+            <div className="flex h-32 items-center justify-center rounded-t-lg border-b border-border bg-muted/35 dark:border-white/5 dark:bg-white/[0.02]">
                 <div className="w-full">
                     <PreviewComponent />
                 </div>
@@ -40,11 +41,11 @@ export const LayoutPreviewCard = ({
                 <div className="min-w-0">
                     <Badge
                         variant="secondary"
-                        className="mb-1 bg-white/10 text-xs text-white/80 hover:bg-white/10"
+                        className="mb-1 bg-muted text-xs text-foreground hover:bg-muted dark:bg-white/10 dark:text-white/80 dark:hover:bg-white/10"
                     >
                         {definition.name}
                     </Badge>
-                    <p className="text-xs leading-snug text-white/50">
+                    <p className="text-xs leading-snug text-muted-foreground dark:text-white/50">
                         {definition.description}
                     </p>
                 </div>

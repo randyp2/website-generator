@@ -25,6 +25,11 @@ public class SecurityConfig {
     @Autowired
     private JWTFilter jwtFilter;
 
+    // Verifies the request came from the Next.js server; runs before JWT auth.
+    // Does not affect identity verification — see InternalSecretFilter.
+    @Autowired
+    private com.webgen.webgen_backend.auth.filter.InternalSecretFilter internalSecretFilter;
+
     // Inject allowed origins from properties file
     @Value("${cors.allowed.origins}")
     private String allowedOrigins;
@@ -45,6 +50,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/debug/create").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/billing/webhook/stripe").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/public/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/public/portfolio/*/engagement/views").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/public/portfolio/*/engagement/shares").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/public/profile/*/social/views").permitAll()
 //                        .requestMatchers("/api/generate/ping", "/api/generate", "/api/debug/create", "/api/debug/all")
 //                        .permitAll() // Endpoints that don't need auth
                         .anyRequest().authenticated())
@@ -53,6 +61,7 @@ public class SecurityConfig {
                         session ->
                             session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Make stateless
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(internalSecretFilter, JWTFilter.class)
                 .build();
     }
 

@@ -1,20 +1,25 @@
 "use client"
 
-import { FiInbox } from "react-icons/fi"
+import { FiInbox, FiPlus } from "react-icons/fi"
 
 import type { Portfolio } from "@/types/portfolio"
 
-import { PublishListCard } from "./PublishListCard"
+import { PublishDraftCard } from "./PublishDraftCard"
 
 interface PublishDraftsColumnProps {
   drafts: Portfolio[]
-  ownerName: string
+  onSelectDraft: (portfolioId: string) => void
+  onCreateNew: () => void
 }
 
-export const PublishDraftsColumn = ({ drafts, ownerName }: PublishDraftsColumnProps) => (
+export const PublishDraftsColumn = ({
+  drafts,
+  onSelectDraft,
+  onCreateNew,
+}: PublishDraftsColumnProps) => (
   <section className="flex flex-col gap-3">
     <div className="flex items-center justify-between">
-      <h2 className="text-lg font-semibold text-foreground">
+      <h2 className="text-lg font-semibold tracking-tight text-foreground">
         Drafts — ready to publish
       </h2>
       <span className="text-xs text-muted-foreground">{drafts.length}</span>
@@ -29,15 +34,22 @@ export const PublishDraftsColumn = ({ drafts, ownerName }: PublishDraftsColumnPr
         </p>
       </div>
     ) : (
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {drafts.map((portfolio) => (
-          <PublishListCard
+          <PublishDraftCard
             key={String(portfolio.id)}
             portfolio={portfolio}
-            variant="draft"
-            ownerName={ownerName}
+            onClick={() => onSelectDraft(String(portfolio.id))}
           />
         ))}
+        <button
+          type="button"
+          onClick={onCreateNew}
+          className="group flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border bg-transparent px-3.5 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:cursor-pointer hover:border-primary/50 hover:bg-muted/30 hover:text-foreground"
+        >
+          <FiPlus className="h-3.5 w-3.5" />
+          New draft
+        </button>
       </div>
     )}
   </section>

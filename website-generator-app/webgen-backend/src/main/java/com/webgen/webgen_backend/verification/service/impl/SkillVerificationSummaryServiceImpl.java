@@ -16,6 +16,7 @@ import com.webgen.webgen_backend.verification.service.scoring.model.SkillScoreRe
 import com.webgen.webgen_backend.verification.service.scoring.model.SkillScoreSummary;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -29,6 +30,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SkillVerificationSummaryServiceImpl implements SkillVerificationSummaryService {
 
     private final ClaimRepository claimRepository;
@@ -56,6 +58,12 @@ public class SkillVerificationSummaryServiceImpl implements SkillVerificationSum
         );
 
         SkillScoreSummary summary = scoringKernel.score(new SkillScoreRequest(inputs, parserConfidence, asOf));
+        long evidencedClaims = summary.claims().stream().filter(claim -> claim.evidenceLinksUsed() > 0).count();
+        log.debug("Verification score trace profileId={} baseline={} evidenceDelta={} overall={} "
+                        + "recognized={}/{} evidenced={}/{} parserConfidence={}",
+                profileId, summary.baselineOverallScore(), summary.evidenceDelta(), summary.overallScore(),
+                summary.matchedSkills(), summary.totalSkills(), evidencedClaims, summary.matchedSkills(),
+                summary.parserConfidence());
         return verificationSummaryMapper.toSummaryDto(summary);
     }
 

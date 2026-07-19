@@ -36,7 +36,9 @@ public class AssetVerificationResponseParser {
             String normalized = normalizeJsonPayload(rawJson);
             JsonNode root = objectMapper.readTree(normalized);
 
-            double confidence = clamp01(root.path("confidence").asDouble(0.0d));
+            double legacyConfidence = clamp01(root.path("confidence").asDouble(0.0d));
+            double matchConfidence = readConfidence(root, "matchConfidence", legacyConfidence);
+            double evidenceDepth = readConfidence(root, "evidenceDepth", legacyConfidence);
             String summary = truncate(nonBlank(
                     root.path("summary").asText(""),
                     "Insufficient evidence signal was detected from this asset."
@@ -50,11 +52,12 @@ public class AssetVerificationResponseParser {
 
             boolean shouldLinkRequested = root.has("shouldLink")
                     ? root.path("shouldLink").asBoolean(false)
-                    : confidence >= 0.45d;
+                    : matchConfidence >= 0.45d;
             boolean shouldLink = shouldLinkRequested && !"NONE".equals(evidenceStrength);
 
             AssetVerificationResultDTO result = AssetVerificationResultDTO.builder()
-                    .confidence(confidence)
+                    .matchConfidence(matchConfidence)
+                    .evidenceDepth(evidenceDepth)
                     .summary(summary)
                     .build();
 
@@ -123,5 +126,13 @@ public class AssetVerificationResponseParser {
             return 0.0d;
         }
         return Math.max(0.0d, Math.min(1.0d, value));
+    }
+
+    private double readConfidence(JsonNode root, String fieldName, double fallback) {
+        JsonNode value = root.get(fieldName);
+        if (value == null || !value.isNumber()) {
+            return fallback;
+        }
+        return clamp01(value.asDouble());
     }
 }

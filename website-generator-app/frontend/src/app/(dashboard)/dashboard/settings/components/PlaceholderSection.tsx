@@ -18,7 +18,9 @@ export const PlaceholderSection = ({
     return (
         <Card className="border-dashed">
             <CardHeader>
-                <CardTitle>{title}</CardTitle>
+                <CardTitle className="text-lg font-semibold tracking-tight">
+                    {title}
+                </CardTitle>
                 <CardDescription>{description}</CardDescription>
             </CardHeader>
             <CardContent>

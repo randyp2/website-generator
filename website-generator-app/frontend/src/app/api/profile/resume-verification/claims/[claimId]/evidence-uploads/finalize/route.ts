@@ -14,9 +14,11 @@ const readBackendErrorMessage = async (
     const contentType = response.headers.get("content-type") ?? "";
     if (contentType.includes("application/json")) {
         try {
-            const body = (await response.json()) as { error?: unknown; message?: unknown };
-            if (typeof body.error === "string" && body.error.trim()) return body.error;
-            if (typeof body.message === "string" && body.message.trim()) return body.message;
+            const body = (await response.json()) as Record<string, unknown>;
+            for (const key of ["detail", "message", "error"] as const) {
+                const value = body[key];
+                if (typeof value === "string" && value.trim()) return value.trim();
+            }
         } catch {
             // no-op, fallback below
         }
@@ -95,17 +97,27 @@ export const POST = async (
         );
 
         if (!response.ok) {
+            const insufficientCredits = response.status === 402;
             const errorMessage = await readBackendErrorMessage(
                 response,
-                "Failed to finalize upload",
+                insufficientCredits
+                    ? "An asset verification allowance or at least 1 credit is required."
+                    : "Failed to finalize upload",
             );
-            console.error(
-                "Backend claim evidence upload finalize failed:",
-                response.status,
-                errorMessage,
-            );
+            if (!insufficientCredits) {
+                console.error(
+                    "Backend claim evidence upload finalize failed:",
+                    response.status,
+                    errorMessage,
+                );
+            }
             return NextResponse.json(
-                { error: errorMessage },
+                {
+                    ...(insufficientCredits && {
+                        code: "INSUFFICIENT_CREDITS",
+                    }),
+                    error: errorMessage,
+                },
                 { status: response.status },
             );
         }

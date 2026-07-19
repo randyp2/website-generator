@@ -10,6 +10,8 @@ import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.RemoteJWKSet;
 import com.nimbusds.jose.proc.SecurityContext;
 import com.nimbusds.jwt.SignedJWT;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +22,9 @@ import java.util.Date;
 
 @Service
 public class JWTService {
+
+    // TEMP diagnostic: remove once the 403/token issue is resolved.
+    private static final Logger log = LoggerFactory.getLogger(JWTService.class);
 
     /**
      * Supabase JWKS endpoint where public RSA keys are published.
@@ -63,6 +68,10 @@ public class JWTService {
         try {
             SignedJWT jwt = SignedJWT.parse(token);
 
+            // TEMP diagnostic: what algorithm/key is the token signed with?
+            log.warn("[JWT-DEBUG] validating token alg={} kid={}",
+                    jwt.getHeader().getAlgorithm(), jwt.getHeader().getKeyID());
+
             // Find the correct RSA key from the JWKS using "kid"
             ECKey publicKey = getKey(jwt);
 
@@ -71,18 +80,27 @@ public class JWTService {
                     new ECDSAVerifier(publicKey));
 
             if (!verified) {
+                log.warn("[JWT-DEBUG] signature verification FAILED for kid={}",
+                        jwt.getHeader().getKeyID());
                 return false;
             }
 
             // Check expiration
             Date expiration = jwt.getJWTClaimsSet().getExpirationTime();
             if (expiration.before(new Date())) {
+                log.warn("[JWT-DEBUG] token EXPIRED at {} (server now {})",
+                        expiration, new Date());
                 return false;
             }
 
             return true;
 
         } catch (Exception e) {
+            // Catches: no matching kid in JWKS (JOSEException), RSA key cast
+            // (ClassCastException), malformed token (ParseException), JWKS
+            // fetch failure, etc.
+            log.warn("[JWT-DEBUG] token validation error: {}: {}",
+                    e.getClass().getSimpleName(), e.getMessage());
             return false;
         }
     }
@@ -98,6 +116,18 @@ public class JWTService {
     public String extractUserId(String token) throws Exception {
         SignedJWT signedJWT = SignedJWT.parse(token);
         return signedJWT.getJWTClaimsSet().getSubject();
+    }
+
+    /**
+     * Extracts the authenticated account email from an already validated JWT.
+     *
+     * @param token raw JWT string
+     * @return email claim, or null when the provider omitted it
+     * @throws Exception if the token cannot be parsed
+     */
+    public String extractEmail(String token) throws Exception {
+        SignedJWT signedJWT = SignedJWT.parse(token);
+        return signedJWT.getJWTClaimsSet().getStringClaim("email");
     }
 
     /* ============== HELPER FUNCTIONS ============== */

@@ -23,6 +23,21 @@ public class StyleChatResponseParser {
             CompiledStylePreferences compiledPreferences
     ) {}
 
+    /**
+     * Result of a post-completion revision turn. updatedPreferences is null
+     * when the model answered without changing anything.
+     */
+    public record StyleRevisionParseResult(
+            String assistantMessage,
+            CompiledStylePreferences updatedPreferences,
+            List<String> suggestions
+    ) {}
+
+    public record StylePickerClarificationResult(
+            String assistantMessage,
+            List<String> suggestions
+    ) {}
+
     public StyleChatParseResult parse(String rawJson) {
         try {
             JsonNode root = objectMapper.readTree(rawJson);
@@ -35,16 +50,7 @@ public class StyleChatResponseParser {
             String recBody = root.path("recommendedBodyFont").asText(null);
             dto.setRecommendedBodyFont(recBody);
 
-            // Parse suggestions array
-            JsonNode suggestionsNode = root.path("suggestions");
-            if (suggestionsNode.isArray()) {
-                List<String> suggestions = new ArrayList<>();
-                for (JsonNode item : suggestionsNode) {
-                    String text = item.asText("");
-                    if (!text.isEmpty()) suggestions.add(text);
-                }
-                dto.setSuggestions(suggestions.isEmpty() ? null : suggestions);
-            }
+            dto.setSuggestions(parseSuggestions(root.path("suggestions")));
 
             // Parse designTip
             String designTip = root.path("designTip").asText(null);
@@ -72,6 +78,38 @@ public class StyleChatResponseParser {
         }
     }
 
+    public StyleRevisionParseResult parseRevision(String rawJson) {
+        try {
+            JsonNode root = objectMapper.readTree(rawJson);
+
+            JsonNode prefsNode = root.path("updatedStylePreferences");
+            CompiledStylePreferences updatedPreferences =
+                    !prefsNode.isNull() && prefsNode.isObject()
+                            ? parseCompiledPreferences(prefsNode)
+                            : null;
+
+            return new StyleRevisionParseResult(
+                    root.path("assistantMessage").asText(""),
+                    updatedPreferences,
+                    parseSuggestions(root.path("suggestions"))
+            );
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Failed to parse AI Style Revision response JSON", e);
+        }
+    }
+
+    public StylePickerClarificationResult parsePickerClarification(String rawJson) {
+        try {
+            JsonNode root = objectMapper.readTree(rawJson);
+            return new StylePickerClarificationResult(
+                    root.path("assistantMessage").asText(""),
+                    parseSuggestions(root.path("suggestions"))
+            );
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Failed to parse AI picker clarification response JSON", e);
+        }
+    }
+
     public record FontRecommendation(String headingFont, String bodyFont) {}
 
     public FontRecommendation parseFontRecommendation(String rawJson) {
@@ -93,6 +131,17 @@ public class StyleChatResponseParser {
         } catch (Exception e) {
             return List.of();
         }
+    }
+
+    private List<String> parseSuggestions(JsonNode node) {
+        if (!node.isArray()) return null;
+
+        List<String> suggestions = new ArrayList<>();
+        for (JsonNode item : node) {
+            String text = item.asText("");
+            if (!text.isEmpty()) suggestions.add(text);
+        }
+        return suggestions.isEmpty() ? null : suggestions;
     }
 
     private List<StyleColorPresetDTO> parseColorPresets(JsonNode node) {
@@ -131,7 +180,7 @@ public class StyleChatResponseParser {
         prefs.setTypography(node.path("typography").asText(""));
         prefs.setAnimationStyle(node.path("animationStyle").asText(""));
         prefs.setWhitespace(node.path("whitespace").asText(""));
-        prefs.setImageryStyle(node.path("imageryStyle").asText(""));
+        prefs.setVisualRichness(node.path("visualRichness").asText(""));
         prefs.setInteractiveElements(node.path("interactiveElements").asText(""));
         prefs.setCustomNotes(node.path("customNotes").asText(""));
         return prefs;

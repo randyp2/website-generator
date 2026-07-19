@@ -17,14 +17,16 @@ export const CreditBalanceCard = ({ credits }: CreditBalanceCardProps) => {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Credit balance</CardTitle>
+                <CardTitle className="text-lg font-semibold tracking-tight">
+                    Credit balance
+                </CardTitle>
                 <CardDescription>
                     Credits are consumed by website generation runs.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-bold tracking-tight">
+                    <span className="text-3xl font-semibold tracking-tight text-foreground">
                         {credits.balance.toLocaleString()}
                     </span>
                     <span className="text-sm text-muted-foreground">
@@ -35,7 +37,7 @@ export const CreditBalanceCard = ({ credits }: CreditBalanceCardProps) => {
                     {credits.nextRefreshLabel}
                 </p>
                 <Button asChild variant="outline">
-                    <Link href="/dashboard/billing">Buy credit packs</Link>
+                    <Link href="/pricing">Buy credit packs</Link>
                 </Button>
             </CardContent>
         </Card>

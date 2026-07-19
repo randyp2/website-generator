@@ -1,8 +1,18 @@
 "use client"
 
-import { Search } from "lucide-react"
-import { startTransition, useCallback, useDeferredValue, useEffect, useRef, useState } from "react"
+import { AnimatePresence, motion } from "framer-motion"
+import { Search, X } from "lucide-react"
+import {
+  startTransition,
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 
+import { usePublicAuthGate } from "@/context/PublicAuthGateContext"
 import { Input } from "@/components/ui/input"
 import {
   NavigationMenu,
@@ -13,9 +23,13 @@ import {
 } from "@/components/ui/navigation-menu"
 import { cn } from "@/lib/utils"
 
+import {
+  useExplorePortfoliosInfiniteQuery,
+  usePortfolioCardMetricsMap,
+  useTogglePortfolioLikeMutation,
+} from "../explore.query"
 import { ExploreCard } from "./ExploreCard"
 import { ExploreEmptyState } from "./ExploreEmptyState"
-import type { PageResponse, PortfolioCard } from "./explore.types"
 import { matchesPortfolioFilter } from "./explore.utils"
 
 type ShowcaseMajor = "Design" | "Product" | "Research"
@@ -51,47 +65,87 @@ const PAGE_HORIZONTAL_PADDING_CLASSNAME =
   "px-8 sm:px-10 md:px-14 lg:px-20 xl:px-28 2xl:px-36"
 
 export const ExplorePageClient = () => {
-  const [portfolios, setPortfolios] = useState<PortfolioCard[]>([])
-  const [isLast, setIsLast] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [activeMajor, setActiveMajor] = useState<ShowcaseMajor | "All">("All")
   const [activeIndustry, setActiveIndustry] = useState<ShowcaseIndustry | "All">("All")
   const [activeExperience, setActiveExperience] = useState<ShowcaseExperience | "All">("All")
+  const [pendingLikeSlugs, setPendingLikeSlugs] = useState<Set<string>>(
+    () => new Set(),
+  )
   const deferredSearchQuery = useDeferredValue(searchQuery)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
-  const pageRef = useRef(0)
+  const pendingLikeSlugsRef = useRef<Set<string>>(new Set())
+  const { requireAuth } = usePublicAuthGate()
+  const portfoliosQuery = useExplorePortfoliosInfiniteQuery(PAGE_SIZE)
+  const {
+    data: portfolioPages,
+    fetchNextPage,
+    hasNextPage,
+    isError,
+    isFetchingNextPage,
+    isPending,
+    refetch,
+  } = portfoliosQuery
+  const { mutate: togglePortfolioLike } = useTogglePortfolioLikeMutation()
 
-  const fetchPage = useCallback(async (pageNumber: number) => {
-    setIsLoading(true)
-    try {
-      const res = await fetch(`/api/public/portfolio?page=${pageNumber}&size=${PAGE_SIZE}`)
-      if (!res.ok) return
-      const data: PageResponse = await res.json()
-      setPortfolios((prev) =>
-        pageNumber === 0 ? data.content : [...prev, ...data.content],
+  const portfolios = useMemo(
+    () => portfolioPages?.pages.flatMap((page) => page.content) ?? [],
+    [portfolioPages],
+  )
+  const metricsBySlug = usePortfolioCardMetricsMap(portfolios)
+  const isLoading = isPending || isFetchingNextPage
+  const hasPortfolioLoadError = isError && portfolios.length === 0
+
+  const handleToggleLike = useCallback(
+    (slug: string) => {
+      if (!requireAuth("engagement")) return
+      if (pendingLikeSlugsRef.current.has(slug)) return
+
+      const current = metricsBySlug[slug]
+      if (!current) return
+
+      pendingLikeSlugsRef.current.add(slug)
+      setPendingLikeSlugs((currentSlugs) => {
+        const next = new Set(currentSlugs)
+        next.add(slug)
+        return next
+      })
+
+      togglePortfolioLike(
+        {
+          slug,
+          portfolioId: current.portfolioId,
+          viewerHasLiked: current.viewerHasLiked,
+        },
+        {
+          onError: (error) => {
+            console.error("Failed to toggle like:", error)
+          },
+          onSettled: () => {
+            pendingLikeSlugsRef.current.delete(slug)
+            setPendingLikeSlugs((currentSlugs) => {
+              const next = new Set(currentSlugs)
+              next.delete(slug)
+              return next
+            })
+          },
+        },
       )
-      setIsLast(data.last)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchPage(0)
-  }, [fetchPage])
+    },
+    [metricsBySlug, requireAuth, togglePortfolioLike],
+  )
 
   useEffect(() => {
     const sentinel = sentinelRef.current
-    if (!sentinel || isLast || isLoading) return
+    if (!sentinel || !hasNextPage || isFetchingNextPage) {
+      return
+    }
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
-          const nextPage = pageRef.current + 1
-          pageRef.current = nextPage
-          fetchPage(nextPage)
+          void fetchNextPage()
         }
       },
       { rootMargin: "200px" },
@@ -99,10 +153,14 @@ export const ExplorePageClient = () => {
 
     observer.observe(sentinel)
     return () => observer.disconnect()
-  }, [fetchPage, isLast, isLoading])
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage])
 
-  const filtered = portfolios.filter((p) =>
-    matchesPortfolioFilter(p, "all", deferredSearchQuery),
+  const filtered = useMemo(
+    () =>
+      portfolios.filter((portfolio) =>
+        matchesPortfolioFilter(portfolio, "all", deferredSearchQuery),
+      ),
+    [deferredSearchQuery, portfolios],
   )
 
   return (
@@ -194,15 +252,17 @@ export const ExplorePageClient = () => {
               </NavigationMenu>
             </div>
 
-            <div className="flex w-full justify-end md:col-start-3 md:justify-self-stretch">
-              <div
-                className={cn(
-                  "relative flex items-center justify-end transition-[width] duration-300",
-                  isSearchOpen ? "w-full max-w-sm" : "w-10",
-                )}
-              >
+            <div className="flex w-full items-center justify-end md:col-start-3 md:justify-self-stretch">
+              <AnimatePresence mode="popLayout" initial={false}>
                 {isSearchOpen ? (
-                  <>
+                  <motion.div
+                    key="search-input"
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: "100%", opacity: 1 }}
+                    exit={{ width: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="relative flex max-w-sm items-center overflow-hidden"
+                  >
                     <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       autoFocus
@@ -217,27 +277,55 @@ export const ExplorePageClient = () => {
                         startTransition(() => setSearchQuery(nextValue))
                       }}
                       placeholder="Search portfolios, creators..."
-                      className="w-full pl-11 pr-4"
+                      className="w-full pl-11 pr-10"
                     />
-                  </>
+                    <button
+                      type="button"
+                      aria-label="Clear search"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => {
+                        startTransition(() => setSearchQuery(""))
+                        setIsSearchOpen(false)
+                      }}
+                      className="public-icon-button public-icon-button-sm absolute right-3 top-1/2 -translate-y-1/2 hover:rotate-90"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </motion.div>
                 ) : (
                   <button
+                    key="search-trigger"
                     type="button"
                     aria-label="Search portfolios"
-                    className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                    className="public-icon-button"
                     onClick={() => setIsSearchOpen(true)}
                   >
                     <Search className="h-4 w-4" />
                   </button>
                 )}
-              </div>
+              </AnimatePresence>
             </div>
           </div>
         </div>
 
         <div className="absolute inset-x-0 h-px w-full border-b border-dashed border-border" />
 
-        {filtered.length === 0 && !isLoading ? (
+        {hasPortfolioLoadError ? (
+          <div className={cn(PAGE_HORIZONTAL_PADDING_CLASSNAME, "py-12")}>
+            <div className="mx-auto max-w-md rounded-lg border border-border bg-card p-6 text-center">
+              <p className="text-sm font-medium text-foreground">
+                Could not load portfolios.
+              </p>
+              <button
+                type="button"
+                onClick={() => void refetch()}
+                className="public-action-button public-action-button-outline mt-4"
+              >
+                Try again
+              </button>
+            </div>
+          </div>
+        ) : filtered.length === 0 && !isLoading ? (
           <div className={cn(PAGE_HORIZONTAL_PADDING_CLASSNAME, "py-4")}>
             <ExploreEmptyState hasQuery={deferredSearchQuery.length > 0} />
           </div>
@@ -249,12 +337,18 @@ export const ExplorePageClient = () => {
             )}
           >
             {filtered.map((portfolio) => (
-              <ExploreCard key={portfolio.slug} portfolio={portfolio} />
+              <ExploreCard
+                key={portfolio.slug}
+                isLikePending={pendingLikeSlugs.has(portfolio.slug)}
+                metrics={metricsBySlug[portfolio.slug] ?? null}
+                portfolio={portfolio}
+                onToggleLike={handleToggleLike}
+              />
             ))}
           </div>
         )}
 
-        {!isLast && <div ref={sentinelRef} className="h-1" />}
+        {hasNextPage && <div ref={sentinelRef} className="h-1" />}
 
         {isLoading && (
           <div className="flex justify-center py-8">

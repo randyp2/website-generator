@@ -39,7 +39,7 @@ const productGroups = {
     {
       title: "How It Works",
       description: "Understand the workflow from resume upload to published portfolio.",
-      href: "/how-it-works",
+      href: "/docs/how-it-works",
     },
     {
       title: "Explore Portfolios",
@@ -97,7 +97,7 @@ export const navbarNavigation: NavbarNavigation = {
       ],
     },
     {
-      href: "/how-it-works",
+      href: "/docs/how-it-works",
       label: "Resources",
       gridCols: 1,
       categories: [

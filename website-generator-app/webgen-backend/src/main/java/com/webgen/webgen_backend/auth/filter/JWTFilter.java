@@ -1,6 +1,7 @@
 package com.webgen.webgen_backend.auth.filter;
 
 
+import com.webgen.webgen_backend.auth.model.AuthenticatedUserDetails;
 import com.webgen.webgen_backend.auth.service.JWTService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -12,7 +13,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -90,7 +90,10 @@ public class JWTFilter extends OncePerRequestFilter {
 
 
                 // Attach metadata about request
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                authToken.setDetails(new AuthenticatedUserDetails(
+                        request,
+                        jwtService.extractEmail(token)
+                ));
 
                 // Adding token to chain so other filters and controllers can see user as authenticated
                 SecurityContextHolder.getContext().setAuthentication(authToken);

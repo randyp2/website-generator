@@ -10,12 +10,18 @@ import {
     ClipboardCheck,
     FileText,
     AlertTriangle,
+    CircleHelp,
     Link2,
-    Sparkles,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
     Sheet,
     SheetContent,
@@ -66,6 +72,7 @@ const SkillDetailDrawer = ({
     showClaimControls = true,
     onDeleteClaim,
     onClose,
+    onOpenEvidence,
 }: SkillDetailDrawerProps) => {
     type DrawerView =
         | { type: "skill" }
@@ -147,34 +154,42 @@ const SkillDetailDrawer = ({
                                 variant="ghost"
                                 size="sm"
                                 onClick={handleBack}
-                                className="w-fit gap-1.5 px-0 hover:cursor-pointer"
+                                className="group w-fit gap-1.5 px-0 hover:cursor-pointer hover:bg-transparent hover:text-foreground"
                             >
-                                <ArrowLeft className="h-3.5 w-3.5" />
+                                <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
                                 Back to claim details
                             </Button>
                             <div className="rounded-md border border-border bg-muted/30 p-4">
-                                <p className="text-[11px] font-semibold text-foreground uppercase tracking-wider">
-                                    Asset
-                                </p>
+                                <div className="flex items-start justify-between gap-4">
+                                    <p className="text-[11px] font-semibold text-foreground uppercase tracking-wider">
+                                        Asset
+                                    </p>
+                                    <TooltipProvider delayDuration={150}>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex items-center gap-1.5 rounded-full text-sm font-semibold text-emerald-600 outline-none transition-colors hover:text-emerald-500 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                                    aria-label="Evidence depth information"
+                                                >
+                                                    Match {formatConfidencePercent(view.data.matchConfidence)} · Depth {formatConfidencePercent(view.data.evidenceDepth)}
+                                                    <CircleHelp className="h-3.5 w-3.5 text-muted-foreground" />
+                                                </button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="left" align="center">
+                                                <p>Match measures relevance. Depth measures demonstrated usage.</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                </div>
                                 <p className="mt-1 text-sm font-medium text-foreground">
                                     {view.data.originalFileName}
                                 </p>
-                                <div className="mt-3 flex items-center justify-between gap-2 rounded-md border border-emerald-500/40 bg-emerald-500/5 px-3 py-2">
-                                    <span className="text-xs text-muted-foreground">
-                                        Confidence Score
-                                    </span>
-                                    <span className="text-sm font-semibold text-emerald-600">
-                                        {formatConfidencePercent(view.data.confidence)}
-                                    </span>
-                                </div>
                             </div>
                             <div className="rounded-md border border-border bg-muted/30 p-4">
-                                <div className="flex items-center gap-2">
-                                    <Sparkles className="h-3.5 w-3.5 text-emerald-500" />
-                                    <p className="text-[11px] font-semibold text-foreground uppercase tracking-wider">
-                                        AI Summary
-                                    </p>
-                                </div>
+                                <p className="text-[11px] font-semibold text-foreground uppercase tracking-wider">
+                                    Summary
+                                </p>
                                 <p className="mt-2 text-sm text-foreground leading-relaxed">
                                     {view.data.summary}
                                 </p>
@@ -293,9 +308,12 @@ const SkillDetailDrawer = ({
                             {evidence.map((item) => {
                                 const Icon = EVIDENCE_TYPE_ICONS[item.type];
                                 return (
-                                    <div
+                                    <button
                                         key={item.id}
-                                        className="flex items-start gap-2.5 p-2.5 rounded-md border border-border bg-muted"
+                                        type="button"
+                                        onClick={() => onOpenEvidence?.(item.evidenceId)}
+                                        disabled={!onOpenEvidence}
+                                        className="w-full flex items-start gap-2.5 p-2.5 rounded-md border border-border bg-muted text-left transition-colors enabled:hover:border-primary/50 enabled:hover:bg-muted/70 enabled:cursor-pointer"
                                     >
                                         <Icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                                         <div className="flex-1 min-w-0">
@@ -320,7 +338,7 @@ const SkillDetailDrawer = ({
                                                 </span>
                                             </div>
                                         </div>
-                                    </div>
+                                    </button>
                                 );
                             })}
                             {evidence.length === 0 && (

@@ -4,9 +4,8 @@ import React, { useState, useRef, useEffect, useSyncExternalStore } from "react"
 import { motion, AnimatePresence } from "framer-motion";
 import { Minus, ChevronDown } from "lucide-react";
 import Draggable from "react-draggable";
+import { StyleChatMessage } from "@/components/chat/style-chat/StyleChatMessage";
 import type { Message as PreviewMessage } from "@/types/preview";
-import { GenerationStatus } from "@/components/ui/GenerationStatus";
-import { StreamingText } from "@/components/ui/StreamingText";
 
 type ChatMessage = PreviewMessage & { isGenerating?: boolean };
 
@@ -273,22 +272,6 @@ export const ChatHistoryOverlay: React.FC<ChatHistoryOverlayProps> = ({
         };
     }, [isTransitioning]);
 
-    // Format timestamp (relative time)
-    const formatTimestamp = (date: Date) => {
-        const now = new Date();
-        const diff = now.getTime() - date.getTime();
-        const seconds = Math.floor(diff / 1000);
-
-        if (seconds < 60) return "Just now";
-        if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-        if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-
-        return date.toLocaleTimeString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-        });
-    };
-
     // Don't render during SSR to avoid hydration errors
     if (!mounted) {
         return null;
@@ -425,136 +408,22 @@ export const ChatHistoryOverlay: React.FC<ChatHistoryOverlayProps> = ({
 
                                 {!isMinimized && (
                                     <>
-                                        {/* Messages Container */}
-                                    <div className="flex-1 overflow-y-auto p-4 space-y-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-white/20">
-                                        {messages.map((message) => (
-                                            <motion.div
-                                                key={message.id}
-                                                    initial={{
-                                                        opacity: 0,
-                                                        y: 10,
-                                                        scale: 0.98,
-                                                    }}
-                                                    animate={{
-                                                        opacity: 1,
-                                                        y: 0,
-                                                        scale: 1,
-                                                    }}
-                                                    transition={{
-                                                        duration: 0.2,
-                                                    }}
-                                                    className={`flex flex-col ${
-                                                        message.role === "user"
-                                                            ? "items-end"
-                                                            : "items-start"
-                                                    }`}
-                                                >
-                                                    {message.role === "user" ? (
-                                                        /* User Message - Blue Bubble */
-                                                        <div className="flex flex-col items-end max-w-[80%]">
-                                                            <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white text-sm rounded-full px-4 py-2 leading-relaxed">
-                                                                {
-                                                                    message.content
-                                                                }
-                                                            </div>
-                                                            <span className="text-xs text-white/40 mt-1">
-                                                                {formatTimestamp(
-                                                                    message.timestamp,
-                                                                )}
-                                                            </span>
-                                                        </div>
-                                                    ) : (
-                                                        /* AI Message - Plain Text or Generating Status */
-                                                        <div className="flex flex-col items-start max-w-[85%]">
-                                                            <div className="text-white/90 text-sm leading-relaxed">
-                                                                {message.isGenerating ? (
-                                                                    <GenerationStatus />
-                                                                ) : message.messageType ===
-                                                                      "plan" &&
-                                                                  message.sectionPlans ? (
-                                                                    <div className="rounded-2xl border border-orange-400/30 bg-gradient-to-br from-orange-500/10 via-amber-500/5 to-black/40 shadow-[0_0_30px_rgba(249,115,22,0.25)] px-4 py-3">
-                                                                        <div className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-orange-300/80">
-                                                                            <span className="h-2 w-2 rounded-full bg-orange-400 shadow-[0_0_12px_rgba(251,146,60,0.9)]" />
-                                                                            Plan ready
-                                                                        </div>
-                                                                        {message.planSummary && (
-                                                                            <div className="mt-2 text-sm text-white">
-                                                                                {message.planSummary}
-                                                                            </div>
-                                                                        )}
-                                                                        <div className="mt-3 space-y-2">
-                                                                            {message.sectionPlans.map(
-                                                                                (plan) => (
-                                                                                    <div
-                                                                                        key={`${message.id}-${plan.sectionKey}`}
-                                                                                        className="rounded-xl border border-orange-200/10 bg-black/30 px-3 py-2"
-                                                                                    >
-                                                                                        <div className="flex flex-wrap items-center gap-2 text-xs text-orange-200/90">
-                                                                                            <span className="rounded-full bg-orange-500/10 px-2 py-0.5 text-orange-200">
-                                                                                                {plan.action}
-                                                                                            </span>
-                                                                                            <span className="text-white/70">
-                                                                                                {plan.sectionKey}
-                                                                                            </span>
-                                                                                            {(plan.action ===
-                                                                                                "modify" ||
-                                                                                                plan.action ===
-                                                                                                    "add") && (
-                                                                                                <span className="rounded-full border border-orange-400/40 px-2 py-0.5 text-orange-100">
-                                                                                                    {
-                                                                                                        plan.intensity
-                                                                                                    }
-                                                                                                </span>
-                                                                                            )}
-                                                                                        </div>
-                                                                                        <div className="mt-2 text-sm text-white/90">
-                                                                                            {
-                                                                                                plan.instruction
-                                                                                            }
-                                                                                        </div>
-                                                                                        {plan.rationale && (
-                                                                                            <div className="mt-1 text-xs text-white/50">
-                                                                                                {
-                                                                                                    plan.rationale
-                                                                                                }
-                                                                                            </div>
-                                                                                        )}
-                                                                                    </div>
-                                                                                ),
-                                                                            )}
-                                                                        </div>
-                                                                        <div className="mt-3 text-xs text-orange-200/70">
-                                                                            Approve to apply, or keep chatting to
-                                                                            adjust.
-                                                                        </div>
-                                                                    </div>
-                                                                ) : (
-                                                                    <StreamingText
-                                                                        content={message.content}
-                                                                        className="whitespace-pre-line"
-                                                                        delayMs={30}
-                                                                        skipAnimation={completedStreamingIds.has(
-                                                                            message.id,
-                                                                        )}
-                                                                        onComplete={() =>
-                                                                            handleStreamingComplete(
-                                                                                message.id,
-                                                                            )
-                                                                        }
-                                                                    />
-                                                                )}
-                                                            </div>
-                                                            <span className="text-xs text-white/40 mt-1">
-                                                                {formatTimestamp(
-                                                                    message.timestamp,
-                                                                )}
-                                                            </span>
-                                                        </div>
+                                        <div className="flex-1 space-y-5 overflow-y-auto p-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/30 dark:[&::-webkit-scrollbar-thumb]:bg-white/10 dark:[&::-webkit-scrollbar-thumb]:hover:bg-white/20">
+                                            {messages.map((message) => (
+                                                <StyleChatMessage
+                                                    key={message.id}
+                                                    message={message}
+                                                    streamPlainText
+                                                    showFlowStateStatus
+                                                    skipAnimation={completedStreamingIds.has(
+                                                        message.id,
                                                     )}
-                                                </motion.div>
+                                                    onStreamingComplete={
+                                                        handleStreamingComplete
+                                                    }
+                                                />
                                             ))}
 
-                                            {/* Scroll anchor */}
                                             <div ref={messagesEndRef} />
                                         </div>
 

@@ -114,6 +114,286 @@
 }
 
 @layer components {
+  .public-action-button {
+    display: inline-flex;
+    min-height: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: var(--radius);
+    padding-inline: 1rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    transition:
+      background-color 0.2s ease,
+      border-color 0.2s ease,
+      color 0.2s ease,
+      opacity 0.2s ease;
+  }
+
+  .public-action-button:hover {
+    cursor: pointer;
+  }
+
+  .public-action-button:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  .public-action-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .public-action-button-primary {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  .public-action-button-primary:hover {
+    opacity: 0.9;
+  }
+
+  .public-action-button-outline {
+    border: 1px solid var(--border);
+    color: var(--foreground);
+  }
+
+  .public-action-button-outline:hover {
+    background: var(--accent);
+  }
+
+  .public-action-button-muted {
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--foreground);
+  }
+
+  .public-action-button-muted:hover {
+    background: var(--muted);
+  }
+
+  .public-action-button-danger {
+    border: 1px solid color-mix(in oklab, var(--destructive) 42%, transparent);
+    color: var(--destructive);
+  }
+
+  .public-action-button-danger:hover {
+    background: color-mix(in oklab, var(--destructive) 10%, transparent);
+  }
+
+  .public-action-button-danger-soft {
+    background: color-mix(in oklab, var(--destructive) 10%, transparent);
+    color: var(--destructive);
+  }
+
+  .public-action-button-danger-soft:hover {
+    background: color-mix(in oklab, var(--destructive) 16%, transparent);
+  }
+
+  .public-action-button-full {
+    width: 100%;
+  }
+
+  .public-icon-button {
+    display: inline-flex;
+    width: 2.5rem;
+    height: 2.5rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius);
+    color: var(--muted-foreground);
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .public-icon-button:hover {
+    cursor: pointer;
+    background: var(--muted);
+    color: var(--foreground);
+  }
+
+  .public-icon-button:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  .public-icon-button-sm {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .style-chat-composer-stage {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .style-chat-composer-burst {
+    position: absolute;
+    inset-inline: -36%;
+    top: 50%;
+    z-index: 0;
+    height: 30rem;
+    pointer-events: none;
+    background:
+      radial-gradient(
+        ellipse at center,
+        color-mix(in oklab, var(--primary) 72%, white 8%) 0%,
+        color-mix(in oklab, var(--primary) 56%, var(--destructive) 20%) 22%,
+        color-mix(in oklab, var(--chart-2) 42%, transparent) 42%,
+        color-mix(in oklab, var(--chart-4) 24%, transparent) 58%,
+        transparent 78%
+      );
+    filter: blur(36px);
+    opacity: 0.54;
+    transform: translateY(-50%) scaleX(0.78) scaleY(0.86);
+    transform-origin: center;
+    /* Sequenced intro: the bar and heading paint instantly, the gradient
+       stays hidden for a beat (backwards fill holds opacity 0), then grows
+       outward once and rests at the base transform/opacity above. */
+    animation: style-chat-composer-ignite 2.2s cubic-bezier(0.16, 1, 0.3, 1)
+      0.45s both;
+  }
+
+  .style-chat-composer-burst::after {
+    position: absolute;
+    inset-inline: 14%;
+    top: 50%;
+    height: 0.1875rem;
+    content: "";
+    background:
+      linear-gradient(
+        90deg,
+        transparent,
+        color-mix(in oklab, var(--chart-4) 16%, transparent),
+        color-mix(in oklab, var(--primary) 70%, white 12%),
+        color-mix(in oklab, var(--destructive) 32%, var(--primary) 46%),
+        color-mix(in oklab, var(--chart-2) 18%, transparent),
+        transparent
+      );
+    filter: blur(1px);
+    opacity: 0.8;
+    transform: translateY(-50%) scaleX(0.72);
+    transform-origin: center;
+    animation: style-chat-composer-line-ignite 2.2s
+      cubic-bezier(0.16, 1, 0.3, 1) 0.45s both;
+  }
+
+  @keyframes style-chat-composer-ignite {
+    from {
+      opacity: 0;
+      transform: translateY(-50%) scaleX(0.04) scaleY(0.14);
+    }
+
+    to {
+      opacity: 0.54;
+      transform: translateY(-50%) scaleX(0.78) scaleY(0.86);
+    }
+  }
+
+  @keyframes style-chat-composer-line-ignite {
+    from {
+      opacity: 0;
+      transform: translateY(-50%) scaleX(0.03);
+    }
+
+    to {
+      opacity: 0.8;
+      transform: translateY(-50%) scaleX(0.72);
+    }
+  }
+
+  /* Shimmering status text: a dark band sweeps across the label. One
+     background period per iteration keeps the loop seamless. */
+  .generation-status-shimmer {
+    background: linear-gradient(
+      110deg,
+      #ffffff,
+      35%,
+      #000000,
+      50%,
+      #ffffff,
+      75%,
+      #ffffff
+    );
+    background-size: 200% 100%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    animation: generation-status-shimmer 3.5s linear infinite;
+  }
+
+  @keyframes generation-status-shimmer {
+    from {
+      background-position: 200% 0;
+    }
+
+    to {
+      background-position: 0% 0;
+    }
+  }
+
+  /* SpiralLoader: a ~22%-long dash window crawls along the coil. Each
+     keyframe segment advances exactly one dash period (100 via pathLength),
+     so the loop is seamless; four 0.5s pulses then two 1s pulses mirror the
+     original Lottie's fast/slow rhythm. */
+  .spiral-loader-path {
+    stroke-dasharray: 22 78;
+    animation: spiral-loader-travel 8s infinite;
+  }
+
+  @keyframes spiral-loader-travel {
+    0% {
+      stroke-dashoffset: 0;
+      animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95);
+    }
+
+    15% {
+      stroke-dashoffset: -100;
+      animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95);
+    }
+
+    30% {
+      stroke-dashoffset: -200;
+      animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95);
+    }
+
+    45% {
+      stroke-dashoffset: -300;
+      animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95);
+    }
+
+    60% {
+      stroke-dashoffset: -400;
+      animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95);
+    }
+
+    80% {
+      stroke-dashoffset: -500;
+      animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95);
+    }
+
+    100% {
+      stroke-dashoffset: -600;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .style-chat-composer-burst,
+    .style-chat-composer-burst::after {
+      animation: none;
+    }
+
+    .spiral-loader-path {
+      animation: none;
+      stroke-dasharray: none;
+    }
+  }
+
   .gradient-button {
     position: relative;
     appearance: none;

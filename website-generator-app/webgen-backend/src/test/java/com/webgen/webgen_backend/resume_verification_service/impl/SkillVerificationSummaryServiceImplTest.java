@@ -13,9 +13,12 @@ import com.webgen.webgen_backend.verification.repository.ResumeVerificationRepos
 import com.webgen.webgen_backend.verification.repository.SkillRepository;
 import com.webgen.webgen_backend.verification.service.ClaimEvidenceScoringInputAssemblerService;
 import com.webgen.webgen_backend.verification.service.impl.SkillVerificationSummaryServiceImpl;
+import com.webgen.webgen_backend.verification.service.scoring.ClaimScoreNarrator;
+import com.webgen.webgen_backend.verification.service.scoring.EvidenceNudgeCalculator;
 import com.webgen.webgen_backend.verification.service.scoring.SkillScoringPolicy;
 import com.webgen.webgen_backend.verification.service.scoring.SkillSuggestedActionRuleBook;
 import com.webgen.webgen_backend.verification.service.scoring.SkillVerificationScoringKernel;
+import com.webgen.webgen_backend.verification.service.scoring.SuggestedActionBuilder;
 import com.webgen.webgen_backend.verification.service.scoring.VerificationSignalPolicy;
 import com.webgen.webgen_backend.verification.service.scoring.model.SkillClaimInput;
 import com.webgen.webgen_backend.verification.service.scoring.model.SkillScoreSummary;
@@ -35,11 +38,15 @@ class SkillVerificationSummaryServiceImplTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+    private static final SkillScoringPolicy SCORING_POLICY = new SkillScoringPolicy();
+    private static final VerificationSignalPolicy SIGNAL_POLICY = new VerificationSignalPolicy();
+
     private final SkillVerificationScoringKernel kernel =
             new SkillVerificationScoringKernel(
-                    new SkillScoringPolicy(),
-                    new VerificationSignalPolicy(),
-                    new SkillSuggestedActionRuleBook(),
+                    SCORING_POLICY,
+                    new EvidenceNudgeCalculator(SCORING_POLICY, SIGNAL_POLICY),
+                    new ClaimScoreNarrator(SCORING_POLICY),
+                    new SuggestedActionBuilder(SCORING_POLICY, new SkillSuggestedActionRuleBook()),
                     List.of()
             );
 
@@ -96,7 +103,7 @@ class SkillVerificationSummaryServiceImplTest {
         VerificationSummaryDTO dto = service.getSkillVerificationSummary(profileId);
 
         assertThat(dto.getParserConfidence()).isEqualByComparingTo("0.85");
-        assertThat(dto.getScoreType()).isEqualTo("initial_with_parser_confidence");
+        assertThat(dto.getScoreType()).isEqualTo("initial");
     }
 
     @Test

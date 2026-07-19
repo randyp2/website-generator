@@ -1,4 +1,4 @@
-import { getBackendUrl } from "@/lib/server-env";
+import { fetchBackend } from "@/lib/api/backendFetch";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -7,7 +7,30 @@ type UpdatePortfolioBody = {
     last_step?: string;
     template_id?: string;
     style_chat_history?: unknown[];
+    refine_chat_history?: unknown[];
     description?: string;
+};
+
+const readBackendError = async (response: Response): Promise<string> => {
+    const rawBody = await response.text().catch(() => "");
+    if (!rawBody.trim()) return "Failed to update portfolio";
+
+    try {
+        const payload: unknown = JSON.parse(rawBody);
+        if (typeof payload === "object" && payload !== null) {
+            const errorPayload = payload as Record<string, unknown>;
+            for (const key of ["error", "message", "detail"] as const) {
+                const value = errorPayload[key];
+                if (typeof value === "string" && value.trim()) {
+                    return value.trim();
+                }
+            }
+        }
+    } catch {
+        return rawBody.trim();
+    }
+
+    return "Failed to update portfolio";
 };
 
 export const PATCH = async (
@@ -30,9 +53,7 @@ export const PATCH = async (
     const description =
         typeof body?.description === "string" ? body.description : undefined;
 
-    const backendUrl = getBackendUrl();
-
-    const res = await fetch(`${backendUrl}/api/v1/portfolio/${portfolioId}`, {
+    const res = await fetchBackend(`/api/v1/portfolio/${portfolioId}`, {
         method: "PATCH",
         headers: {
             Authorization: `Bearer ${session.access_token}`,
@@ -44,14 +65,16 @@ export const PATCH = async (
             lastStep: body?.last_step,
             templateId: body?.template_id,
             styleChatHistory: body?.style_chat_history,
+            refineChatHistory: body?.refine_chat_history,
             description,
         }),
     });
 
     if (!res.ok) {
-        console.error("Backend portfolio update failed:", res.status);
+        const error = await readBackendError(res);
+        console.error("Backend portfolio update failed:", res.status, error);
         return NextResponse.json(
-            { error: "Failed to update portfolio" },
+            { error },
             { status: res.status },
         );
     }

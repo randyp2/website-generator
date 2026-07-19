@@ -68,17 +68,22 @@ public class AssetVerificationPromptBuilder {
 
                 Return JSON only with this exact schema:
                 {
-                  "confidence": 0.0,
+                  "matchConfidence": 0.0,
+                  "evidenceDepth": 0.0,
                   "summary": "short explanation",
                   "evidenceStrength": "DIRECT|STRONG|MODERATE|WEAK|NONE",
                   "shouldLink": true
                 }
 
                 Rules:
-                - confidence must be in [0,1]
+                - matchConfidence must be in [0,1] and measures whether the asset relates to the claim
+                - evidenceDepth must be in [0,1] and measures demonstrated substantive skill usage
+                - a clear skill mention can have high matchConfidence but low evidenceDepth
+                - reserve high evidenceDepth for artifacts showing implementation, decisions, or meaningful results
                 - summary must be concise and specific (max 220 chars)
                 - choose evidenceStrength from the allowed enum only
-                - shouldLink=false when support is weak/ambiguous
+                - shouldLink=false when matchConfidence is below 0.45 or the asset is unrelated
+                - a related but shallow artifact may use evidenceStrength=WEAK with shouldLink=true
                 - use NONE when the asset does not support the claim
                 - avoid hallucinating content not present in metadata or excerpt
                 - be conservative when evidence is incomplete

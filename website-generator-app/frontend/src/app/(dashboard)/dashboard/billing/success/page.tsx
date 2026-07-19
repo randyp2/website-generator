@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -15,8 +16,11 @@ import {
 } from "@/components/ui/card";
 import { CREDIT_PACKS, SUBSCRIPTION_PLANS } from "@/data/billing-catalog";
 import type { PriceKey } from "@/types/billing";
+import { invalidateProfileMeQuery } from "@/hooks/useProfileMeQuery";
 
 const Confetti = dynamic(() => import("react-confetti"), { ssr: false });
+const BILLING_REFRESH_INTERVAL_MS = 1_500;
+const BILLING_REFRESH_ATTEMPTS = 8;
 
 const isKnownPriceKey = (value: string | null): value is PriceKey => {
     if (!value) return false;
@@ -33,10 +37,14 @@ const resolvePurchaseDetails = (priceKey: PriceKey | null) => {
     if (!priceKey) return null;
 
     const plan = SUBSCRIPTION_PLANS.find((p) => p.priceKey === priceKey);
-    if (plan) {
+    if (plan?.monthlyAllowances) {
+        const allowances = plan.monthlyAllowances;
         return {
             label: plan.name,
-            creditsLabel: `${plan.monthlyCredits} credits refreshed monthly`,
+            creditsLabel:
+                `${allowances.portfolioGenerations} generations, ` +
+                `${allowances.portfolioRefinements} refinements, and ` +
+                `${allowances.assetVerifications} verifications refresh monthly`,
         };
     }
 
@@ -64,6 +72,7 @@ const useWindowSize = () => {
 };
 
 const SuccessCard: React.FC = () => {
+    const queryClient = useQueryClient();
     const searchParams = useSearchParams();
     const priceKeyParam = searchParams.get("priceKey");
     const priceKey = isKnownPriceKey(priceKeyParam) ? priceKeyParam : null;
@@ -73,9 +82,19 @@ const SuccessCard: React.FC = () => {
     const [showConfetti, setShowConfetti] = useState(true);
 
     useEffect(() => {
-        const timer = setTimeout(() => setShowConfetti(false), 3000);
-        return () => clearTimeout(timer);
-    }, []);
+        let attempts = 0;
+        void invalidateProfileMeQuery(queryClient);
+
+        const refreshTimer = setInterval(() => {
+            attempts += 1;
+            void invalidateProfileMeQuery(queryClient);
+            if (attempts >= BILLING_REFRESH_ATTEMPTS) {
+                clearInterval(refreshTimer);
+            }
+        }, BILLING_REFRESH_INTERVAL_MS);
+
+        return () => clearInterval(refreshTimer);
+    }, [queryClient]);
 
     return (
         <>
@@ -87,6 +106,7 @@ const SuccessCard: React.FC = () => {
                     numberOfPieces={300}
                     gravity={0.25}
                     initialVelocityY={18}
+                    onConfettiComplete={() => setShowConfetti(false)}
                     className="pointer-events-none fixed inset-0 z-50"
                 />
             )}
@@ -123,7 +143,7 @@ const SuccessCard: React.FC = () => {
                             }}
                         />
                     </motion.svg>
-                    <CardTitle className="mt-2 text-3xl font-bold text-card-foreground md:text-4xl">
+                    <CardTitle className="mt-2 text-3xl font-semibold tracking-tight text-card-foreground">
                         Payment succeeded!
                     </CardTitle>
                     <CardDescription className="mt-2 text-base">
@@ -155,7 +175,7 @@ const SuccessCard: React.FC = () => {
 
 const BillingSuccessPage: React.FC = () => {
     return (
-        <div className="relative min-h-[80vh] px-4 pb-14 pt-12 md:px-6">
+        <div className="relative min-h-[80vh] px-4 pb-14 pt-12 md:px-6 lg:px-8">
             <div className="mx-auto max-w-xl">
                 <Suspense fallback={null}>
                     <SuccessCard />

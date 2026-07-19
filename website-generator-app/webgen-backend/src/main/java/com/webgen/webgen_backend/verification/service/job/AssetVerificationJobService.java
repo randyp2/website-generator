@@ -1,168 +1,267 @@
 package com.webgen.webgen_backend.verification.service.job;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.webgen.webgen_backend.shared.config.RabbitMQConfig;
+import com.webgen.webgen_backend.account.service.AccountDeletionStateService;
+import com.webgen.webgen_backend.billing.service.CreditGuardService;
 import com.webgen.webgen_backend.verification.dto.job.AssetVerificationEnqueueDTO;
 import com.webgen.webgen_backend.verification.dto.job.AssetVerificationJobStatusDTO;
+import com.webgen.webgen_backend.verification.entity.AssetVerificationJob;
+import com.webgen.webgen_backend.verification.entity.ClaimEvidenceUpload;
+import com.webgen.webgen_backend.verification.entity.VerificationOutboxEvent;
+import com.webgen.webgen_backend.verification.repository.AssetVerificationJobRepository;
+import com.webgen.webgen_backend.verification.repository.ClaimEvidenceUploadRepository;
+import com.webgen.webgen_backend.verification.repository.VerificationOutboxRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
+/** Durable verification-job state with Redis used only as a polling cache. */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AssetVerificationJobService {
-
-    // Config for redis
     private static final String KEY_PREFIX = "verify:job:";
-    private static final Duration TTL = Duration.ofHours(24);
+    private static final Duration CACHE_TTL = Duration.ofHours(24);
+    private static final int MAX_ATTEMPTS = 3;
+    private static final String FAILURE_CODE = "AssetVerificationFailed";
+    private static final String TIMEOUT_CODE = "AssetVerificationTimedOut";
+    private static final String UPLOAD_DELETED_CODE = "AssetVerificationUploadDeleted";
 
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
-    private final RabbitTemplate rabbitTemplate;
+    private final AssetVerificationJobRepository jobRepository;
+    private final VerificationOutboxRepository outboxRepository;
+    private final ClaimEvidenceUploadRepository uploadRepository;
+    private final AccountDeletionStateService accountDeletionStateService;
+    private final CreditGuardService creditGuardService;
 
-    /**
-     * Creates a job in Redis and immediately publishes an asset verification message to RabbitMQ
-     * for a verification worker to pick up.
-     *
-     * @param enqueueDTO verification payload forwarded to the worker
-     * @return newly created jobId for status polling
-     */
-    public String createJobAndQueue(AssetVerificationEnqueueDTO enqueueDTO) {
-        String jobId = createJob(enqueueDTO);
-        System.out.println(">>> [ASSET-JOB] create+queue start | jobId=" + jobId
-                + " uploadId=" + enqueueDTO.getUploadId()
-                + " claimId=" + enqueueDTO.getClaimId()
-                + " profileId=" + enqueueDTO.getProfileId());
+    @Transactional
+    public String createJobAndQueue(AssetVerificationEnqueueDTO request) {
+        accountDeletionStateService.assertAccountActive(request.getProfileId());
+        UUID jobId = UUID.randomUUID();
+        OffsetDateTime now = OffsetDateTime.now();
+        AssetVerificationMessage message = toMessage(jobId, request, now);
+        jobRepository.save(AssetVerificationJob.builder()
+                .id(jobId).profileId(request.getProfileId()).claimId(request.getClaimId())
+                .uploadId(request.getUploadId()).creditReservationId(request.getCreditReservationId())
+                .status("queued").attemptCount(0)
+                .maxAttempts(MAX_ATTEMPTS).createdAt(now).updatedAt(now).build());
+        outboxRepository.save(VerificationOutboxEvent.builder()
+                .id(UUID.randomUUID()).aggregateId(jobId).eventType("asset_verification_requested")
+                .payload(objectMapper.valueToTree(message)).status("pending").attemptCount(0)
+                .availableAt(now).createdAt(now).updatedAt(now).build());
+        cache(toDto(jobRepository.getReferenceById(jobId)));
+        log.info("Verification job persisted with outbox jobId={} profileId={} claimId={} uploadId={}",
+                jobId, request.getProfileId(), request.getClaimId(), request.getUploadId());
+        return jobId.toString();
+    }
 
-        AssetVerificationMessage msg = AssetVerificationMessage.builder()
-                .jobId(jobId)
-                .uploadId(enqueueDTO.getUploadId().toString())
-                .claimId(enqueueDTO.getClaimId().toString())
-                .profileId(enqueueDTO.getProfileId().toString())
-                .storageProvider(enqueueDTO.getStorageProvider())
-                .storageBucket(enqueueDTO.getStorageBucket())
-                .storageKey(enqueueDTO.getStorageKey())
-                .fileSizeBytes(enqueueDTO.getFileSizeBytes())
-                .queuedAt(OffsetDateTime.now().toString())
-                .build();
+    @Transactional
+    public boolean beginAttempt(String jobId) {
+        AssetVerificationJob job = requireJob(jobId);
+        if ("completed".equals(job.getStatus())) {
+            log.info("Duplicate verification delivery ignored jobId={} uploadId={}", jobId, job.getUploadId());
+            return false;
+        }
+        if (job.getAttemptCount() >= job.getMaxAttempts()) {
+            return false;
+        }
+        job.setAttemptCount(job.getAttemptCount() + 1);
+        job.setStatus("processing");
+        job.setStartedAt(OffsetDateTime.now());
+        job.setUpdatedAt(OffsetDateTime.now());
+        updateUploadStatus(job.getUploadId(), "analyzing", null);
+        save(job);
+        return true;
+    }
 
-        // Publish message to exchange
-        // RabbitMQ sends to queue
-        rabbitTemplate.convertAndSend(
-                RabbitMQConfig.EXCHANGE,
-                RabbitMQConfig.ASSET_VERIFICATION_ROUTING_KEY,
-                msg
-        );
-        System.out.println(">>> [ASSET-JOB] published | jobId=" + jobId
-                + " exchange=" + RabbitMQConfig.EXCHANGE
-                + " routingKey=" + RabbitMQConfig.ASSET_VERIFICATION_ROUTING_KEY);
+    @Transactional
+    public void complete(String jobId) {
+        AssetVerificationJob job = requireJob(jobId);
+        job.setStatus("completed");
+        job.setError(null);
+        job.setCompletedAt(OffsetDateTime.now());
+        job.setUpdatedAt(OffsetDateTime.now());
+        save(job);
+    }
 
-        return jobId;
+    @Transactional
+    public boolean failAttempt(String jobId, String message) {
+        AssetVerificationJob job = requireJob(jobId);
+        boolean retry = job.getAttemptCount() < job.getMaxAttempts();
+        job.setStatus(retry ? "queued" : "failed");
+        job.setError(abbreviate(message));
+        job.setUpdatedAt(OffsetDateTime.now());
+        if (retry) {
+            updateUploadStatus(job.getUploadId(), "queued", null);
+            enqueueRetry(job, OffsetDateTime.now().plusSeconds(retryBackoffSeconds(job.getAttemptCount())));
+        } else {
+            updateUploadStatus(job.getUploadId(), "failed", job.getError());
+            refundReservation(job, FAILURE_CODE);
+        }
+        save(job);
+        log.warn("Verification attempt failed jobId={} attempt={}/{} retry={} reason={}",
+                jobId, job.getAttemptCount(), job.getMaxAttempts(), retry, message);
+        return retry;
     }
 
     /**
-     * Generate a job and save to redis in order to keep track of status
-     *
-     * @param enqueueDTO verification payload that this job is related to
-     * @return the jobId of the job that was saved
+     * Stops a queued or in-flight verification from being recovered after deletion begins.
      */
-    public String createJob(AssetVerificationEnqueueDTO enqueueDTO) {
-        String jobId = UUID.randomUUID().toString();
-
-        AssetVerificationJobStatusDTO status = AssetVerificationJobStatusDTO.builder()
-                .jobId(jobId)
-                .uploadId(enqueueDTO.getUploadId().toString())
-                .claimId(enqueueDTO.getClaimId().toString())
-                .profileId(enqueueDTO.getProfileId().toString())
-                .status(AssetVerificationJobStatusDTO.Status.QUEUED)
-                .error("")
-                .build();
-
-        saveToRedis(status);
-        System.out.println(">>> [ASSET-JOB] redis create | jobId=" + jobId
-                + " status=" + status.getStatus());
-        return jobId;
-    }
-
-    /**
-     * Updates the top-level status field on the job record (QUEUED, PROCESSING, COMPLETED, FAILED).
-     * No-ops silently if the job no longer exists in Redis.
-     *
-     * @param jobId  active job ID
-     * @param status new status to apply
-     */
-    public void updateStatus(String jobId, AssetVerificationJobStatusDTO.Status status) {
-        AssetVerificationJobStatusDTO job = getJob(jobId);
-        if (job == null) {
-            System.out.println(">>> [ASSET-JOB] update skipped | jobId=" + jobId
-                    + " newStatus=" + status
-                    + " reason=missing");
+    @Transactional
+    public void cancelForAccountDeletion(String jobId) {
+        if (jobId == null) {
             return;
         }
+        try {
+            jobRepository.findById(UUID.fromString(jobId)).ifPresent(job -> {
+                job.setStatus("canceled");
+                job.setError("Account deletion is in progress");
+                job.setCompletedAt(OffsetDateTime.now());
+                job.setUpdatedAt(OffsetDateTime.now());
+                save(job);
+            });
+        } catch (IllegalArgumentException exception) {
+            log.warn("Unable to cancel malformed verification job id={}", jobId);
+        }
+    }
 
-        // Update and save
-        AssetVerificationJobStatusDTO.Status prior = job.getStatus();
-        job.setStatus(status);
-        saveToRedis(job);
-        System.out.println(">>> [ASSET-JOB] update | jobId=" + jobId
-                + " from=" + prior
-                + " to=" + status);
+    /** Refunds unfinished verification work before its source upload is deleted. */
+    @Transactional
+    public void refundForUploadDeletion(UUID uploadId) {
+        if (uploadId == null) {
+            return;
+        }
+        jobRepository.findByUploadId(uploadId)
+                .filter(job -> !"completed".equals(job.getStatus()))
+                .ifPresent(job -> refundReservation(job, UPLOAD_DELETED_CODE));
     }
 
     public AssetVerificationJobStatusDTO getJob(String jobId) {
-        String key = KEY_PREFIX + jobId;
-
-        // Get value from redis
-        String jsonValue = redisTemplate.opsForValue().get(key);
-
-        if (jsonValue == null)
-            return null;
+        AssetVerificationJobStatusDTO cached = readCache(jobId);
+        if (cached != null) return cached;
         try {
-            return objectMapper.readValue(jsonValue, AssetVerificationJobStatusDTO.class);
-        } catch (JsonProcessingException e) {
+            return jobRepository.findById(UUID.fromString(jobId)).map(this::toDto).orElse(null);
+        } catch (IllegalArgumentException exception) {
             return null;
         }
     }
 
-    /**
-     * Save a key, value pair to redis client where:
-     * KEY = PREFIX KEY + jobId
-     * VALUE = serialized jobStatusDTO
-     *
-     * @param statusDTO DTO containing metadata of a job's status
-     * @throws RuntimeException if the job fails to serialize into json String
-     */
-    private void saveToRedis(AssetVerificationJobStatusDTO statusDTO) {
-        try {
-            // Write the value as a json string
-            String jsonValue = objectMapper.writeValueAsString(statusDTO);
+    @Scheduled(fixedDelayString = "${verification.jobs.recovery-ms:60000}")
+    @Transactional
+    public void recoverStaleJobs() {
+        OffsetDateTime cutoff = OffsetDateTime.now().minusMinutes(10);
+        List<AssetVerificationJob> stale = jobRepository.findByStatusInAndUpdatedAtBefore(
+                List.of("queued", "processing"), cutoff);
+        for (AssetVerificationJob job : stale) {
+            if (job.getAttemptCount() >= job.getMaxAttempts()) {
+                job.setStatus("failed");
+                job.setError("Verification timed out after maximum attempts");
+                updateUploadStatus(job.getUploadId(), "failed", job.getError());
+                refundReservation(job, TIMEOUT_CODE);
+            } else {
+                enqueueRetry(job, OffsetDateTime.now());
+                job.setStatus("queued");
+            }
+            job.setUpdatedAt(OffsetDateTime.now());
+            save(job);
+        }
+        if (!stale.isEmpty()) log.info("Recovered stale verification jobs count={}", stale.size());
+    }
 
-            // Write to redis client
-            String key = KEY_PREFIX + statusDTO.getJobId();
-            redisTemplate.opsForValue().set(key, jsonValue, TTL);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to serialize job status", e);
+    private void enqueueRetry(AssetVerificationJob job, OffsetDateTime availableAt) {
+        ClaimEvidenceUpload upload = uploadRepository.findById(job.getUploadId()).orElseThrow();
+        AssetVerificationMessage message = AssetVerificationMessage.builder()
+                .jobId(job.getId().toString()).profileId(job.getProfileId().toString())
+                .claimId(job.getClaimId().toString()).uploadId(job.getUploadId().toString())
+                .creditReservationId(job.getCreditReservationId())
+                .storageProvider(upload.getStorageProvider()).storageBucket(upload.getStorageBucket())
+                .storageKey(upload.getStorageKey()).fileSizeBytes(upload.getFileSizeBytes())
+                .queuedAt(OffsetDateTime.now().toString()).build();
+        OffsetDateTime now = OffsetDateTime.now();
+        outboxRepository.save(VerificationOutboxEvent.builder()
+                .id(UUID.randomUUID()).aggregateId(job.getId())
+                .eventType("asset_verification_retry_" + (job.getAttemptCount() + 1))
+                .payload(objectMapper.valueToTree(message))
+                .status("pending").attemptCount(0).availableAt(availableAt).createdAt(now).updatedAt(now).build());
+    }
+
+    private long retryBackoffSeconds(int attempt) {
+        return Math.min(300, 5L << Math.min(attempt - 1, 6));
+    }
+
+    private void refundReservation(AssetVerificationJob job, String failureCode) {
+        if (job.getCreditReservationId() != null) {
+            creditGuardService.refundCredits(job.getCreditReservationId(), failureCode);
         }
     }
 
-    // Fail the job and update the status
-    public void failJob(String jobId, String message) {
-        AssetVerificationJobStatusDTO status = getJob(jobId);
-        if (status == null) {
-            System.out.println(">>> [ASSET-JOB] fail skipped | jobId=" + jobId + " reason=missing");
-            return;
-        }
+    private AssetVerificationMessage toMessage(UUID jobId, AssetVerificationEnqueueDTO request, OffsetDateTime now) {
+        return AssetVerificationMessage.builder().jobId(jobId.toString())
+                .uploadId(request.getUploadId().toString()).claimId(request.getClaimId().toString())
+                .profileId(request.getProfileId().toString())
+                .creditReservationId(request.getCreditReservationId())
+                .storageProvider(request.getStorageProvider())
+                .storageBucket(request.getStorageBucket()).storageKey(request.getStorageKey())
+                .fileSizeBytes(request.getFileSizeBytes()).queuedAt(now.toString()).build();
+    }
 
-        status.setError(message);
-        status.setStatus(AssetVerificationJobStatusDTO.Status.FAILED);
-        saveToRedis(status);
-        System.out.println(">>> [ASSET-JOB] failed | jobId=" + jobId
-                + " error=" + message);
+    private AssetVerificationJob requireJob(String id) {
+        return jobRepository.findById(UUID.fromString(id))
+                .orElseThrow(() -> new IllegalArgumentException("Verification job not found: " + id));
+    }
+
+    private void save(AssetVerificationJob job) {
+        jobRepository.save(job);
+        cache(toDto(job));
+    }
+
+    private void updateUploadStatus(UUID uploadId, String status, String error) {
+        uploadRepository.findById(uploadId).ifPresent(upload -> {
+            upload.setStatus(status);
+            upload.setAnalysisError(error);
+            upload.setUpdatedAt(OffsetDateTime.now());
+            uploadRepository.save(upload);
+        });
+    }
+
+    private AssetVerificationJobStatusDTO toDto(AssetVerificationJob job) {
+        return AssetVerificationJobStatusDTO.builder().jobId(job.getId().toString())
+                .uploadId(job.getUploadId().toString()).claimId(job.getClaimId().toString())
+                .profileId(job.getProfileId().toString())
+                .status(AssetVerificationJobStatusDTO.Status.valueOf(job.getStatus().toUpperCase()))
+                .error(Optional.ofNullable(job.getError()).orElse("")).build();
+    }
+
+    private void cache(AssetVerificationJobStatusDTO dto) {
+        try {
+            redisTemplate.opsForValue().set(KEY_PREFIX + dto.getJobId(), objectMapper.writeValueAsString(dto), CACHE_TTL);
+        } catch (Exception exception) {
+            log.warn("Verification job cache write failed jobId={} reason={}", dto.getJobId(), exception.getMessage());
+        }
+    }
+
+    private AssetVerificationJobStatusDTO readCache(String jobId) {
+        try {
+            String json = redisTemplate.opsForValue().get(KEY_PREFIX + jobId);
+            return json == null ? null : objectMapper.readValue(json, AssetVerificationJobStatusDTO.class);
+        } catch (Exception exception) {
+            log.warn("Verification job cache read failed jobId={} reason={}", jobId, exception.getMessage());
+            return null;
+        }
+    }
+
+    private String abbreviate(String value) {
+        if (value == null) return "Unknown verification error";
+        return value.substring(0, Math.min(500, value.length()));
     }
 }

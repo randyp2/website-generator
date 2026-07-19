@@ -13,4 +13,5 @@ public class SectionDTO {
     JsonNode contentJson;
     String reactSource; // React source code for the section
     String changeDescription; // Null for one shot, set by refinement flow
+    Boolean refineFallback; // True when a refinement failed and the previous version was kept
 }

@@ -3,8 +3,10 @@ package com.webgen.webgen_backend.verification.service.scoring;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Single source of truth for how much to trust each type of evidence signal,
@@ -34,15 +36,22 @@ public class VerificationSignalPolicy {
      */
     private static final BigDecimal DEFAULT_LINK_TYPE_WEIGHT = new BigDecimal("0.50");
 
+    /** Link types retained for discovery provenance but excluded from verification. */
+    private static final Set<String> DISCOVERY_ONLY_LINK_TYPES = Set.of(
+            "topic_match",
+            "name_match",
+            "description_match");
+
     /**
      * How much to trust each link type when calculating evidence strength.
      *
      * These weights appear in the decayed-strength formula:
      *
-     *   decayedStrength = linkConfidence × linkTypeWeight × recencyDecay
+     *   decayedStrength = scoringStrength × linkTypeWeight × authorshipWeight × recencyDecay
      *
-     * linkConfidence is how certain the scanner was that the skill appears.
+     * scoringStrength is connector match confidence or reviewed evidence depth.
      * linkTypeWeight is how much that type of sighting actually proves usage.
+     * authorshipWeight discounts GitHub repositories without demonstrated contribution.
      * recencyDecay discounts older evidence over time.
      *
      * So a weight of 1.00 means we trust the evidence at full face value.
@@ -72,54 +81,40 @@ public class VerificationSignalPolicy {
             Map.entry("dependency_match", new BigDecimal("1.00")),
 
             /*
-             * TOPIC MATCH — 0.85
+             * TOPIC MATCH: DISCOVERY ONLY
              *
              * The skill appears as a GitHub repository topic — for example,
              * a repo manually tagged with "java" or "react".
              *
-             * Topics are curated by hand, which is a good signal. But they're
-             * also easy to add without much depth — someone could tag "java" on
-             * a repo that uses Java for a single config file. The 0.85 weight
-             * reflects that topics show intent and awareness, but not the same
-             * depth of usage as a declared dependency.
-             *
-             * Reduced weight (0.85): a 0.85 confidence topic match contributes
-             * 0.85 × 0.85 = 0.72 — about 15% less than a dependency match.
+             * Topics help associate a repository with a claim, but users control
+             * them and they do not prove implementation. The link remains
+             * available as provenance but contributes zero.
              */
-            Map.entry("topic_match", new BigDecimal("0.85")),
+            Map.entry("topic_match", BigDecimal.ZERO),
 
             /*
-             * NAME MATCH — 0.72
+             * NAME MATCH: DISCOVERY ONLY
              *
              * The skill appears in the repository name itself:
              * "java-portfolio-app", "react-dashboard", "python-scraper".
              *
-             * Naming a repo after a skill is a reasonable hint, but it's one
-             * step removed from the actual code. A repo called "java-experiments"
-             * might contain three lines of Java and a lot of README documentation.
-             * Moderate weight (0.72) because the name shows association,
-             * not necessarily active use.
-             *
-             * Reduced weight (0.72): a 0.85 confidence name match contributes
-             * 0.85 × 0.72 = 0.61 — about 28% less than a dependency match.
+             * Repository names can associate a repository with a claim, but
+             * users control them and they do not prove implementation. The link
+             * remains available as provenance but contributes zero.
              */
-            Map.entry("name_match", new BigDecimal("0.72")),
+            Map.entry("name_match", BigDecimal.ZERO),
 
             /*
-             * DESCRIPTION MATCH — 0.58
+             * DESCRIPTION MATCH: DISCOVERY ONLY
              *
              * The skill appears in the repository's written description:
              * "A web app built with Java and Spring Boot".
              *
-             * Descriptions are free-form text — anyone can write anything
-             * without it having any relationship to the actual code. This is
-             * a weaker corroborating signal. Useful when combined with other
-             * matches, but not strong enough to stand alone as proof of usage.
-             *
-             * Lower weight (0.58): a 0.85 confidence description match
-             * contributes 0.85 × 0.58 = 0.49 — roughly half a dependency match.
+             * Descriptions are free-form text and are useful for associating a
+             * repository with a claim. They do not independently prove usage,
+             * so the link remains available as provenance but contributes zero.
              */
-            Map.entry("description_match", new BigDecimal("0.58")),
+            Map.entry("description_match", BigDecimal.ZERO),
 
             /*
              * LANGUAGE + TEXT MATCH — 0.48
@@ -145,16 +140,13 @@ public class VerificationSignalPolicy {
              * certificate, project writeup — and assessed how strongly it
              * demonstrates the skill.
              *
-             * Unlike GitHub signals, where linkTypeWeight discounts for signal
-             * quality because confidence just means "did we spot the skill name",
-             * the AI's confidence score here already encodes depth of usage.
-             * A hello-world program gets a low confidence (e.g. 0.35). A full
-             * CRUD app with database integration and error handling gets a high
-             * confidence (e.g. 0.85). The AI made the quality judgment call,
-             * so we don't need a separate type weight to do it again.
+             * Unlike GitHub signals, reviewed uploads provide a dedicated evidence
+             * depth value. A hello-world program gets low depth. A full CRUD app
+             * with integration and error handling gets high depth. The review has
+             * already made the quality judgment, so the type weight is full strength.
              *
-             * Full pass-through (1.00): a 0.85 AI confidence document match
-             * contributes 0.85 × 1.00 = 0.85. The 0.85 itself already reflects
+             * Full pass-through (1.00): a 0.85 evidence depth document match
+             * contributes 0.85 × 1.00 = 0.85. The depth itself reflects
              * the difference between a toy project and real-world usage.
              */
             Map.entry("llm_document_match", new BigDecimal("1.00"))
@@ -175,32 +167,32 @@ public class VerificationSignalPolicy {
      * Link types that can contribute to LLM-verified status.
      *
      * - llm_document_match: the current canonical type for all AI-analyzed uploads.
-     * - dependency_match / topic_match (legacy): kept for backward compatibility
+     * - dependency_match (legacy): kept for backward compatibility
      *   with evidence records created before llm_document_match was introduced.
      *   All new uploads produce llm_document_match exclusively.
      */
     private static final java.util.Set<String> LLM_ELIGIBLE_LINK_TYPES = java.util.Set.of(
             "llm_document_match",
-            "dependency_match",
-            "topic_match"
+            "dependency_match"
     );
 
     /**
-     * Minimum AI confidence required to treat an upload as LLM-verified and
-     * unlock the expert score tier (scores above 80).
+     * Minimum evidence depth required to treat an upload as reviewed. This is
+     * the start of the gradual cap range and does not itself add cap headroom.
      *
-     * Below 85%, the upload still contributes to the score through the normal
-     * evidence nudge — it just doesn't unlock the higher ceiling. This prevents
+     * Below 85%, the upload still contributes through the normal evidence nudge,
+     * but it does not unlock a higher ceiling. This prevents
      * a vague document match (e.g. a resume that lists Java once in a skills
      * table with no supporting detail) from reaching the same ceiling as a
      * well-evidenced portfolio piece the AI assessed with high certainty.
      *
-     * Example: a CRUD app portfolio submitted as a PDF → AI confidence 0.87
-     * → exceeds threshold → expert tier unlocked.
-     * Example: a resume with a one-line "Java" skills mention → AI confidence
-     * 0.52 → still scores, but stays capped at 80.
+     * A depth of 0.87 unlocks a cap of 84. A depth of 0.95 unlocks
+     * the full cap of 100. The evidence curve still determines the earned score.
      */
-    private static final BigDecimal LLM_MIN_CONFIDENCE = new BigDecimal("0.85");
+    private static final BigDecimal LLM_MIN_EVIDENCE_DEPTH = new BigDecimal("0.85");
+
+    /** Evidence depth at which reviewed evidence unlocks the full 100-point cap. */
+    private static final BigDecimal LLM_FULL_UNLOCK_EVIDENCE_DEPTH = new BigDecimal("0.95");
 
     /**
      * Score ceiling for claims that have not been LLM-verified.
@@ -214,14 +206,7 @@ public class VerificationSignalPolicy {
     public static final int CLAIM_CAP_WITHOUT_LLM = 80;
 
     /**
-     * Score ceiling for claims that have been LLM-verified.
-     *
-     * When the AI has reviewed an upload with at least 85% confidence, the
-     * full 0–100 range opens up. Reaching scores above 80 still requires
-     * enough accumulated evidence strength — the cap opening up doesn't push
-     * the score there automatically. A single upload at 0.85 confidence still
-     * lands around 66; it takes multiple strong signals or a very high-confidence
-     * upload to push into the 80–100 range.
+     * Maximum ceiling available once reviewed evidence reaches 95% depth.
      */
     public static final int CLAIM_CAP_WITH_LLM = 100;
 
@@ -241,6 +226,15 @@ public class VerificationSignalPolicy {
         );
     }
 
+    /** Returns whether a persisted discovery link may affect verification progress. */
+    public boolean isScoringEligibleLinkType(String linkType) {
+        if (linkType == null || linkType.isBlank()) {
+            return true;
+        }
+        return !DISCOVERY_ONLY_LINK_TYPES.contains(
+                linkType.trim().toLowerCase(Locale.ROOT));
+    }
+
     /**
      * Returns true if this evidence signal qualifies a claim for LLM-verified
      * status, which unlocks the expert score tier (above 80).
@@ -248,25 +242,46 @@ public class VerificationSignalPolicy {
      * All three conditions must hold:
      *   1. The evidence came from our own upload flow, not an external connector.
      *   2. The link type is one produced by AI document analysis.
-     *   3. The AI's confidence is at least 85%.
+     *   3. The demonstrated evidence depth is at least 85%.
      */
-    public boolean isEligibleForLlmVerification(String provider, String linkType, BigDecimal confidence) {
-        if (provider == null || linkType == null || confidence == null) {
+    public boolean isEligibleForReviewedStatus(String provider, String linkType, BigDecimal evidenceDepth) {
+        if (provider == null || linkType == null || evidenceDepth == null) {
             return false;
         }
-        String normalizedProvider = provider.trim().toLowerCase(Locale.ROOT);
-        String normalizedLinkType = linkType.trim().toLowerCase(Locale.ROOT);
-        return LLM_ELIGIBLE_PROVIDER.equals(normalizedProvider)
-                && LLM_ELIGIBLE_LINK_TYPES.contains(normalizedLinkType)
-                && confidence.compareTo(LLM_MIN_CONFIDENCE) >= 0;
+        return isLlmReviewSignal(provider, linkType)
+                && evidenceDepth.compareTo(LLM_MIN_EVIDENCE_DEPTH) >= 0;
     }
 
     /**
-     * Returns the score ceiling that applies to a claim based on whether it
-     * has been LLM-verified. Applied after the evidence nudge is calculated,
-     * so it acts as a hard upper bound on what the claim can score.
+     * Returns whether a signal came from the reviewed-upload path, independent
+     * of its depth. This lets cap calculation inspect sub-threshold reviews
+     * without granting them reviewed status.
      */
-    public int claimScoreCap(boolean llmVerified) {
-        return llmVerified ? CLAIM_CAP_WITH_LLM : CLAIM_CAP_WITHOUT_LLM;
+    public boolean isLlmReviewSignal(String provider, String linkType) {
+        if (provider == null || linkType == null) {
+            return false;
+        }
+        return LLM_ELIGIBLE_PROVIDER.equals(provider.trim().toLowerCase(Locale.ROOT))
+                && LLM_ELIGIBLE_LINK_TYPES.contains(linkType.trim().toLowerCase(Locale.ROOT));
+    }
+
+    /**
+     * Gradually unlocks score headroom from 80 at 85% evidence depth to
+     * 100 at 95%. Evidence support still determines how much of this cap is earned.
+     */
+    public int claimScoreCap(BigDecimal evidenceDepth) {
+        if (evidenceDepth == null || evidenceDepth.compareTo(LLM_MIN_EVIDENCE_DEPTH) <= 0) {
+            return CLAIM_CAP_WITHOUT_LLM;
+        }
+        BigDecimal bounded = evidenceDepth.min(BigDecimal.ONE);
+        BigDecimal progress = bounded.subtract(LLM_MIN_EVIDENCE_DEPTH)
+                .divide(LLM_FULL_UNLOCK_EVIDENCE_DEPTH.subtract(LLM_MIN_EVIDENCE_DEPTH), 6, RoundingMode.HALF_UP)
+                .max(BigDecimal.ZERO)
+                .min(BigDecimal.ONE);
+        int unlockedPoints = BigDecimal.valueOf(CLAIM_CAP_WITH_LLM - CLAIM_CAP_WITHOUT_LLM)
+                .multiply(progress)
+                .setScale(0, RoundingMode.HALF_UP)
+                .intValue();
+        return CLAIM_CAP_WITHOUT_LLM + unlockedPoints;
     }
 }

@@ -7,6 +7,8 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import static com.webgen.webgen_backend.shared.integration.SupabaseAdminRequestHeaders.create;
+
 @Service
 public class ScreenshotStorageService {
 
@@ -28,13 +30,27 @@ public class ScreenshotStorageService {
      */
     public String uploadScreenshot(String portfolioId, byte[] pngBytes) {
         String storagePath = "screenshots/" + portfolioId + "/preview.png";
+        return upload(storagePath, pngBytes);
+    }
+
+    /** Uploads an immutable generated version preview to a version-scoped path. */
+    public String uploadVersionPreview(String portfolioId, String versionId, byte[] pngBytes) {
+        String storagePath = "screenshots/" + portfolioId + "/versions/" + versionId + ".png";
+        return upload(storagePath, pngBytes);
+    }
+
+    /** Uploads a pre-publication external preview under its verification id. */
+    public String uploadSiteVerificationPreview(String verificationId, byte[] pngBytes) {
+        String storagePath = "screenshots/site-verifications/" + verificationId + "/preview.png";
+        return upload(storagePath, pngBytes);
+    }
+
+    private String upload(String storagePath, byte[] pngBytes) {
 
         // Upload via Supabase Storage Rest API
         String uploadUrl = supabaseUrl + "/storage/v1/object/" + BUCKET + "/" + storagePath;
 
-        org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
-        headers.set("Authorization", "Bearer " + serviceRoleKey);
-        headers.set("apikey", serviceRoleKey);
+        org.springframework.http.HttpHeaders headers = create(serviceRoleKey);
         headers.setContentType(MediaType.IMAGE_PNG);
         headers.set("x-upsert", "true"); // Upsert to override double uploads
 

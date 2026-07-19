@@ -9,8 +9,10 @@ import com.webgen.webgen_backend.verification.mapper.ConnectedAccountMapper;
 import com.webgen.webgen_backend.verification.repository.ConnectedAccountRepository;
 import com.webgen.webgen_backend.profile.repository.ProfileRepository;
 import com.webgen.webgen_backend.verification.service.ConnectionService;
+import com.webgen.webgen_backend.verification.service.EvidenceRetractionService;
 import com.webgen.webgen_backend.verification.service.shared.ProviderNormalizationHelper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -30,11 +32,13 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ConnectionServiceImpl implements ConnectionService {
 
     private final ConnectedAccountRepository connectedAccountRepository;
     private final ProfileRepository profileRepository;
     private final ConnectedAccountMapper connectedAccountMapper;
+    private final EvidenceRetractionService evidenceRetractionService;
 
     private static final Set<String> SUPPORTED_PROVIDERS = Set.of(
             "linkedin",
@@ -144,6 +148,9 @@ public class ConnectionServiceImpl implements ConnectionService {
 
         // Idempotent disconnect: avoid writes when row is already fully sanitized.
         if (isAlreadyDisconnectedAndSanitized(connectedAccount)) {
+            int retracted = evidenceRetractionService.retractProvider(profileId, normalizedProvider);
+            log.info("Provider disconnect replay profileId={} provider={} retractedEvidence={}",
+                    profileId, normalizedProvider, retracted);
             return DisconnectProviderResponseDTO.builder()
                     .connection(connectedAccountMapper.toDto(connectedAccount))
                     .build();
@@ -153,6 +160,9 @@ public class ConnectionServiceImpl implements ConnectionService {
         ensureSyncMetadataDefaults(connectedAccount);
 
         ConnectedAccount saved = connectedAccountRepository.save(connectedAccount);
+        int retracted = evidenceRetractionService.retractProvider(profileId, normalizedProvider);
+        log.info("Provider disconnected profileId={} provider={} retractedEvidence={}",
+                profileId, normalizedProvider, retracted);
 
         return DisconnectProviderResponseDTO.builder()
                 .connection(connectedAccountMapper.toDto(saved))

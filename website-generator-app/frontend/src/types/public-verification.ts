@@ -28,6 +28,11 @@ export interface PublicVerificationSummaryDTO {
   baselineOverallScore: number
   evidenceDelta: number
   overallScore: number
+  recognitionCoverage: number
+  evidenceCoverage: number
+  evidenceStrength: number
+  verificationTier: "self_declared" | "corroborated" | "ai_reviewed"
+  scoreLabel: "evidence_score"
   totalSkills: number
   matchedSkills: number
   unmatchedSkills: number
@@ -51,7 +56,9 @@ export interface PublicClaimLinkedEvidenceDTO {
   capturedAt: string | null
   linkType: string
   linkConfidence: number | null
+  evidenceDepth: number | null
   reason: string | null
+  sourceFile: string | null
 }
 
 export interface PublicClaimEvidenceSummaryDTO {
@@ -89,7 +96,9 @@ export interface PublicEvidenceLinkDTO {
   claimId: string
   linkType: string
   linkConfidence: number | null
+  evidenceDepth: number | null
   reason: string | null
+  sourceFile: string | null
 }
 
 export interface PublicEvidenceDTO {

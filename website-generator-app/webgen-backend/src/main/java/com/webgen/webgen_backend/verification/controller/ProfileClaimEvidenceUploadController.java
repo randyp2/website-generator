@@ -1,5 +1,7 @@
 package com.webgen.webgen_backend.verification.controller;
 
+import com.webgen.webgen_backend.billing.service.CreditGuardService;
+import com.webgen.webgen_backend.verification.billing.VerificationCreditCostPolicy;
 import com.webgen.webgen_backend.verification.dto.evidence.ClaimEvidenceUploadDownloadUrlResponseDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.ClaimEvidenceUploadListResponseDTO;
 import com.webgen.webgen_backend.verification.dto.evidence.CreateClaimEvidenceUploadPresignRequestDTO;
@@ -26,12 +28,17 @@ import java.util.UUID;
 public class ProfileClaimEvidenceUploadController {
 
     private final ClaimEvidenceUploadService claimEvidenceUploadService;
+    private final CreditGuardService creditGuardService;
 
     @PostMapping("/presign")
     public ResponseEntity<CreateClaimEvidenceUploadPresignResponseDTO> createUploadPresign(
             @PathVariable UUID claimId,
             @RequestBody CreateClaimEvidenceUploadPresignRequestDTO request) {
         UUID userId = resolveAuthenticatedUserId();
+        creditGuardService.assertUsageAvailable(
+                userId,
+                VerificationCreditCostPolicy.ASSET_VERIFICATION_USAGE
+        );
         CreateClaimEvidenceUploadPresignResponseDTO response = claimEvidenceUploadService.createUploadPresign(
                 userId,
                 claimId,

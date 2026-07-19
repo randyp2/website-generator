@@ -13,6 +13,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.UUID;
 
 
 /**
@@ -48,6 +49,7 @@ public class SectionGenerationMessage {
     private String jobId;
     private String portfolioId;
     private String userId;
+    private UUID creditReservationId;
     private int totalSections;
 
     // Default to generation mode if there are left over jobs in the queue during deployment
@@ -65,5 +67,6 @@ public class SectionGenerationMessage {
     private SectionContentDTO existingSection;
     private ClarifierContext clarifierContext;
     private List<AssetDTO> assets;
+    private Long refineBuildStartedAtMillis;
 
 }

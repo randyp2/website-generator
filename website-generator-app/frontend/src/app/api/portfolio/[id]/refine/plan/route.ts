@@ -5,12 +5,19 @@ import { enforceRateLimit } from "@/lib/rate-limit/enable-rate-limit";
 import { refineRateLimit } from "@/lib/rate-limit/ratelimit";
 import { getBackendUrlOrNull } from "@/lib/server-env";
 
+/**
+ * POST /api/portfolio/[id]/refine/plan
+ *
+ * Thin proxy that forwards the plan request to the Java backend. Only the
+ * session id is forwarded: the backend plans against sections loaded from
+ * its DB, so the client never supplies section content.
+ */
 export async function POST(
     req: Request,
     context: { params: Promise<{ id: string }> },
 ) {
     const body = await req.json();
-    const { sections, sessionId } = body ?? {};
+    const { sessionId } = body ?? {};
     const { id: portfolioId } = await context.params;
 
     if (!portfolioId) {
@@ -83,7 +90,6 @@ export async function POST(
             body: JSON.stringify({
                 portfolioId,
                 sessionId,
-                sections: Array.isArray(sections) ? sections : [],
                 assets: (assets ?? []).map((asset) => ({
                     id: asset.id,
                     type: asset.file_type,

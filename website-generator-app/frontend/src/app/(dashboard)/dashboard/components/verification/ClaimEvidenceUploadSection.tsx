@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { AlertTriangle, CheckCircle2, ChevronRight, FileText, Loader2, Upload, X } from "lucide-react";
+import { InsufficientCreditsModal } from "@/components/billing/InsufficientCreditsModal";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/useToast";
 import { CLAIM_EVIDENCE_ACCEPT_ATTR } from "@/lib/verification/claimEvidenceUploadPolicy";
@@ -16,7 +18,8 @@ interface ClaimEvidenceUploadSectionProps {
 }
 
 interface ParsedAssetVerificationSummary {
-    confidence: number;
+    matchConfidence: number;
+    evidenceDepth: number;
     summary: string;
 }
 
@@ -33,20 +36,27 @@ const extractAssetVerificationSummary = (
     }
 
     const record = assetVerification as Record<string, unknown>;
-    const confidence =
-        typeof record.confidence === "number" && Number.isFinite(record.confidence)
-            ? Math.max(0, Math.min(1, record.confidence))
-            : null;
+    const legacyConfidence = typeof record.confidence === "number" ? record.confidence : null;
+    const matchConfidence = typeof record.matchConfidence === "number"
+        ? record.matchConfidence
+        : legacyConfidence;
+    const evidenceDepth = typeof record.evidenceDepth === "number"
+        ? record.evidenceDepth
+        : legacyConfidence;
     const summary =
         typeof record.summary === "string" && record.summary.trim().length > 0
             ? record.summary.trim()
             : null;
 
-    if (confidence === null || !summary) {
+    if (matchConfidence === null || evidenceDepth === null || !summary) {
         return null;
     }
 
-    return { confidence, summary };
+    return {
+        matchConfidence: Math.max(0, Math.min(1, matchConfidence)),
+        evidenceDepth: Math.max(0, Math.min(1, evidenceDepth)),
+        summary,
+    };
 };
 
 const formatConfidencePercent = (confidence: number): string =>
@@ -57,10 +67,22 @@ const ClaimEvidenceUploadSection = ({
     onSelectAssetSummary,
     onUploadComplete,
 }: ClaimEvidenceUploadSectionProps) => {
+    const router = useRouter();
     const { addToast } = useToast();
-    const { isTransferring, deletingUploadId, upload, deleteUpload } =
-        useClaimEvidenceUpload();
-    const { uploads, refetch: refetchUploads } = useClaimUploads(claimId);
+    const {
+        isTransferring,
+        deletingUploadId,
+        isInsufficientCreditsModalOpen,
+        closeInsufficientCreditsModal,
+        upload,
+        deleteUpload,
+    } = useClaimEvidenceUpload();
+    const {
+        uploads,
+        refetch: refetchUploads,
+        removeUpload,
+        restoreUpload,
+    } = useClaimUploads(claimId);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -84,6 +106,8 @@ const ClaimEvidenceUploadSection = ({
         e.target.value = "";
         try {
             const result = await upload(claimId, file);
+            if (!result) return;
+
             await refetchUploads();
             onUploadComplete?.(result.uploadId, result.jobId, file.name);
             addToast({
@@ -103,16 +127,28 @@ const ClaimEvidenceUploadSection = ({
         }
     };
 
+    const handleAddCredits = (): void => {
+        closeInsufficientCreditsModal();
+        router.push("/pricing");
+    };
+
     const handleDeleteUpload = async (uploadId: string, fileName: string) => {
+        const uploadToDelete = uploads.find((uploadItem) => uploadItem.id === uploadId);
+        if (uploadToDelete) {
+            removeUpload(uploadId);
+        }
+
         try {
             await deleteUpload(claimId, uploadId);
-            await refetchUploads();
             addToast({
                 type: "success",
                 title: "Upload Deleted",
                 description: `${fileName} has been removed.`,
             });
         } catch (error) {
+            if (uploadToDelete) {
+                restoreUpload(uploadToDelete);
+            }
             addToast({
                 type: "error",
                 title: "Delete Failed",
@@ -174,10 +210,8 @@ const ClaimEvidenceUploadSection = ({
                             verificationSummary && onSelectAssetSummary,
                         );
                         const confidenceText = verificationSummary
-                            ? `Confidence ${formatConfidencePercent(
-                                  verificationSummary.confidence,
-                              )}`
-                            : "Awaiting confidence";
+                            ? `Match ${formatConfidencePercent(verificationSummary.matchConfidence)} · Depth ${formatConfidencePercent(verificationSummary.evidenceDepth)}`
+                            : "Awaiting analysis";
 
                         return (
                             <div
@@ -194,7 +228,8 @@ const ClaimEvidenceUploadSection = ({
                                             claimId,
                                             uploadId: u.id,
                                             originalFileName: u.originalFileName,
-                                            confidence: verificationSummary.confidence,
+                                            matchConfidence: verificationSummary.matchConfidence,
+                                            evidenceDepth: verificationSummary.evidenceDepth,
                                             summary: verificationSummary.summary,
                                         });
                                     }}
@@ -330,6 +365,13 @@ const ClaimEvidenceUploadSection = ({
                         </>
                     )}
                 </div>
+            )}
+            {isInsufficientCreditsModalOpen && (
+                <InsufficientCreditsModal
+                    description="You need an asset verification allowance or at least 1 credit to analyze another evidence upload."
+                    onClose={closeInsufficientCreditsModal}
+                    onAddCredits={handleAddCredits}
+                />
             )}
         </div>
     );

@@ -44,6 +44,14 @@ public class Evidence {
     @Column(name = "external_id", nullable = false)
     private String externalId;
 
+    /** Identity used to count correlated evidence only once per claim. */
+    @Column(name = "evidence_group_key", nullable = false)
+    private String evidenceGroupKey;
+
+    /** Upload that produced this evidence, when the source is a user artifact. */
+    @Column(name = "source_upload_id")
+    private UUID sourceUploadId;
+
     @Column(name = "evidence_type", nullable = false)
     private String evidenceType;
 

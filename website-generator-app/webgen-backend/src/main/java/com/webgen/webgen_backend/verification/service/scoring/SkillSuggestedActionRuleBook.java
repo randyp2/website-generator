@@ -50,6 +50,17 @@ public class SkillSuggestedActionRuleBook {
     );
 
     /**
+     * Next-tier actions for a matched claim that already has linked evidence.
+     * Rather than re-suggesting evidence the user already provided, these point
+     * toward fresher proof and the AI document-review (upload) path, which is the
+     * only route past the non-LLM score ceiling.
+     */
+    private static final List<String> EVIDENCE_UPGRADE_ACTIONS = List.of(
+            "Add a more recent project",
+            "Upload a portfolio piece for an in-depth review"
+    );
+
+    /**
      * Resolves deterministic next actions for a category.
      *
      * @param normalizedCategory canonical category key
@@ -66,5 +77,14 @@ public class SkillSuggestedActionRuleBook {
      */
     public List<String> genericActions() {
         return GENERIC_ACTIONS;
+    }
+
+    /**
+     * Returns next-tier actions for claims that already have linked evidence.
+     *
+     * @return evidence-upgrade action list
+     */
+    public List<String> evidenceUpgradeActions() {
+        return EVIDENCE_UPGRADE_ACTIONS;
     }
 }

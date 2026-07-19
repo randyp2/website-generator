@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.portfolio.dto.common.AssetDTO;
 import com.webgen.webgen_backend.portfolio.dto.clarifier.SectionSummaryDTO;
+import com.webgen.webgen_backend.portfolio.model.clarifier.ClarifierConversationMessage;
 import com.webgen.webgen_backend.portfolio.model.clarifier.ClarifierContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -22,11 +23,13 @@ public class ClarifierPromptBuilder {
             String userPrompt,
             List<SectionSummaryDTO> sections,
             ClarifierContext context,
-            List<AssetDTO> assets
+            List<AssetDTO> assets,
+            List<ClarifierConversationMessage> recentMessages
     ) {
         String sectionsJson = safeJson(sections);
         String contextJson = safeJson(context);
         String assetsJson = safeJson(assets);
+        String recentMessagesJson = safeJson(recentMessages);
 
         SystemMessage system  = new SystemMessage("""
                 You are an AI clarification assistant inside the PortfolioAI system.
@@ -42,6 +45,7 @@ public class ClarifierPromptBuilder {
                 1. The user’s latest clarification message
                 2. A summary of existing portfolio sections
                 3. The current ClarifierContext (may be empty on first turn)
+                4. Up to three recent user/assistant exchanges
 
                 ========================
                 YOUR RESPONSIBILITIES
@@ -66,6 +70,9 @@ public class ClarifierPromptBuilder {
                 - Do NOT rewrite portfolio content
                 - Do NOT invent new sections that do not exist, UNLESS the user explicitly asks to add a new section
                 - Do NOT assume changes that were not requested
+                - Discuss only changes to the provided portfolio and its sections
+                - Refuse unrelated questions, writing tasks, research, coding help,
+                  and other general-purpose assistant requests
                 - Only ask questions when CRITICAL information is missing
                 - Do NOT ask about optional preferences (colors, easing, etc.) unless explicitly relevant
                 - If the user has provided enough information to proceed, PROCEED
@@ -76,17 +83,29 @@ public class ClarifierPromptBuilder {
                 ========================
                 TARGET SCOPING RULES
 
-                - targetSectionKeys MUST contain ONLY the sections the user explicitly
-                  mentioned or that are directly required to fulfill the user's request.
-                - Do NOT speculatively add related sections. If the user says "change the
-                  navbar", targetSectionKeys should be ["navbar"], NOT ["navbar", "hero", "footer"].
-                - When the user's NEW message narrows scope (e.g. switches from "update
-                  everything" to "actually just fix the hero"), REPLACE targetSectionKeys
-                  with the narrower set — do NOT union them.
+                - targetSectionKeys and scope MUST reflect the CUMULATIVE intent of the
+                  ENTIRE conversation, not just the latest message.
+                - targetSectionKeys MUST contain ONLY the sections needed to fulfill
+                  that cumulative intent. Do NOT speculatively add related sections.
+                  If the user says "change the navbar", targetSectionKeys should be
+                  ["navbar"], NOT ["navbar", "hero", "footer"].
+
+                - Distinguish a PIVOT from an AMENDMENT in follow-up messages:
+                  - PIVOT: the new message REPLACES the request. Example: "update
+                    everything" then "actually, just fix the hero" → the old request
+                    is abandoned. REPLACE targetSectionKeys with ["hero"], scope "section".
+                  - AMENDMENT: the new message ADJUSTS the existing request. Example:
+                    "make everything light mode" then "actually keep the footer dark" →
+                    the request is STILL to restyle all sections; only the footer's
+                    treatment changed. Scope stays "global" and targetSectionKeys keeps
+                    every section being modified (the footer moves to constraints or
+                    drops out of the targets — it is NOT the new sole target).
+                  - A message that mentions one section is NOT automatically a pivot:
+                    "except X", "keep X as is", "also do Y" are amendments.
+
                 - "Preserve all existing context fields" means preserve constraints,
-                  assumptions, and intent — it does NOT mean never shrink targetSectionKeys.
-                  Target keys should reflect the CURRENT user intent, not a historical
-                  accumulation.
+                  assumptions, and intent — it does NOT mean never shrink
+                  targetSectionKeys. Shrink on a pivot; keep cumulative on an amendment.
                 - scope must match targetSectionKeys:
                     - 1 key → "section"
                     - 2-3 keys → "multi"
@@ -146,12 +165,31 @@ public class ClarifierPromptBuilder {
                 - readyForPlanning MUST be false
 
                 ========================
+                MESSAGE INTENT (advancesRequest)
+
+                Set advancesRequest per the LATEST user message:
+                - true when the message expresses, refines, answers a question
+                  about, or confirms a modification request ("make it blue",
+                  "actually keep the footer dark", "yes", "just proceed")
+                - false when the message adds nothing to any request: greetings
+                  ("hi", "hey"), small talk, thanks, or questions about the
+                  system itself ("what can you do?")
+
+                When advancesRequest is false:
+                - readyForPlanning and clarificationComplete MUST be false
+                - Do not answer unrelated questions or perform unrelated tasks
+                - Reply briefly that you can only help refine this portfolio,
+                  then ask what portfolio change they would like to make
+                - Do NOT alter updatedContext fields other than lastUserMessage
+
+                ========================
                 OUTPUT FORMAT (STRICT)
 
                 You MUST return a single JSON object with EXACTLY these fields:
 
                 {
                     "assistantMessage": "<user-facing conversational message>",
+                    "advancesRequest": <true|false>,
                     "readyForPlanning": <true|false>,
                     "clarificationComplete": <true|false>,
                     "updatedContext": {
@@ -197,6 +235,9 @@ public class ClarifierPromptBuilder {
                 AVAILABLE ASSETS (images/videos the user has uploaded):
                 %s
 
+                RECENT CONVERSATION (oldest to newest):
+                %s
+
                 LATEST USER MESSAGE:
                 %s
 
@@ -209,6 +250,7 @@ public class ClarifierPromptBuilder {
                     contextJson,
                     sectionsJson,
                     assetsJson,
+                    recentMessagesJson,
                     safe(userPrompt)
                 ));
 
