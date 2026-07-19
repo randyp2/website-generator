@@ -194,7 +194,3 @@ java -jar target/webgen-backend-0.0.1-SNAPSHOT.jar
 ```
 
 The backend also includes a multi-stage `Dockerfile` with the Chromium dependencies required for Playwright screenshot capture. Use `.env.prod.example` as the production configuration checklist and supply secrets through the deployment platform.
-
-## Screenshot drop-in directory
-
-README screenshots belong in `website-generator-app/docs/readme/`. The six expected filenames are already referenced above, so adding correctly named WebP files to that directory requires no README changes.
