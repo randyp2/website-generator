@@ -18,6 +18,7 @@ COPY mvnw .
 COPY .mvn .mvn
 
 # Build the jar file | /app/target/<project>.jar
+RUN chmod +x mvnw
 RUN ./mvnw -q -e -DskipTests package
 
 # =========================
