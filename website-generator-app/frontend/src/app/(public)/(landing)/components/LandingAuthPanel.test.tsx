@@ -14,7 +14,7 @@ vi.mock("next-themes", () => ({
 }));
 
 vi.mock("@/components/branding/BrandWordmark", () => ({
-    default: () => <span>Portrn</span>,
+    default: () => <span>PortRN</span>,
 }));
 
 vi.mock("@/components/auth/ForgotPasswordForm", () => ({
@@ -46,9 +46,28 @@ vi.mock("@/lib/auth-actions", () => ({
 
 import LandingAuthPanel from "./LandingAuthPanel";
 
-describe("LandingAuthPanel password recovery", () => {
+describe("LandingAuthPanel", () => {
     afterEach(() => {
         cleanup();
+    });
+
+    it("identifies PortRN and explains its purpose on the login view", () => {
+        render(<LandingAuthPanel />);
+
+        expect(
+            screen.getByRole("heading", { name: "Log in to PortRN" }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText(
+                "Turn your resume into a customizable AI portfolio you can review, refine, and publish.",
+            ),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole("link", { name: "Privacy Policy" }),
+        ).toHaveAttribute("href", "/privacy");
+        expect(
+            screen.getByRole("link", { name: "Terms of Service" }),
+        ).toHaveAttribute("href", "/terms");
     });
 
     it("opens recovery with the login email and preserves it on return", async () => {
