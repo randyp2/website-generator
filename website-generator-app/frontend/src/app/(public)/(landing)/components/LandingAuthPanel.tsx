@@ -418,7 +418,7 @@ const LandingAuthPanel = ({
                                 {mode === "forgot"
                                     ? "Enter your email and we will send you a secure reset link."
                                     : mode === "login"
-                                      ? ""
+                                      ? "Turn your resume into a customizable AI portfolio you can review, refine, and publish."
                                       : "Start with your resume, shape the design, and publish a recruiter-ready portfolio."}
                             </p>
                         </div>
@@ -487,6 +487,21 @@ const LandingAuthPanel = ({
                         </>
                     ) : null}
                 </div>
+                <footer className="flex items-center justify-center gap-3 border-t border-border pt-4 text-xs text-muted-foreground">
+                    <Link
+                        href="/privacy"
+                        className="transition-colors hover:text-foreground"
+                    >
+                        Privacy Policy
+                    </Link>
+                    <span aria-hidden="true">·</span>
+                    <Link
+                        href="/terms"
+                        className="transition-colors hover:text-foreground"
+                    >
+                        Terms of Service
+                    </Link>
+                </footer>
             </div>
         </div>
     );
