@@ -55,6 +55,9 @@ scripts/node_modules/
 dump.rdb
 *.pid
 
+### Local installers ###
+/AWSCLIV2.pkg
+
 ### Resumes ###
 src/test/resources/
 !src/test/resources/

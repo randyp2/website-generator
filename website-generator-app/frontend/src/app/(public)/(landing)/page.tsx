@@ -5,21 +5,24 @@ import { HeroSection } from "./components/hero";
 import { ProcessSection } from "./components/ProcessSection";
 
 export const metadata: Metadata = {
-    title: "AI Portfolio Generator – Build Stunning Portfolios Instantly",
+    applicationName: "PortRN",
+    title: {
+        absolute: "PortRN | AI Portfolio Builder",
+    },
     description:
-        "Create a beautiful, professional portfolio website in minutes using AI. No coding required. Customize styles, upload your resume, and instantly deploy your portfolio.",
+        "PortRN turns your resume into a customizable, AI-generated portfolio website. Review your content, refine the design, verify your work, and publish a professional portfolio.",
     openGraph: {
-        title: "AI Portfolio Generator – Build Stunning Portfolios Instantly",
+        title: "PortRN | AI Portfolio Builder",
         description:
-            "Generate AI-crafted portfolio websites in minutes. Fully customizable, responsive, and ready to deploy.",
-        url: "https://yourdomain.com/",
+            "Turn your resume into a customizable AI-generated portfolio, refine the design, verify your work, and publish it with PortRN.",
+        url: "/",
         siteName: "PortRN",
         // images: [{ url: "/og-image.png" }]
     },
     twitter: {
-        title: "AI Portfolio Generator",
+        title: "PortRN | AI Portfolio Builder",
         description:
-            "Build professional AI-generated portfolio websites instantly.",
+            "Turn your resume into a customizable AI-generated portfolio, refine the design, verify your work, and publish it with PortRN.",
     },
 };
 

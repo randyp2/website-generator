@@ -479,6 +479,10 @@ const LandingAuthPanel = ({
                                     Continue with Google
                                     <ArrowRight className="h-4 w-4 text-muted-foreground" />
                                 </button>
+                                <p className="mt-2 text-center text-xs leading-relaxed text-muted-foreground">
+                                    Google Sign-In securely creates and
+                                    authenticates your PortRN account.
+                                </p>
                             </form>
                         </>
                     ) : null}

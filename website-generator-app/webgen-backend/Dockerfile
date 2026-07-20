@@ -3,7 +3,7 @@
 # =========================
 
 # Set base image
-FROM eclipse-temurin:25-jdk AS builder
+FROM eclipse-temurin:25-jdk-noble AS builder
 
 # Work inside app direcotry (located in docker container)
 WORKDIR /app
@@ -18,22 +18,15 @@ COPY mvnw .
 COPY .mvn .mvn
 
 # Build the jar file | /app/target/<project>.jar
+RUN chmod +x mvnw
 RUN ./mvnw -q -e -DskipTests package
 
 # =========================
 # Runtime stage
 # =========================
-FROM eclipse-temurin:25-jre
+FROM eclipse-temurin:25-jre-noble
 
 WORKDIR /app
-
-# Install Playwright Chromium dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
-    libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 \
-    libpango-1.0-0 libcairo2 libasound2 libxshmfence1 \
-    fonts-liberation fonts-noto-color-emoji \
-    && rm -rf /var/lib/apt/lists/*
 
 # Copy only the final JAR from the builder stage
 COPY --from=builder /app/target/*.jar app.jar

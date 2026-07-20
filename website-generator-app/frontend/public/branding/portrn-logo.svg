@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="512" height="512" role="img" aria-label="PortRN">
+  <title>PortRN mark</title>
+  <mask id="portrn-bars" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+    <rect width="64" height="64" fill="#000"/>
+    <path d="M 12,12 H 25.5 a3,3 0 0 1 2.4,1.2 L 30.6,17 H 52 a6,6 0 0 1 6,6 V 48 a6,6 0 0 1 -6,6 H 12 a6,6 0 0 1 -6,-6 V 18 a6,6 0 0 1 6,-6 Z" fill="#fff"/>
+    <path d="M16,47 V42.5 a3.5,3.5 0 0 1 7,0 V47 Z" fill="#000"/>
+    <path d="M29,47 V36.5 a3.5,3.5 0 0 1 7,0 V47 Z" fill="#000"/>
+    <path d="M42,47 V29.5 a3.5,3.5 0 0 1 7,0 V47 Z" fill="#000"/>
+  </mask>
+  <rect width="64" height="64" fill="#CC7D23" mask="url(#portrn-bars)"/>
+</svg>
