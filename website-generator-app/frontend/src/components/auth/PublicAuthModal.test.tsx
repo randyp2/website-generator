@@ -91,6 +91,7 @@ vi.mock("@/components/auth/ForgotPasswordForm", () => ({
     ),
 }));
 
+import { EmailConfirmationNotice } from "./EmailConfirmationNotice";
 import { PublicAuthModal } from "./PublicAuthModal";
 
 describe("PublicAuthModal CAPTCHA integration", () => {
@@ -145,12 +146,15 @@ describe("PublicAuthModal CAPTCHA integration", () => {
     it("passes a CAPTCHA token to email signup", async () => {
         const user = userEvent.setup();
         render(
-            <PublicAuthModal
-                open
-                reason="general"
-                intent={null}
-                onOpenChange={vi.fn()}
-            />,
+            <>
+                <EmailConfirmationNotice />
+                <PublicAuthModal
+                    open
+                    reason="general"
+                    intent={null}
+                    onOpenChange={vi.fn()}
+                />
+            </>,
         );
 
         await user.type(screen.getByLabelText("First name"), "Ava");
@@ -176,6 +180,9 @@ describe("PublicAuthModal CAPTCHA integration", () => {
                 }),
             );
         });
+        expect(
+            await screen.findByText("Confirmation email sent"),
+        ).toBeInTheDocument();
     });
 
     it("opens recovery with the email entered in login mode", async () => {

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webgen.webgen_backend.resume.dto.ParsedResumeDTO;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -16,6 +17,7 @@ import java.util.Map;
 
 @Service
 @AllArgsConstructor
+@Slf4j
 public class PromptRefinerService {
 
     private final OpenAiChatModel openAiChatModel;
@@ -36,10 +38,8 @@ public class PromptRefinerService {
             ParsedResumeDTO resume,
             Map<String, String> stylePrefs
     ) {
-        System.out.println(">>> [REFINER] refineUserPrompt() started");
-
         if (rawPrompt == null) {
-            System.out.println(">>> [REFINER] Raw prompt is null, returning default");
+            log.debug("Raw prompt is null, returning default brief");
             return "Improve clarity and professionalism while staying faithful to the resume data.";
         }
 
@@ -125,12 +125,9 @@ public class PromptRefinerService {
 
         // Call openai api to refine prompt;
         try {
-            System.out.println(">>> [REFINER] Calling OpenAI to refine prompt...");
             long start = System.currentTimeMillis();
-
             ChatResponse response = openAiChatModel.call(prompt);
-
-            System.out.println(">>> [REFINER] OpenAI refine call completed in " + (System.currentTimeMillis() - start) + "ms");
+            log.debug("Prompt refine call completed durationMs={}", System.currentTimeMillis() - start);
 
             String raw = response.getResult().getOutput().getText();
 
@@ -139,7 +136,7 @@ public class PromptRefinerService {
 
             return refined == null || refined.isBlank() ? rawPrompt : refined;
         } catch (Exception e) {
-            System.err.println(">>> [REFINER] Error calling OpenAI API: " + e.getMessage());
+            log.warn("Prompt refine failed, falling back to raw prompt reason={}", e.getMessage());
             return rawPrompt;
         }
 

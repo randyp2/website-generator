@@ -17,8 +17,8 @@ import java.util.List;
  * effectiveEvidence = Σ(decayedStrength_i * rankDecay^(i-1))
  * support           = 1 - exp(-gamma * effectiveEvidence)
  * boostProgress     = support^curveExponent
- * headroom          = capNormalized - baselineClaimNormalized
- * final             = baselineClaimNormalized + (headroom * boostProgress)
+ * headroom          = capNormalized
+ * final             = capNormalized * boostProgress
  * </pre>
  *
  * Design intent:
@@ -73,11 +73,11 @@ public class EvidenceNudgeCalculator {
     }
 
     /**
-     * Computes the deterministic nudge toward the claim cap. Returns
+     * Computes the deterministic evidence score toward the claim cap. Returns
      * {@link EvidenceNudgeComputation#none()} when there is no headroom to grow into.
      *
      * @param evidenceLinks            ranked evidence signals for the claim
-     * @param baselineClaimNormalized  pre-evidence normalized prior in [0,1]
+     * @param baselineClaimNormalized  zero-based pre-evidence score in [0,1]
      * @param claimScoreCap            integer score ceiling for the claim
      * @return computed nudge with intermediate values for tracing
      */

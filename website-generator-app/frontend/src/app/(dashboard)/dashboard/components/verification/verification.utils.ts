@@ -239,11 +239,6 @@ const mapClaimStatus = (status: string): VerificationStatus => {
   }
 }
 
-const scoreFromConfidence = (confidence: number | null): number => {
-  if (confidence === null) return 0
-  return Math.round(confidence * 100)
-}
-
 const formatDelta = (delta: number): string => {
   if (delta > 0) {
     return `+${delta}`
@@ -272,7 +267,9 @@ export const mapClaimsToSkillVerifications = (
   claims: ClaimDTO[],
 ): SkillVerification[] =>
   claims.map((claim) => {
-    const score = scoreFromConfidence(claim.confidence)
+    // Parser confidence and canonical recognition are not verification evidence.
+    // Without the deterministic summary, the safe fallback score is zero.
+    const score = 0
     const tier = tierFromScore(score)
     const status = mapClaimStatus(claim.status)
     const freshness = freshnessFromDate(claim.updatedAt)
@@ -297,7 +294,7 @@ export const mapClaimsToSkillVerifications = (
       evidenceLinksUsed: claim.evidenceSummary?.linkedEvidenceCount ?? 0,
       scoreReasonCode: "legacy_claim_confidence_only",
       scoreReasonText:
-        "Score is based on extracted claim confidence only for this view.",
+        "No verification score is available until supporting evidence is scored.",
       score,
       tier,
       status,
@@ -394,8 +391,8 @@ export const deriveOverview = (
       : 0
 
   return {
-    baselineOverallScore: avgScore,
-    evidenceDelta: 0,
+    baselineOverallScore: 0,
+    evidenceDelta: avgScore,
     overallScore: avgScore,
     tier: tierFromScore(avgScore),
     totalSkills: total,
@@ -404,7 +401,7 @@ export const deriveOverview = (
     unverifiedClaimsCount,
     lastRunDate: new Date().toISOString(),
     trustNote:
-      "Verification progress starts at 50 for each recognized active claim and grows through evidence.",
+      "Verification starts at 0. Recognition alone awards no points; supporting evidence builds the score.",
   }
 }
 
@@ -423,6 +420,6 @@ export const deriveOverviewFromSummary = (
   trustNote:
     summary.profileScoreNarrative ??
     (summary.evidenceDelta === 0
-      ? `Baseline ${summary.baselineOverallScore} with no evidence adjustment.`
-      : `Baseline ${summary.baselineOverallScore}, evidence delta ${formatDelta(summary.evidenceDelta)}, final ${summary.overallScore}.`),
+      ? "No scoring evidence has been linked yet."
+      : `Evidence added ${formatDelta(summary.evidenceDelta)} points for a final score of ${summary.overallScore}.`),
 })

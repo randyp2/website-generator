@@ -22,7 +22,8 @@ class VerificationScoringCalibrationTest {
 
         logReport(results.values().stream().toList());
 
-        assertThat(score(results, "claims_only_builder")).isEqualTo(50);
+        assertDocumentedScores(results);
+        assertThat(score(results, "claims_only_builder")).isZero();
         assertThat(score(results, "untouched_fork"))
                 .isLessThan(score(results, "merge_only_repository"));
         assertThat(score(results, "merge_only_repository"))
@@ -36,7 +37,7 @@ class VerificationScoringCalibrationTest {
         assertThat(score(results, "authorship_api_unavailable"))
                 .isEqualTo(score(results, "active_repository"));
         assertThat(score(results, "older_active_repository"))
-                .isBetween(50, score(results, "active_repository") - 1);
+                .isBetween(1, score(results, "active_repository") - 1);
         assertThat(score(results, "five_description_matches"))
                 .isEqualTo(score(results, "claims_only_builder"));
         assertThat(score(results, "five_name_matches"))
@@ -63,6 +64,41 @@ class VerificationScoringCalibrationTest {
         assertThat(score(results, "broad_profile_sparse_evidence"))
                 .isLessThan(score(results, "active_repository"));
         assertThat(score(results, "expert_reviewed_portfolio")).isGreaterThan(80);
+    }
+
+    private void assertDocumentedScores(
+            Map<String, ScoringCalibrationHarness.CalibrationResult> results
+    ) {
+        Map<String, Integer> expectedScores = Map.ofEntries(
+                Map.entry("claims_only_builder", 0),
+                Map.entry("untouched_fork", 20),
+                Map.entry("merge_only_repository", 54),
+                Map.entry("one_commit_repository", 61),
+                Map.entry("same_day_direct_commits", 66),
+                Map.entry("multi_day_direct_commits", 68),
+                Map.entry("active_repository", 71),
+                Map.entry("authorship_api_unavailable", 71),
+                Map.entry("older_active_repository", 42),
+                Map.entry("three_active_repositories", 80),
+                Map.entry("semantic_duplicate_repositories", 71),
+                Map.entry("small_derivative_repository", 76),
+                Map.entry("meaningful_derivative_repository", 77),
+                Map.entry("substantial_derivative_repository", 78),
+                Map.entry("diverged_lineage_fork", 79),
+                Map.entry("two_independent_repositories", 79),
+                Map.entry("strong_reviewed_artifact", 90),
+                Map.entry("five_description_matches", 0),
+                Map.entry("five_name_matches", 0),
+                Map.entry("five_topic_matches", 0),
+                Map.entry("duplicate_reviewed_upload", 90),
+                Map.entry("expert_reviewed_portfolio", 100),
+                Map.entry("broad_profile_sparse_evidence", 31)
+        );
+
+        expectedScores.forEach((scenarioId, expectedScore) ->
+                assertThat(score(results, scenarioId))
+                        .as("documented score for %s", scenarioId)
+                        .isEqualTo(expectedScore));
     }
 
     private List<ScoringCalibrationHarness.CalibrationScenario> scenarios() {

@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
 import { AppThemeProvider } from "@/components/theme/AppThemeProvider";
 import { Toaster } from "@/components/ui/toaster";
+import { EmailConfirmationNotice } from "@/components/auth/EmailConfirmationNotice";
 import GenerationJobWatcher from "@/components/GenerationJobWatcher";
 import { getPublicSiteUrl } from "@/lib/public-env";
 import AppQueryProvider from "@/components/query/AppQueryProvider";
@@ -51,6 +53,11 @@ export const metadata: Metadata = {
     "AI Website Builder",
   ],
   authors: [{name: "Randy Pahang II", url: "https://randy.dev"}],
+  icons: {
+    icon: [{ url: "/branding/portrn-logo.svg", type: "image/svg+xml" }],
+    shortcut: ["/branding/portrn-logo.svg"],
+    apple: [{ url: "/branding/portrn-logo.png", type: "image/png" }],
+  },
   openGraph: {
     type: "website",
     title: "PortRN | Create Professional AI Portfolios",
@@ -104,6 +111,9 @@ export default function RootLayout({
         <AppQueryProvider>
           <AppThemeProvider>
             {children}
+            <Suspense fallback={null}>
+              <EmailConfirmationNotice />
+            </Suspense>
             <Toaster />
             <GenerationJobWatcher />
           </AppThemeProvider>

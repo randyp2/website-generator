@@ -14,6 +14,7 @@ import com.webgen.webgen_backend.billing.service.BillingCreditLedgerService;
 import com.webgen.webgen_backend.profile.entity.Profile;
 import com.webgen.webgen_backend.profile.repository.ProfileRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class BillingCreditLedgerServiceImpl implements BillingCreditLedgerService {
 
     private static final String PURCHASE_TYPE_CREDITS = "credits";
@@ -57,16 +59,14 @@ public class BillingCreditLedgerServiceImpl implements BillingCreditLedgerServic
 
         String purchaseType = normalizeLower(snapshot.getPurchaseType());
         if (!PURCHASE_TYPE_CREDITS.equals(purchaseType)) {
-            System.out.println(">>> [BillingCredit] skip checkout fulfillment: purchaseType="
-                    + purchaseType + " (not credits)");
+            log.debug("Skip checkout fulfillment, purchaseType={} is not credits", purchaseType);
             return;
         }
 
         if (!isConfirmedPayment(snapshot)) {
-            System.out.println(">>> [BillingCredit] skip checkout fulfillment: sessionId="
-                    + nullSafeText(snapshot.getCheckoutSessionId())
-                    + " eventType=" + eventTypeValue(snapshot)
-                    + " paymentStatus=" + normalizeLower(snapshot.getPaymentStatus()));
+            log.debug("Skip checkout fulfillment, payment not confirmed sessionId={} eventType={} paymentStatus={}",
+                    nullSafeText(snapshot.getCheckoutSessionId()), eventTypeValue(snapshot),
+                    normalizeLower(snapshot.getPaymentStatus()));
             return;
         }
 
@@ -105,8 +105,8 @@ public class BillingCreditLedgerServiceImpl implements BillingCreditLedgerServic
         entry.setCreatedAt(firstNonNull(snapshot.getOccurredAt(), nowUtc()));
 
         billingCreditLedgerEntryRepository.save(entry);
-        System.out.println(">>> [BillingCredit] granted +" + creditDelta
-                + " credits for profile=" + profile.getId() + " (credit_pack_purchase)");
+        log.info("Granted credit pack purchase profileId={} credits={} sessionId={} eventId={}",
+                profile.getId(), creditDelta, checkoutSessionId, stripeEventId);
     }
 
     @Override

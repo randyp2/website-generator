@@ -11,6 +11,7 @@ import com.webgen.webgen_backend.portfolio.service.parser.ClarifierResponseParse
 import com.webgen.webgen_backend.portfolio.service.prompt.ClarifierPromptBuilder;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatModel;
@@ -23,6 +24,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ClarifierServiceImpl implements ClarifierService {
     @Resource(name = "clarifierModel")
     private OpenAiChatModel openAiChatModel;
@@ -34,13 +36,8 @@ public class ClarifierServiceImpl implements ClarifierService {
 
     @Override
     public ClarifierResponseDTO clarify(ClarifierRequestDTO req) {
-        System.out.println(">>> [CLARIFIER] clarify() started");
         if (req == null || req.getPortfolioId() == null || req.getUserPrompt() == null )
             throw new IllegalArgumentException("portfolioId and userPrompt required!");
-        System.out.println(">>> [CLARIFIER] Input validation passed");
-        System.out.println(">>> [CLARIFIER] Portfolio ID: " + req.getPortfolioId());
-        System.out.println(">>> [CLARIFIER] Sections count: " + (req.getSections() == null ? 0 : req.getSections().size()));
-        System.out.println(">>> [CLARIFIER] Assets count: " + (req.getAssets() == null ? 0 : req.getAssets().size()));
 
         // Resolve session: use existing sessionId or generate a new one
         String sessionId = req.getSessionId();
@@ -48,7 +45,6 @@ public class ClarifierServiceImpl implements ClarifierService {
 
         if (sessionId != null && !sessionId.isBlank()) {
             sessionState = clarifierSessionStore.find(sessionId);
-            System.out.println(">>> [CLARIFIER] Existing session context found: " + (sessionState != null));
         }
 
         if (sessionState == null) {
@@ -58,18 +54,13 @@ public class ClarifierServiceImpl implements ClarifierService {
                 sessionId = UUID.randomUUID().toString();
             }
             sessionState = new ClarifierSessionState(newContext(), List.of());
-            System.out.println(">>> [CLARIFIER] New session created");
         }
         ClarifierContext context = sessionState.context();
         List<ClarifierConversationMessage> recentMessages = sessionState.recentMessages();
 
-        System.out.println(">>> [CLARIFIER] Loaded context with turnCount=" + context.getTurnCount()
-                + ", confidence=" + context.getConfidenceScore()
-                + ", scope=" + context.getScope());
+        log.debug("Clarifier context loaded sessionId={} turnCount={} confidence={} scope={}",
+                sessionId, context.getTurnCount(), context.getConfidenceScore(), context.getScope());
 
-        // Build prompt
-        System.out.println(">>> [CLARIFIER] Building prompt...");
-        long promptStart = System.currentTimeMillis();
         Prompt prompt = clarifierPromptBuilder.buildPrompt(
                 req.getUserPrompt(),
                 req.getSections(),
@@ -77,23 +68,15 @@ public class ClarifierServiceImpl implements ClarifierService {
                 req.getAssets(),
                 recentMessages
         );
-        System.out.println(">>> [CLARIFIER] Prompt built in " + (System.currentTimeMillis() - promptStart) + "ms");
 
-        // Call model
-        System.out.println(">>> [CLARIFIER] Calling OpenAI model...");
         long aiStart = System.currentTimeMillis();
         ChatResponse response = openAiChatModel.call(prompt);
-        System.out.println(">>> [CLARIFIER] OpenAI call completed in " + (System.currentTimeMillis() - aiStart) + "ms");
+        log.debug("Clarifier model call completed sessionId={} durationMs={}",
+                sessionId, System.currentTimeMillis() - aiStart);
         String rawJson = response.getResult().getOutput().getText();
-        System.out.println(">>> [CLARIFIER] Raw response length: " + (rawJson == null ? 0 : rawJson.length()) + " chars");
 
         // Parse + validate response JSON
-        System.out.println(">>> [CLARIFIER] Parsing response...");
-        long parseStart = System.currentTimeMillis();
         ClarifierResponseDTO parsed = clarifierResponseParser.parse(rawJson);
-        System.out.println(">>> [CLARIFIER] Parse completed in " + (System.currentTimeMillis() - parseStart) + "ms");
-        System.out.println(">>> [CLARIFIER] Parsed flags: clarificationComplete=" + parsed.isClarificationComplete()
-                + ", readyForPlanning=" + parsed.isReadyForPlanning());
 
         // Update context from the model's response
         ClarifierContext updatedContext = clarifierResponseParser.getUpdatedContext();
@@ -129,11 +112,12 @@ public class ClarifierServiceImpl implements ClarifierService {
             parsed.setReadyForPlanning(true);
 
             if (maxTurnsReached && !parsed.isClarificationComplete()) {
-                System.out.println(">>> FORCED COMPLETION: Max turns (5) reached");
+                log.debug("Clarifier forced completion sessionId={} reason=maxTurnsReached turns={}",
+                        sessionId, updatedContext.getTurnCount());
             } else {
-                System.out.println(">>> AUTO COMPLETION: Confidence=" + updatedContext.getConfidenceScore()
-                        + ", Scope=" + updatedContext.getScope()
-                        + ", OpenQuestions=" + (noOpenQuestions ? "none" : updatedContext.getOpenQuestions().size()));
+                log.debug("Clarifier auto completion sessionId={} confidence={} scope={} openQuestions={}",
+                        sessionId, updatedContext.getConfidenceScore(), updatedContext.getScope(),
+                        noOpenQuestions ? 0 : updatedContext.getOpenQuestions().size());
             }
         }
 
@@ -142,7 +126,8 @@ public class ClarifierServiceImpl implements ClarifierService {
         // Greetings and small talk must never re-plan a finished conversation.
         if (!parsed.isAdvancesRequest()) {
             if (parsed.isReadyForPlanning() || parsed.isClarificationComplete()) {
-                System.out.println(">>> INTENT GATE: message does not advance the request — planning suppressed");
+                log.debug("Clarifier intent gate suppressed planning sessionId={} reason=messageDoesNotAdvanceRequest",
+                        sessionId);
             }
             parsed.setReadyForPlanning(false);
             parsed.setClarificationComplete(false);
@@ -172,7 +157,8 @@ public class ClarifierServiceImpl implements ClarifierService {
         // Always return the sessionId so the frontend can pass it on subsequent calls
         parsed.setSessionId(sessionId);
 
-        System.out.println(">>> [CLARIFIER] Returning clarify response");
+        log.debug("Clarify complete sessionId={} readyForPlanning={} clarificationComplete={}",
+                sessionId, parsed.isReadyForPlanning(), parsed.isClarificationComplete());
 
         return parsed;
     }

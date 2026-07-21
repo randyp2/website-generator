@@ -6,6 +6,30 @@ type CreateCheckoutSessionRequest = {
     priceKey: string;
 };
 
+type BackendErrorResponse = {
+    message?: unknown;
+};
+
+const checkoutErrorMessage = async (response: Response): Promise<string> => {
+    const payload = (await response
+        .json()
+        .catch(() => null)) as BackendErrorResponse | null;
+    if (
+        payload &&
+        typeof payload.message === "string" &&
+        payload.message.trim()
+    ) {
+        return payload.message.trim();
+    }
+    if (response.status === 409) {
+        return "Checkout is unavailable because your billing account requires attention.";
+    }
+    if (response.status >= 500) {
+        return "Unable to start Stripe checkout. Please try again.";
+    }
+    return "Failed to create checkout session";
+};
+
 const parseRequestBody = async (
     req: Request,
 ): Promise<CreateCheckoutSessionRequest | null> => {
@@ -67,9 +91,8 @@ export const POST = async (req: Request) => {
         );
 
         if (!response.ok) {
-            const errorText = await response.text();
             return NextResponse.json(
-                { error: errorText || "Failed to create checkout session" },
+                { error: await checkoutErrorMessage(response) },
                 { status: response.status },
             );
         }

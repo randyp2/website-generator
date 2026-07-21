@@ -3,6 +3,7 @@
 import type { ChangeEventHandler, JSX, ReactNode } from "react";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useFormStatus } from "react-dom";
+import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import {
@@ -344,6 +345,20 @@ const LandingAuthPanel = ({
                 <div className="flex flex-col items-end gap-3">
                     <div className="flex w-full items-center justify-between">
                         {backAction ?? <div />}
+                        <Link
+                            href="/"
+                            aria-label="PortRN home"
+                            className="inline-flex items-center gap-2 xl:hidden"
+                        >
+                            <Image
+                                src="/branding/portrn-logo.svg"
+                                alt=""
+                                width={32}
+                                height={32}
+                                className="size-8"
+                            />
+                            <BrandWordmark className="text-xl text-foreground" />
+                        </Link>
                         <div className="inline-flex rounded-full border border-foreground bg-background/70 p-1">
                         <button
                             type="button"

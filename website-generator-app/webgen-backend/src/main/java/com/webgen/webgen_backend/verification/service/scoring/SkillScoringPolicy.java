@@ -13,7 +13,7 @@ import java.util.Map;
  * <p>Overall score formula:</p>
  *
  * <pre>
- * claimBaseline_i = 0.50 when the active claim is canonically recognized
+ * claimBaseline_i = 0.00 for every active claim
  * base            = average(claimBaseline_i over recognized claims)
  * baselineOverallScore = round(base * 100)
  * </pre>
@@ -31,9 +31,10 @@ import java.util.Map;
  * <p>Per-claim baseline formula (before evidence nudge):</p>
  *
  * <pre>
- * claimBaseline =
- *   0.00 when unresolved
- *   0.50 when recognized and active
+ * claimBaseline = 0.00
+ *
+ * Canonical recognition controls whether evidence can be scored. Recognition
+ * alone does not award verification points.
  * </pre>
  */
 @Component
@@ -44,8 +45,8 @@ public class SkillScoringPolicy {
     public static final BigDecimal ONE = BigDecimal.ONE;
     public static final BigDecimal HUNDRED = new BigDecimal("100");
 
-    /** Neutral starting point for every active, canonically recognized claim. */
-    public static final BigDecimal RECOGNIZED_CLAIM_BASELINE = new BigDecimal("0.50");
+    /** Evidence-free claims receive no verification points. */
+    public static final BigDecimal VERIFICATION_SCORE_BASELINE = ZERO;
 
     /**
      * Additional evidence links are down-weighted geometrically by rank:
@@ -69,41 +70,43 @@ public class SkillScoringPolicy {
      * Larger gamma reaches high support sooner; smaller gamma requires more
      * accumulated evidence strength to approach full support.
      */
-    public static final BigDecimal EVIDENCE_SUPPORT_GROWTH_GAMMA = new BigDecimal("0.70");
+    public static final BigDecimal EVIDENCE_SUPPORT_GROWTH_GAMMA = new BigDecimal("3.50");
 
     /**
      * Boost curve exponent in:
      *
      * boostProgress = support^curveExponent
      *
-     * curveExponent > 1 delays large boosts until evidence support is stronger,
-     * so weak evidence only nudges scores up a little.
+     * The exponent creates a deliberate separation between weak proximity and
+     * direct proof. Paired with the faster support growth, an untouched fork
+     * remains below Basic while a fresh repository with confirmed direct
+     * authorship can reach Advanced from the zero baseline.
      */
-    public static final BigDecimal EVIDENCE_BOOST_CURVE_EXPONENT = new BigDecimal("1.35");
+    public static final BigDecimal EVIDENCE_BOOST_CURVE_EXPONENT = new BigDecimal("2.80");
 
     /**
-     * Damping exponent applied to evidence coverage when rolling the per-claim
-     * evidence lifts up into one overall delta:
+     * Damping exponent applied to evidence coverage when rolling per-claim
+     * evidence scores into one overall score:
      *
-     * overallDelta = meanEvidencedDelta * coverage^COVERAGE_DAMPING
+     * overallScore = meanEvidencedScore * coverage^COVERAGE_DAMPING
      *
      * where coverage = evidencedClaims / matchedClaims.
      *
      * Why this exists:
-     * - The overall lift is first averaged over only the claims that actually
+     * - The overall score is first averaged over only the claims that actually
      *   have evidence (so empty skills cannot dilute it), then breadth is
      *   re-applied as this damped multiplier instead of a raw divisor.
      *
      * Behavior at the extremes:
-     * - 1.00 reproduces the legacy mean-over-all-matched behavior, where coverage
-     *   acts as a plain divisor and sparse-but-real evidence is crushed toward zero.
+     * - 1.00 reproduces a mean over all matched claims, where sparse evidence is
+     *   reduced in direct proportion to unsupported claims.
      * - 0.00 ignores breadth entirely, so proving one skill lifts the overall
      *   score as much as proving every skill (over-rewarding, gameable).
-     * - 0.50 (current) keeps breadth meaningful — backing more of the profile
-     *   always scores strictly higher — while letting concentrated, genuine
-     *   evidence register a visible lift.
+     * - 0.60 (current) keeps breadth meaningful while letting concentrated, genuine
+     *   evidence register a visible lift. It also keeps one evidenced claim mixed
+     *   with ten unsupported claims below the Basic threshold.
      */
-    public static final BigDecimal COVERAGE_DAMPING = new BigDecimal("0.50");
+    public static final BigDecimal COVERAGE_DAMPING = new BigDecimal("0.60");
 
     /** Scale used for division to keep deterministic rounding behavior stable. */
     public static final int DIV_SCALE = 6;

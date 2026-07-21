@@ -2,6 +2,7 @@ package com.webgen.webgen_backend.portfolio.service.planner;
 
 import com.webgen.webgen_backend.portfolio.dto.planner.SectionPlanDTO;
 import com.webgen.webgen_backend.portfolio.model.clarifier.ClarifierContext;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
@@ -17,6 +18,7 @@ import java.util.Set;
  * dropping approved work would break that contract.
  */
 @Service
+@Slf4j
 public class SectionPlanScopeGuard {
 
     /**
@@ -47,9 +49,8 @@ public class SectionPlanScopeGuard {
                     boolean inScope = !"modify".equals(plan.getAction())
                             || targetKeys.contains(plan.getSectionKey());
                     if (!inScope) {
-                        System.out.println(">>> [PLAN-SCOPE] Dropped out-of-scope modify plan: "
-                                + plan.getSectionKey() + " (scope=" + scope
-                                + ", targets=" + targetKeys + ")");
+                        log.debug("Dropped out-of-scope modify plan sectionKey={} scope={} targets={}",
+                                plan.getSectionKey(), scope, targetKeys);
                     }
                     return inScope;
                 })

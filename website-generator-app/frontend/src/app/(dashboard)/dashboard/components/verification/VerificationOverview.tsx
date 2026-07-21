@@ -127,7 +127,7 @@ const VerificationOverview = ({
 
             <div className="mb-4 flex flex-wrap items-center gap-2 text-[11px]">
               <Badge variant="outline">
-                Starting Score {data.baselineOverallScore}
+                Evidence Baseline {data.baselineOverallScore}
               </Badge>
               <Badge
                 variant="outline"
@@ -136,7 +136,7 @@ const VerificationOverview = ({
                   data.evidenceDelta < 0 && "text-red-500 border-red-500/40",
                 )}
               >
-                Project Boost {data.evidenceDelta > 0 ? "+" : ""}{data.evidenceDelta}
+                Evidence Points {data.evidenceDelta > 0 ? "+" : ""}{data.evidenceDelta}
               </Badge>
               <Badge variant="outline">
                 Your Score {data.overallScore}

@@ -31,6 +31,7 @@ import {
     TurnstileCaptcha,
     type TurnstileCaptchaHandle,
 } from "@/components/auth/TurnstileCaptcha";
+import { notifyEmailConfirmationSent } from "@/components/auth/EmailConfirmationNotice";
 
 type Mode = "forgot" | "login" | "signup";
 
@@ -227,6 +228,8 @@ export const PublicAuthModal = ({
             setSuccessMessage(
                 "Check your email to verify your account, then log in.",
             );
+            notifyEmailConfirmationSent();
+            onOpenChange(false);
         } catch {
             setErrorMessage("Something went wrong. Please try again.");
         } finally {

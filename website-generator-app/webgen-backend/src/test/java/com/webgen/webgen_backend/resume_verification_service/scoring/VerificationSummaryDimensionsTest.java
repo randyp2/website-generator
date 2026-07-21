@@ -16,10 +16,10 @@ class VerificationSummaryDimensionsTest {
 
     @Test
     void separatesRecognitionEvidenceAndAssuranceTierFromCombinedScore() {
-        SkillClaimScore reviewed = claim("verified", true, 2, 24);
+        SkillClaimScore reviewed = claim("verified", true, 2, 46);
         SkillClaimScore selfDeclared = claim("needs_evidence", true, 0, 0);
         SkillScoreSummary summary = new SkillScoreSummary(
-                "evidence_enhanced", 56, 12, 68, 2, 2, 0,
+                "evidence_enhanced", 0, 33, 33, 2, 2, 0,
                 BigDecimal.ONE, new BigDecimal("0.8"), null, "Evidence improved the score.",
                 List.of(reviewed, selfDeclared), List.of(selfDeclared), List.of());
 
@@ -28,15 +28,15 @@ class VerificationSummaryDimensionsTest {
         assertThat(dto.getScoreLabel()).isEqualTo("evidence_score");
         assertThat(dto.getRecognitionCoverage()).isEqualByComparingTo("1");
         assertThat(dto.getEvidenceCoverage()).isEqualByComparingTo("0.5");
-        assertThat(dto.getEvidenceStrength()).isEqualByComparingTo("0.12");
+        assertThat(dto.getEvidenceStrength()).isEqualByComparingTo("0.23");
         assertThat(dto.getVerificationTier()).isEqualTo("ai_reviewed");
-        assertThat(dto.getOverallScore()).isEqualTo(68);
+        assertThat(dto.getOverallScore()).isEqualTo(33);
     }
 
     private SkillClaimScore claim(String status, boolean matched, int links, int contribution) {
         return new SkillClaimScore(
                 UUID.randomUUID(), "Java", UUID.randomUUID(), "Java", "resume", status,
                 matched, "recognized", "engineering", BigDecimal.ONE,
-                56, contribution, links, 56 + contribution, "reason", "Reason");
+                0, contribution, links, contribution, "reason", "Reason");
     }
 }
