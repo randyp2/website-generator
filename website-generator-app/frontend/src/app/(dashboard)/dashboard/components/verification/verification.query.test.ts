@@ -89,8 +89,8 @@ const renderWithQueryClient = <T,>(callback: () => T) => {
 
 const summary: VerificationSummaryDTO = {
   scoreType: "profile",
-  baselineOverallScore: 70,
-  evidenceDelta: 10,
+  baselineOverallScore: 0,
+  evidenceDelta: 80,
   overallScore: 80,
   recognitionCoverage: 0.66,
   evidenceCoverage: 0.5,

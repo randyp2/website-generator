@@ -8,12 +8,11 @@ export const metadata: Metadata = {
 };
 
 const scoreBands = [
-  ["0", "No active, recognized skill claims"],
-  ["1–49", "Incomplete or unresolved verification profile"],
-  ["50–59", "Recognized and primarily self-declared"],
-  ["60–74", "Externally corroborated"],
-  ["75–84", "Strong evidence across the profile"],
-  ["85–100", "Substantially reviewed evidence"],
+  ["0–20", "Unverified or supported only by weak evidence"],
+  ["21–40", "Basic evidence support"],
+  ["41–60", "Intermediate evidence support"],
+  ["61–80", "Advanced evidence support"],
+  ["81–100", "Expert evidence support with reviewed work"],
 ];
 
 const signalWeights = [
@@ -47,42 +46,42 @@ const authorshipWeights = [
 ];
 
 const calibrationRows = [
-  ["Three recognized claims, no evidence", "50", "Neutral baseline"],
-  ["Untouched fork with dependency match", "53", "Small corroboration lift"],
-  ["Owned repository with merge-only activity", "57", "Partial contribution credit"],
-  ["Repository with one direct commit", "58", "Authorship improves the signal"],
-  ["Several direct commits on one day", "59", "Concentrated direct contribution"],
-  ["Several direct commits across multiple days", "60", "Sustained direct contribution"],
-  ["Active repository with five direct commits", "61", "Strong single repository"],
-  ["Authorship API unavailable", "61", "No outage penalty"],
-  ["Two-year-old active repository", "55", "Gradual recency decay"],
-  ["Three active repositories", "71", "Repeated independent usage"],
-  ["Same project copied into two repositories", "61", "Copy adds no score"],
-  ["Primary plus a small derivative", "64", "Quantity adds gradual credit"],
-  ["Primary plus a meaningful derivative", "64", "Novel work adds partial credit"],
-  ["Primary plus a substantial derivative", "66", "Mostly distinct work approaches full credit"],
-  ["Primary plus a diverged lineage fork", "67", "Fork adds 0.85 independence weight"],
-  ["Two independent active repositories", "67", "Independent work adds support"],
-  ["One reviewed artifact at 0.95 depth", "69", "Strong reviewed evidence"],
-  ["Five repository descriptions", "50", "Descriptions add no verification lift"],
-  ["Five repository name matches", "50", "Names add no verification lift"],
-  ["Five repository topic matches", "50", "Topics add no verification lift"],
-  ["Same reviewed upload submitted twice", "69", "Duplicate adds no score"],
-  ["Five reviewed artifacts at 0.95 depth", "91", "Expert-range evidence"],
-  ["Four claims, only one evidenced", "56", "Coverage dampens profile lift"],
+  ["Three recognized claims, no evidence", "0", "Recognition alone earns no points"],
+  ["Untouched fork with dependency match", "20", "Remains Unverified because authorship is weak"],
+  ["Owned repository with merge-only activity", "54", "Partial contribution credit"],
+  ["Repository with one direct commit", "61", "Direct authorship reaches Advanced"],
+  ["Several direct commits on one day", "66", "Concentrated direct contribution"],
+  ["Several direct commits across multiple days", "68", "Sustained direct contribution"],
+  ["Active repository with five direct commits", "71", "Strong single repository"],
+  ["Authorship API unavailable", "71", "No outage penalty"],
+  ["Two-year-old active repository", "42", "Gradual recency decay"],
+  ["Three active repositories", "80", "Repeated independent usage"],
+  ["Same project copied into two repositories", "71", "Copy adds no score"],
+  ["Primary plus a small derivative", "76", "Quantity adds gradual credit"],
+  ["Primary plus a meaningful derivative", "77", "Novel work adds partial credit"],
+  ["Primary plus a substantial derivative", "78", "Mostly distinct work approaches full credit"],
+  ["Primary plus a diverged lineage fork", "79", "Fork adds 0.85 independence weight"],
+  ["Two independent active repositories", "79", "Independent work approaches the connector cap"],
+  ["One reviewed artifact at 0.95 depth", "90", "Strong reviewed evidence reaches Expert"],
+  ["Five repository descriptions", "0", "Descriptions add no verification points"],
+  ["Five repository name matches", "0", "Names add no verification points"],
+  ["Five repository topic matches", "0", "Topics add no verification points"],
+  ["Same reviewed upload submitted twice", "90", "Duplicate adds no score"],
+  ["Five reviewed artifacts at 0.95 depth", "100", "Expert-range evidence"],
+  ["Four claims, only one evidenced", "31", "Coverage dampens the profile score"],
 ];
 
 const repositoryPairCalibrationRows = [
-  ["Exact snapshot control", "1.000", "Duplicate", "Duplicate", "61"],
-  ["Same repository across revisions", "0.938", "Duplicate", "Duplicate by identity", "61"],
-  ["Documented JavaFX derivative", "0.367", "Derivative", "Independent", "67"],
-  ["Maintained TON fork", "0.273", "Derivative", "Derivative at 0.85 credit", "67"],
-  ["Turborepo across revisions", "0.836", "Duplicate", "Duplicate by identity", "61"],
-  ["Independent Python frameworks", "0.000", "Independent", "Independent", "67"],
-  ["Independent Java projects", "0.000", "Independent", "Independent", "67"],
-  ["Independent JS tooling", "0.016", "Independent", "Independent", "67"],
-  ["Independent app templates", "0.023", "Independent", "Independent", "67"],
-  ["Cross-language projects", "0.000", "Independent", "Independent", "67"],
+  ["Exact snapshot control", "1.000", "Duplicate", "Duplicate", "71"],
+  ["Same repository across revisions", "0.938", "Duplicate", "Duplicate by identity", "71"],
+  ["Documented JavaFX derivative", "0.367", "Derivative", "Independent", "79"],
+  ["Maintained TON fork", "0.273", "Derivative", "Derivative at 0.85 credit", "79"],
+  ["Turborepo across revisions", "0.836", "Duplicate", "Duplicate by identity", "71"],
+  ["Independent Python frameworks", "0.000", "Independent", "Independent", "79"],
+  ["Independent Java projects", "0.000", "Independent", "Independent", "79"],
+  ["Independent JS tooling", "0.016", "Independent", "Independent", "79"],
+  ["Independent app templates", "0.023", "Independent", "Independent", "79"],
+  ["Cross-language projects", "0.000", "Independent", "Independent", "79"],
 ];
 
 /** Accented panel that groups related equations. */
@@ -380,10 +379,10 @@ const VerificationScoringPage = () => {
             truth. Think of it as a progress meter.
           </p>
           <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
-            A 50 is the neutral middle. It means I recognized the skill you claimed
-            but you have not shown me anything yet. Everything above 50 has to be
-            earned with evidence. Everything below it means the claim is incomplete or
-            could not be recognized at all.
+            Every claim starts at 0. Recognizing a canonical skill name only makes
+            the claim eligible for evidence matching; it does not verify the claim or
+            award points. Every point from 1 to 100 has to come from linked scoring
+            evidence.
           </p>
 
           <div className="mt-6 overflow-x-auto rounded-xl border border-border">
@@ -416,20 +415,21 @@ const VerificationScoringPage = () => {
             from a connected account started higher than one you typed in by hand. I
             took that out. A claim you typed and a claim pulled from your resume are
             both just you saying something about yourself, and neither should be worth
-            more than the other until there is proof. So every recognized claim now
-            starts at <Strong>the same neutral 50</Strong>, regardless of where it came from.
+            verification points until there is proof. So every claim now starts at
+            <Strong> zero</Strong>, regardless of where it came from or whether its name
+            is recognized.
           </p>
           <FormulaBlock>
-            <Eq><R>recognized active claim</R> = 50</Eq>
-            <Eq><R>unresolved claim</R> = no score baseline</Eq>
+            <Eq><R>recognized active claim without evidence</R> = 0</Eq>
+            <Eq><R>unresolved claim</R> = 0 and cannot score evidence yet</Eq>
             <Eq><R>rejected claim</R> = excluded</Eq>
-            <Eq>manual / resume / imported source = <R>50</R> (source is ignored)</Eq>
+            <Eq>manual / resume / imported source = <R>0</R> until evidence is linked</Eq>
           </FormulaBlock>
           <p className="mt-4 leading-7 text-muted-foreground">
-            One thing has to happen before a claim earns that 50: I have to recognize
-            it. Whatever wording gets extracted is matched against a canonical skill
-            name or alias, and until it resolves, the claim stays visible but sits at
-            no baseline. I keep the skill catalog versioned in JSON and apply it
+            Recognition still matters, but it is a routing step rather than proof.
+            Whatever wording gets extracted is matched against a canonical skill name
+            or alias. Until it resolves, the claim stays visible but evidence cannot be
+            scored against it. I keep the skill catalog versioned in JSON and apply it
             through immutable database migrations, so adding a new alias can also
             repair claims that were stuck as unresolved. The catalog currently
             recognizes common AWS service abbreviations, Supabase, Flyway, RAG
@@ -440,8 +440,8 @@ const VerificationScoringPage = () => {
         <section id="what-counts-as-evidence" className="scroll-mt-28">
           <h2 className="text-2xl font-semibold">What counts as evidence</h2>
           <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
-            Once a claim has its baseline, the only thing that moves the score is
-            evidence. But not all evidence is worth the same, and deciding what each
+            Once a claim is recognized, the only thing that earns score is evidence.
+            But not all evidence is worth the same, and deciding what each
             kind is worth was one of the bigger calls I made. I start by splitting
             every signal into two separate questions.
           </p>
@@ -661,19 +661,30 @@ const VerificationScoringPage = () => {
             <Eq><R>connector strength</R> = confidence · weight · authorship · independence · recency</Eq>
             <Eq><R>reviewed strength</R> = evidence depth · weight · recency</Eq>
             <Eq><R>effective evidence</R> = Σ ( signal strength · 0.75<Sup>rank</Sup> )</Eq>
-            <Eq><R>support</R> = 1 − exp( −0.70 · effective evidence )</Eq>
-            <Eq><R>boost</R> = support<Sup>1.35</Sup></Eq>
-            <Eq lead><R>claim score</R> = 50 + (cap − 50) · boost</Eq>
+            <Eq><R>support</R> = 1 − exp( −3.50 · effective evidence )</Eq>
+            <Eq><R>proof progress</R> = support<Sup>2.80</Sup></Eq>
+            <Eq lead><R>claim score</R> = cap · proof progress</Eq>
           </FormulaBlock>
           <p className="mt-4 leading-7 text-muted-foreground">
             I sort the signals strongest first and keep the top ten. Each additional
             one is discounted geometrically, so the second matters less than the first
             and the <Strong>tenth barely registers</Strong>, which is what stops someone from stacking
             near-duplicate signals into a high score. That discounted sum becomes
-            effective evidence, and I run it through a curve that rises quickly at
-            first and then flattens. The result is that going from no evidence to some
-            evidence is meaningful, while piling on marginal signals hits diminishing
-            returns fast.
+            effective evidence. The support and proof-progress curves work together as
+            a threshold: weak proximity stays low, while direct authored work rises
+            quickly into the meaningful score bands. Because the score starts at zero,
+            the curve uses the full available range instead of adding a small lift
+            above an automatic midpoint. Piling on marginal signals still hits
+            diminishing returns fast.
+          </p>
+          <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
+            This is not the old score with fifty points subtracted. Moving the
+            baseline to zero required recalibrating the support curve to use the full
+            available cap. In the current calibration, an untouched fork scores 20,
+            one repository with a confirmed direct commit scores 61, a strongly
+            authored active repository scores 71, and one strong reviewed artifact
+            scores 90. That keeps weak evidence Unverified while allowing one real
+            project to register as meaningful proof.
           </p>
 
           <h3 className="mt-8 text-lg font-semibold">Old evidence fades</h3>
@@ -749,16 +760,16 @@ const VerificationScoringPage = () => {
           <h2 className="text-2xl font-semibold">From one claim to the whole profile</h2>
           <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
             Everything so far scores a single claim. Your overall number rolls those
-            together, and I had to be careful here. I average the evidence lift only
-            over the claims that actually have evidence, so the skills you have not
-            backed yet cannot drag down the ones you have. Then I re-apply breadth as a
-            gentle multiplier, so supporting more of your profile still scores higher
-            without crushing sparse-but-real evidence toward zero.
+            together, and I had to be careful here. I average the evidence score only
+            over the claims that actually have evidence, so an unsupported skill never
+            reduces an individual claim score. Then I apply breadth as a gentle profile
+            multiplier. Unsupported claims can lower the overall profile score, but
+            they cannot erase the strength shown on an evidenced claim.
           </p>
           <FormulaBlock>
-            <Eq><R>mean lift</R> = total evidence lift / evidenced claims</Eq>
+            <Eq><R>mean evidenced score</R> = total claim scores / evidenced claims</Eq>
             <Eq><R>coverage</R> = evidenced claims / recognized claims</Eq>
-            <Eq lead><R>overall</R> = baseline + mean lift · √coverage</Eq>
+            <Eq lead><R>overall</R> = mean evidenced score · coverage<Sup>0.60</Sup></Eq>
           </FormulaBlock>
           <p className="mt-4 leading-7 text-muted-foreground">
             The effect I was after: one real piece of evidence creates visible
@@ -773,7 +784,8 @@ const VerificationScoringPage = () => {
             A scoring model is only as trustworthy as the cases you check it against.
             So I built a deterministic test bench and ran real scenarios through the
             same evidence assembler and scoring kernel that score live claims. These
-            were run on July 12, 2026. They validate relative behavior and are not
+            were run on July 20, 2026. They validate exact documented snapshots and
+            relative behavior, but they are not
             promised scores for any individual.
           </p>
           <div className="mt-6 overflow-x-auto rounded-xl border border-border">
@@ -865,8 +877,9 @@ const VerificationScoringPage = () => {
               <h3 className="font-semibold">Settled</h3>
               <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
                 <li>Defined the number as verification progress.</li>
-                <li>Set every recognized active claim to a neutral baseline of 50.</li>
-                <li>Removed manual, resume, and imported source from baseline scoring.</li>
+                <li>Set every evidence-free claim to a verification score of 0.</li>
+                <li>Kept recognition as an evidence-routing step instead of awarding points.</li>
+                <li>Removed manual, resume, and imported source from scoring.</li>
                 <li>Kept parser confidence as diagnostics with no score effect.</li>
                 <li>Replaced the hard AI cap jump with a gradual 80–100 unlock.</li>
                 <li>Separated artifact match confidence from demonstrated evidence depth.</li>

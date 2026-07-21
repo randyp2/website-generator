@@ -239,11 +239,11 @@ const SkillDetailDrawer = ({
                         </h4>
                         <div className="grid grid-cols-3 gap-2 text-xs">
                             <div>
-                                <p className="text-muted-foreground">Starting Score</p>
+                                <p className="text-muted-foreground">Evidence Baseline</p>
                                 <p className="font-semibold text-foreground">{skill.baselineScore}</p>
                             </div>
                             <div>
-                                <p className="text-muted-foreground">Boost from Projects</p>
+                                <p className="text-muted-foreground">Evidence Points</p>
                                 <p className={cn(
                                     "font-semibold",
                                     skill.evidenceContribution > 0 && "text-emerald-500",

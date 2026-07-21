@@ -15,8 +15,8 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Orchestrates deterministic skill scoring: assembles per-claim baselines, applies
- * evidence nudges, rolls the results up into an overall score, and delegates the
+ * Orchestrates deterministic skill scoring: starts claims at zero, applies
+ * evidence scoring, rolls the results up into an overall score, and delegates the
  * narrative, suggested-action, and evidence-nudge concerns to dedicated
  * collaborators. Math constants live in {@link SkillScoringPolicy}.
  */
@@ -120,13 +120,9 @@ public class SkillVerificationScoringKernel {
         // sourceQuality = sourceWeightSum / totalSkills
         BigDecimal sourceQuality = scoringPolicy.safeDivide(sourceWeightSum, totalSkills);
 
-        // Baseline overall tracks the neutral baseline over RECOGNIZED skills
-        // only, so the profile score reflects the same evidence-aware prior logic
-        // users see on claim cards. Unmatched (unrecognized) skills carry no trust
-        // signal and can never be improved by evidence, so they are excluded from
-        // the average instead of silently dragging it down; they surface separately
-        // as rename actions. When nothing is recognized the baseline is 0.
-        // claimBaseline_i = 0.50 for every active, recognized claim
+        // Verification starts at zero. Canonical recognition controls whether
+        // evidence can be scored, but recognition alone awards no points.
+        // claimBaseline_i = 0.00 for every active claim
         // baseNormalizedScore = average(claimBaseline_i over matched claims)
         BigDecimal matchedClaimPriorSum = claimComputations.stream()
                 .filter(c -> c.score().matched())
@@ -146,9 +142,8 @@ public class SkillVerificationScoringKernel {
         /*
          * Overall evidence adjustment strategy:
          *
-         * 1) Keep baseline overall as the anchor so existing no-evidence behavior
-         *    stays byte-for-byte compatible.
-         * 2) Average the uncapped per-claim evidence contributions over ONLY the
+         * 1) Keep the verification baseline at zero.
+         * 2) Average the per-claim evidence scores over ONLY the
          *    claims that actually have evidence, so skills with no proof yet cannot
          *    dilute the lift earned by skills that do.
          * 3) Re-apply breadth as a damped coverage multiplier (not a divisor), so
@@ -156,10 +151,9 @@ public class SkillVerificationScoringKernel {
          *    sparse-but-real evidence toward zero.
          *
          * equation:
-         *   meanEvidencedDelta = Σ(claim.uncappedEvidenceContribution) / evidencedClaims
+         *   meanEvidencedScore = Σ(claim.evidenceScore) / evidencedClaims
          *   coverage           = evidencedClaims / matchedClaims
-         *   overallDelta       = meanEvidencedDelta * coverage^COVERAGE_DAMPING
-         *   overall            = clamp_0_100(baselineOverallScore + round(overallDelta))
+         *   overall            = meanEvidencedScore * coverage^COVERAGE_DAMPING
          */
         OverallEvidenceComputation overallEvidenceComputation = hasAnyEvidence
                 ? computeEvidenceEnhancedOverallScore(baselineOverallScore, claimComputations, matchedSkills)
@@ -187,23 +181,23 @@ public class SkillVerificationScoringKernel {
         log.debug("[BASELINE SCORE] baselineOverallScore = round(100*{}) = {}",
                 baselineOverallNormalized, baselineOverallScore);
         if (hasAnyEvidence) {
-            log.debug("[EVIDENCE SCORE] meanEvidencedDelta = totalDelta/evidencedClaims = {}/{} = {}",
-                    overallEvidenceComputation.totalClaimDelta(),
+            log.debug("[EVIDENCE SCORE] meanEvidencedScore = totalScore/evidencedClaims = {}/{} = {}",
+                    overallEvidenceComputation.totalClaimScore(),
                     overallEvidenceComputation.evidencedClaims(),
-                    overallEvidenceComputation.meanEvidencedDelta());
+                    overallEvidenceComputation.meanEvidencedScore());
             log.debug("[EVIDENCE SCORE] coverage = evidencedClaims/matchedClaims = {}/{} = {} -> dampedCoverage(^{}) = {}",
                     overallEvidenceComputation.evidencedClaims(),
                     matchedSkills,
                     overallEvidenceComputation.coverage(),
                     SkillScoringPolicy.COVERAGE_DAMPING,
                     overallEvidenceComputation.dampedCoverage());
-            log.debug("[EVIDENCE SCORE] overallDelta = meanEvidencedDelta*dampedCoverage = {}*{} = {} -> round={}",
-                    overallEvidenceComputation.meanEvidencedDelta(),
+            log.debug("[EVIDENCE SCORE] overallScore = meanEvidencedScore*dampedCoverage = {}*{} = {} -> round={}",
+                    overallEvidenceComputation.meanEvidencedScore(),
                     overallEvidenceComputation.dampedCoverage(),
-                    overallEvidenceComputation.overallDelta(),
-                    overallEvidenceComputation.roundedOverallDelta());
-            log.debug("[EVIDENCE SCORE] finalOverallScore = clamp_0_100({} + {}) = {}",
-                    baselineOverallScore, overallEvidenceComputation.roundedOverallDelta(), overallScore);
+                    overallEvidenceComputation.weightedOverallScore(),
+                    overallEvidenceComputation.roundedOverallScore());
+            log.debug("[EVIDENCE SCORE] finalOverallScore = clamp_0_100({}) = {}",
+                    overallEvidenceComputation.roundedOverallScore(), overallScore);
         }
         log.debug("[EVIDENCE SCORE] hasEvidence={} evidenceDelta={} finalOverallScore={} (scoreType={})",
                 hasAnyEvidence, evidenceDelta, overallScore, scoreType);
@@ -245,8 +239,8 @@ public class SkillVerificationScoringKernel {
     }
 
     /**
-     * Scores a single claim with a source-neutral recognition baseline and the
-     * evidence nudge supplied by {@link EvidenceNudgeCalculator}.
+     * Scores a single claim from a zero verification baseline using the evidence
+     * calculation supplied by {@link EvidenceNudgeCalculator}.
      *
      * @param input normalized claim input
      * @return scored claim
@@ -270,11 +264,9 @@ public class SkillVerificationScoringKernel {
                         + "cap=80+round(20*clamp((evidenceDepth-0.85)/0.10))={}",
                 input.claimId(), reviewed, reviewEvidenceDepth, claimScoreCap);
 
-        // Source provenance is deliberately excluded. Recognition establishes a
-        // neutral progress baseline; evidence is responsible for further lift.
-        BigDecimal baselineClaimNormalized = matched
-                ? SkillScoringPolicy.RECOGNIZED_CLAIM_BASELINE
-                : SkillScoringPolicy.ZERO;
+        // Source provenance and canonical recognition do not award verification
+        // points. Recognition only makes a claim eligible for evidence scoring.
+        BigDecimal baselineClaimNormalized = SkillScoringPolicy.VERIFICATION_SCORE_BASELINE;
 
         // baselineClaimScore = min(round(100 * baselineClaimNormalized), claimScoreCap)
         int uncappedBaselineClaimScore = scoringPolicy.toPercent(baselineClaimNormalized);
@@ -282,9 +274,8 @@ public class SkillVerificationScoringKernel {
 
         log.debug("[CLAIM SCORE] claimId={} rawValue={} source={} matched={} status={}",
                 input.claimId(), input.rawValue(), source, matched, status);
-        log.debug("[CLAIM SCORE] claimId={} baselineNormalized = matched ? {} : 0 = {} -> baselineScore={}",
-                input.claimId(), SkillScoringPolicy.RECOGNIZED_CLAIM_BASELINE,
-                baselineClaimNormalized, baselineClaimScore);
+        log.debug("[CLAIM SCORE] claimId={} baselineNormalized={} -> baselineScore={}",
+                input.claimId(), baselineClaimNormalized, baselineClaimScore);
 
         String state = resolveClaimState(matched, status);
 
@@ -320,9 +311,8 @@ public class SkillVerificationScoringKernel {
                         evidenceNudge.boostProgress(),
                         evidenceNudge.headroomNormalized(),
                         evidenceNudge.boostNormalized());
-                log.debug("[CLAIM SCORE] claimId={} finalNormalized = baseline + (headroom*boostProgress) = {} + ({}*{}) = {} -> finalScore pending-cap",
+                log.debug("[CLAIM SCORE] claimId={} finalNormalized = cap*boostProgress = {}*{} = {} -> finalScore pending-cap",
                         input.claimId(),
-                        baselineClaimNormalized,
                         evidenceNudge.headroomNormalized(),
                         evidenceNudge.boostProgress(),
                         finalClaimNormalized);
@@ -335,7 +325,7 @@ public class SkillVerificationScoringKernel {
 
         int uncappedFinalClaimScore = scoringPolicy.toPercent(finalClaimNormalized);
         int finalClaimScore = Math.min(uncappedFinalClaimScore, claimScoreCap);
-        int uncappedEvidenceContribution = evidenceLinksUsedForScoring > 0
+        int evidenceScore = evidenceLinksUsedForScoring > 0
                 ? uncappedFinalClaimScore - uncappedBaselineClaimScore
                 : 0;
         int evidenceContribution = evidenceLinksUsedForScoring > 0
@@ -382,7 +372,7 @@ public class SkillVerificationScoringKernel {
                     input.claimId(), finalClaimScore);
         }
         if (baselineScoreCapped || finalScoreCapped) {
-            log.debug("[CLAIM SCORE][CAP] claimId={} reviewed={} claimScoreCap={} uncappedBaseline={} baselineScore={} uncappedFinal={} finalScore={} uncappedEvidenceContribution={} displayEvidenceContribution={}",
+            log.debug("[CLAIM SCORE][CAP] claimId={} reviewed={} claimScoreCap={} uncappedBaseline={} baselineScore={} uncappedFinal={} finalScore={} evidenceScore={} displayEvidenceContribution={}",
                     input.claimId(),
                     reviewed,
                     claimScoreCap,
@@ -390,7 +380,7 @@ public class SkillVerificationScoringKernel {
                     baselineClaimScore,
                     uncappedFinalClaimScore,
                     finalClaimScore,
-                    uncappedEvidenceContribution,
+                    evidenceScore,
                     evidenceContribution);
         }
 
@@ -429,7 +419,7 @@ public class SkillVerificationScoringKernel {
                 claimReason.text()
         );
 
-        return new ClaimScoreComputation(score, uncappedEvidenceContribution, baselineClaimNormalized);
+        return new ClaimScoreComputation(score, evidenceScore, baselineClaimNormalized);
     }
 
     private SkillScoreSummary applyPostProcessors(
@@ -457,35 +447,29 @@ public class SkillVerificationScoringKernel {
     }
 
     /*
-     * Rolls per-claim evidence lifts into one overall delta.
+     * Rolls per-claim evidence scores into one overall score.
      *
-     *   meanEvidencedDelta = Σ uncappedEvidenceContribution / evidencedClaims
+     *   meanEvidencedScore = Σ evidenceScore / evidencedClaims
      *   coverage           = evidencedClaims / matchedClaims
-     *   overallDelta       = meanEvidencedDelta * coverage^COVERAGE_DAMPING
-     *   overall            = clamp_0_100(baselineOverallScore + round(overallDelta))
+     *   overall            = meanEvidencedScore * coverage^COVERAGE_DAMPING
      *
-     * Move 1 — divide by evidencedClaims, not all matched claims:
+     * Move 1: divide by evidencedClaims, not all matched claims.
      *   Skills with no evidence yet are simply absent from the average, so they
-     *   cannot dilute the lift earned by skills that do have proof.
+     *   cannot dilute the score earned by skills that do have proof.
      *
-     * Move 2 — re-apply coverage as a damped multiplier, not a divisor:
+     * Move 2: re-apply coverage as a damped multiplier, not a divisor.
      *   Breadth still counts (backing more of the profile scores strictly higher),
      *   but raising coverage to COVERAGE_DAMPING (< 1) stops sparse-but-real
      *   evidence from being crushed toward zero. At COVERAGE_DAMPING = 1.0 this is
      *   identical to the previous mean-over-all-matched behavior.
-     *
-     * Sign note: damping is symmetric, so when evidence is net-negative (stale /
-     * indirect signals) a sparse profile is pulled down a little more sharply than
-     * before. This preserves the existing "evidence can lower the score" behavior
-     * and its narrative; floor overallDelta at 0 here if that should change.
      */
     private OverallEvidenceComputation computeEvidenceEnhancedOverallScore(
             int baselineOverallScore,
             List<ClaimScoreComputation> claimComputations,
             int matchedClaims
     ) {
-        BigDecimal totalClaimDelta = claimComputations.stream()
-                .map(claim -> BigDecimal.valueOf(claim.uncappedEvidenceContribution()))
+        BigDecimal totalClaimScore = claimComputations.stream()
+                .map(claim -> BigDecimal.valueOf(claim.evidenceScore()))
                 .reduce(SkillScoringPolicy.ZERO, BigDecimal::add);
 
         int evidencedClaims = (int) claimComputations.stream()
@@ -495,7 +479,7 @@ public class SkillVerificationScoringKernel {
         if (evidencedClaims <= 0) {
             return new OverallEvidenceComputation(
                     baselineOverallScore,
-                    totalClaimDelta,
+                    totalClaimScore,
                     0,
                     SkillScoringPolicy.ZERO,
                     SkillScoringPolicy.ZERO,
@@ -506,7 +490,7 @@ public class SkillVerificationScoringKernel {
         }
 
         // Move 1: average only over claims that actually have evidence.
-        BigDecimal meanEvidencedDelta = scoringPolicy.safeDivide(totalClaimDelta, evidencedClaims);
+        BigDecimal meanEvidencedScore = scoringPolicy.safeDivide(totalClaimScore, evidencedClaims);
 
         // Move 2: re-introduce breadth as a damped multiplier, not a divisor.
         BigDecimal coverage = scoringPolicy.safeDivide(
@@ -515,23 +499,23 @@ public class SkillVerificationScoringKernel {
         );
         BigDecimal dampedCoverage = dampCoverage(coverage);
 
-        BigDecimal overallDelta = meanEvidencedDelta.multiply(dampedCoverage);
-        int roundedOverallDelta = overallDelta.setScale(0, RoundingMode.HALF_UP).intValue();
-        int overallScore = clampScoreToPercent(baselineOverallScore + roundedOverallDelta);
+        BigDecimal weightedOverallScore = meanEvidencedScore.multiply(dampedCoverage);
+        int roundedOverallScore = weightedOverallScore.setScale(0, RoundingMode.HALF_UP).intValue();
+        int overallScore = clampScoreToPercent(roundedOverallScore);
 
         return new OverallEvidenceComputation(
                 overallScore,
-                totalClaimDelta,
+                totalClaimScore,
                 evidencedClaims,
-                meanEvidencedDelta,
+                meanEvidencedScore,
                 coverage,
                 dampedCoverage,
-                overallDelta,
-                roundedOverallDelta
+                weightedOverallScore,
+                roundedOverallScore
         );
     }
 
-    // Softens coverage so low coverage trims (not crushes) the evidence lift.
+    // Softens coverage so low coverage trims the evidence score without erasing it.
     private BigDecimal dampCoverage(BigDecimal coverage) {
         BigDecimal bounded = scoringPolicy.clamp01(coverage);
         if (bounded.compareTo(SkillScoringPolicy.ZERO) <= 0) {
@@ -568,20 +552,20 @@ public class SkillVerificationScoringKernel {
 
     private record ClaimScoreComputation(
             SkillClaimScore score,
-            int uncappedEvidenceContribution,
+            int evidenceScore,
             BigDecimal baselineClaimNormalized
     ) {
     }
 
     private record OverallEvidenceComputation(
             int overallScore,
-            BigDecimal totalClaimDelta,
+            BigDecimal totalClaimScore,
             int evidencedClaims,
-            BigDecimal meanEvidencedDelta,
+            BigDecimal meanEvidencedScore,
             BigDecimal coverage,
             BigDecimal dampedCoverage,
-            BigDecimal overallDelta,
-            int roundedOverallDelta
+            BigDecimal weightedOverallScore,
+            int roundedOverallScore
     ) {
     }
 }

@@ -13,18 +13,18 @@ import { cn } from "@/lib/utils"
 import type { VerificationSummaryDTO } from "@/types/verification-summary"
 
 const TIER_SEGMENTS = [
-  { label: "Incomplete", range: "0-49", color: "bg-zinc-500", width: "50%" },
-  { label: "Recognized", range: "50-59", color: "bg-amber-400", width: "10%" },
-  { label: "Corroborated", range: "60-74", color: "bg-orange-400", width: "15%" },
-  { label: "Strong", range: "75-84", color: "bg-orange-600", width: "10%" },
-  { label: "Reviewed", range: "85-100", color: "bg-rose-500", width: "15%" },
+  { label: "Unverified", range: "0-20", color: "bg-zinc-500", width: "20%" },
+  { label: "Basic", range: "21-40", color: "bg-amber-400", width: "20%" },
+  { label: "Intermediate", range: "41-60", color: "bg-orange-400", width: "20%" },
+  { label: "Advanced", range: "61-80", color: "bg-orange-600", width: "20%" },
+  { label: "Expert", range: "81-100", color: "bg-rose-500", width: "20%" },
 ] as const
 
 const SCORING_RULES = [
   {
-    title: "Neutral Recognition Baseline",
+    title: "Zero Evidence Baseline",
     description:
-      "Every active, recognized claim starts at 50. Unresolved claims have no baseline and rejected claims are excluded.",
+      "Every claim starts at 0. Recognition makes evidence scorable but does not award verification points. Rejected claims are excluded.",
   },
   {
     title: "Source Is Provenance",
@@ -49,7 +49,7 @@ const SCORING_RULES = [
   {
     title: "Evidence Progress",
     description:
-      "Evidence nudges matched claims from baseline toward the pre-LLM cap using strength, recency, and link frequency with diminishing returns. Overall score applies mean claim evidence delta to baseline.",
+      "Direct authored work can reach Advanced from one strong repository, while weak forks remain Unverified. Overall score also reflects how much of the profile has evidence.",
   },
 ] as const
 
@@ -129,11 +129,11 @@ const ScoringTransparency = ({ summary }: ScoringTransparencyProps) => {
 
           <div className="text-[10px] text-muted-foreground border-t border-border pt-3 space-y-1">
             <p>
-              Deterministic scoring is evidence-aware.
+              Deterministic scoring starts at zero and is evidence-driven.
             </p>
             {summary && (
               <p>
-                Snapshot: baseline {summary.baselineOverallScore}, evidence delta {summary.evidenceDelta > 0 ? "+" : ""}{summary.evidenceDelta}, final {summary.overallScore} ({summary.scoreType}).
+                Snapshot: evidence baseline {summary.baselineOverallScore}, evidence points {summary.evidenceDelta > 0 ? "+" : ""}{summary.evidenceDelta}, final {summary.overallScore} ({summary.scoreType}).
               </p>
             )}
           </div>

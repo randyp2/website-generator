@@ -98,18 +98,18 @@ public class ClaimScoreNarrator {
             }
             if (matchedSkills == 0) {
                 return "Your score is low right now because none of your skills could be recognized yet. "
-                        + "Try renaming them to more common terms — once we can recognize them, "
+                        + "Try renaming them to more common terms. Once we can recognize them, "
                         + "connecting GitHub or adding portfolio links will push your score up.";
             }
             if (unmatchedSkills > 0) {
-                return "This is your starting score. We recognized the skills you added but haven't seen any real-world proof yet. "
+                return "Your verification score starts at 0 because we haven't seen any real-world proof yet. "
                         + unmatchedSkills + " skill" + (unmatchedSkills == 1 ? " couldn't" : "s couldn't")
                         + " be recognized, so " + (unmatchedSkills == 1 ? "it isn't" : "they aren't")
-                        + " counted toward your score yet — rename " + (unmatchedSkills == 1 ? "it" : "them")
+                        + " counted toward your score yet. Rename " + (unmatchedSkills == 1 ? "it" : "them")
                         + " to more common terms to include " + (unmatchedSkills == 1 ? "it" : "them") + ". "
                         + "Connect your GitHub or add portfolio links to start raising your score.";
             }
-            return "This is your starting score. We recognized the skills you added but haven't seen any real-world proof yet. "
+            return "Your verification score starts at 0. We recognized the skills you added but haven't seen any real-world proof yet. "
                     + "Every skill here needs real-world proof before recruiters can trust it. "
                     + "Connect your GitHub or add portfolio links to start pushing these numbers up.";
         }
@@ -121,12 +121,12 @@ public class ClaimScoreNarrator {
         }
         if (evidenceDelta < 0) {
             int drop = Math.abs(evidenceDelta);
-            return "We found some evidence, but most of it is older or too indirect to fully back up your claims — "
+            return "We found some evidence, but most of it is older or too indirect to fully back up your claims. "
                     + "that pulled your score down by " + drop + " point" + (drop == 1 ? "" : "s") + ". "
                     + "More recent, hands-on project work will help your score recover.";
         }
         return "We found some activity related to your skills, but not enough to move your score significantly yet. "
-                + "More direct proof — like using a skill in a GitHub repo's dependencies — makes a bigger difference.";
+                + "More direct proof, such as using a skill in a GitHub repository's dependencies, makes a bigger difference.";
     }
 
     /**
@@ -150,8 +150,8 @@ public class ClaimScoreNarrator {
             }
             return new ClaimReasonComputation(
                     "no_match_no_evidence",
-                    "We couldn't recognize this skill name. Try using a more common term — "
-                            + "for example, \"JavaScript\" instead of \"JS\" — so we can find matching proof for it."
+                    "We couldn't recognize this skill name. Try using a more common term, "
+                            + "such as \"JavaScript\" instead of \"JS\", so we can find matching proof for it."
             );
         }
 
@@ -166,7 +166,7 @@ public class ClaimScoreNarrator {
             if (recentStrongSignal) {
                 return new ClaimReasonComputation(
                         "evidence_boost_recent_strong",
-                        "Your recent projects show you're actively using this skill — "
+                        "Your recent projects show you're actively using this skill. "
                                 + "that's exactly the kind of proof that matters to recruiters. +"
                                 + evidenceContribution + " points."
                 );
