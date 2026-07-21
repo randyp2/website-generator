@@ -88,7 +88,7 @@ public class PortfolioAiController {
                     try {
                         return objectMapper.readValue(json, SectionDTO.class);
                     } catch (Exception e) {
-                        System.err.println(">>> [CONTROLLER] Failed to deserialize section: " + e.getMessage());
+                        log.error("Failed to deserialize completed section reason={}", e.getMessage(), e);
                         return null;
                     }
                 })

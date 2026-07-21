@@ -55,7 +55,7 @@ public class GenerationWorker {
             );
         } catch (Exception e) {
 
-            System.err.println(">>> [WORKER] Job failed: " + e.getMessage());
+            log.error("Portfolio generation job failed jobId={} reason={}", jobId, e.getMessage(), e);
             recordFailedOperation(jobId, msg.getCreditReservationId(), e);
             channel.basicNack(deliveryTag, false, false);
             return;
@@ -86,8 +86,7 @@ public class GenerationWorker {
             // Get section key based on mode
             String sectionKey = sectionKey(msg);
 
-            System.err.println(">>> [SECTION-WORKER] Section failed: "
-                    + sectionKey + " | " + e.getMessage());
+            log.error("Section generation failed jobId={} sectionKey={} reason={}", jobId, sectionKey, e.getMessage(), e);
 
             recordFailedOperation(jobId, msg.getCreditReservationId(), e);
             channel.basicNack(deliveryTag, false, false);
@@ -104,8 +103,8 @@ public class GenerationWorker {
             Channel channel,
             @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag
     ) throws IOException {
-        System.err.println(">>> [DLQ] Failed job: " + msg.getJobId()
-                + " | portfolio: " + msg.getPortfolioId());
+        log.error("Dead-lettered portfolio generation job jobId={} portfolioId={}",
+                msg.getJobId(), msg.getPortfolioId());
 
         channel.basicAck(deliveryTag, false);
     }

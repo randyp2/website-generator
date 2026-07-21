@@ -7,6 +7,7 @@ import com.webgen.webgen_backend.portfolio.dto.*;
 import com.webgen.webgen_backend.portfolio.dto.common.*;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -24,6 +25,7 @@ import java.util.UUID;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class GenerateJobService {
 
     // Key, value config
@@ -124,8 +126,7 @@ public class GenerateJobService {
             redisTemplate.opsForList().rightPush(key, sectionJson);
             redisTemplate.expire(key, TTL);
         } catch (JsonProcessingException e) {
-
-            System.err.println(">>> [JOB] Failed to push completed section job");
+            log.error("Failed to push completed section jobId={} reason={}", jobId, e.getMessage(), e);
         }
     }
 

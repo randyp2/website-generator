@@ -29,6 +29,7 @@ import com.webgen.webgen_backend.portfolio.repository.PortfolioRepository;
 import com.webgen.webgen_backend.portfolio.repository.PortfolioSectionRepository;
 import com.webgen.webgen_backend.portfolio.exception.RefineSessionExpiredException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatModel;
@@ -44,6 +45,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class BuilderServiceImpl implements BuilderService {
     private final OpenAiChatModel openAiChatModel; // Uses primary (gpt-5)
     private final ClarifierService clarifierService;
@@ -68,27 +70,20 @@ public class BuilderServiceImpl implements BuilderService {
             BuilderRequestDTO req,
             UUID userId
     ) {
-        System.out.println(">>> [BUILDER] build() started");
         if (req == null || req.getPortfolioId() == null)
             throw new IllegalArgumentException("portfolioId required!");
 
         if (req.getSectionPlans() == null || req.getSectionPlans().isEmpty())
             throw new IllegalArgumentException("sectionPlans required!");
-        System.out.println(">>> [BUILDER] Input validation passed");
-        System.out.println(">>> [BUILDER] Portfolio ID: " + req.getPortfolioId());
-        System.out.println(">>> [BUILDER] Section plans count: " + req.getSectionPlans().size());
-        System.out.println(">>> [BUILDER] Assets count: " + (req.getAssets() == null ? 0 : req.getAssets().size()));
 
         // Get context from clarifier via sessionId
         if (req.getSessionId() == null || req.getSessionId().isBlank())
             throw new IllegalArgumentException("sessionId required!");
-        System.out.println(">>> [BUILDER] Loading clarifier context for session: " + req.getSessionId());
         ClarifierContext context = clarifierService.getContext(req.getSessionId());
         if (context == null)
             throw new RefineSessionExpiredException();
-        System.out.println(">>> [BUILDER] Context loaded with turnCount=" + context.getTurnCount()
-                + ", confidence=" + context.getConfidenceScore()
-                + ", scope=" + context.getScope());
+        log.debug("Builder context loaded sessionId={} turnCount={} confidence={} scope={}",
+                req.getSessionId(), context.getTurnCount(), context.getConfidenceScore(), context.getScope());
 
         // Scope enforcement happens at PLAN time (SectionPlanScopeGuard), so the
         // plan the user approved executes verbatim — no filtering here.
@@ -99,7 +94,6 @@ public class BuilderServiceImpl implements BuilderService {
                 .toSectionContentList(sectionRepository.findAllByPortfolioIdOrderByOrderIndexAsc(req.getPortfolioId()))
                 .stream()
                 .collect(Collectors.toMap(SectionContentDTO::getSectionKey, s -> s));
-        System.out.println(">>> [BUILDER] Loaded " + sectionsByKey.size() + " existing sections from DB");
 
         // --- Reject plans that no longer match the persisted sections (409)
         // rather than executing changes against data the plan never saw
@@ -135,7 +129,7 @@ public class BuilderServiceImpl implements BuilderService {
         // --- Delete-only plans have no workers to trigger the persistence
         // barrier: persist synchronously and return the already-finished job
         if (actionablePlans.isEmpty()) {
-            System.out.println(">>> [BUILDER] Delete-only plan — persisting without workers | job: " + jobId);
+            log.debug("Delete-only refinement, persisting without workers jobId={} deleteSections={}", jobId, deleteKeys.size());
             refineChatTurnHistoryService.recordBuildApproval(userId, req.getPortfolioId());
             persistRefinementFromRedis(jobId, req.getPortfolioId(), userId, buildStartedAtMillis);
             BuilderResponseDTO response = new BuilderResponseDTO();
@@ -165,6 +159,9 @@ public class BuilderServiceImpl implements BuilderService {
         generateJobService.fanOutSections(messages);
         refineChatTurnHistoryService.recordBuildApproval(userId, req.getPortfolioId());
 
+        log.info("Refinement build queued jobId={} portfolioId={} actionableSections={} deleteSections={}",
+                jobId, req.getPortfolioId(), actionablePlans.size(), deleteKeys.size());
+
         // No explicit context reset needed — TTL handles cleanup,
         // and each new refinement gets a fresh sessionId
 
@@ -180,7 +177,7 @@ public class BuilderServiceImpl implements BuilderService {
         String jobId = msg.getJobId();
         long sectionStart = System.currentTimeMillis();
 
-        System.out.println(">>> [REFINE-WORKER] Starting section: " + sectionKey + " | job: " + jobId);
+        log.debug("Section refine started jobId={} sectionKey={}", jobId, sectionKey);
 
         SectionDTO parsedSection = null;
         ValidationResult validation = null;
@@ -188,7 +185,7 @@ public class BuilderServiceImpl implements BuilderService {
         int attempt = 0;
         while (attempt < maxRetries) {
             ++attempt;
-            System.out.println(">>> [REFINE-WORKER] Section '" + sectionKey + "' attempt " + attempt + "/" + maxRetries);
+            log.debug("Section refine attempt jobId={} sectionKey={} attempt={}/{}", jobId, sectionKey, attempt, maxRetries);
 
             // Build prompt (use retry prompt with errors if previous attempt failed validation)
             Prompt sectionPrompt;
@@ -200,7 +197,6 @@ public class BuilderServiceImpl implements BuilderService {
                         msg.getAssets()
                 );
             } else {
-                System.out.println(">>> [REFINE-WORKER] Retrying with validation errors (attempt " + attempt + ")");
                 sectionPrompt = builderPromptBuilder.buildSingleSectionRetryPrompt(
                         msg.getClarifierContext(),
                         msg.getExistingSection(),
@@ -216,8 +212,8 @@ public class BuilderServiceImpl implements BuilderService {
             ChatResponse response = openAiChatModel.call(sectionPrompt);
             String rawJson = response.getResult().getOutput().getText();
 
-            System.out.println(">>> [REFINE-WORKER] Section '" + sectionKey + "' LLM call completed in "
-                                + (System.currentTimeMillis() - llmStart) + "ms");
+            log.debug("Section refine call completed jobId={} sectionKey={} llmMs={}",
+                    jobId, sectionKey, System.currentTimeMillis() - llmStart);
 
             // Parse result
             parsedSection = builderResponseParser.parseSingleRefinedSection(rawJson);
@@ -226,12 +222,11 @@ public class BuilderServiceImpl implements BuilderService {
             validation = jsxValidatorService.validateGeneratedSection(parsedSection);
 
             if (validation.isValid()) {
-                System.out.println(">>> [REFINE-WORKER] Section '" + sectionKey + "' validated on attempt " + attempt);
+                log.debug("Section refine validated jobId={} sectionKey={} attempt={}", jobId, sectionKey, attempt);
                 break;
             }
 
-            System.out.println(">>> [REFINE-WORKER] Section '" + sectionKey + "' validation failed (attempt " + attempt
-                    + ")");
+            log.warn("Section refine validation failed jobId={} sectionKey={} attempt={}", jobId, sectionKey, attempt);
 
         }
 
@@ -244,12 +239,12 @@ public class BuilderServiceImpl implements BuilderService {
                     && !existing.getReactSource().isBlank();
 
             if (canRevert) {
-                System.err.println(">>> [REFINE-WORKER] Section '" + sectionKey + "' failed all "
-                        + maxRetries + " attempts — keeping previous version unchanged");
+                log.warn("Section refine failed all attempts, keeping previous version jobId={} sectionKey={} attempts={}",
+                        jobId, sectionKey, maxRetries);
                 parsedSection = fallbackSectionFactory.createUnchangedSection(existing);
             } else {
-                System.err.println(">>> [REFINE-WORKER] New section '" + sectionKey + "' failed all "
-                        + maxRetries + " attempts with no previous version — skipping it");
+                log.warn("New section refine failed all attempts with no previous version, skipping jobId={} sectionKey={} attempts={}",
+                        jobId, sectionKey, maxRetries);
                 int completedCount = generateJobService.incrementCompleted(jobId);
                 if (completedCount == msg.getTotalSections()) {
                     persistRefinementFromRedis(
@@ -267,13 +262,12 @@ public class BuilderServiceImpl implements BuilderService {
         generateJobService.pushCompletedSection(jobId, parsedSection);
         int completedCount = generateJobService.incrementCompleted(jobId);
 
-        System.out.println(">>> [REFINE-WORKER] Section '" + sectionKey + "' completed in "
-                + (System.currentTimeMillis() - sectionStart) + "ms (" + completedCount + "/" + msg.getTotalSections()
-                + ")");
+        log.debug("Section refine completed jobId={} sectionKey={} durationMs={} progress={}/{}",
+                jobId, sectionKey, System.currentTimeMillis() - sectionStart, completedCount, msg.getTotalSections());
 
         // If last worker then persist
         if (completedCount == msg.getTotalSections()) {
-            System.out.println(">>> [REFINE-WORKER] All sections complete — triggering persistence | job: " + jobId);
+            log.debug("All refined sections complete, triggering persistence jobId={}", jobId);
             persistRefinementFromRedis(
                     jobId,
                     UUID.fromString(msg.getPortfolioId()),
@@ -299,7 +293,6 @@ public class BuilderServiceImpl implements BuilderService {
             UUID userId,
             long buildStartedAtMillis
     ) {
-        System.out.println(">>> [REFINE-PERSIST] Starting DB persistence | job: " + jobId);
         long persistStart = System.currentTimeMillis();
         generateJobService.updateStatus(jobId, JobStatusDTO.Status.PERSISTING);
 
@@ -315,26 +308,14 @@ public class BuilderServiceImpl implements BuilderService {
                 })
                 .toList();
 
-        System.out.println(">>> [REFINE-PERSIST] Modified sections from Redis: " + modifiedSections.size());
-        modifiedSections.forEach(s ->
-                System.out.println(">>> [REFINE-PERSIST]   [MODIFIED] " + s.getSectionKey()
-                        + " | title: " + s.getTitle()
-                        + " | change: " + (s.getChangeDescription() != null ? s.getChangeDescription() : "no description"))
-        );
-
         // 2. Get delete keys stored at fan-out time
         List<String> deleteKeys = generateJobService.getDeleteKeys(jobId);
-        System.out.println(">>> [REFINE-PERSIST] Sections to delete: " + (deleteKeys.isEmpty() ? "none" : deleteKeys));
 
         // 3. Load portfolio and existing sections from DB
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
                 .orElseThrow(() -> new IllegalStateException("Portfolio not found: " + portfolioId));
 
         List<PortfolioSection> existingDbSections = sectionRepository.findAllByPortfolioIdOrderByOrderIndexAsc(portfolioId);
-        System.out.println(">>> [REFINE-PERSIST] Existing DB sections: " + existingDbSections.size());
-        existingDbSections.forEach(s ->
-                System.out.println(">>> [REFINE-PERSIST]   [DB] " + s.getSectionKey() + " | title: " + s.getTitle())
-        );
 
         // 4. Carry forward globalTheme from the previous active version
         com.fasterxml.jackson.databind.JsonNode previousGlobalTheme = null;
@@ -343,9 +324,8 @@ public class BuilderServiceImpl implements BuilderService {
                     .orElse(null);
             if (previousVersion != null) {
                 previousGlobalTheme = previousVersion.getGlobalTheme();
-                System.out.println(">>> [REFINE-PERSIST] Carrying forward globalTheme from previous version: "
-                        + portfolio.getActiveVersionId()
-                        + " | theme: " + (previousGlobalTheme != null ? "present" : "null"));
+                log.debug("Carrying forward globalTheme from previous version jobId={} previousVersionId={} themePresent={}",
+                        jobId, portfolio.getActiveVersionId(), previousGlobalTheme != null);
             }
         }
 
@@ -359,16 +339,13 @@ public class BuilderServiceImpl implements BuilderService {
 
         for (PortfolioSection existing : existingDbSections) {
             if (deleteKeySet.contains(existing.getSectionKey())) {
-                System.out.println(">>> [REFINE-PERSIST]   [SKIP-DELETE] " + existing.getSectionKey());
                 continue;
             }
 
             SectionDTO modified = modifiedByKey.get(existing.getSectionKey());
             if (modified != null) {
-                System.out.println(">>> [REFINE-PERSIST]   [MERGE-MODIFIED] " + existing.getSectionKey());
                 mergedSections.add(modified);
             } else {
-                System.out.println(">>> [REFINE-PERSIST]   [MERGE-KEPT] " + existing.getSectionKey());
                 SectionDTO kept = new SectionDTO();
                 kept.setSectionKey(existing.getSectionKey());
                 kept.setTitle(existing.getTitle());
@@ -384,15 +361,12 @@ public class BuilderServiceImpl implements BuilderService {
                 .collect(Collectors.toMap(PortfolioSection::getSectionKey, s -> s));
         for (SectionDTO modified : modifiedSections) {
             if (!existingByKey.containsKey(modified.getSectionKey())) {
-                System.out.println(">>> [REFINE-PERSIST]   [MERGE-NEW] " + modified.getSectionKey());
                 mergedSections.add(modified);
             }
         }
 
-        System.out.println(">>> [REFINE-PERSIST] Final merged sections: " + mergedSections.size());
-        mergedSections.forEach(s ->
-                System.out.println(">>> [REFINE-PERSIST]   [FINAL] " + s.getSectionKey() + " | title: " + s.getTitle())
-        );
+        log.debug("Refinement merge computed jobId={} modified={} deleted={} merged={}",
+                jobId, modifiedSections.size(), deleteKeys.size(), mergedSections.size());
 
         // 6. Create GeneratedVersion with merged snapshot
         ObjectNode snapshot = objectMapper.createObjectNode();
@@ -411,13 +385,12 @@ public class BuilderServiceImpl implements BuilderService {
         version.setAssistantMessage(null);
         version.setCreatedAt(OffsetDateTime.now());
         generatedVersionRepository.save(version);
-        System.out.println(">>> [REFINE-PERSIST] GeneratedVersion saved: " + version.getId()
-                + " | globalTheme: " + (previousGlobalTheme != null ? "preserved" : "null"));
+        log.debug("Refinement version saved jobId={} versionId={} globalThemePreserved={}",
+                jobId, version.getId(), previousGlobalTheme != null);
 
         // 7. Update portfolio active version
         portfolio.setActiveVersionId(version.getId());
         portfolioRepository.save(portfolio);
-        System.out.println(">>> [REFINE-PERSIST] Portfolio active version updated to: " + version.getId());
 
         // 8. Delete sections marked for removal
         OffsetDateTime now = OffsetDateTime.now();
@@ -425,7 +398,7 @@ public class BuilderServiceImpl implements BuilderService {
             sectionRepository.findByPortfolioIdAndSectionKey(portfolioId, deleteKey)
                     .ifPresent(section -> {
                         sectionRepository.delete(section);
-                        System.out.println(">>> [REFINE-PERSIST] Deleted section from DB: " + deleteKey);
+                        log.debug("Deleted section from DB jobId={} sectionKey={}", jobId, deleteKey);
                     });
         }
 
@@ -449,10 +422,7 @@ public class BuilderServiceImpl implements BuilderService {
             section.setOrderIndex(sectionDto.getOrderIndex() != null ? sectionDto.getOrderIndex() : 0);
             section.setUpdatedAt(now);
             sectionRepository.save(section);
-            System.out.println(">>> [REFINE-PERSIST]   [UPSERT] " + sectionDto.getSectionKey()
-                    + " | " + (isNew ? "INSERT" : "UPDATE"));
         }
-        System.out.println(">>> [REFINE-PERSIST] Sections upserted: " + modifiedSections.size());
 
         refineChatTurnHistoryService.recordBuildCompletion(
                 userId,
@@ -462,8 +432,7 @@ public class BuilderServiceImpl implements BuilderService {
         );
 
         generateJobService.updateStatus(jobId, JobStatusDTO.Status.COMPLETED);
-        System.out.println(">>> [REFINE-PERSIST] Completed in "
-                + (System.currentTimeMillis() - persistStart) + "ms | job: " + jobId);
+        log.info("Refinement persisted jobId={} durationMs={}", jobId, System.currentTimeMillis() - persistStart);
     }
 
     private List<String> fallbackSectionNames(List<SectionDTO> modifiedSections) {

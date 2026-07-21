@@ -22,6 +22,7 @@ import com.webgen.webgen_backend.portfolio.service.validator.JsxValidatorService
 import com.webgen.webgen_backend.portfolio.repository.GeneratedVersionRepository;
 import com.webgen.webgen_backend.portfolio.repository.PortfolioRepository;
 import com.webgen.webgen_backend.portfolio.repository.PortfolioSectionRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
@@ -38,6 +39,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class PortfolioAiServiceImpl implements PortfolioAiService {
 
     private final ChatModel blueprintModel;
@@ -98,8 +100,6 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
             PortfolioGenerateRequestDTO req,
             String jobId,
             UUID creditReservationId) {
-        System.out.println(">>> [SERVICE] generatePortfolio() started");
-
         // --- Ownership check
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Portfolio not found"));
@@ -109,8 +109,6 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
         // --- Validate and normalize input
         if (req == null || req.getResume() == null) // Require resume for now
             throw new IllegalArgumentException("Resume data required | Req cannot be null");
-
-        System.out.println(">>> [SERVICE] Input validation passed");
 
         // --- Normalize nulls
         ParsedResumeDTO resume = req.getResume();
@@ -127,16 +125,12 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
 
         // --- Step 1) Refine & Build prompt
         String rawPrompt = req.getUserPrompt();
-        System.out.println(">>> [SERVICE] Calling promptRefinerService.refineUserPrompt()...");
-
         long refineStart = System.currentTimeMillis();
         jobService.updateStatus(jobId, JobStatusDTO.Status.REFINING_PROMPT);
         String refinedPrompt = promptRefinerService.refineUserPrompt(rawPrompt, resume, req.getStylePrefs());
-
-        System.out.println(">>> [SERVICE] Prompt refined in " + (System.currentTimeMillis() - refineStart) + "ms");
+        log.debug("Prompt refined jobId={} durationMs={}", jobId, System.currentTimeMillis() - refineStart);
 
         // --- Step 2) Generate a blueprint
-        System.out.println(">>> [SERVICE] Buiilding blueprint prompt...");
         Prompt blueprintPrompt = portfolioPromptBuilder.buildBlueprintPrompt(req, refinedPrompt);
 
         // Update, call, parse
@@ -147,18 +141,14 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
         BlueprintDTO blueprint = portfolioResponseParser.parseBlueprintResponse(blueprintJson);
         jobService.setTotalSections(jobId, blueprint.getSectionPlan().size());
 
-        // --- Blueprint quality log ---
-        System.out.println(">>> [BLUEPRINT] ===== BLUEPRINT OUTPUT =====");
-        System.out.println(">>> [BLUEPRINT] Design Directive: " + blueprint.getDesignDirective());
-        System.out.println(">>> [BLUEPRINT] Global Theme: " + blueprint.getGlobalThemeDTO());
-        System.out.println(">>> [BLUEPRINT] Section count: " + blueprint.getSectionPlan().size());
-        for (BlueprintSectionPlanDTO plan : blueprint.getSectionPlan()) {
-            System.out.println(">>> [BLUEPRINT]   [" + plan.getOrderIndex() + "] "
-                    + plan.getSectionKey() + " — \"" + plan.getTitle() + "\""
-                    + " | layout: " + plan.getLayoutHint()
-                    + " | strategy: " + plan.getContentStrategy());
+        log.info("Blueprint generated jobId={} sectionCount={}", jobId, blueprint.getSectionPlan().size());
+        if (log.isDebugEnabled()) {
+            for (BlueprintSectionPlanDTO plan : blueprint.getSectionPlan()) {
+                log.debug("Blueprint section jobId={} order={} key={} title={} layout={} strategy={}",
+                        jobId, plan.getOrderIndex(), plan.getSectionKey(), plan.getTitle(),
+                        plan.getLayoutHint(), plan.getContentStrategy());
+            }
         }
-        System.out.println(">>> [BLUEPRINT] =============================");
 
         // --- Step 3) Fan out sections
         List<SectionGenerationMessage> messages = blueprint.getSectionPlan().stream()
@@ -190,7 +180,7 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
         String jobId = msg.getJobId();
         long sectionStart = System.currentTimeMillis();
 
-        System.out.println(">>> [SECTION-WORKER] Starting section: " + sectionKey + " | job: " + jobId);
+        log.debug("Section generation started jobId={} sectionKey={}", jobId, sectionKey);
 
         SectionDTO parsedSection = null;
         ValidationResult validation = null;
@@ -204,8 +194,7 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
 
         while (attempt < maxRetries) {
             ++attempt;
-            System.out
-                    .println(">>> [SECTION-WORKER] Section '" + sectionKey + "' attempt " + attempt + "/" + maxRetries);
+            log.debug("Section attempt jobId={} sectionKey={} attempt={}/{}", jobId, sectionKey, attempt, maxRetries);
 
             // --- Build prompt (use retry prompt with errors if previous attempt failed
             // validation)
@@ -215,7 +204,6 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
                         .buildSectionPrompt(msg.getReq(), msg.getRefinedPrompt(), msg.getBlueprint(),
                                 msg.getPlanItem());
             } else {
-                System.out.println(">>> [SECTION-WORKER] Retrying with validation errors (attempt " + attempt + ")");
                 sectionPrompt = portfolioPromptBuilder
                         .buildSectionRetryPrompt(msg.getReq(), msg.getRefinedPrompt(), msg.getBlueprint(),
                                 msg.getPlanItem(), validation.getErrors(), parsedSection.getReactSource(),
@@ -228,19 +216,14 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
             long llmStart = System.currentTimeMillis();
             jobService.updateStatus(jobId, JobStatusDTO.Status.GENERATING);
             if (isRetry) {
-                System.out.println(">>> [SECTION-WORKER] Using repair model (gpt-4.1, temp=0.2) for attempt " + attempt);
+                log.debug("Section using repair model jobId={} sectionKey={} attempt={}", jobId, sectionKey, attempt);
             }
             ChatResponse response = activeModel.call(sectionPrompt);
             String rawJson = response.getResult().getOutput().getText();
             parsedSection = portfolioResponseParser.parseSingleSectionResponse(rawJson);
-            System.out.println(">>> [SECTION-WORKER] Section '" + sectionKey + "' LLM call completed in "
-                    + (System.currentTimeMillis() - llmStart) + "ms");
-            System.out.println(">>> [SECTION-WORKER] Section '" + sectionKey + "' parse summary: "
-                    + "parsedSectionKey=" + parsedSection.getSectionKey()
-                    + " | title=" + parsedSection.getTitle()
-                    + " | orderIndex=" + parsedSection.getOrderIndex()
-                    + " | reactSourceChars="
-                    + (parsedSection.getReactSource() == null ? 0 : parsedSection.getReactSource().length()));
+            log.debug("Section parsed jobId={} sectionKey={} llmMs={} reactSourceChars={}",
+                    jobId, sectionKey, System.currentTimeMillis() - llmStart,
+                    parsedSection.getReactSource() == null ? 0 : parsedSection.getReactSource().length());
 
             // --- Lock invariants on first successful parse
             if (lockedSectionKey == null) {
@@ -248,29 +231,28 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
                 lockedTitle = parsedSection.getTitle();
                 lockedOrderIndex = parsedSection.getOrderIndex();
                 lockedContentJson = parsedSection.getContentJson();
-                System.out.println(">>> [SECTION-WORKER] Locked invariants for '" + sectionKey
-                        + "': key=" + lockedSectionKey + " title=" + lockedTitle
-                        + " orderIndex=" + lockedOrderIndex
-                        + " contentJsonFields=" + (lockedContentJson != null ? lockedContentJson.fieldNames() : "null"));
+                log.debug("Section invariants locked jobId={} sectionKey={} orderIndex={}",
+                        jobId, lockedSectionKey, lockedOrderIndex);
             }
 
             // --- Pre-repair: fix deterministic LLM mistake before validation
             if (parsedSection.getReactSource() != null
                     && parsedSection.getReactSource().contains("data.contentJson.")) {
                 String fixed = parsedSection.getReactSource().replace("data.contentJson.", "data.");
-                System.out.println(">>> [SECTION-WORKER] Pre-repair: replaced data.contentJson. → data. in '" + sectionKey + "'");
+                log.debug("Section pre-repair applied jobId={} sectionKey={} fix=data.contentJson->data",
+                        jobId, sectionKey);
                 parsedSection.setReactSource(fixed);
             }
 
             // --- Enforce locked invariants on retries: override with attempt-1 values
             if (attempt > 1) {
                 if (!lockedSectionKey.equals(parsedSection.getSectionKey())) {
-                    System.out.println(">>> [SECTION-WORKER] Invariant drift: sectionKey changed from '"
-                            + lockedSectionKey + "' to '" + parsedSection.getSectionKey() + "' — reverting");
+                    log.warn("Section invariant drift reverted jobId={} sectionKey={} field=sectionKey from={} to={}",
+                            jobId, sectionKey, lockedSectionKey, parsedSection.getSectionKey());
                 }
                 if (lockedOrderIndex != null && !lockedOrderIndex.equals(parsedSection.getOrderIndex())) {
-                    System.out.println(">>> [SECTION-WORKER] Invariant drift: orderIndex changed from "
-                            + lockedOrderIndex + " to " + parsedSection.getOrderIndex() + " — reverting");
+                    log.warn("Section invariant drift reverted jobId={} sectionKey={} field=orderIndex from={} to={}",
+                            jobId, sectionKey, lockedOrderIndex, parsedSection.getOrderIndex());
                 }
                 parsedSection.setSectionKey(lockedSectionKey);
                 parsedSection.setTitle(lockedTitle);
@@ -282,25 +264,20 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
             validation = jsxValidatorService.validateGeneratedSection(parsedSection);
 
             if (validation.isValid()) {
-                System.out.println(">>> [SECTION-WORKER] Section '" + sectionKey + "' validated on attempt " + attempt);
+                log.debug("Section validated jobId={} sectionKey={} attempt={}", jobId, sectionKey, attempt);
                 break;
             }
 
-            System.out.println(
-                    ">>> [SECTION-WORKER] Section '" + sectionKey + "' validation failed (attempt " + attempt + ")");
-            System.err.println(
-                    ">>> [SECTION-WORKER] Section '" + sectionKey + "' validation errors (attempt " + attempt + "):\n"
-                            + formatValidationErrors(validation, parsedSection.getReactSource()));
+            log.warn("Section validation failed jobId={} sectionKey={} attempt={} errors={}",
+                    jobId, sectionKey, attempt, formatValidationErrors(validation, parsedSection.getReactSource()));
         }
 
         // --- Degrade to a placeholder section instead of failing the whole job:
         // one stubborn section must not destroy every other valid section
         if (validation == null || !validation.isValid()) {
-            System.err.println(">>> [SECTION-WORKER] Final validation errors for section '" + sectionKey + "':\n"
-                    + formatValidationErrors(validation,
-                            parsedSection == null ? null : parsedSection.getReactSource()));
-            System.out.println(">>> [SECTION-WORKER] Section '" + sectionKey
-                    + "' failed all " + maxRetries + " attempts — shipping fallback placeholder");
+            log.warn("Section failed all attempts, shipping fallback placeholder jobId={} sectionKey={} attempts={} errors={}",
+                    jobId, sectionKey, maxRetries,
+                    formatValidationErrors(validation, parsedSection == null ? null : parsedSection.getReactSource()));
 
             SectionDTO fallback = fallbackSectionFactory.createFallbackSection(
                     msg.getPlanItem(), lockedTitle, lockedOrderIndex, lockedContentJson);
@@ -319,14 +296,13 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
         jobService.pushCompletedSection(jobId, parsedSection);
         int completedCount = jobService.incrementCompleted(jobId);
 
-        System.out.println(">>> [SECTION-WORKER] Section '" + sectionKey + "' completed in "
-                + (System.currentTimeMillis() - sectionStart) + "ms (" + completedCount + "/" + msg.getTotalSections()
-                + ")");
+        log.debug("Section completed jobId={} sectionKey={} durationMs={} progress={}/{}",
+                jobId, sectionKey, System.currentTimeMillis() - sectionStart, completedCount, msg.getTotalSections());
 
         // Persist all sections into one cohesive portfolio if last section was
         // generated
         if (completedCount == msg.getTotalSections()) {
-            System.out.println(">>> [SECTION-WORKER] All sections complete — triggering persistence | job: " + jobId);
+            log.debug("All sections complete, triggering persistence jobId={}", jobId);
             persistFromRedis(jobId, msg.getPortfolioId(), msg.getBlueprint(), msg.getReq());
         }
 
@@ -337,7 +313,6 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
             String portfolioId,
             BlueprintDTO blueprint,
             PortfolioGenerateRequestDTO req) {
-        System.out.println(">>> [PERSIST] Starting DB persistence | job: " + jobId);
         long persistStart = System.currentTimeMillis();
         jobService.updateStatus(jobId, JobStatusDTO.Status.PERSISTING);
 
@@ -367,8 +342,7 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
                 response);
 
         jobService.updateStatus(jobId, JobStatusDTO.Status.COMPLETED);
-        System.out.println(">>> [PERSIST] DB persistence completed in "
-                + (System.currentTimeMillis() - persistStart) + "ms | job: " + jobId);
+        log.info("Portfolio persisted jobId={} durationMs={}", jobId, System.currentTimeMillis() - persistStart);
     }
 
     // /**
@@ -492,12 +466,11 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
         version.setAssistantMessage(objectMapper.valueToTree(response.getAssistantMessage()));
         version.setCreatedAt(OffsetDateTime.now());
         generatedVersionRepository.save(version);
-        System.out.println(">>> [SERVICE] GeneratedVersion saved: " + version.getId());
+        log.debug("Generated version saved portfolioId={} versionId={}", portfolioId, version.getId());
 
         // --- Update portfolio.activeVersionId
         portfolio.setActiveVersionId(version.getId());
         portfolioRepository.save(portfolio);
-        System.out.println(">>> [SERVICE] Portfolio active version updated");
 
         // --- Upsert portfolio_sections
         OffsetDateTime now = OffsetDateTime.now();
@@ -520,7 +493,7 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
             section.setUpdatedAt(now);
             sectionRepository.save(section);
         }
-        System.out.println(">>> [SERVICE] Portfolio sections upserted: " + response.getSections().size());
+        log.debug("Portfolio sections upserted portfolioId={} count={}", portfolioId, response.getSections().size());
     }
 
     @Override

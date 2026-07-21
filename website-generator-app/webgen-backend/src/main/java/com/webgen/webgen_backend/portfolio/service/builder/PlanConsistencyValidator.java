@@ -2,6 +2,7 @@ package com.webgen.webgen_backend.portfolio.service.builder;
 
 import com.webgen.webgen_backend.portfolio.dto.planner.SectionPlanDTO;
 import com.webgen.webgen_backend.portfolio.exception.RefinePlanConflictException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,6 +19,7 @@ import java.util.stream.Collectors;
  * so real conflicts fail fast as 409 and harmless no-op deletes are dropped.
  */
 @Service
+@Slf4j
 public class PlanConsistencyValidator {
 
     /**
@@ -44,8 +46,7 @@ public class PlanConsistencyValidator {
                     boolean noOpDelete = "delete".equals(plan.getAction())
                             && !existingKeys.contains(plan.getSectionKey());
                     if (noOpDelete) {
-                        System.out.println(">>> [PLAN-CHECK] Dropped no-op delete for missing section: "
-                                + plan.getSectionKey());
+                        log.debug("Dropped no-op delete for missing section sectionKey={}", plan.getSectionKey());
                     }
                     return !noOpDelete;
                 })
