@@ -5,17 +5,17 @@ const productGroups = {
     {
       title: "Portfolio Launch",
       description: "Guided templates for designers, developers, and freelancers.",
-      href: "/",
+      href: "/dashboard/create",
     },
     {
       title: "Resume Import",
       description: "Turn your resume into sections and project highlights in minutes.",
-      href: "/",
+      href: "/dashboard/create",
     },
     {
       title: "AI Styling",
       description: "Refine tone, layout, and visual direction from plain-language prompts.",
-      href: "/",
+      href: "/docs/how-it-works",
     },
   ] satisfies NavLeafItem[],
   components: [
@@ -42,14 +42,19 @@ const productGroups = {
       href: "/docs/how-it-works",
     },
     {
+      title: "Verification Scoring",
+      description: "See how uploaded evidence is scored and turned into verified skills.",
+      href: "/docs/verification-scoring",
+    },
+    {
+      title: "Engineering Notes",
+      description: "Read how the generation pipeline and architecture were built.",
+      href: "/docs/engineering",
+    },
+    {
       title: "Explore Portfolios",
       description: "Browse generated portfolios and study output quality.",
       href: "/explore",
-    },
-    {
-      title: "Sign In",
-      description: "Access saved portfolios and continue previous work.",
-      href: "/",
     },
   ] satisfies NavLeafItem[],
 }
@@ -61,6 +66,7 @@ export const navbarNavigation: NavbarNavigation = {
       items: [
         { href: "/", label: "Home" },
         { href: "/explore", label: "Explore" },
+        { href: "/pricing", label: "Pricing" },
       ],
     },
     {
@@ -108,6 +114,7 @@ export const navbarNavigation: NavbarNavigation = {
         },
       ],
     },
+    { href: "/pricing", label: "Pricing" },
     { href: "/explore", label: "Explore" },
   ],
 }
