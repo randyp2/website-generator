@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
 import { AppThemeProvider } from "@/components/theme/AppThemeProvider";
 import { Toaster } from "@/components/ui/toaster";
+import { EmailConfirmationNotice } from "@/components/auth/EmailConfirmationNotice";
 import GenerationJobWatcher from "@/components/GenerationJobWatcher";
 import { getPublicSiteUrl } from "@/lib/public-env";
 import AppQueryProvider from "@/components/query/AppQueryProvider";
@@ -104,6 +106,9 @@ export default function RootLayout({
         <AppQueryProvider>
           <AppThemeProvider>
             {children}
+            <Suspense fallback={null}>
+              <EmailConfirmationNotice />
+            </Suspense>
             <Toaster />
             <GenerationJobWatcher />
           </AppThemeProvider>

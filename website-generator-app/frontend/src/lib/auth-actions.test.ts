@@ -40,7 +40,10 @@ describe("authentication server actions", () => {
       },
     });
     signInWithPasswordMock.mockResolvedValue({ error: null });
-    signUpMock.mockResolvedValue({ error: null });
+    signUpMock.mockResolvedValue({
+      data: { session: null },
+      error: null,
+    });
   });
 
   it("passes the Turnstile token to password login", async () => {
@@ -70,7 +73,9 @@ describe("authentication server actions", () => {
     formData.set("terms_version", "2026-07-12");
     formData.set("captcha_token", "captcha-token");
 
-    await expect(signup(formData)).rejects.toThrow("redirect:/");
+    await expect(signup(formData)).rejects.toThrow(
+      "redirect:/?signup=confirmation-sent",
+    );
 
     expect(signUpMock).toHaveBeenCalledWith({
       email: "ava@example.com",
@@ -86,6 +91,24 @@ describe("authentication server actions", () => {
         },
       },
     });
+  });
+
+  it("redirects normally when signup immediately creates a session", async () => {
+    signUpMock.mockResolvedValue({
+      data: { session: { access_token: "token" } },
+      error: null,
+    });
+
+    const formData = new FormData();
+    formData.set("first-name", "Ava");
+    formData.set("last-name", "Johnson");
+    formData.set("email", "ava@example.com");
+    formData.set("password", "password123");
+    formData.set("terms_accepted", "true");
+    formData.set("terms_version", "2026-07-12");
+    formData.set("captcha_token", "captcha-token");
+
+    await expect(signup(formData)).rejects.toThrow("redirect:/");
   });
 
   it("rejects a landing-page submission without a CAPTCHA token", async () => {

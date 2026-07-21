@@ -82,13 +82,17 @@ export async function signup(formData: FormData) {
     },
   };
 
-  const { error } = await supabase.auth.signUp(data); // Call supabase auth with data
+  const { data: signupData, error } = await supabase.auth.signUp(data); // Call supabase auth with data
 
   if (error) {
     redirect("/error");
   }
 
   revalidatePath("/", "layout");
+  if (!signupData.session) {
+    redirect("/?signup=confirmation-sent");
+  }
+
   redirect("/");
 }
 
