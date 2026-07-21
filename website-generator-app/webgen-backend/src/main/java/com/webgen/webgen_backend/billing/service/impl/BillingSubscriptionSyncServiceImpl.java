@@ -12,6 +12,7 @@ import com.webgen.webgen_backend.billing.service.BillingSubscriptionSyncService;
 import com.webgen.webgen_backend.profile.entity.Profile;
 import com.webgen.webgen_backend.profile.repository.ProfileRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +27,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class BillingSubscriptionSyncServiceImpl implements BillingSubscriptionSyncService {
 
     private static final String PLAN_WEBSITE_GENERATOR_PRO = "website_generator_pro";
@@ -104,8 +106,8 @@ public class BillingSubscriptionSyncServiceImpl implements BillingSubscriptionSy
                 now
         );
 
-        System.out.println(">>> [BillingSubSync] upserted subscription stripeSubId=" + stripeSubscriptionId
-                + " status=" + status + " plan=" + resolvedPlanKey);
+        log.info("Subscription synced subscriptionId={} status={} plan={}",
+                stripeSubscriptionId, status, resolvedPlanKey);
     }
 
     @Override
@@ -182,13 +184,13 @@ public class BillingSubscriptionSyncServiceImpl implements BillingSubscriptionSy
         );
 
         if (existing == null) {
-            System.out.println(">>> [BillingSubSync] invoice backfill — upserted sub row subId="
-                    + stripeSubscriptionId + " status=" + normalizedStatus);
+            log.debug("Subscription backfilled from invoice subscriptionId={} status={}",
+                    stripeSubscriptionId, normalizedStatus);
             return;
         }
 
-        System.out.println(">>> [BillingSubSync] invoice update subId=" + stripeSubscriptionId
-                + " newStatus=" + normalizedStatus);
+        log.debug("Subscription updated from invoice subscriptionId={} status={}",
+                stripeSubscriptionId, normalizedStatus);
     }
 
     private Profile resolveProfile(UUID profileId, String stripeCustomerId) {

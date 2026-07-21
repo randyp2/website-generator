@@ -17,6 +17,7 @@ import com.webgen.webgen_backend.billing.service.BillingInvoiceService;
 import com.webgen.webgen_backend.billing.service.BillingSubscriptionSyncService;
 import com.webgen.webgen_backend.billing.service.StripeWebhookService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -32,6 +33,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class StripeWebhookServiceImpl implements StripeWebhookService {
 
     private final StripeProperties stripeProperties;
@@ -56,7 +58,7 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
         String stripeEventId = requireStripeEventId(event);
         String eventType = requireEventType(event);
 
-        System.out.println(">>> [StripeWebhook] received event id=" + stripeEventId + " type=" + eventType);
+        log.info("Stripe webhook received eventId={} type={}", stripeEventId, eventType);
 
         // --- Parse and validate raw payload for durable idempotency/audit storage
         JsonNode payloadJson = parsePayloadJson(payload);
@@ -77,8 +79,8 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
         StripeWebhookEventStateService.ClaimResult claimResult = stripeWebhookEventStateService
                 .claimWebhookEvent(stripeEventId, eventType, payloadJson);
         if (claimResult.outcome() != StripeWebhookEventStateService.ClaimOutcome.CLAIMED) {
-            System.out.println(">>> [StripeWebhook] event id=" + stripeEventId
-                    + " not claimed (outcome=" + claimResult.outcome() + ") — skipping");
+            log.debug("Stripe webhook not claimed, skipping eventId={} outcome={}",
+                    stripeEventId, claimResult.outcome());
             return StripeWebhookProcessResponseDTO.builder()
                     .processed(false)
                     .duplicate(true)
@@ -210,8 +212,8 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
                         occurredAt
                 );
                 if (snapshot != null) {
-                    System.out.println(">>> [StripeWebhook] dispatch -> subscription sync subId="
-                            + snapshot.getStripeSubscriptionId() + " type=" + normalizedType);
+                    log.debug("Stripe webhook dispatch to subscription sync eventId={} subscriptionId={} type={}",
+                            stripeEventId, snapshot.getStripeSubscriptionId(), normalizedType);
                     billingSubscriptionSyncService.syncSubscriptionSnapshot(snapshot);
                 }
             }
@@ -226,8 +228,8 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
                         occurredAt
                 );
                 if (snapshot != null) {
-                    System.out.println(">>> [StripeWebhook] dispatch -> checkout fulfillment sessionId="
-                            + snapshot.getCheckoutSessionId() + " purchaseType=" + snapshot.getPurchaseType());
+                    log.debug("Stripe webhook dispatch to checkout fulfillment eventId={} sessionId={} purchaseType={}",
+                            stripeEventId, snapshot.getCheckoutSessionId(), snapshot.getPurchaseType());
                     billingCreditLedgerService.fulfillCheckoutSession(snapshot);
                 }
             }
@@ -241,8 +243,8 @@ public class StripeWebhookServiceImpl implements StripeWebhookService {
                         occurredAt
                 );
                 if (snapshot != null) {
-                    System.out.println(">>> [StripeWebhook] dispatch -> invoice invoiceId="
-                            + snapshot.getInvoiceId() + " type=" + normalizedType);
+                    log.debug("Stripe webhook dispatch to invoice sync eventId={} invoiceId={} type={}",
+                            stripeEventId, snapshot.getInvoiceId(), normalizedType);
                     billingInvoiceService.syncInvoiceSnapshot(snapshot);
                     billingSubscriptionSyncService.syncInvoiceSnapshot(snapshot);
                     if (normalizedType == StripeWebhookEventType.INVOICE_PAID) {
