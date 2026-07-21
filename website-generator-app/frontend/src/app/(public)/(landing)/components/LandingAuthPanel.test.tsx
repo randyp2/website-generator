@@ -58,6 +58,9 @@ describe("LandingAuthPanel", () => {
             screen.getByRole("heading", { name: "Log in to PortRN" }),
         ).toBeInTheDocument();
         expect(
+            screen.getByRole("link", { name: "PortRN home" }),
+        ).toHaveAttribute("href", "/");
+        expect(
             screen.getByText(
                 "Turn your resume into a customizable AI portfolio you can review, refine, and publish.",
             ),

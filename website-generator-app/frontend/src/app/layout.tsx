@@ -53,6 +53,11 @@ export const metadata: Metadata = {
     "AI Website Builder",
   ],
   authors: [{name: "Randy Pahang II", url: "https://randy.dev"}],
+  icons: {
+    icon: [{ url: "/branding/portrn-logo.svg", type: "image/svg+xml" }],
+    shortcut: ["/branding/portrn-logo.svg"],
+    apple: [{ url: "/branding/portrn-logo.png", type: "image/png" }],
+  },
   openGraph: {
     type: "website",
     title: "PortRN | Create Professional AI Portfolios",
