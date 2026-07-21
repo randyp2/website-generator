@@ -26,7 +26,7 @@ public class SecurityConfig {
     private JWTFilter jwtFilter;
 
     // Verifies the request came from the Next.js server; runs before JWT auth.
-    // Does not affect identity verification — see InternalSecretFilter.
+    // Does not affect identity verification. See InternalSecretFilter.
     @Autowired
     private com.webgen.webgen_backend.auth.filter.InternalSecretFilter internalSecretFilter;
 
@@ -46,15 +46,11 @@ public class SecurityConfig {
                         .requestMatchers("/error").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/generate/ping").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/generate").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/debug/all").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/debug/create").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/billing/webhook/stripe").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/public/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/public/portfolio/*/engagement/views").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/public/portfolio/*/engagement/shares").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/public/profile/*/social/views").permitAll()
-//                        .requestMatchers("/api/generate/ping", "/api/generate", "/api/debug/create", "/api/debug/all")
-//                        .permitAll() // Endpoints that don't need auth
                         .anyRequest().authenticated())
                 .httpBasic(http2 -> http2.disable()) // Enable REST access
                 .sessionManagement(
