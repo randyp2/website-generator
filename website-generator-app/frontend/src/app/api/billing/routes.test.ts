@@ -74,6 +74,37 @@ describe("billing API routes", () => {
         );
     });
 
+    it("returns a readable checkout error when Stripe is unavailable", async () => {
+        fetchBackendMock.mockResolvedValue(
+            Response.json(
+                {
+                    timestamp: "2026-07-21T04:26:18.147+00:00",
+                    status: 502,
+                    error: "Bad Gateway",
+                    path: "/api/v1/billing/checkout/session",
+                },
+                { status: 502 },
+            ),
+        );
+        const request = new Request(
+            "http://localhost/api/billing/checkout/session",
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    priceKey: "WEBSITE_GENERATOR_PRO_MONTHLY",
+                }),
+            },
+        );
+
+        const response = await createCheckoutSession(request);
+
+        expect(response.status).toBe(502);
+        await expect(response.json()).resolves.toEqual({
+            error: "Unable to start Stripe checkout. Please try again.",
+        });
+    });
+
     it("creates a portal session through the authenticated backend helper", async () => {
         fetchBackendMock.mockResolvedValue(
             Response.json({ portalUrl: "https://billing.stripe.test/session" }),
