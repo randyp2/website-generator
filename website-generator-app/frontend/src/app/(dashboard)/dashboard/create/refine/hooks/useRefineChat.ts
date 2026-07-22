@@ -16,6 +16,10 @@ import type { Message, SectionPlan } from "@/types/preview";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
 import { useGenerationJobStore } from "@/stores/useGenerationJobStore";
 import { getElapsedSeconds } from "@/components/chat/style-chat/FlowStateStatus";
+import {
+    GenerationPollingGuard,
+    type GenerationPollingStopReason,
+} from "@/lib/generation-polling";
 import { buildSectionSummaries } from "../lib/section-serializers";
 import {
     createAiMessage,
@@ -73,6 +77,13 @@ interface UseRefineChatResult {
 
 const POLL_INTERVAL_MS = 3000;
 const REFUND_REFRESH_DELAY_MS = 1_000;
+
+const BUILD_POLLING_FAILURE_MESSAGES: Record<GenerationPollingStopReason, string> = {
+    TIMEOUT: "The build did not finish in time. Reload the portfolio to check for saved changes before trying again.",
+    AUTHORIZATION: "Your session expired while the build was running. Sign in again to check it.",
+    MISSING: "The build status expired before completion was confirmed. Reload the portfolio to check for saved changes.",
+    UNAVAILABLE: "The build service could not be reached. Reload the portfolio to check for saved changes before trying again.",
+};
 
 /** Raised when the backend reports the clarifier session expired (HTTP 410). */
 class RefineSessionExpiredError extends Error {
@@ -262,15 +273,60 @@ export const useRefineChat = ({
         buildingStartedAt: Date,
     ): void => {
         let sectionOffset = 0;
+        let pollInFlight = false;
+        const guard = new GenerationPollingGuard(buildingStartedAt.getTime());
         // Sections whose refinement failed and kept their previous version
         const fallbackSectionNames: string[] = [];
 
+        const stopTimer = (): void => {
+            if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+        };
+
+        const stopWithoutTerminalStatus = (
+            reason: GenerationPollingStopReason,
+        ): void => {
+            stopTimer();
+            useGenerationJobStore.getState().clearJob();
+
+            const errorMessage: Message = createAiMessage(
+                BUILD_POLLING_FAILURE_MESSAGES[reason],
+                {
+                    id: `ai-error-${Date.now()}`,
+                    messageType: "error",
+                    flowStateDurationSeconds:
+                        getElapsedSeconds(buildingStartedAt),
+                },
+            );
+            setMessages((prev) =>
+                prev
+                    .filter((message) => message.id !== buildingMessageId)
+                    .concat(errorMessage),
+            );
+            setIsGenerating(false);
+            setIsPlanApproved(false);
+        };
+
         pollTimerRef.current = setInterval(async () => {
+            if (pollInFlight) return;
+
+            const deadlineReason = guard.stopReason();
+            if (deadlineReason) {
+                stopWithoutTerminalStatus(deadlineReason);
+                return;
+            }
+
+            pollInFlight = true;
             try {
                 const res = await fetch(
                     `/api/portfolio/jobs/${jobId}/sections?after=${sectionOffset}`,
+                    { cache: "no-store" },
                 );
 
+                const responseReason = guard.recordResponse(res.status);
+                if (responseReason) {
+                    stopWithoutTerminalStatus(responseReason);
+                    return;
+                }
                 if (!res.ok) return;
 
                 const data = (await res.json()) as CompletedSectionsResponse;
@@ -308,7 +364,7 @@ export const useRefineChat = ({
                 );
 
                 if (data.status === "COMPLETED") {
-                    if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+                    stopTimer();
                     useGenerationJobStore.getState().clearJob();
 
                     // Final load to get the fully merged portfolio from DB
@@ -346,7 +402,7 @@ export const useRefineChat = ({
                 }
 
                 if (data.status === "FAILED") {
-                    if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+                    stopTimer();
                     useGenerationJobStore.getState().clearJob();
                     refreshBillingAfterRefund();
 
@@ -371,6 +427,10 @@ export const useRefineChat = ({
                 }
             } catch (err) {
                 console.error("[refine-poll] Status check failed:", err);
+                const failureReason = guard.recordNetworkFailure();
+                if (failureReason) stopWithoutTerminalStatus(failureReason);
+            } finally {
+                pollInFlight = false;
             }
         }, POLL_INTERVAL_MS);
     };
@@ -703,7 +763,10 @@ export const useRefineChat = ({
             // Job state expired in Redis (finished long ago): the saved
             // portfolio is already loaded, so just drop the job
             try {
-                const res = await fetch(`/api/portfolio/jobs/status/${job.jobId}`);
+                const res = await fetch(
+                    `/api/portfolio/jobs/status/${job.jobId}`,
+                    { cache: "no-store" },
+                );
                 if (res.status === 404 || res.status === 410) {
                     useGenerationJobStore.getState().clearJob();
                     return;

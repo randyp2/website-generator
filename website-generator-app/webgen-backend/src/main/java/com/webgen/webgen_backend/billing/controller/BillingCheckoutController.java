@@ -8,6 +8,7 @@ import com.webgen.webgen_backend.billing.dto.CreatePortalSessionResponseDTO;
 import com.webgen.webgen_backend.billing.service.BillingCheckoutService;
 import com.webgen.webgen_backend.billing.service.BillingCreditLedgerService;
 import com.webgen.webgen_backend.billing.service.BillingInvoiceService;
+import com.webgen.webgen_backend.shared.ratelimit.RateLimiterService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -26,15 +27,20 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class BillingCheckoutController {
 
+    private static final String CHECKOUT_RATE_LIMIT_POLICY = "billing-checkout";
+    private static final String PORTAL_RATE_LIMIT_POLICY = "billing-portal";
+
     private final BillingCheckoutService billingCheckoutService;
     private final BillingInvoiceService billingInvoiceService;
     private final BillingCreditLedgerService billingCreditLedgerService;
+    private final RateLimiterService rateLimiterService;
 
     @PostMapping("/checkout/session")
     public ResponseEntity<CreateCheckoutSessionResponseDTO> createCheckoutSession(
             @RequestBody CreateCheckoutSessionRequestDTO request
     ) {
         UUID profileId = resolveAuthenticatedUserId();
+        rateLimiterService.check(CHECKOUT_RATE_LIMIT_POLICY, profileId.toString());
         return ResponseEntity.ok(
                 billingCheckoutService.createCheckoutSession(profileId, request)
         );
@@ -43,6 +49,7 @@ public class BillingCheckoutController {
     @PostMapping("/portal/session")
     public ResponseEntity<CreatePortalSessionResponseDTO> createPortalSession() {
         UUID profileId = resolveAuthenticatedUserId();
+        rateLimiterService.check(PORTAL_RATE_LIMIT_POLICY, profileId.toString());
         return ResponseEntity.ok(
                 billingCheckoutService.createPortalSession(profileId)
         );

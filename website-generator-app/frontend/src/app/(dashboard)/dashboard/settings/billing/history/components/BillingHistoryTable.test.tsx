@@ -31,7 +31,7 @@ describe("BillingHistoryTable", () => {
         render(<BillingHistoryTable items={[purchase, invoice]} />);
 
         expect(screen.getByText("Small Pack · 100 credits")).toBeVisible();
-        expect(screen.getByText("$12")).toBeVisible();
+        expect(screen.getByText("$29")).toBeVisible();
         expect(screen.getByText("$24.00")).toBeVisible();
         expect(screen.getByRole("link", { name: "View" })).toHaveAttribute(
             "href",

@@ -178,15 +178,18 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
     public void generateSingleSectionFromQueue(SectionGenerationMessage msg) {
         String sectionKey = msg.getPlanItem().getSectionKey();
         String jobId = msg.getJobId();
+        String portfolioId = msg.getPortfolioId();
         long sectionStart = System.currentTimeMillis();
 
-        log.debug("Section generation started jobId={} sectionKey={}", jobId, sectionKey);
+        log.info("Portfolio section generation started jobId={} portfolioId={} sectionKey={} maxAttempts={}",
+                jobId, portfolioId, sectionKey, maxRetries);
 
         SectionDTO parsedSection = null;
         ValidationResult validation = null;
         int attempt = 0;
+        boolean usedFallback = false;
 
-        // Locked invariants from attempt 1 — retries may only change reactSource
+        // Locked invariants from attempt 1. Retries may only change reactSource.
         String lockedSectionKey = null;
         String lockedTitle = null;
         Integer lockedOrderIndex = null;
@@ -194,7 +197,11 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
 
         while (attempt < maxRetries) {
             ++attempt;
-            log.debug("Section attempt jobId={} sectionKey={} attempt={}/{}", jobId, sectionKey, attempt, maxRetries);
+            boolean isRetry = attempt > 1;
+            String modelRole = isRetry ? "repair" : "primary";
+            log.info("Portfolio section attempt started jobId={} portfolioId={} sectionKey={} "
+                            + "attempt={}/{} model={}",
+                    jobId, portfolioId, sectionKey, attempt, maxRetries, modelRole);
 
             // --- Build prompt (use retry prompt with errors if previous attempt failed
             // validation)
@@ -211,7 +218,6 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
             }
 
             // --- Call LLM: first attempt uses creative model, retries use repair model
-            boolean isRetry = attempt > 1;
             ChatModel activeModel = isRetry ? sectionRepairModel : sectionModel;
             long llmStart = System.currentTimeMillis();
             jobService.updateStatus(jobId, JobStatusDTO.Status.GENERATING);
@@ -248,11 +254,11 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
             if (attempt > 1) {
                 if (!lockedSectionKey.equals(parsedSection.getSectionKey())) {
                     log.warn("Section invariant drift reverted jobId={} sectionKey={} field=sectionKey from={} to={}",
-                            jobId, sectionKey, lockedSectionKey, parsedSection.getSectionKey());
+                            jobId, sectionKey, parsedSection.getSectionKey(), lockedSectionKey);
                 }
                 if (lockedOrderIndex != null && !lockedOrderIndex.equals(parsedSection.getOrderIndex())) {
                     log.warn("Section invariant drift reverted jobId={} sectionKey={} field=orderIndex from={} to={}",
-                            jobId, sectionKey, lockedOrderIndex, parsedSection.getOrderIndex());
+                            jobId, sectionKey, parsedSection.getOrderIndex(), lockedOrderIndex);
                 }
                 parsedSection.setSectionKey(lockedSectionKey);
                 parsedSection.setTitle(lockedTitle);
@@ -264,19 +270,23 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
             validation = jsxValidatorService.validateGeneratedSection(parsedSection);
 
             if (validation.isValid()) {
-                log.debug("Section validated jobId={} sectionKey={} attempt={}", jobId, sectionKey, attempt);
+                log.info("Portfolio section validation passed jobId={} portfolioId={} sectionKey={} attempt={}/{}",
+                        jobId, portfolioId, sectionKey, attempt, maxRetries);
                 break;
             }
 
-            log.warn("Section validation failed jobId={} sectionKey={} attempt={} errors={}",
-                    jobId, sectionKey, attempt, formatValidationErrors(validation, parsedSection.getReactSource()));
+            log.warn("Portfolio section validation failed jobId={} portfolioId={} sectionKey={} "
+                            + "attempt={}/{} errors={}",
+                    jobId, portfolioId, sectionKey, attempt, maxRetries,
+                    formatValidationErrors(validation, parsedSection.getReactSource()));
         }
 
         // --- Degrade to a placeholder section instead of failing the whole job:
         // one stubborn section must not destroy every other valid section
         if (validation == null || !validation.isValid()) {
-            log.warn("Section failed all attempts, shipping fallback placeholder jobId={} sectionKey={} attempts={} errors={}",
-                    jobId, sectionKey, maxRetries,
+            log.warn("Portfolio section exhausted generation attempts jobId={} portfolioId={} sectionKey={} "
+                            + "attempts={} outcome=FALLBACK_PENDING errors={}",
+                    jobId, portfolioId, sectionKey, maxRetries,
                     formatValidationErrors(validation, parsedSection == null ? null : parsedSection.getReactSource()));
 
             SectionDTO fallback = fallbackSectionFactory.createFallbackSection(
@@ -286,18 +296,25 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
             if (!fallbackValidation.isValid()) {
                 String failReason = "Failed to generate valid JSX for section '"
                         + sectionKey + "' after " + maxRetries + " attempts, and the fallback section failed validation";
+                log.error("Portfolio section fallback validation failed jobId={} portfolioId={} sectionKey={} "
+                                + "attempts={} errors={}",
+                        jobId, portfolioId, sectionKey, maxRetries,
+                        formatValidationErrors(fallbackValidation, fallback.getReactSource()));
                 jobService.failJob(jobId, failReason);
                 throw new IllegalStateException(failReason);
             }
             parsedSection = fallback;
+            usedFallback = true;
         }
 
         // Push completed section to Redis list
         jobService.pushCompletedSection(jobId, parsedSection);
         int completedCount = jobService.incrementCompleted(jobId);
 
-        log.debug("Section completed jobId={} sectionKey={} durationMs={} progress={}/{}",
-                jobId, sectionKey, System.currentTimeMillis() - sectionStart, completedCount, msg.getTotalSections());
+        log.info("Portfolio section generation succeeded jobId={} portfolioId={} sectionKey={} "
+                        + "attempts={} outcome={} progress={}/{} durationMs={}",
+                jobId, portfolioId, sectionKey, attempt, usedFallback ? "FALLBACK" : "GENERATED",
+                completedCount, msg.getTotalSections(), System.currentTimeMillis() - sectionStart);
 
         // Persist all sections into one cohesive portfolio if last section was
         // generated
@@ -342,7 +359,8 @@ public class PortfolioAiServiceImpl implements PortfolioAiService {
                 response);
 
         jobService.updateStatus(jobId, JobStatusDTO.Status.COMPLETED);
-        log.info("Portfolio persisted jobId={} durationMs={}", jobId, System.currentTimeMillis() - persistStart);
+        log.info("Portfolio generation completed jobId={} portfolioId={} sectionCount={} durationMs={}",
+                jobId, portfolioId, sections.size(), System.currentTimeMillis() - persistStart);
     }
 
     // /**

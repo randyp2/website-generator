@@ -83,7 +83,7 @@ ARCHITECTURAL RULES (STRICT)
 1. Generate exactly ONE section.
 2. Section must be fully self-contained and independently renderable.
 3. The section MUST render a top-level element with id equal to its sectionKey.
-4. React contract: single `data` prop, always present, no optional chaining.
+4. React data contract: `data` IS `contentJson`. Never use `data.contentJson`. Access fields directly as `data.field`. The `data` prop is always present, so do not use optional chaining.
 5. Component format: export default function <PascalCaseSectionKey>Section({ data }) { ... }. The default export MUST always have { data } in its parameter list, even if it delegates to sub-components.
 6. Plain JSX only — no TypeScript, no imports, no arrow function exports.
 7. All dynamic content from contentJson via the `data` prop.

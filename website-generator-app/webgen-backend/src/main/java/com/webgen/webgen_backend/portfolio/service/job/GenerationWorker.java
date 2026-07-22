@@ -45,6 +45,8 @@ public class GenerationWorker {
             UUID portfolioId = UUID.fromString(msg.getPortfolioId());
             UUID userId = UUID.fromString(msg.getUserId());
 
+            log.info("Portfolio generation started jobId={} portfolioId={} userId={}",
+                    jobId, portfolioId, userId);
             jobService.updateStatus(jobId, JobStatusDTO.Status.PROCESSING);
             portfolioAiService.generatePortfolio(
                     portfolioId,
@@ -53,9 +55,12 @@ public class GenerationWorker {
                     jobId,
                     msg.getCreditReservationId()
             );
+            log.info("Portfolio generation orchestration succeeded jobId={} portfolioId={} outcome=SECTIONS_QUEUED",
+                    jobId, portfolioId);
         } catch (Exception e) {
 
-            log.error("Portfolio generation job failed jobId={} reason={}", jobId, e.getMessage(), e);
+            log.error("Portfolio generation failed jobId={} portfolioId={} stage=ORCHESTRATION reason={}",
+                    jobId, msg.getPortfolioId(), jobFailureDescription(e), e);
             recordFailedOperation(jobId, msg.getCreditReservationId(), e);
             channel.basicNack(deliveryTag, false, false);
             return;
@@ -86,7 +91,15 @@ public class GenerationWorker {
             // Get section key based on mode
             String sectionKey = sectionKey(msg);
 
-            log.error("Section generation failed jobId={} sectionKey={} reason={}", jobId, sectionKey, e.getMessage(), e);
+            if (msg.getMode() == SectionGenerationMessage.Mode.GENERATE) {
+                log.error("Portfolio generation failed jobId={} portfolioId={} stage=SECTION_GENERATION "
+                                + "failedSectionKey={} reason={}",
+                        jobId, msg.getPortfolioId(), sectionKey, jobFailureDescription(e), e);
+            } else {
+                log.error("Portfolio refinement failed jobId={} portfolioId={} stage=SECTION_REFINEMENT "
+                                + "failedSectionKey={} reason={}",
+                        jobId, msg.getPortfolioId(), sectionKey, jobFailureDescription(e), e);
+            }
 
             recordFailedOperation(jobId, msg.getCreditReservationId(), e);
             channel.basicNack(deliveryTag, false, false);
@@ -103,7 +116,7 @@ public class GenerationWorker {
             Channel channel,
             @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag
     ) throws IOException {
-        log.error("Dead-lettered portfolio generation job jobId={} portfolioId={}",
+        log.error("Portfolio generation failed jobId={} portfolioId={} stage=DEAD_LETTERED",
                 msg.getJobId(), msg.getPortfolioId());
 
         channel.basicAck(deliveryTag, false);

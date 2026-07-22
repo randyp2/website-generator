@@ -1,8 +1,12 @@
 package com.webgen.webgen_backend.portfolio.service.job;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.rabbitmq.client.Channel;
 import com.webgen.webgen_backend.billing.model.CreditUsagePolicy;
 import com.webgen.webgen_backend.billing.service.CreditGuardService;
+import com.webgen.webgen_backend.portfolio.dto.BlueprintSectionPlanDTO;
 import com.webgen.webgen_backend.portfolio.dto.PortfolioGenerateRequestDTO;
 import com.webgen.webgen_backend.portfolio.dto.SectionRefineRequestDTO;
 import com.webgen.webgen_backend.portfolio.dto.SectionRefineResponseDTO;
@@ -12,6 +16,7 @@ import com.webgen.webgen_backend.portfolio.dto.planner.SectionPlanDTO;
 import com.webgen.webgen_backend.portfolio.service.PortfolioAiService;
 import com.webgen.webgen_backend.portfolio.service.builder.BuilderService;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.reflect.Proxy;
@@ -38,18 +43,32 @@ class GenerationWorkerTest {
                 new StubBuilderService(false),
                 creditGuardService
         );
+        Logger logger = (Logger) LoggerFactory.getLogger(GenerationWorker.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
 
-        worker.handleGeneration(
-                generationMessage(reservationId),
-                channel(channelState),
-                12L
-        );
+        try {
+            worker.handleGeneration(
+                    generationMessage(reservationId),
+                    channel(channelState),
+                    12L
+            );
+        } finally {
+            logger.detachAppender(appender);
+        }
 
         assertThat(portfolioAiService.receivedReservationId).isEqualTo(reservationId);
         assertThat(jobService.failureReason).isEqualTo("upstream failed");
         assertThat(creditGuardService.refundedReservationId).isEqualTo(reservationId);
         assertThat(creditGuardService.failureReason).isEqualTo("IllegalStateException");
         assertThat(channelState.invocations).containsExactly("nack:12");
+        assertThat(appender.list)
+                .extracting(ILoggingEvent::getFormattedMessage)
+                .anyMatch(message -> message.contains(
+                        "Portfolio generation failed jobId=job-1"
+                ) && message.contains("stage=ORCHESTRATION")
+                        && message.contains("reason=upstream failed"));
     }
 
     @Test
@@ -104,6 +123,41 @@ class GenerationWorkerTest {
         assertThat(channelState.invocations).containsExactly("nack:34");
     }
 
+    @Test
+    void generationSectionFailureLogsOverallPortfolioFailure() throws IOException {
+        UUID reservationId = UUID.randomUUID();
+        StubJobService jobService = new StubJobService();
+        StubCreditGuardService creditGuardService = new StubCreditGuardService();
+        ChannelState channelState = new ChannelState(false);
+        GenerationWorker worker = new GenerationWorker(
+                jobService,
+                new StubPortfolioAiService(false, true),
+                new StubBuilderService(false),
+                creditGuardService
+        );
+        SectionGenerationMessage message = generationSectionMessage(reservationId);
+        Logger logger = (Logger) LoggerFactory.getLogger(GenerationWorker.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+
+        try {
+            worker.handleSection(message, channel(channelState), 45L);
+        } finally {
+            logger.detachAppender(appender);
+        }
+
+        assertThat(jobService.failureReason).isEqualTo("section failed");
+        assertThat(creditGuardService.refundedReservationId).isEqualTo(reservationId);
+        assertThat(channelState.invocations).containsExactly("nack:45");
+        assertThat(appender.list)
+                .extracting(ILoggingEvent::getFormattedMessage)
+                .anyMatch(logMessage -> logMessage.contains(
+                        "Portfolio generation failed jobId=job-3 portfolioId=portfolio-3 "
+                                + "stage=SECTION_GENERATION failedSectionKey=hero reason=section failed"
+                ));
+    }
+
     private PortfolioGenerationMessage generationMessage(UUID reservationId) {
         return PortfolioGenerationMessage.builder()
                 .jobId("job-1")
@@ -112,6 +166,19 @@ class GenerationWorkerTest {
                 .creditReservationId(reservationId)
                 .req(new PortfolioGenerateRequestDTO())
                 .build();
+    }
+
+    private SectionGenerationMessage generationSectionMessage(UUID reservationId) {
+        BlueprintSectionPlanDTO plan = new BlueprintSectionPlanDTO();
+        plan.setSectionKey("hero");
+
+        SectionGenerationMessage message = new SectionGenerationMessage();
+        message.setJobId("job-3");
+        message.setPortfolioId("portfolio-3");
+        message.setMode(SectionGenerationMessage.Mode.GENERATE);
+        message.setPlanItem(plan);
+        message.setCreditReservationId(reservationId);
+        return message;
     }
 
     private Channel channel(ChannelState state) {
@@ -168,10 +235,16 @@ class GenerationWorkerTest {
 
     private static final class StubPortfolioAiService implements PortfolioAiService {
         private final boolean failGeneration;
+        private final boolean failSection;
         private UUID receivedReservationId;
 
         private StubPortfolioAiService(boolean failGeneration) {
+            this(failGeneration, false);
+        }
+
+        private StubPortfolioAiService(boolean failGeneration, boolean failSection) {
             this.failGeneration = failGeneration;
+            this.failSection = failSection;
         }
 
         @Override
@@ -190,6 +263,9 @@ class GenerationWorkerTest {
 
         @Override
         public void generateSingleSectionFromQueue(SectionGenerationMessage msg) {
+            if (failSection) {
+                throw new IllegalStateException("section failed");
+            }
         }
 
         @Override

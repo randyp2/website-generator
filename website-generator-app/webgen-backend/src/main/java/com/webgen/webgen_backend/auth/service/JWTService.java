@@ -2,20 +2,15 @@ package com.webgen.webgen_backend.auth.service;
 
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
-import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWKMatcher;
 import com.nimbusds.jose.jwk.JWKSelector;
-import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.RemoteJWKSet;
 import com.nimbusds.jose.proc.SecurityContext;
 import com.nimbusds.jwt.SignedJWT;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.util.Date;
@@ -23,11 +18,8 @@ import java.util.Date;
 @Service
 public class JWTService {
 
-    // TEMP diagnostic: remove once the 403/token issue is resolved.
-    private static final Logger log = LoggerFactory.getLogger(JWTService.class);
-
     /**
-     * Supabase JWKS endpoint where public RSA keys are published.
+     * Supabase JWKS endpoint where public signing keys are published.
      * These rotate and should NOT be hardcoded.
      *
      * Ex: https://YOUR_PROJECT.supabase.co/auth/v1/keys
@@ -35,7 +27,7 @@ public class JWTService {
     private final String jwksUrl;
 
     /**
-     * JWKS provider that fetches and caches the RSA public keys automatically.
+     * JWKS provider that fetches and caches public signing keys automatically.
      * Nimbus handles caching internally
      */
     private final RemoteJWKSet<SecurityContext> jwkSet;
@@ -61,18 +53,14 @@ public class JWTService {
     /* ============== VALIDATION LOGIC ============== */
     /**
      * Validates:
-     * - JWT signature using Supabase's RSA public key
+     * - JWT signature using Supabase's EC public key
      * - JWT expiration time
      */
     public boolean isValid(String token) {
         try {
             SignedJWT jwt = SignedJWT.parse(token);
 
-            // TEMP diagnostic: what algorithm/key is the token signed with?
-            log.warn("[JWT-DEBUG] validating token alg={} kid={}",
-                    jwt.getHeader().getAlgorithm(), jwt.getHeader().getKeyID());
-
-            // Find the correct RSA key from the JWKS using "kid"
+            // Find the correct EC key from the JWKS using "kid"
             ECKey publicKey = getKey(jwt);
 
             // Check verification with EC public key
@@ -80,27 +68,21 @@ public class JWTService {
                     new ECDSAVerifier(publicKey));
 
             if (!verified) {
-                log.warn("[JWT-DEBUG] signature verification FAILED for kid={}",
-                        jwt.getHeader().getKeyID());
                 return false;
             }
 
             // Check expiration
             Date expiration = jwt.getJWTClaimsSet().getExpirationTime();
             if (expiration.before(new Date())) {
-                log.warn("[JWT-DEBUG] token EXPIRED at {} (server now {})",
-                        expiration, new Date());
                 return false;
             }
 
             return true;
 
         } catch (Exception e) {
-            // Catches: no matching kid in JWKS (JOSEException), RSA key cast
+            // Catches: no matching kid in JWKS (JOSEException), EC key cast
             // (ClassCastException), malformed token (ParseException), JWKS
             // fetch failure, etc.
-            log.warn("[JWT-DEBUG] token validation error: {}: {}",
-                    e.getClass().getSimpleName(), e.getMessage());
             return false;
         }
     }

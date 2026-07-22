@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -31,6 +32,72 @@ public class GenerateJobService {
     // Key, value config
     private static final String KEY_PREFIX = "gen:job:";
     private static final Duration TTL = Duration.ofMinutes(15);
+    private static final String TTL_MILLIS = String.valueOf(TTL.toMillis());
+    private static final DefaultRedisScript<Long> UPDATE_STATUS_SCRIPT = redisScript("""
+            local raw = redis.call('GET', KEYS[1])
+            if not raw then
+                return -1
+            end
+
+            local job = cjson.decode(raw)
+            if job.status == 'COMPLETED' or job.status == 'FAILED' then
+                return 0
+            end
+
+            job.status = ARGV[1]
+            redis.call('SET', KEYS[1], cjson.encode(job), 'PX', ARGV[2])
+            return 1
+            """);
+    private static final DefaultRedisScript<Long> INCREMENT_COMPLETED_SCRIPT = redisScript("""
+            local raw = redis.call('GET', KEYS[1])
+            if not raw then
+                return -1
+            end
+
+            local job = cjson.decode(raw)
+            if job.status == 'COMPLETED' or job.status == 'FAILED' then
+                return -2
+            end
+
+            local count = 1
+            if type(job.completedCount) == 'number' then
+                count = job.completedCount + 1
+            end
+            job.completedCount = count
+            redis.call('SET', KEYS[1], cjson.encode(job), 'PX', ARGV[1])
+            return count
+            """);
+    private static final DefaultRedisScript<Long> SET_TOTAL_SECTIONS_SCRIPT = redisScript("""
+            local raw = redis.call('GET', KEYS[1])
+            if not raw then
+                return -1
+            end
+
+            local job = cjson.decode(raw)
+            if job.status == 'COMPLETED' or job.status == 'FAILED' then
+                return 0
+            end
+
+            job.totalSections = tonumber(ARGV[1])
+            redis.call('SET', KEYS[1], cjson.encode(job), 'PX', ARGV[2])
+            return 1
+            """);
+    private static final DefaultRedisScript<Long> FAIL_JOB_SCRIPT = redisScript("""
+            local raw = redis.call('GET', KEYS[1])
+            if not raw then
+                return -1
+            end
+
+            local job = cjson.decode(raw)
+            if job.status == 'COMPLETED' or job.status == 'FAILED' then
+                return 0
+            end
+
+            job.error = ARGV[1]
+            job.status = 'FAILED'
+            redis.call('SET', KEYS[1], cjson.encode(job), 'PX', ARGV[2])
+            return 1
+            """);
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
     private final RabbitTemplate rabbitTemplate;
@@ -151,44 +218,34 @@ public class GenerateJobService {
     }
 
     /**
-     * Updates the top-level status field on the job record (QUEUED, IN_PROGRESS, DONE, FAILED).
-     * No-ops silently if the job no longer exists in Redis.
+     * Updates the job status atomically. COMPLETED and FAILED are terminal, so
+     * a delayed concurrent worker cannot move the job back into a running state.
      *
      * @param jobId  active job ID
      * @param status new status to apply
      */
     public void updateStatus(String jobId, JobStatusDTO.Status status) {
-        // Job check
-        JobStatusDTO jobStatusDTO = getJob(jobId);
-        if (jobStatusDTO == null)
-            return;
-
-        // Update and save
-        jobStatusDTO.setStatus(status);
-        saveToRedis(jobStatusDTO);
+        redisTemplate.execute(
+                UPDATE_STATUS_SCRIPT,
+                List.of(jobKey(jobId)),
+                status.name(),
+                TTL_MILLIS
+        );
     }
 
     /**
-     * Atomically increment the completed section count using Redis INCR.
-     * Uses a dedicated key for thread safety across parallel workers.
-     * Also best-effort updates the JobStatusDTO completedCount for client polling.
+     * Atomically increments the completed section count and updates the job
+     * snapshot in the same Redis operation. Terminal jobs are left unchanged.
      *
      * @param jobId Active job ID
      * @return the new completed count (atomic, safe for barrier checks)
      */
     public int incrementCompleted(String jobId) {
-        // Atomic increment via Redis INCR — safe across concurrent workers
-        String atomicKey = KEY_PREFIX + jobId + ":completedCount";
-        Long newCount = redisTemplate.opsForValue().increment(atomicKey);
-        redisTemplate.expire(atomicKey, TTL);
-
-        // Best-effort update of JobStatusDTO for client polling display
-        JobStatusDTO jobStatusDTO = getJob(jobId);
-        if (jobStatusDTO != null) {
-            jobStatusDTO.setCompletedCount(newCount != null ? newCount.intValue() : 0);
-            saveToRedis(jobStatusDTO);
-        }
-
+        Long newCount = redisTemplate.execute(
+                INCREMENT_COMPLETED_SCRIPT,
+                List.of(jobKey(jobId)),
+                TTL_MILLIS
+        );
         return newCount != null ? newCount.intValue() : -1;
     }
 
@@ -200,12 +257,12 @@ public class GenerateJobService {
      * @param total total number of section generation tasks fanned out
      */
     public void setTotalSections(String jobId, int total) {
-        JobStatusDTO jobStatusDTO = getJob(jobId);
-        if (jobStatusDTO == null)
-            return;
-
-        jobStatusDTO.setTotalSections(total);
-        saveToRedis(jobStatusDTO);
+        redisTemplate.execute(
+                SET_TOTAL_SECTIONS_SCRIPT,
+                List.of(jobKey(jobId)),
+                String.valueOf(total),
+                TTL_MILLIS
+        );
     }
 
     /**
@@ -233,20 +290,19 @@ public class GenerateJobService {
     }
 
     /**
-     * Marks the job as FAILED and stores the error message for the client to display.
-     * No-ops silently if the job no longer exists in Redis.
+     * Marks the job as FAILED and stores the error in one atomic operation.
+     * Existing COMPLETED and FAILED states remain unchanged.
      *
      * @param jobId active job ID
      * @param error human-readable error description
      */
     public void failJob(String jobId, String error) {
-        JobStatusDTO jobStatusDTO = getJob(jobId);
-        if (jobStatusDTO == null)
-            return;
-
-        jobStatusDTO.setError(error);
-        jobStatusDTO.setStatus(JobStatusDTO.Status.FAILED);
-        saveToRedis(jobStatusDTO);
+        redisTemplate.execute(
+                FAIL_JOB_SCRIPT,
+                List.of(jobKey(jobId)),
+                error,
+                TTL_MILLIS
+        );
     }
 
     /**
@@ -289,6 +345,14 @@ public class GenerateJobService {
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to serialize job status", e);
         }
+    }
+
+    private static DefaultRedisScript<Long> redisScript(String source) {
+        return new DefaultRedisScript<>(source, Long.class);
+    }
+
+    private static String jobKey(String jobId) {
+        return KEY_PREFIX + jobId;
     }
 
 }
