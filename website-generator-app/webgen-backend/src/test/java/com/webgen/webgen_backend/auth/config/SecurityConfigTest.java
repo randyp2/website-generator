@@ -48,7 +48,7 @@ class SecurityConfigTest {
 
     @Test
     void healthCheckRemainsPublic() throws Exception {
-        mockMvc.perform(get("/api/generate/ping"))
+        mockMvc.perform(get("/api/health"))
                 .andExpect(status().isOk());
     }
 
@@ -65,7 +65,7 @@ class SecurityConfigTest {
             return "debug";
         }
 
-        @GetMapping("/api/generate/ping")
+        @GetMapping("/api/health")
         String healthCheck() {
             return "ok";
         }
