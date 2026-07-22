@@ -7,10 +7,12 @@ import com.webgen.webgen_backend.portfolio.dto.common.SectionDTO;
 import com.webgen.webgen_backend.portfolio.dto.builder.ModifiedSectionDTO;
 import com.webgen.webgen_backend.portfolio.dto.builder.ValidationResult;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -20,7 +22,10 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class JsxValidatorService {
+    private static final int MAX_STDERR_LOG_LENGTH = 4_000;
+
     private final ObjectMapper objectMapper;
 
     @Value("${jsx.validator.script.path:scripts/validate-jsx.js}")
@@ -99,16 +104,24 @@ public class JsxValidatorService {
      * JSX parsing cannot be done in the JVM, so we delegate to scripts/validate-jsx.js
      * via stdin/stdout. The script receives a JSON payload and writes back a JSON result.
      *
-     * Stdout is consumed on a background thread so the 30-second timeout governs the
-     * whole validation: the script executes arbitrary generated code, and a hung render
-     * would otherwise block the calling worker thread forever on the stdout read.
+     * Stdout and stderr are consumed concurrently so the 30-second timeout governs the
+     * whole validation. Stdout remains the JSON protocol while stderr is diagnostic.
+     * A hung render would otherwise block the calling worker thread forever.
      */
     private ValidationResult validateSingleSection(String sectionKey, String reactSource, JsonNode contentJson) {
         try {
             ProcessBuilder pb = new ProcessBuilder(nodePath, scriptPath);
-            pb.redirectErrorStream(true);
+            pb.redirectErrorStream(false);
 
             Process process = pb.start();
+            StreamCapture stdout = captureStream(
+                    process.getInputStream(),
+                    "jsx-validator-stdout-" + sectionKey
+            );
+            StreamCapture stderr = captureStream(
+                    process.getErrorStream(),
+                    "jsx-validator-stderr-" + sectionKey
+            );
 
             // --- Write JSON payload with reactSource and contentJson to stdin
             try (OutputStream os = process.getOutputStream()) {
@@ -121,20 +134,6 @@ public class JsxValidatorService {
                 os.flush();
             }
 
-            // --- Consume stdout on a background thread so waitFor() below is reached
-            // even when the process never closes its output stream
-            StringBuilder outputBuffer = new StringBuilder();
-            Thread outputReader = new Thread(() -> {
-                try (BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-                    reader.lines().forEach(outputBuffer::append);
-                } catch (Exception ignored) {
-                    // Stream closes when the process dies; partial output is handled below
-                }
-            }, "jsx-validator-output-" + sectionKey);
-            outputReader.setDaemon(true);
-            outputReader.start();
-
             // --- Enforce the hard timeout on the process itself
             boolean finished = process.waitFor(30, TimeUnit.SECONDS);
             if (!finished) {
@@ -142,10 +141,26 @@ public class JsxValidatorService {
                 return createErrorResult(sectionKey, "Validation timed out after 30 seconds");
             }
 
-            // The process has exited, so the reader drains promptly; the join
-            // establishes visibility of the buffer contents on this thread
-            outputReader.join(5000);
-            String output = outputBuffer.toString();
+            stdout.awaitCompletion();
+            stderr.awaitCompletion();
+
+            String stderrOutput = stderr.content().strip();
+            if (!stderrOutput.isBlank()) {
+                log.warn("JSX validator stderr sectionKey={} output={}",
+                        sectionKey, truncateForLog(stderrOutput));
+            }
+
+            if (process.exitValue() != 0) {
+                return createErrorResult(
+                        sectionKey,
+                        "Validation process exited with code " + process.exitValue()
+                );
+            }
+
+            String output = stdout.content().strip();
+            if (output.isBlank()) {
+                return createErrorResult(sectionKey, "Validation process returned empty stdout");
+            }
 
             // --- Parse JSON result
             JsonNode json = objectMapper.readTree(output);
@@ -167,6 +182,38 @@ public class JsxValidatorService {
 
         } catch (Exception e) {
             return createErrorResult(sectionKey, "Validation process error: " + e.getMessage());
+        }
+    }
+
+    private StreamCapture captureStream(InputStream stream, String threadName) {
+        StringBuilder buffer = new StringBuilder();
+        Thread readerThread = new Thread(() -> {
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+                reader.lines().forEach(line -> buffer.append(line).append(System.lineSeparator()));
+            } catch (Exception ignored) {
+                // Stream closure after process termination leaves any partial output available.
+            }
+        }, threadName);
+        readerThread.setDaemon(true);
+        readerThread.start();
+        return new StreamCapture(buffer, readerThread);
+    }
+
+    private String truncateForLog(String output) {
+        if (output.length() <= MAX_STDERR_LOG_LENGTH) {
+            return output;
+        }
+        return output.substring(0, MAX_STDERR_LOG_LENGTH) + " [truncated]";
+    }
+
+    private record StreamCapture(StringBuilder buffer, Thread readerThread) {
+        private void awaitCompletion() throws InterruptedException {
+            readerThread.join(5_000);
+        }
+
+        private String content() {
+            return buffer.toString();
         }
     }
 

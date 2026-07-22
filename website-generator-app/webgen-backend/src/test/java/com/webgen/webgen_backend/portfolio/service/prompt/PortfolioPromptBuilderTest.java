@@ -78,7 +78,9 @@ class PortfolioPromptBuilderTest {
         Prompt prompt = builder.buildSectionPrompt(request(), "make it playful", blueprint, planItem());
 
         assertFullyRendered(prompt);
-        assertTrue(prompt.getInstructions().get(0).getText().contains("Editorial magazine aesthetic"));
+        String systemText = prompt.getInstructions().get(0).getText();
+        assertTrue(systemText.contains("Editorial magazine aesthetic"));
+        assertTrue(systemText.contains("`data` IS `contentJson`. Never use `data.contentJson`."));
         assertTrue(prompt.getInstructions().get(1).getText().contains("work-experience"));
         assertTrue(prompt.getInstructions().get(1).getText().contains("timeline with alternating sides"));
     }
