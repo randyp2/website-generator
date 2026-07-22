@@ -33,10 +33,6 @@ public class AssetVerificationWorker {
     ) throws IOException {
 
         String jobId = msg.getJobId();
-        System.out.println(">>> [ASSET-WORKER] consume | jobId=" + jobId
-                + " uploadId=" + msg.getUploadId()
-                + " claimId=" + msg.getClaimId()
-                + " deliveryTag=" + deliveryTag);
 
         try {
             if (isOwnedByDeletingAccount(msg)) {
@@ -48,7 +44,6 @@ public class AssetVerificationWorker {
                 channel.basicAck(deliveryTag, false);
                 return;
             }
-            System.out.println(">>> [ASSET-WORKER] processing | jobId=" + jobId);
 
             AssetVerificationResultDTO result = aiVerificationService.verify(msg);
             log.info("Verification worker succeeded jobId={} matchConfidence={} evidenceDepth={}",
@@ -57,18 +52,11 @@ public class AssetVerificationWorker {
                     result == null ? null : result.getEvidenceDepth());
 
             jobService.complete(jobId);
-            System.out.println(">>> [ASSET-WORKER] completed | jobId=" + jobId);
-
             channel.basicAck(deliveryTag, false);
-            System.out.println(">>> [ASSET-WORKER] ack | jobId=" + jobId + " deliveryTag=" + deliveryTag);
         } catch (Exception e) {
-            System.err.println(">>> [ASSET-VERIFY] failed | jobId=" + jobId + " | " +
-                    e.getMessage());
-
             boolean retry = jobId != null && jobService.failAttempt(jobId, e.getMessage());
             channel.basicAck(deliveryTag, false);
             log.warn("Verification message rejected jobId={} retry={} reason={}", jobId, retry, e.getMessage());
-            System.err.println(">>> [ASSET-WORKER] nack | jobId=" + jobId + " deliveryTag=" + deliveryTag);
         }
     }
 
