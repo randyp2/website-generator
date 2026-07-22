@@ -30,7 +30,7 @@ public class InternalSecretProperties {
      * prefixes against the request URI.
      */
     private List<String> exemptPaths = List.of(
-            "/api/health",
+            "/api/generate/ping",
             "/api/v1/billing/webhook/stripe"
     );
 

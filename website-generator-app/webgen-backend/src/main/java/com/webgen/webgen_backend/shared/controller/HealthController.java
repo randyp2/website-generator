@@ -16,7 +16,7 @@ import java.util.Map;
  * InternalSecretProperties).
  */
 @RestController
-@RequestMapping("/api/health")
+@RequestMapping("/api/generate/ping")
 public class HealthController {
 
     @GetMapping
