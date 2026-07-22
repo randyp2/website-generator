@@ -15,4 +15,5 @@ public class PublishResponseDTO {
     private String status;
     private PublishRequestDTO.SourceType sourceType;
     private String externalUrl;
+    private String screenshotUrl;
 }
