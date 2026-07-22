@@ -69,22 +69,12 @@ export const getPortfolioSummary = (portfolio: PortfolioCard): string => {
   return `${templateLabel} portfolio published by ${ownerLabel}.`
 }
 
-export const isExternalPortfolio = (portfolio: {
-  sourceType?: string | null
-  externalUrl?: string | null
-}): boolean => {
-  const normalizedSource = (portfolio.sourceType ?? "").trim().toLowerCase()
-  if (normalizedSource === "external") return true
-  if (normalizedSource === "generated") return false
-  return Boolean(portfolio.externalUrl && portfolio.externalUrl.trim().length > 0)
-}
-
-export const getPortfolioCardHref = (portfolio: PortfolioCard): string => {
-  if (isExternalPortfolio(portfolio) && portfolio.externalUrl) {
-    return portfolio.externalUrl
-  }
-  return `/explore/${portfolio.slug}`
-}
+// Every card routes to the internal detail view regardless of source type.
+// External portfolios keep their outbound jump on the detail page's
+// "Open Full Portfolio" action so likes, comments, and the author
+// description stay reachable for imported sites too.
+export const getPortfolioCardHref = (portfolio: PortfolioCard): string =>
+  `/explore/${portfolio.slug}`
 
 export const matchesPortfolioFilter = (
   portfolio: PortfolioCard,
