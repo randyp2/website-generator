@@ -124,12 +124,12 @@ public class OpenAiConfig {
             OpenAiApi openAiApi,
             @Value("${spring.ai.openai.blueprint.model}") String model,
             @Value("${spring.ai.openai.blueprint.max-completion-tokens}") int maxCompletionTokens,
-            @Value("${spring.ai.openai.blueprint.temperature}") double temperature) {
+            @Value("${spring.ai.openai.blueprint.reasoning-effort}") String reasoningEffort) {
 
         OpenAiChatOptions options = OpenAiChatOptions.builder()
                 .model(model)
                 .maxCompletionTokens(maxCompletionTokens)
-                .temperature(temperature)
+                .reasoningEffort(reasoningEffort)
                 .responseFormat(ResponseFormat.builder().type(ResponseFormat.Type.JSON_OBJECT).build())
                 .build();
 
@@ -144,12 +144,12 @@ public class OpenAiConfig {
             OpenAiApi openAiApi,
             @Value("${spring.ai.openai.section.model}") String model,
             @Value("${spring.ai.openai.section.max-completion-tokens}") int maxCompletionTokens,
-            @Value("${spring.ai.openai.section.temperature}") double temperature) {
+            @Value("${spring.ai.openai.section.reasoning-effort}") String reasoningEffort) {
 
         OpenAiChatOptions options = OpenAiChatOptions.builder()
                 .model(model)
                 .maxCompletionTokens(maxCompletionTokens)
-                .temperature(temperature)
+                .reasoningEffort(reasoningEffort)
                 .responseFormat(ResponseFormat.builder().type(ResponseFormat.Type.JSON_OBJECT).build())
                 .build();
 

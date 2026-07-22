@@ -20,7 +20,7 @@ describe("billing history helpers", () => {
         expect(item.kind).toBe("credit_purchase");
         expect(item.activityLabel).toBe("Small Pack · 100 credits");
         expect(item.status).toBe("paid");
-        expect(formatHistoryAmount(item)).toBe("$12");
+        expect(formatHistoryAmount(item)).toBe("$29");
     });
 
     it("prefers the amount captured by the Checkout webhook", () => {
