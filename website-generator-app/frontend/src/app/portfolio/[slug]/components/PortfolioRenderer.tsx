@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useMemo, useSyncExternalStore } from "react";
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+    useSyncExternalStore,
+} from "react";
 import Script from "next/script";
 import type { PublicPortfolioDTO, PublicSectionDTO } from "@/types/public-portfolio";
 import { transpileSection } from "@/utils/transpileSection";
@@ -10,8 +16,13 @@ interface Props {
     portfolio: PublicPortfolioDTO;
 }
 
+type TailwindRuntimeStatus = "loading" | "ready" | "error";
+
+const TAILWIND_CDN_URL = "https://cdn.tailwindcss.com";
+const TAILWIND_LOAD_TIMEOUT_MS = 20_000;
+
 // ---------------------------------------------------------------------------
-// Theme helpers — reused from the Sandpack Preview component
+// Theme helpers reused from the Sandpack Preview component
 // ---------------------------------------------------------------------------
 
 interface NormalizedTheme {
@@ -80,6 +91,9 @@ const buildGoogleFontsUrl = (
  * Tailwind CSS is loaded via CDN script to style the AI-generated markup.
  */
 const PortfolioRenderer = ({ portfolio }: Props) => {
+    const [tailwindStatus, setTailwindStatus] =
+        useState<TailwindRuntimeStatus>("loading");
+
     // Transpiled sections use browser APIs (window, document, canvas, etc.)
     // so we only render them after mount to avoid SSR hydration mismatches.
     const mounted = useSyncExternalStore(
@@ -87,6 +101,25 @@ const PortfolioRenderer = ({ portfolio }: Props) => {
         () => true,
         () => false,
     );
+
+    const handleTailwindReady = useCallback(() => {
+        setTailwindStatus("ready");
+    }, []);
+
+    const handleTailwindError = useCallback(() => {
+        setTailwindStatus("error");
+    }, []);
+
+    useEffect(() => {
+        if (tailwindStatus !== "loading") return;
+
+        const timeoutId = window.setTimeout(
+            handleTailwindError,
+            TAILWIND_LOAD_TIMEOUT_MS,
+        );
+
+        return () => window.clearTimeout(timeoutId);
+    }, [handleTailwindError, tailwindStatus]);
 
     const theme = useMemo(
         () => normalizeTheme(portfolio.globalTheme),
@@ -115,7 +148,7 @@ const PortfolioRenderer = ({ portfolio }: Props) => {
     // Sort sections by orderIndex, then transpile each one.
     // useMemo ensures we only re-transpile when sections actually change.
     const renderedSections = useMemo(() => {
-        if (!mounted) return null;
+        if (!mounted || tailwindStatus !== "ready") return null;
 
         const sorted = [...portfolio.sections].sort(
             (a, b) => a.orderIndex - b.orderIndex,
@@ -133,16 +166,20 @@ const PortfolioRenderer = ({ portfolio }: Props) => {
                 </SectionErrorBoundary>
             );
         });
-    }, [mounted, portfolio.sections, themeScope]);
+    }, [mounted, portfolio.sections, tailwindStatus, themeScope]);
 
     return (
         <>
-            {/* Tailwind CSS CDN — AI-generated sections use arbitrary classes
+            {/* Tailwind CSS CDN. AI-generated sections use arbitrary classes
                 that aren't in the app's source, so the build-time Tailwind
                 compiler won't generate them. The CDN JIT engine does. */}
             <Script
-                src="https://cdn.tailwindcss.com"
-                strategy="beforeInteractive"
+                id="portrn-tailwind-runtime"
+                src={TAILWIND_CDN_URL}
+                strategy="afterInteractive"
+                onLoad={handleTailwindReady}
+                onReady={handleTailwindReady}
+                onError={handleTailwindError}
             />
 
             {/* Google Fonts */}
@@ -172,9 +209,47 @@ const PortfolioRenderer = ({ portfolio }: Props) => {
             <div id="portfolio-root" className={`min-h-screen ${theme.background}`}>
                 <div className={theme.textPrimary}>
                     <main>
-                        {renderedSections ?? (
-                            <div className="flex items-center justify-center min-h-screen">
-                                <div className="w-10 h-10 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                        {tailwindStatus === "error" ? (
+                            <div
+                                role="alert"
+                                style={{
+                                    alignItems: "center",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "1rem",
+                                    justifyContent: "center",
+                                    minHeight: "100vh",
+                                    padding: "2rem",
+                                    textAlign: "center",
+                                }}
+                            >
+                                <p>Portfolio styles could not be loaded.</p>
+                                <button
+                                    type="button"
+                                    onClick={() => window.location.reload()}
+                                    style={{
+                                        border: "1px solid currentColor",
+                                        borderRadius: "0.5rem",
+                                        cursor: "pointer",
+                                        padding: "0.625rem 1rem",
+                                    }}
+                                >
+                                    Reload portfolio
+                                </button>
+                            </div>
+                        ) : renderedSections ? (
+                            renderedSections
+                        ) : (
+                            <div
+                                role="status"
+                                style={{
+                                    alignItems: "center",
+                                    display: "flex",
+                                    justifyContent: "center",
+                                    minHeight: "100vh",
+                                }}
+                            >
+                                Loading portfolio…
                             </div>
                         )}
                     </main>
