@@ -2,6 +2,7 @@ package com.webgen.webgen_backend.notification.service.job;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
+import com.webgen.webgen_backend.notification.config.NotificationEmailProperties;
 import com.webgen.webgen_backend.notification.config.ResendProperties;
 import com.webgen.webgen_backend.notification.entity.Notification;
 import com.webgen.webgen_backend.notification.entity.NotificationEmailDelivery;
@@ -9,6 +10,7 @@ import com.webgen.webgen_backend.notification.service.NotificationService;
 import com.webgen.webgen_backend.notification.service.impl.NotificationEmailDeliveryService;
 import com.webgen.webgen_backend.notification.service.impl.ResendEmailClient;
 import com.webgen.webgen_backend.notification.service.impl.ResendNotificationEmailSender;
+import com.webgen.webgen_backend.notification.service.template.NotificationEmailContentFactory;
 import com.webgen.webgen_backend.portfolio.entity.Portfolio;
 import com.webgen.webgen_backend.profile.entity.Profile;
 import org.junit.jupiter.api.Test;
@@ -26,6 +28,8 @@ class NotificationEmailWorkerTest {
     private static final long DELIVERY_TAG = 42L;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final NotificationEmailContentFactory contentFactory =
+            new NotificationEmailContentFactory(notificationEmailProperties());
 
     @Test
     void handleNotificationEmailSendsEmailAndMarksDeliverySent() throws Exception {
@@ -34,7 +38,7 @@ class NotificationEmailWorkerTest {
         deliveryService.claimedDelivery = Optional.of(delivery(deliveryId, "recipient@example.com"));
         RecordingEmailSender emailSender = new RecordingEmailSender();
         RecordingChannel channel = new RecordingChannel();
-        NotificationEmailWorker worker = new NotificationEmailWorker(deliveryService, emailSender);
+        NotificationEmailWorker worker = new NotificationEmailWorker(deliveryService, emailSender, contentFactory);
 
         worker.handleNotificationEmail(message(deliveryId), channel.proxy(), DELIVERY_TAG);
 
@@ -42,6 +46,8 @@ class NotificationEmailWorkerTest {
         assertThat(emailSender.recipientEmail).isEqualTo("recipient@example.com");
         assertThat(emailSender.subject).isEqualTo("Actor Name commented on your portfolio");
         assertThat(emailSender.htmlBody).contains("Nice work");
+        assertThat(emailSender.htmlBody).contains("PortRN", "#CC7D23", "View portfolio");
+        assertThat(emailSender.htmlBody).contains("https://www.portrn.com/explore/launch-portfolio");
         assertThat(emailSender.textBody).contains("Nice work");
         assertThat(deliveryService.markSentId).isEqualTo(deliveryId);
         assertThat(deliveryService.providerMessageId).isEqualTo("email_123");
@@ -56,7 +62,7 @@ class NotificationEmailWorkerTest {
         deliveryService.claimedDelivery = Optional.of(delivery(deliveryId, " "));
         RecordingEmailSender emailSender = new RecordingEmailSender();
         RecordingChannel channel = new RecordingChannel();
-        NotificationEmailWorker worker = new NotificationEmailWorker(deliveryService, emailSender);
+        NotificationEmailWorker worker = new NotificationEmailWorker(deliveryService, emailSender, contentFactory);
 
         worker.handleNotificationEmail(message(deliveryId), channel.proxy(), DELIVERY_TAG);
 
@@ -75,7 +81,7 @@ class NotificationEmailWorkerTest {
         RecordingEmailSender emailSender = new RecordingEmailSender();
         emailSender.failure = new IllegalStateException("Provider unavailable");
         RecordingChannel channel = new RecordingChannel();
-        NotificationEmailWorker worker = new NotificationEmailWorker(deliveryService, emailSender);
+        NotificationEmailWorker worker = new NotificationEmailWorker(deliveryService, emailSender, contentFactory);
 
         worker.handleNotificationEmail(message(deliveryId), channel.proxy(), DELIVERY_TAG);
 
@@ -96,7 +102,7 @@ class NotificationEmailWorkerTest {
                 "Failed to send notification email",
                 new RuntimeException("The from address is not verified"));
         RecordingChannel channel = new RecordingChannel();
-        NotificationEmailWorker worker = new NotificationEmailWorker(deliveryService, emailSender);
+        NotificationEmailWorker worker = new NotificationEmailWorker(deliveryService, emailSender, contentFactory);
 
         worker.handleNotificationEmail(message(deliveryId), channel.proxy(), DELIVERY_TAG);
 
@@ -113,7 +119,7 @@ class NotificationEmailWorkerTest {
         deliveryService.claimedDelivery = Optional.empty();
         RecordingEmailSender emailSender = new RecordingEmailSender();
         RecordingChannel channel = new RecordingChannel();
-        NotificationEmailWorker worker = new NotificationEmailWorker(deliveryService, emailSender);
+        NotificationEmailWorker worker = new NotificationEmailWorker(deliveryService, emailSender, contentFactory);
 
         worker.handleNotificationEmail(message(deliveryId), channel.proxy(), DELIVERY_TAG);
 
@@ -127,7 +133,7 @@ class NotificationEmailWorkerTest {
         RecordingDeliveryService deliveryService = new RecordingDeliveryService();
         RecordingEmailSender emailSender = new RecordingEmailSender();
         RecordingChannel channel = new RecordingChannel();
-        NotificationEmailWorker worker = new NotificationEmailWorker(deliveryService, emailSender);
+        NotificationEmailWorker worker = new NotificationEmailWorker(deliveryService, emailSender, contentFactory);
 
         worker.handleNotificationEmail(new NotificationEmailDeliveryMessage(), channel.proxy(), DELIVERY_TAG);
 
@@ -157,6 +163,7 @@ class NotificationEmailWorkerTest {
         Portfolio portfolio = new Portfolio();
         portfolio.setId(UUID.randomUUID());
         portfolio.setTitle("Launch Portfolio");
+        portfolio.setSlug("launch-portfolio");
 
         Notification notification = Notification.builder()
                 .id(UUID.randomUUID())
@@ -179,6 +186,13 @@ class NotificationEmailWorkerTest {
                 .createdAt(OffsetDateTime.now(ZoneOffset.UTC))
                 .updatedAt(OffsetDateTime.now(ZoneOffset.UTC))
                 .build();
+    }
+
+    private NotificationEmailProperties notificationEmailProperties() {
+        NotificationEmailProperties properties = new NotificationEmailProperties();
+        properties.setAppBaseUrl("https://www.portrn.com");
+        properties.setLogoUrl("https://www.portrn.com/branding/portrn-logo.png");
+        return properties;
     }
 
     private static class RecordingDeliveryService extends NotificationEmailDeliveryService {

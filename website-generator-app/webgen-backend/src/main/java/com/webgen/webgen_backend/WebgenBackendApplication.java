@@ -2,6 +2,7 @@ package com.webgen.webgen_backend;
 
 import com.webgen.webgen_backend.billing.config.BillingCreditProperties;
 import com.webgen.webgen_backend.billing.config.StripeProperties;
+import com.webgen.webgen_backend.notification.config.NotificationEmailProperties;
 import com.webgen.webgen_backend.notification.config.ResendProperties;
 import com.webgen.webgen_backend.shared.config.R2Properties;
 import org.springframework.boot.SpringApplication;
@@ -16,6 +17,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 		BillingCreditProperties.class,
 		StripeProperties.class,
 		R2Properties.class,
+		NotificationEmailProperties.class,
 		ResendProperties.class
 })
 public class WebgenBackendApplication {

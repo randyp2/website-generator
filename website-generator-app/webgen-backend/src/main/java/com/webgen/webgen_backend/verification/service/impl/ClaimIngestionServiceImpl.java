@@ -14,6 +14,7 @@ import com.webgen.webgen_backend.verification.repository.SkillRepository;
 import com.webgen.webgen_backend.verification.service.ClaimEvidenceReadService;
 import com.webgen.webgen_backend.verification.service.ClaimIngestionService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +34,7 @@ import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ClaimIngestionServiceImpl implements ClaimIngestionService {
 
 
@@ -69,8 +71,6 @@ public class ClaimIngestionServiceImpl implements ClaimIngestionService {
         }
 
         // --- Ingest the raw skills into the claims table
-        System.out.println(">>> [CLAIM INGESTION] Starting ingestion of " + rawSkills.size() + " raw skills");
-
         int upserted = 0;
         int matched = 0;
         int unmatched = 0;
@@ -82,7 +82,6 @@ public class ClaimIngestionServiceImpl implements ClaimIngestionService {
             // Pre-normalize: expand "Languages: React/Redux (Hooks)" into
             // individual candidates like ["React", "Redux", "Hooks"]
             List<String> candidates = normalizeAndSplit(trimmed);
-            System.out.println(">>>   [NORMALIZE] \"" + trimmed + "\" -> " + candidates);
 
             for (String candidate : candidates) {
 
@@ -131,8 +130,8 @@ public class ClaimIngestionServiceImpl implements ClaimIngestionService {
             } 
         }
 
-        System.out.println(">>> [CLAIM INGESTION] Complete: " + upserted + " claims upserted, "
-                + matched + " matched to canonical skills, " + unmatched + " unmatched");
+        log.info("Claim ingestion complete profileId={} upserted={} matched={} unmatched={}",
+                profileId, upserted, matched, unmatched);
 
         return upserted;
     }
@@ -440,19 +439,16 @@ public class ClaimIngestionServiceImpl implements ClaimIngestionService {
         // --- Exact match
         Optional<Skill> exactSkill = skillRepository.findByNameIgnoreCase(rawSkill);
         if (exactSkill.isPresent()) {
-            System.out.println(">>>   [RESOLVE] \"" + rawSkill + "\" -> exact match -> \"" + exactSkill.get().getName() + "\" (" + exactSkill.get().getId() + ")");
             return exactSkill.get().getId();
         }
 
         // --- Use skill alias table
         Optional<Skill> aliasSkill = skillRepository.findByAliasIgnoreCase(rawSkill);
         if (aliasSkill.isPresent()) {
-            System.out.println(">>>   [RESOLVE] \"" + rawSkill + "\" -> alias match -> \"" + aliasSkill.get().getName() + "\" (" + aliasSkill.get().getId() + ")");
             return aliasSkill.get().getId();
         }
 
         // --- No match found | TODO: resolve later
-        System.out.println(">>>   [RESOLVE] \"" + rawSkill + "\" -> NO MATCH");
         return null;
     }
 }

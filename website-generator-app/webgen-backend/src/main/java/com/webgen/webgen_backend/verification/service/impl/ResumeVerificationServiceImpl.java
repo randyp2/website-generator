@@ -38,7 +38,6 @@ public class ResumeVerificationServiceImpl implements ResumeVerificationService 
     @Override
     public ResumeVerificationDTO uploadResumeVerification(UUID userId, UploadResumeVerificationRequestDTO request) {
         accountDeletionStateService.assertAccountActive(userId);
-        System.out.println(">>> [RESUME VERIFICATION SERVICE] entered upload resume verification serviced");
         validateRequest(request);
         Profile profile = resolveOrCreateProfile(userId);
 
@@ -66,7 +65,6 @@ public class ResumeVerificationServiceImpl implements ResumeVerificationService 
         resumeVerification.setUpdatedAt(now);
 
         ResumeVerification saved = resumeVerificationRepository.save(resumeVerification);
-        System.out.println(">>> [RESUME VERIFICATION SERVICE] successfully saved");
         return resumeVerificationMapper.toDto(saved);
     }
 
@@ -102,7 +100,6 @@ public class ResumeVerificationServiceImpl implements ResumeVerificationService 
     }
 
     private void validateRequest(UploadResumeVerificationRequestDTO request) {
-        System.out.println(">>> [RESUME VERIFICATION SERVICE] request validating...");
         if (request == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request body is required");
         }
@@ -126,6 +123,5 @@ public class ResumeVerificationServiceImpl implements ResumeVerificationService 
         if (request.getFileSizeBytes() == null || request.getFileSizeBytes() < 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fileSizeBytes must be >= 0");
         }
-        System.out.println(">>> [RESUME VERIFICATION SERVICE] request validated!");
     }
 }
