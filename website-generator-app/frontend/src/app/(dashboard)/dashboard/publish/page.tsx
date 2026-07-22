@@ -44,8 +44,13 @@ const PublishPage = () => {
     const featuredDescription = featuredPortfolio?.description ?? "";
 
     const handlePublished = useCallback(
-        (portfolioId: string, slug: string, description: string): void => {
-            applyPublished({ portfolioId, slug, description });
+        (
+            portfolioId: string,
+            slug: string,
+            description: string,
+            screenshotUrl: string | null,
+        ): void => {
+            applyPublished({ portfolioId, slug, description, screenshotUrl });
             setFeaturedPortfolioId(portfolioId);
             void reload();
         },

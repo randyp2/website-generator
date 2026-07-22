@@ -10,6 +10,7 @@ interface PublishedPatch {
   portfolioId: string
   slug: string
   description: string
+  screenshotUrl: string | null
 }
 
 interface UsePublishMutationsArgs {
@@ -35,13 +36,13 @@ export const usePublishMutations = ({
   setPortfolios,
 }: UsePublishMutationsArgs): UsePublishMutationsResult => {
   const applyPublished = useCallback(
-    ({ portfolioId, slug, description }: PublishedPatch): void => {
+    ({ portfolioId, slug, description, screenshotUrl }: PublishedPatch): void => {
       setPortfolios((prev) =>
         updatePortfolioById(prev, portfolioId, {
           status: "publish",
           slug,
           description: description.trim() || null,
-          screenshot_url: null,
+          screenshot_url: screenshotUrl,
           updated_at: new Date().toISOString(),
         }),
       )

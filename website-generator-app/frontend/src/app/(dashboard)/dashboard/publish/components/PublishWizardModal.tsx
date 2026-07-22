@@ -56,6 +56,7 @@ interface PublishWizardModalProps {
         portfolioId: string,
         slug: string,
         description: string,
+        screenshotUrl: string | null,
     ) => void;
 }
 
@@ -350,6 +351,11 @@ export const PublishWizardModal = ({
                     : selectedPortfolio
                       ? String(selectedPortfolio.id)
                       : null;
+            const responseScreenshotUrl =
+                typeof data?.screenshotUrl === "string" &&
+                data.screenshotUrl.trim()
+                    ? data.screenshotUrl.trim()
+                    : null;
 
             if (!responseSlug || !responsePortfolioId) {
                 throw new Error("Publish response missing required fields.");
@@ -357,7 +363,12 @@ export const PublishWizardModal = ({
 
             setPublishedSlug(responseSlug);
             setPublishState("success");
-            onPublished(responsePortfolioId, responseSlug, descriptionInput);
+            onPublished(
+                responsePortfolioId,
+                responseSlug,
+                descriptionInput,
+                responseScreenshotUrl,
+            );
             setTimeout(() => {
                 onClose();
             }, 1800);

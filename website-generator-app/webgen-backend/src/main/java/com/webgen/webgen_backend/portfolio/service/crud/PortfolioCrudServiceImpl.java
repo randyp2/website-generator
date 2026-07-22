@@ -324,12 +324,21 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         if (activeVersionId == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Portfolio has no version to publish");
 
+        GeneratedVersion activeVersion = generatedVersionRepository
+                .findByIdAndPortfolio_Id(activeVersionId, portfolioId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "Active portfolio version was not found"
+                ));
+
         portfolio.setPublishedVersionId(activeVersionId);
+        boolean reusedVersionPreview = applyVersionPreview(portfolio, activeVersion);
         portfolio.setUpdatedAt(OffsetDateTime.now()); // last publish date
         portfolioRepository.save(portfolio);
 
-        // Live content changed: refresh the explore-card screenshot
-        queueScreenshotJob(portfolio.getId(), portfolio.getSlug(), null, portfolio.getPublishedVersionId());
+        if (!reusedVersionPreview) {
+            queueScreenshotJob(portfolio.getId(), portfolio.getSlug(), null, portfolio.getPublishedVersionId());
+        }
 
         return new ActivateVersionResponseDTO(portfolioId, activeVersionId);
     }
@@ -429,6 +438,16 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
             portfolio.setDescription(normalizeDescription(request.getDescription()));
         }
 
+        UUID publishedVersionId = portfolio.getActiveVersionId();
+        GeneratedVersion publishedVersion = publishedVersionId == null
+                ? null
+                : generatedVersionRepository
+                        .findByIdAndPortfolio_Id(publishedVersionId, portfolioId)
+                        .orElseThrow(() -> new ResponseStatusException(
+                                HttpStatus.CONFLICT,
+                                "Active portfolio version was not found"
+                        ));
+
         // Update portfolio metadata
         portfolio.setSlug(slug);
         portfolio.setSourceType(PublishRequestDTO.SourceType.GENERATED.name());
@@ -437,12 +456,15 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
         portfolio.setLastStep("publish");
         // Pin what visitors see to the version being published; later
         // refinements stay private until publishActiveVersion re-pins
-        portfolio.setPublishedVersionId(portfolio.getActiveVersionId());
+        portfolio.setPublishedVersionId(publishedVersionId);
+        boolean reusedVersionPreview = applyVersionPreview(portfolio, publishedVersion);
         portfolio.setUpdatedAt(OffsetDateTime.now()); // last publish date
-        portfolioRepository.save(portfolio);
+        Portfolio saved = portfolioRepository.save(portfolio);
 
-        queueScreenshotJob(portfolio.getId(), slug, null, portfolio.getPublishedVersionId());
-        return buildPublishResponse(portfolio, PublishRequestDTO.SourceType.GENERATED);
+        if (!reusedVersionPreview) {
+            queueScreenshotJob(saved.getId(), slug, null, saved.getPublishedVersionId());
+        }
+        return buildPublishResponse(saved, PublishRequestDTO.SourceType.GENERATED);
     }
 
     /**
@@ -569,6 +591,22 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
     }
 
     /**
+     * Reuses the immutable generated-version preview for portfolio cards.
+     * A missing preview clears any stale screenshot so the fallback capture
+     * can replace it with the newly published version.
+     */
+    private boolean applyVersionPreview(Portfolio portfolio, GeneratedVersion version) {
+        String previewUrl = version == null ? null : version.getPreviewUrl();
+        if (previewUrl == null || previewUrl.isBlank()) {
+            portfolio.setScreenshotUrl(null);
+            return false;
+        }
+
+        portfolio.setScreenshotUrl(previewUrl.trim());
+        return true;
+    }
+
+    /**
      * Builds a standardized publish response for generated and external sources.
      *
      * @param portfolio persisted portfolio entity
@@ -581,7 +619,8 @@ public class PortfolioCrudServiceImpl implements PortfolioCrudService {
                 portfolio.getSlug(),
                 "publish",
                 sourceType,
-                portfolio.getExternalUrl()
+                portfolio.getExternalUrl(),
+                portfolio.getScreenshotUrl()
         );
     }
 
