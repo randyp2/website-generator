@@ -35,6 +35,7 @@ export const GET = async (
         `${backendUrl}/api/v1/portfolio/jobs/${jobId}/sections?after=${after}`,
         {
             method: "GET",
+            cache: "no-store",
             headers: {
                 Authorization: `Bearer ${session_token}`,
             },

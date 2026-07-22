@@ -21,6 +21,10 @@ import {
     type ActiveGenerationJob,
 } from "@/stores/useGenerationJobStore";
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
+import {
+    GenerationPollingGuard,
+    type GenerationPollingStopReason,
+} from "@/lib/generation-polling";
 
 interface LoadPortfolioResponse {
     sections?: SectionDTO[] | null;
@@ -54,6 +58,13 @@ const DEFAULT_GENERATION_PROMPT: string =
 
 const POLL_INTERVAL_MS: number = 3000; // 3 seconds
 const REFUND_REFRESH_DELAY_MS = 1_000;
+
+const POLLING_FAILURE_MESSAGES: Record<GenerationPollingStopReason, string> = {
+    TIMEOUT: "Generation did not finish in time. Check your saved portfolio before trying again.",
+    AUTHORIZATION: "Your session expired while generation was running. Sign in again to check it.",
+    MISSING: "Generation status expired before completion was confirmed. Check your saved portfolio before trying again.",
+    UNAVAILABLE: "The generation service could not be reached. Check your saved portfolio before trying again.",
+};
 
 const STATUS_LABELS: Record<string, string> = {
     QUEUED: "Queued...",
@@ -142,22 +153,94 @@ export const useInitialPortfolioGeneration = ({
             jobId: string,
             tempMessageId: string,
             initialOffset: number = 0,
+            startedAt: number = Date.now(),
         ): void => {
             let sectionOffset = initialOffset;
+            let pollInFlight = false;
+            const guard = new GenerationPollingGuard(startedAt);
+
+            const stopTimer = (): void => {
+                if (pollTimer) clearInterval(pollTimer);
+            };
+
+            const finishSuccessfully = async (
+                loadPortfolio: boolean = true,
+            ): Promise<void> => {
+                stopTimer();
+                setGenerationPhase(null);
+                useGenerationJobStore.getState().clearJob();
+                if (loadPortfolio) await loadSavedPortfolio();
+
+                const doneMessage: Message = createAiMessage(
+                    "Portfolio generated successfully!",
+                    {
+                        id: `ai-${Date.now()}`,
+                        isGenerating: false,
+                    },
+                );
+                setMessages((prev) =>
+                    prev
+                        .filter((message) => message.id !== tempMessageId)
+                        .concat(doneMessage),
+                );
+            };
+
+            const finishWithFailure = (
+                message: string,
+                refreshRefund: boolean,
+            ): void => {
+                stopTimer();
+                setGenerationPhase(null);
+                useGenerationJobStore.getState().clearJob();
+                if (refreshRefund) refreshBillingAfterRefund();
+
+                const errorMessage: Message = createAiMessage(message, {
+                    id: `ai-${Date.now()}`,
+                    isGenerating: false,
+                });
+                setMessages((prev) =>
+                    prev
+                        .filter((item) => item.id !== tempMessageId)
+                        .concat(errorMessage),
+                );
+            };
+
+            const stopWithoutTerminalStatus = async (
+                reason: GenerationPollingStopReason,
+            ): Promise<void> => {
+                stopTimer();
+                const recovered =
+                    reason !== "AUTHORIZATION" && (await loadSavedPortfolio());
+                if (recovered) {
+                    await finishSuccessfully(false);
+                    return;
+                }
+                finishWithFailure(POLLING_FAILURE_MESSAGES[reason], false);
+            };
 
             pollTimer = setInterval(async () => {
                 if (cancelled) {
-                    if (pollTimer) clearInterval(pollTimer);
+                    stopTimer();
+                    return;
+                }
+                if (pollInFlight) return;
+
+                const deadlineReason = guard.stopReason();
+                if (deadlineReason) {
+                    await stopWithoutTerminalStatus(deadlineReason);
                     return;
                 }
 
+                pollInFlight = true;
                 try {
                     // Fetch completed sections since our last offset
                     const sectionsRes: Response = await fetch(
                         `/api/portfolio/jobs/${jobId}/sections?after=${sectionOffset}`,
+                        { cache: "no-store" },
                     );
 
                     if (sectionsRes.ok) {
+                        guard.recordResponse(sectionsRes.status);
                         const sectionsData =
                             (await sectionsRes.json()) as CompletedSectionsResponse;
 
@@ -196,53 +279,30 @@ export const useInitialPortfolioGeneration = ({
                         );
 
                         if (sectionsData.status === "COMPLETED") {
-                            if (pollTimer) clearInterval(pollTimer);
-                            setGenerationPhase(null);
-                            useGenerationJobStore.getState().clearJob();
-
-                            // Final load to sync global theme + catch any missed sections
-                            await loadSavedPortfolio();
-
-                            const done_message: Message = createAiMessage(
-                                "Portfolio generated successfully!",
-                                {
-                                    id: `ai-${Date.now()}`,
-                                    isGenerating: false,
-                                },
-                            );
-
-                            setMessages((prev) =>
-                                prev
-                                    .filter((m) => m.id !== tempMessageId)
-                                    .concat(done_message),
-                            );
+                            await finishSuccessfully();
+                            return;
                         }
 
                         if (sectionsData.status === "FAILED") {
-                            if (pollTimer) clearInterval(pollTimer);
-                            setGenerationPhase(null);
-                            useGenerationJobStore.getState().clearJob();
-                            refreshBillingAfterRefund();
-
-                            const error_message: Message = createAiMessage(
+                            finishWithFailure(
                                 "Generation failed. Please try again.",
-                                {
-                                    id: `ai-${Date.now()}`,
-                                    isGenerating: false,
-                                },
+                                true,
                             );
-
-                            setMessages((prev) =>
-                                prev
-                                    .filter((m) => m.id !== tempMessageId)
-                                    .concat(error_message),
-                            );
+                            return;
                         }
                     } else {
                         // Fallback: fetch job status only
                         const statusRes: Response = await fetch(
                             `/api/portfolio/jobs/status/${jobId}`,
+                            { cache: "no-store" },
                         );
+                        const responseReason = guard.recordResponse(
+                            statusRes.status,
+                        );
+                        if (responseReason) {
+                            await stopWithoutTerminalStatus(responseReason);
+                            return;
+                        }
                         if (!statusRes.ok) return;
 
                         const jobStatus =
@@ -261,47 +321,26 @@ export const useInitialPortfolioGeneration = ({
                         );
 
                         if (jobStatus.status === "COMPLETED") {
-                            if (pollTimer) clearInterval(pollTimer);
-                            setGenerationPhase(null);
-                            useGenerationJobStore.getState().clearJob();
-                            await loadSavedPortfolio();
-
-                            const done_message: Message = createAiMessage(
-                                "Portfolio generated successfully!",
-                                {
-                                    id: `ai-${Date.now()}`,
-                                    isGenerating: false,
-                                },
-                            );
-                            setMessages((prev) =>
-                                prev
-                                    .filter((m) => m.id !== tempMessageId)
-                                    .concat(done_message),
-                            );
+                            await finishSuccessfully();
+                            return;
                         }
 
                         if (jobStatus.status === "FAILED") {
-                            if (pollTimer) clearInterval(pollTimer);
-                            setGenerationPhase(null);
-                            useGenerationJobStore.getState().clearJob();
-                            refreshBillingAfterRefund();
-
-                            const error_message: Message = createAiMessage(
+                            finishWithFailure(
                                 "Generation failed. Please try again.",
-                                {
-                                    id: `ai-${Date.now()}`,
-                                    isGenerating: false,
-                                },
+                                true,
                             );
-                            setMessages((prev) =>
-                                prev
-                                    .filter((m) => m.id !== tempMessageId)
-                                    .concat(error_message),
-                            );
+                            return;
                         }
                     }
                 } catch (err) {
                     console.error("[poll] Status check failed: ", err);
+                    const failureReason = guard.recordNetworkFailure();
+                    if (failureReason) {
+                        await stopWithoutTerminalStatus(failureReason);
+                    }
+                } finally {
+                    pollInFlight = false;
                 }
             }, POLL_INTERVAL_MS);
         };
@@ -319,6 +358,7 @@ export const useInitialPortfolioGeneration = ({
             try {
                 const statusRes = await fetch(
                     `/api/portfolio/jobs/status/${job.jobId}`,
+                    { cache: "no-store" },
                 );
                 if (statusRes.status === 404 || statusRes.status === 410) {
                     useGenerationJobStore.getState().clearJob();
@@ -334,7 +374,12 @@ export const useInitialPortfolioGeneration = ({
                 prev.filter((m) => !m.isGenerating).concat(throbber),
             );
             setGenerationPhase("GENERATING");
-            pollJobStatus(job.jobId, throbber.id, sectionsRef.current?.length ?? 0);
+            pollJobStatus(
+                job.jobId,
+                throbber.id,
+                sectionsRef.current?.length ?? 0,
+                job.startedAt,
+            );
         };
 
         const generate = async (): Promise<void> => {
@@ -416,12 +461,14 @@ export const useInitialPortfolioGeneration = ({
 
                 // Start polling for status + sections
                 const { jobId } = (await response.json()) as { jobId: string };
+                const startedAt = Date.now();
                 useGenerationJobStore.getState().startJob({
                     jobId,
                     portfolioId,
                     kind: "generate",
+                    startedAt,
                 });
-                pollJobStatus(jobId, tempAiMessage.id);
+                pollJobStatus(jobId, tempAiMessage.id, 0, startedAt);
             } catch (err: unknown) {
                 console.error("[generate] Failed to start generation:", err);
                 const errorMsg = createAiMessage(
