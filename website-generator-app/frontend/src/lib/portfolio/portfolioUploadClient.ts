@@ -45,6 +45,20 @@ export interface PortfolioFinalizeResponse {
     portfolioId?: string;
 }
 
+// Spring's default error body puts only the generic HTTP reason phrase in
+// `error` (e.g. "Bad Request"), which tells the user nothing. Skip those so the
+// friendlier fallback wins until a specific `message`/`detail` is available.
+const GENERIC_ERROR_PHRASES = new Set([
+    "bad request",
+    "unauthorized",
+    "forbidden",
+    "not found",
+    "conflict",
+    "internal server error",
+    "bad gateway",
+    "service unavailable",
+]);
+
 const readErrorMessage = async (
     response: Response,
     fallback: string,
@@ -54,9 +68,16 @@ const readErrorMessage = async (
     try {
         const payload: unknown = JSON.parse(rawBody);
         if (typeof payload === "object" && payload !== null) {
-            for (const key of ["error", "message", "detail"] as const) {
+            // Prefer specific fields; `error` is the generic reason phrase.
+            for (const key of ["message", "detail", "error"] as const) {
                 const value = (payload as Record<string, unknown>)[key];
-                if (typeof value === "string" && value.trim()) return value;
+                if (
+                    typeof value === "string" &&
+                    value.trim() &&
+                    !GENERIC_ERROR_PHRASES.has(value.trim().toLowerCase())
+                ) {
+                    return value;
+                }
             }
         }
     } catch {
