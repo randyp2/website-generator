@@ -14,10 +14,6 @@ import { FiUser } from "react-icons/fi"
 
 import { GradientWaveBanner } from "./GradientWaveBanner"
 
-const PROFILE_MOCK_DATA = {
-  bio: "Creative designer and developer passionate about building beautiful digital experiences. Specializing in portfolio design and web development.",
-} as const
-
 const EMPTY_SOCIAL_STATS = {
   followersCount: 0,
   followingCount: 0,
@@ -97,7 +93,7 @@ const ProfileHeader = ({
   onFollowingClick,
 }: ProfileHeaderProps) => {
   const initials = getInitials(username)
-  const displayBio = bio?.trim() || PROFILE_MOCK_DATA.bio
+  const displayBio = nonEmpty(bio)
   const cleanHandle = nonEmpty(handle)
   const showHandle =
     cleanHandle !== null &&
@@ -220,9 +216,11 @@ const ProfileHeader = ({
           )}
 
           {/* Bio */}
-          <p className="max-w-md text-center text-sm text-muted-foreground sm:text-left">
-            {displayBio}
-          </p>
+          {displayBio && (
+            <p className="max-w-md text-center text-sm text-muted-foreground sm:text-left">
+              {displayBio}
+            </p>
+          )}
 
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-3 pt-1">

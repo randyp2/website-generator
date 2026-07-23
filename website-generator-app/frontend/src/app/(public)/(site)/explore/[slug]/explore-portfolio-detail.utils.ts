@@ -132,13 +132,3 @@ export const getPortfolioDescriptionSnippet = (
   const ownerName = portfolio.ownerName ?? "an independent creator";
   return `Preview ${portfolio.title} by ${ownerName} before opening the full portfolio.`;
 };
-
-export const getPortfolioDescription = (portfolio: ExplorePortfolioDetail): string[] => {
-  const templateLabel = getTemplateLabel(portfolio.templateId).toLowerCase();
-  const ownerName = getPortfolioOwnerName(portfolio);
-
-  return [
-    `${portfolio.title} is presented as a ${templateLabel} portfolio by ${ownerName}. This section is intentionally structured like a portfolio summary mockup, with room for a short positioning statement, project context, and the kind of work this creator wants to highlight most.`,
-    "Replace this placeholder copy with a real narrative about the creator, the audience they want to reach, and the proof points that make the portfolio worth exploring. For now, it gives the explore page a clean intermediate step between the gallery card and the live portfolio.",
-  ];
-};
