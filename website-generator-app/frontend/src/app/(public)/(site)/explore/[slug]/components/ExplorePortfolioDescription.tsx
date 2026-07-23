@@ -1,7 +1,6 @@
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkBreaks from "remark-breaks";
 
-import { getPortfolioDescription } from "../explore-portfolio-detail.utils";
 import type { ExplorePortfolioDetail } from "../explore-portfolio-detail.types";
 
 interface ExplorePortfolioDescriptionProps {
@@ -54,8 +53,8 @@ export const ExplorePortfolioDescription = ({
   linksEnabled = true,
 }: ExplorePortfolioDescriptionProps) => {
   const markdownDescription = portfolio.description?.trim() ?? "";
-  const hasMarkdownDescription = markdownDescription.length > 0;
-  const descriptionParagraphs = getPortfolioDescription(portfolio);
+  if (!markdownDescription) return null;
+
   const components: Components = linksEnabled
     ? markdownComponents
     : {
@@ -75,19 +74,11 @@ export const ExplorePortfolioDescription = ({
       <h2 className="mt-3 text-2xl font-semibold tracking-tight text-foreground">
         About This Portfolio
       </h2>
-      {hasMarkdownDescription ? (
-        <div className="mt-4 space-y-3">
-          <ReactMarkdown remarkPlugins={[remarkBreaks]} components={components}>
-            {markdownDescription}
-          </ReactMarkdown>
-        </div>
-      ) : (
-        descriptionParagraphs.map((paragraph, index) => (
-          <p key={`${index}-${paragraph}`} className="mt-4 text-sm leading-7 text-muted-foreground sm:text-base">
-            {paragraph}
-          </p>
-        ))
-      )}
+      <div className="mt-4 space-y-3">
+        <ReactMarkdown remarkPlugins={[remarkBreaks]} components={components}>
+          {markdownDescription}
+        </ReactMarkdown>
+      </div>
     </article>
   );
 };
