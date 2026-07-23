@@ -95,4 +95,79 @@ describe("useRefineChat", () => {
         act(() => result.current.closeInsufficientCreditsModal());
         expect(result.current.isInsufficientCreditsModalOpen).toBe(false);
     });
+
+    it("continues an already paid refinement session when no allowance remains", async () => {
+        queryClient.setQueryData(profileMeQueryKey, {
+            billing: {
+                creditEnforcementEnabled: true,
+                creditBalance: 0,
+                portfolioRefinementAllowanceRemaining: 0,
+            },
+        });
+        usePortfolioStore
+            .getState()
+            .setRefineSessionId("existing-refinement-session");
+        fetchMock.mockResolvedValue(
+            new Response(
+                JSON.stringify({
+                    assistantMessage: "I have added that detail to the request.",
+                    sessionId: "existing-refinement-session",
+                    readyForPlanning: false,
+                }),
+                {
+                    status: 200,
+                    headers: { "Content-Type": "application/json" },
+                },
+            ),
+        );
+        const wrapper = ({ children }: { children: ReactNode }) => (
+            <QueryClientProvider client={queryClient}>
+                {children}
+            </QueryClientProvider>
+        );
+        const { result } = renderHook(
+            () =>
+                useRefineChat({
+                    portfolioId: "portfolio-1",
+                    sections: [],
+                    mediaFilesCount: 0,
+                    videoFilesCount: 0,
+                    setSections: vi.fn(),
+                    setGlobalTheme: vi.fn(),
+                    setMessages: (updater) => {
+                        messages =
+                            typeof updater === "function"
+                                ? updater(messages)
+                                : updater;
+                    },
+                    removeMediaFile: vi.fn(),
+                    removeVideoFile: vi.fn(),
+                }),
+            { wrapper },
+        );
+
+        await act(async () => {
+            await result.current.sendMessage("Add it as a new section", []);
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(
+            "/api/portfolio/portfolio-1/refine/clarify",
+            expect.objectContaining({
+                method: "POST",
+                body: expect.stringContaining(
+                    '"sessionId":"existing-refinement-session"',
+                ),
+            }),
+        );
+        expect(result.current.isInsufficientCreditsModalOpen).toBe(false);
+        expect(messages).toHaveLength(2);
+        expect(messages[0]).toMatchObject({
+            role: "user",
+            content: "Add it as a new section",
+        });
+        expect(messages[1]).toMatchObject({
+            role: "ai",
+            content: "I have added that detail to the request.",
+        });
+    });
 });

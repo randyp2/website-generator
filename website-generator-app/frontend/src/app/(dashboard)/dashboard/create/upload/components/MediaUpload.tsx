@@ -2,6 +2,7 @@
 
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
 import { UploadedFile } from "@/types/file";
+import { formatMaxSizeLabel } from "@/lib/portfolio/portfolioUploadPolicy";
 import { formatFileSize } from "@/utils/fileHelpers";
 import { motion } from "framer-motion";
 import React, { useEffect, useState } from "react";
@@ -99,7 +100,7 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
         <div>
           <h2 className="text-xl font-bold text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">Media Files</h2>
           <p className="text-sm text-white/60">
-            JPG, PNG images for your portfolio
+            JPG, PNG images • up to {formatMaxSizeLabel("image")}
           </p>
         </div>
       </div>
@@ -124,7 +125,8 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
               Click to upload images
             </p>
             <p className="text-sm text-white/60">
-              Supports JPG and PNG files (multiple allowed)
+              Supports JPG and PNG files up to {formatMaxSizeLabel("image")} each
+              (multiple allowed)
             </p>
           </motion.div>
         </label>

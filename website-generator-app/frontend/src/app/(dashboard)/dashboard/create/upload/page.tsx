@@ -20,7 +20,9 @@ import {
     parseUploadedResume,
     uploadPortfolioFiles,
     type PortfolioUploadCandidate,
+    type PortfolioUploadKind,
 } from "@/lib/portfolio/portfolioUploadClient";
+import { validatePortfolioUploadFile } from "@/lib/portfolio/portfolioUploadPolicy";
 
 const UploadPage: React.FC = () => {
     const router = useRouter();
@@ -165,16 +167,35 @@ const UploadPage: React.FC = () => {
     ) => {
         const files = e.target.files;
         if (!files) return;
+        // Reset input immediately so re-selecting the same file still fires onChange.
+        e.target.value = "";
 
-        // Convert FileList to array and create UploadedFile objects
-        const fileArray = Array.from(files).map((file) => ({
-            file,
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            title: "",
-            description: "",
-        }));
+        // Validate against the same limits the backend enforces so oversized or
+        // unsupported files are rejected here instead of failing at presign.
+        const kind: PortfolioUploadKind =
+            type === "resume" ? "resume" : type === "media" ? "image" : "video";
+        const rejected: string[] = [];
+        const fileArray: UploadedFile[] = [];
+        for (const file of Array.from(files)) {
+            const validationError = validatePortfolioUploadFile(kind, file);
+            if (validationError) {
+                rejected.push(`${file.name}: ${validationError}`);
+                continue;
+            }
+            fileArray.push({
+                file,
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                title: "",
+                description: "",
+            });
+        }
+
+        if (rejected.length > 0) {
+            alert(`Some files couldn't be added:\n\n${rejected.join("\n")}`);
+        }
+        if (fileArray.length === 0) return;
 
         if (type === "resume") {
             // Resume: directly set the first file (single file upload)
@@ -193,9 +214,6 @@ const UploadPage: React.FC = () => {
             // Video: route to pending state for metadata input
             setPendingVideoFiles(fileArray);
         }
-
-        // Reset input to allow uploading the same file again if needed
-        e.target.value = "";
     };
 
     /**

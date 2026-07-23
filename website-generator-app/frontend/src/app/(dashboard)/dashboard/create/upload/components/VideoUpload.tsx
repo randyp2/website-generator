@@ -2,6 +2,7 @@
 
 import { usePortfolioStore } from "@/stores/usePortfolioStore";
 import { UploadedFile } from "@/types/file";
+import { formatMaxSizeLabel } from "@/lib/portfolio/portfolioUploadPolicy";
 import { formatFileSize } from "@/utils/fileHelpers";
 import { motion } from "framer-motion";
 import React, { useState } from "react";
@@ -88,7 +89,9 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
         </div>
         <div>
           <h2 className="text-xl font-bold text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">Video Clips</h2>
-          <p className="text-sm text-white/60">MP3, MP4, MOV format</p>
+          <p className="text-sm text-white/60">
+            MP3, MP4, MOV • up to {formatMaxSizeLabel("video")}
+          </p>
         </div>
       </div>
 
@@ -112,7 +115,8 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
               Click to upload video clips
             </p>
             <p className="text-sm text-white/60">
-              Supports MP3, MP4, and MOV files (multiple allowed)
+              Supports MP3, MP4, and MOV files up to{" "}
+              {formatMaxSizeLabel("video")} each (multiple allowed)
             </p>
           </motion.div>
         </label>
