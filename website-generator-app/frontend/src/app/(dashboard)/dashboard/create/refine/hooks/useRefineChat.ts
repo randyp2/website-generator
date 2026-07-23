@@ -141,7 +141,19 @@ export const useRefineChat = ({
     const closeInsufficientCreditsModal = useCallback((): void => {
         setIsInsufficientCreditsModalOpen(false);
     }, []);
+
+    // One reservation covers the complete clarification, planning, and build
+    // workflow. The backend remains authoritative for session validity.
+    const getSessionId = (): string | null =>
+        usePortfolioStore.getState().refineSessionId;
+    const setSessionId = (sessionId: string | null): void =>
+        usePortfolioStore.getState().setRefineSessionId(sessionId);
+
     const ensurePortfolioRefinementAccess = async (): Promise<boolean> => {
+        if (getSessionId()) {
+            return true;
+        }
+
         const profile = await getProfileMeForUsageGuard(queryClient);
         if (
             hasBillingUsageAvailable(
@@ -162,13 +174,6 @@ export const useRefineChat = ({
             REFUND_REFRESH_DELAY_MS,
         );
     };
-
-    // Session id lives in the persisted store so a page refresh mid-conversation
-    // keeps the clarifier context. Read via getState() to avoid stale closures.
-    const getSessionId = (): string | null =>
-        usePortfolioStore.getState().refineSessionId;
-    const setSessionId = (sessionId: string | null): void =>
-        usePortfolioStore.getState().setRefineSessionId(sessionId);
 
     /**
      * Request a modification plan. Sends only the session id: the backend
