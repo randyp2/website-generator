@@ -28,11 +28,12 @@ import com.webgen.webgen_backend.portfolio.repository.GeneratedVersionRepository
 import com.webgen.webgen_backend.portfolio.repository.PortfolioRepository;
 import com.webgen.webgen_backend.portfolio.repository.PortfolioSectionRepository;
 import com.webgen.webgen_backend.portfolio.exception.RefineSessionExpiredException;
+import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -47,7 +48,11 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class BuilderServiceImpl implements BuilderService {
-    private final OpenAiChatModel openAiChatModel; // Uses primary (gpt-5)
+    @Resource(name = "portfolioSectionModel")
+    private ChatModel sectionModel;
+    @Resource(name = "portfolioSectionRepairModel")
+    private ChatModel sectionRepairModel;
+
     private final ClarifierService clarifierService;
     private final BuilderPromptBuilder builderPromptBuilder;
     private final BuilderResponseParser builderResponseParser;
@@ -186,10 +191,11 @@ public class BuilderServiceImpl implements BuilderService {
         while (attempt < maxRetries) {
             ++attempt;
             log.debug("Section refine attempt jobId={} sectionKey={} attempt={}/{}", jobId, sectionKey, attempt, maxRetries);
+            boolean isRetry = validation != null && !validation.isValid();
 
             // Build prompt (use retry prompt with errors if previous attempt failed validation)
             Prompt sectionPrompt;
-            if (validation == null || validation.isValid()) {
+            if (!isRetry) {
                 sectionPrompt = builderPromptBuilder.buildSingleSectionPrompt(
                         msg.getClarifierContext(),
                         msg.getExistingSection(),
@@ -209,7 +215,8 @@ public class BuilderServiceImpl implements BuilderService {
             // Call LLM
             long llmStart = System.currentTimeMillis();
             generateJobService.updateStatus(jobId, JobStatusDTO.Status.GENERATING);
-            ChatResponse response = openAiChatModel.call(sectionPrompt);
+            ChatModel activeModel = isRetry ? sectionRepairModel : sectionModel;
+            ChatResponse response = activeModel.call(sectionPrompt);
             String rawJson = response.getResult().getOutput().getText();
 
             log.debug("Section refine call completed jobId={} sectionKey={} llmMs={}",

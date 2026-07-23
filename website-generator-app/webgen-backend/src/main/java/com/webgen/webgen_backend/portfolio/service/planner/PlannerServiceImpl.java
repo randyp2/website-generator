@@ -14,9 +14,9 @@ import com.webgen.webgen_backend.portfolio.exception.RefineSessionExpiredExcepti
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -25,8 +25,8 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class PlannerServiceImpl implements PlannerService {
-    @Resource(name = "plannerModel")
-    private OpenAiChatModel openAiChatModel;
+    @Resource(name = "portfolioBlueprintModel")
+    private ChatModel blueprintModel;
 
     private final ClarifierService clarifierService;
     private final PlannerPromptBuilder plannerPromptBuilder;
@@ -58,7 +58,7 @@ public class PlannerServiceImpl implements PlannerService {
         Prompt prompt = plannerPromptBuilder.buildPrompt(context, sections, req.getAssets());
 
         long aiStart = System.currentTimeMillis();
-        ChatResponse response = openAiChatModel.call(prompt);
+        ChatResponse response = blueprintModel.call(prompt);
         log.debug("Planner model call completed portfolioId={} durationMs={}",
                 req.getPortfolioId(), System.currentTimeMillis() - aiStart);
         String rawJson = response.getResult().getOutput().getText();
