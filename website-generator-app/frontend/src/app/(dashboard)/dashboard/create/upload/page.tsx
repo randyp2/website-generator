@@ -22,7 +22,7 @@ import {
     type PortfolioUploadCandidate,
     type PortfolioUploadKind,
 } from "@/lib/portfolio/portfolioUploadClient";
-import { validatePortfolioUploadFile } from "@/lib/portfolio/portfolioUploadPolicy";
+import { consumePortfolioUploadSelection } from "@/lib/portfolio/portfolioUploadSelection";
 
 const UploadPage: React.FC = () => {
     const router = useRouter();
@@ -165,35 +165,17 @@ const UploadPage: React.FC = () => {
         e: React.ChangeEvent<HTMLInputElement>,
         type: "resume" | "media" | "video",
     ) => {
-        const files = e.target.files;
-        if (!files) return;
-        // Reset input immediately so re-selecting the same file still fires onChange.
-        e.target.value = "";
-
-        // Validate against the same limits the backend enforces so oversized or
-        // unsupported files are rejected here instead of failing at presign.
         const kind: PortfolioUploadKind =
             type === "resume" ? "resume" : type === "media" ? "image" : "video";
-        const rejected: string[] = [];
-        const fileArray: UploadedFile[] = [];
-        for (const file of Array.from(files)) {
-            const validationError = validatePortfolioUploadFile(kind, file);
-            if (validationError) {
-                rejected.push(`${file.name}: ${validationError}`);
-                continue;
-            }
-            fileArray.push({
-                file,
-                name: file.name,
-                size: file.size,
-                type: file.type,
-                title: "",
-                description: "",
-            });
-        }
+        const {
+            acceptedFiles: fileArray,
+            rejectedMessages,
+        } = consumePortfolioUploadSelection(e.currentTarget, kind);
 
-        if (rejected.length > 0) {
-            alert(`Some files couldn't be added:\n\n${rejected.join("\n")}`);
+        if (rejectedMessages.length > 0) {
+            alert(
+                `Some files couldn't be added:\n\n${rejectedMessages.join("\n")}`,
+            );
         }
         if (fileArray.length === 0) return;
 
